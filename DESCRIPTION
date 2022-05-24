@@ -1,0 +1,30 @@
+Package: toxvaldb09
+Type: Package
+Title: Builds the ToxValDB V9 Database
+Version: 1.0.1
+Author: Aswani Unikrishnan
+Maintainer: Ricahrd Judson <judson.richard@epa.gov>
+Description: The database has 2 main parts - toxval_source containing 
+    source data in separate tables, and the main toxval schema which
+    combines data from multiple sources into a single format
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+Imports: 
+  DBI, 
+  RMySQL, 
+  xlsx, 
+  openxlsx, 
+  dplyr, 
+  tidyr, 
+  stringr, 
+  tibble, 
+  janitor
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
