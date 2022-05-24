@@ -1,0 +1,509 @@
+
+#--------------------------------------------------------------------------------------
+#' Load new_oppt_table from toxval_source to toxval
+#'
+#' @param toxval.db The version of toxval into which the tables are loaded.
+#' @param source.db The source database to use.
+#' @param verbose If TRUE, print out extra diagnostic messages
+#'
+#' @export
+#--------------------------------------------------------------------------------------
+toxval.load.oppt <- function(toxval.db, source.db, verbose=F){
+  printCurrentFunction(toxval.db)
+  
+  #####################################################################
+  cat("start output log, log files for each source can be accessed from output_log folder\n")
+  #####################################################################
+  source <- "EPA OPPT"
+  
+  con1 <- file.path(toxval.config()$datapath,paste0(source,"_",Sys.Date(),".log"))
+  con1 <- log_open(con1)
+
+  con <- file(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"))
+  sink(con, append=TRUE)
+  sink(con, append=TRUE, type="message")
+
+  #####################################################################
+  cat("clean source_info by source\n")
+  #####################################################################
+  import.source.info.by.source(toxval.db, source)
+  #####################################################################
+  cat("clean by source\n")
+  #####################################################################
+  clean.toxval.by.source(toxval.db,source)
+
+  #####################################################################
+  cat("load data to res\n")
+  #####################################################################
+  query <- "select * from original_oppt_table"
+  
+  res <- runQuery(query,source.db,T,F)
+  res <- res[ , !(names(res) %in% c("source_id","clowder_id"))]  
+  
+  #print(names(res))
+  res$strain <- res$species
+  res <- generate.originals(toxval.db,res)
+  
+  res1 <- res 
+  res <- res1[!(is.na(res1$toxval_numeric)| res1$toxval_numeric == ""),]
+  
+  res <- res[is.element(res[,"study_type"],c("Acute Dermal Toxicity",
+                                             "Acute Inhalation Toxicity",
+                                             "Acute Oral Toxicity",
+                                             "Developmental Toxicity",
+                                             "Repeated-Dose Toxicity",
+                                             "Reproductive Toxicity",
+                                             "Reproductive/Developmental Toxicity")),]
+  
+  res[is.element(res,"#N/A")] <- "-"
+  
+  #####################################################################
+  cat("checks, finds and replaces non ascii characters in res with XXX\n")
+  #####################################################################
+  res <- fix.non_ascii(res)
+  # res$toxval_type <- enc2utf8(res$toxval_type)
+  # res$toxval_numeric <- enc2utf8(res$toxval_numeric)
+  approx_val <- grep("\\~",res$toxval_numeric)
+  
+  res[approx_val, "toxval_numeric"] <- gsub("(^\\~\\s*)(.*)","\\2",res[approx_val,"toxval_numeric"])
+  #res$toxval_numeric <- gsub("\\~","",res$toxval_numeric)
+  #####################################################################
+  cat("keep only standard toxval types and replace unwanted metadata from toxval_type field into dash\n")
+  #####################################################################
+  unique_types <-unique(res$toxval_type)
+  unique_types <- unique(gsub("^\\s+|\\s+$", "", unique_types))
+  toxval_type_values <- grep("^[A-Z]{0,6}[0-9]{0,6}$",unique_types ,value = T)
+  non_toxval_type_values <- grep(paste(toxval_type_values, collapse = "|"), res$toxval_type, value = T, invert = T)
+  res$toxval_type[res$toxval_type %in% non_toxval_type_values] <- "-"
+
+  #####################################################################
+  cat("remove entries with character values which are 'not established',
+      'no adequate data', 'not reported', 'not determined' from toxval_numeric\n")
+  ####################################################################
+  res[grep("^[a-zA-Z]+\\s+[a-zA-Z]+\\.*$", res$toxval_numeric, ignore.case = T),"toxval_numeric"] <- ""
+  res[grep("\\bno\\b|\\bnot\\b", res$toxval_numeric, ignore.case = T),"toxval_numeric"] <- ""
+  res[grep("^not established", res$toxval_numeric, ignore.case = T),"toxval_numeric"] <- ""
+
+  #####################################################################
+  cat("convert percentages into numeric values in toxval_numeric and apply % as unit in corresponding toxval_units\n")
+  ####################################################################
+  percent_rows <- grep(".*%", res$toxval_numeric, value = T)
+  res$toxval_units[which(res$toxval_numeric %in% percent_rows)] <- "%"
+  percent_num_values <- as.numeric(sub("%","", percent_rows))
+  res$toxval_numeric[res$toxval_numeric %in% percent_rows] <- percent_num_values
+
+  #####################################################################
+  cat("removing trailing special characters from toxval_numeric values\n")
+  ####################################################################
+  res$toxval_numeric <- gsub("\\s+$", "",res$toxval_numeric)
+
+  res[grep(".*[^a-zA-Z0-9]+$", res$toxval_numeric),"toxval_numeric"] <- gsub("(\\d+\\.*\\d*)(\\s*[^a-zA-Z0-9]+$)","\\1",res[grep(".*[^a-zA-Z0-9]+$", res$toxval_numeric),"toxval_numeric"])
+  #####################################################################
+  cat("fix range values in toxval_numeric\n")
+  ####################################################################
+  res[grep("\\d+\\.*\\d*\\s*\\-\\s*\\d*\\.*\\d*$", res$toxval_numeric),"toxval_numeric"] <- gsub("(^\\d+\\.*\\d*)(\\s*\\-\\s*\\d*\\.*\\d*$)", "\\1", res[grep("\\d+\\.*\\d*\\s*\\-\\s*\\d*\\.*\\d*$", res$toxval_numeric),"toxval_numeric"])
+  res[grep("\\d+\\.*\\d*\\s*\\/\\s*\\d*\\.*\\d*$", res$toxval_numeric),"toxval_numeric"] <- gsub("(^\\d+\\.*\\d*)(\\s*\\/\\s*\\d*\\.*\\d*$)", "\\1", res[grep("\\d+\\.*\\d*\\s*\\/\\s*\\d*\\.*\\d*$", res$toxval_numeric),"toxval_numeric"])
+
+  res[grep("\\d+\\.*\\d*\\s*XXX.*\\s*\\d*\\.*\\d*$", res$toxval_numeric),"toxval_numeric"] <- gsub("(^\\d+\\.*\\d*)(\\s*XXX.*\\s*\\d*\\.*\\d*$)", "\\1", res[grep("\\d+\\.*\\d*\\s*XXX.*\\s*\\d*\\.*\\d*$", res$toxval_numeric),"toxval_numeric"])
+
+
+
+  # 25013-15- 4 and 108-10- 1 in toxval_numeric, numeric data aquired from toxval_type field
+
+  res[which(res$toxval_numeric == "25013-15- 4" & res$toxval_type_original == "In an NTP assay, mouse lymphoma cells"),"toxval_numeric"] <- ""
+
+  res[grep("25013-15- 4", res$toxval_numeric),"toxval_type"] <- "lowest cytotoxic concentration"
+  res[grep("25013-15- 4", res$toxval_numeric),"toxval_units"] <- "ug/plate"
+  res[grep("25013-15- 4", res$toxval_numeric),"toxval_numeric"] <- "333"
+
+
+  res[grep("108-10- 1", res$toxval_numeric),"toxval_units"] <- "ug/plate"
+  res[grep("108-10- 1", res$toxval_numeric),"toxval_numeric"] <- "100"
+  #####################################################################
+  cat("micron unit values\n")
+  ####################################################################
+  res[grep("\\d+\\.*\\d*\\s*XXX.*\\s*$", res$toxval_numeric),"toxval_units"] <- "u"
+  res[grep("\\d+\\.*\\d*\\s*XXX.*\\s*$", res$toxval_numeric),"toxval_numeric"] <- gsub("(\\d+\\.*\\d*)(\\s*XXX.*\\s*$)","\\1",res[grep("\\d+\\.*\\d*\\s*XXX.*\\s*$", res$toxval_numeric),"toxval_numeric"])
+
+  #####################################################################
+  cat("Remove all comma within values\n")
+  ####################################################################
+  res$toxval_numeric <- gsub("^\\s+|\\s+$", "",res$toxval_numeric)
+  res[grep("^\\d+\\,\\d+$", res$toxval_numeric),"toxval_numeric"] <- gsub("(.*)(\\,)(.*)", "\\1\\3", res[grep("^\\d+\\,\\d+$", res$toxval_numeric),"toxval_numeric"])
+
+
+  #####################################################################
+  cat("hyphen to empty in toxval_numeric\n")
+  ####################################################################
+  res$toxval_numeric <- gsub("^\\-$", "", res$toxval_numeric)
+
+  # #####################################################################
+  # cat("find casrn and name values represented in toxval_numeric and replace them with empty\n")
+  # ####################################################################
+  # res[grep(".*\\-.*\\-.*",res$toxval_numeric),"toxval_numeric"] <- ""
+  # #####################################################################
+  # cat("replace the toxval_numeric cell values containing multiple values seperated by backslash,
+  #     standard hyphens and non standard hyphens with the lower concentration value \n")
+  # ####################################################################
+  # res$toxval_numeric <- gsub("^\\s+|\\s+$", "", res$toxval_numeric)
+  # res[grep("^0\\.0070 \\/ 0\\.0065$",res$toxval_numeric),"toxval_numeric"] <- 0.0065
+  # res[grep("^\\d+$|^\\d+\\.*\\d+$",res$toxval_numeric, invert = T),"toxval_numeric"] <- gsub("(^\\d+\\.*\\d*)(.*)(\\d+\\.*\\d*$)","\\1",res[grep("^\\d+$|^\\d+\\.*\\d+$",res$toxval_numeric, invert = T),"toxval_numeric"])
+  # res[grep(".*u$",res$toxval_numeric),"toxval_units"] <- gsub("(.*\\s+)(u$)","\\2",res[grep(".*u$",res$toxval_numeric),"toxval_numeric"])
+  # res[grep(".*u$",res$toxval_numeric),"toxval_numeric"] <- gsub("(.*)(\\s+u$)","\\1",res[grep(".*u$",res$toxval_numeric),"toxval_numeric"])
+  #
+
+  #####################################################################
+  cat("Saturated concentration of 2,5-dihydrothiophene 1,1-dioxide in air at 25oC in toxval numeric field\n")
+  ####################################################################
+
+  res[grep("[a-zA-Z]+",res$toxval_numeric),"toxval_numeric"] <- ""
+
+  #####################################################################
+  cat("convert data types for toxval_numeric and study duration value as numeric\n")
+  ####################################################################
+  res$toxval_numeric <- as.numeric(res$toxval_numeric)
+  res$study_duration_value[res$study_duration_value == "-"] <- ""
+  res$study_duration_value <- as.numeric(res$study_duration_value)
+  #print(View(res))
+  res["oppt_id"] <- c(1:length(res[,1]))
+  res <- res[c("oppt_id",names(res[-32]))]
+
+  #####################################################################
+  cat("map species and strain to oppt_species_dictionary \n")
+  #####################################################################
+
+  query <- "select * from oppt_species_dictionary"
+
+
+  species_table <- runQuery(query,source.db,T,F)
+
+  #res$toxval_units <- enc2utf8(res$toxval_units)
+
+  new_res <- res[,-1]
+  new_res$original_species <-new_res$species
+
+  for(i in 1:nrow(species_table)) {
+    valold <- species_table[i,1]
+    valnew <- species_table[i,2]
+    new_res[is.element(new_res$original_species,valold),"species"] <- valnew
+  }
+
+  #new_res$species[new_res$original_species %in% species_table$original_species] <- species_table$new_species[new_res$original_species %in% species_table$original_species]
+  new_res$species[!new_res$original_species %in% species_table$original_species] <- "-"
+
+  for(i in 1:nrow(species_table)) {
+    valold <- species_table[i,1]
+    valnew <- species_table[i,3]
+    new_res[is.element(new_res$original_species,valold),"strain"] <- valnew
+  }
+
+  #new_res$strain[new_res$original_species %in% species_table$original_species] <- species_table$strain[new_res$original_species %in% species_table$original_species]
+  new_res$strain[!new_res$original_species %in% species_table$original_species] <- "-"
+  new_res$species[which(is.na(new_res$species))] <- "-"
+  new_res$strain[which(is.na(new_res$strain))] <- "-"
+  new_res$strain[grep("^\\s+",new_res$strain)] <- gsub("^\\s+","",new_res$strain[grep("^\\s+",new_res$strain)])
+  new_res$strain[new_res$strain == ""] <- "-"
+  #new_res$strain <- enc2utf8(new_res$strain)
+  #print(unique(new_res$strain))
+  #
+  new_res$exposure_method <- "-"
+  new_res$risk_assessment_class <- "-"
+  for(i in 1:nrow(new_res)) {
+    for(col in names(new_res)) {
+      new_res[i,col] <- str_trim(new_res[i,col],"both")
+    }
+    er0 <- new_res[i,"exposure_route"]
+    st0 <- new_res[i,"study_type"]
+    if(is.element(er0,c("vapor","gavage","drinking water","10% solution","liquid diet"))) new_res[i,"exposure_method"] <- er0
+    if(st0=="Acute Dermal Toxicity") {new_res[i,"study_type"]<-"acute";new_res[i,"exposure_route"]<-"dermal";new_res[i,"risk_assessment_class"]<-"acute"}
+    if(st0=="Acute Inhalation Toxicity") {new_res[i,"study_type"]<-"acute";new_res[i,"exposure_route"]<-"inhalation";new_res[i,"risk_assessment_class"]<-"acute"}
+    if(st0=="Acute Oral Toxicity") {new_res[i,"study_type"]<-"acute";new_res[i,"exposure_route"]<-"oral";new_res[i,"risk_assessment_class"]<-"acute"}
+    if(st0=="Developmental Toxicity") {new_res[i,"study_type"]<-"developmental";new_res[i,"risk_assessment_class"]<-"developmental"}
+    if(st0=="Repeated-Dose Toxicity") {new_res[i,"study_type"]<-"repeat dose";new_res[i,"risk_assessment_class"]<-"repeat dose"}
+    if(st0=="Reproductive Toxicity") {new_res[i,"study_type"]<-"reproductive";new_res[i,"risk_assessment_class"]<-"reproductive"}
+    if(st0=="Reproductive/Developmental Toxicity") {new_res[i,"study_type"]<-"reproductive developmental";new_res[i,"risk_assessment_class"]<-"reproductive developmental"}
+    if(is.na(new_res[i,"exposure_route"])) {new_res[i,"exposure_route"] <- "-"; new_res[i,"exposure_method"] <- "-"}
+    else if(new_res[i,"exposure_route"]=="Oral - other") {new_res[i,"exposure_route"] <- "oral"; new_res[i,"exposure_method"] <- "other"}
+    else if(new_res[i,"exposure_route"]=="Oral diet") {new_res[i,"exposure_route"] <- "oral"; new_res[i,"exposure_method"] <- "diet"}
+    else if(new_res[i,"exposure_route"]=="Oral drinking water") {new_res[i,"exposure_route"] <- "oral"; new_res[i,"exposure_method"] <- "drinking water"}
+    else if(new_res[i,"exposure_route"]=="Oral gavage") {new_res[i,"exposure_route"] <- "oral"; new_res[i,"exposure_method"] <- "gavage"}
+    else if(new_res[i,"exposure_route"]=="Other") {new_res[i,"exposure_route"] <- "other"; new_res[i,"exposure_method"] <- "other"}
+
+    tvt <- new_res[i,"toxval_type"]
+    if(contains(tvt,"LD50")) tvt <- "LD50"
+    else if(contains(tvt,"LC50")) tvt <- "LC50"
+    else if(contains(tvt,"LOAEC")) tvt <- "LOAEC"
+    else if(contains(tvt,"LOAEL")) tvt <- "LOAEL"
+    else if(contains(tvt,"NOAEC")) tvt <- "NOAEC"
+    else if(contains(tvt,"NOAEL")) tvt <- "NOAEL"
+    new_res[i,"toxval_type"] <- tvt
+
+    tvu <- new_res[i,"toxval_units"]
+    if(contains(tvu,"mg/L")) tvu <- "mg/L"
+    else if(contains(tvu,"mg/kg")) tvu <- "mg/kg-day"
+    else if(contains(tvu,"ppm")) tvu <- "ppm"
+    new_res[i,"toxval_units"] <- tvu
+    if(contains(new_res[i,"sex"],"sex")) new_res[i,"sex"] <- "male and female"
+  }
+  new_res <- new_res[is.element(new_res[,"toxval_type"],c("LD50","LC50","LOAEC","LOAEL","NOAEC","NOAEL")),]
+  new_res <- new_res[is.element(new_res[,"toxval_units"],c("mg/L","mg/kg-day","ppm")),]
+  new_res <- new_res[!is.na(new_res[,"toxval_numeric"]),]
+  new_res[,"toxval_numeric"] <- as.numeric(new_res[,"toxval_numeric"])
+  new_res$study_duration_value <- as.numeric(new_res$study_duration_value)
+
+  res <- new_res
+
+  names.list <- c("source_hash","casrn","name","toxval_type","toxval_numeric_qualifier","toxval_numeric","toxval_units",
+                  "study_duration_value","study_duration_units","species","strain","sex",
+                  "exposure_route","exposure_method","study_type","srcf","critical_effect","risk_assessment_class",
+                  "generation","toxval_type_original","toxval_numeric_qualifier_original","toxval_numeric_original",
+                  "toxval_units_original","study_duration_value_original","study_duration_units_original",
+                  "strain_original","sex_original","exposure_route_original","exposure_method_original","study_type_original",
+                  "critical_effect_original")
+
+
+  res <- res[,(names(res)%in% names.list)]
+
+
+  #print(str(res))
+
+
+  # trims leading and trailing whitespaces from the dataframe
+  res <- data.frame(lapply(res, function(x) if(class(x)=="character") trimws(x) else(x)), stringsAsFactors=F, check.names=F)
+  #print(str(res))
+
+  res[grep("\\\\",res$name),"name"] <- gsub("\\\\","",res[grep("\\\\",res$name),"name"])
+  names(res)[is.element(names(res),"srcf")] <- "document_name"
+
+  #####################################################################
+  cat("add other columns to res\n")
+  #####################################################################
+  res$source <- source
+  res$year <- -1
+  for(i in 1:nrow(res)) {
+    val <- res[i,"document_name"]
+    for(year in 1990:2018) {
+      syear <- as.character(year)
+      if(contains(val,syear)) res[i,"year"] <- year
+    }
+  }
+
+  res$subsource <- "EPA OPPT"
+  res$human_eco <- "human health"
+  res$media <- "-"
+  res$details_text <- "OPPT Details"
+  name.list <- names(res)
+  name.list[is.element(name.list,"species")] <- "species_original"
+  names(res) <- name.list
+  res[,"species_original"] <- tolower(res[,"species_original"])
+  res$source_url <- "https://ofmpub.epa.gov/oppthpv/hpv_ez.html_menu"
+  res <- fill.toxval.defaults(toxval.db,res)
+  #res <- generate.originals(toxval.db,res)
+  res$toxval_numeric_original <- res$toxval_numeric
+  res <- unique(res)
+  #####################################################################
+  cat("add toxval_id to res\n")
+  #####################################################################
+  print(dim(res))
+
+  count <- runQuery("select count(*) from toxval",toxval.db)[1,1]
+  if(count==0) tid0 <- 1
+  else tid0 <- runQuery("select max(toxval_id) from toxval",toxval.db)[1,1] + 1
+  tids <- seq(from=tid0,to=tid0+nrow(res)-1)
+  res$toxval_id <- tids
+
+  #####################################################################
+  cat("map chemicals\n")
+  #####################################################################
+  res <- res[!is.na(res[,"casrn"]),]
+  name.list <- c("casrn","name",names(res)[!is.element(names(res),c("casrn","name"))])
+  res <- res[,name.list]
+  casrn.list <- res[,c("casrn","name")]
+  cid.list <- get.cid.list.toxval(toxval.db, casrn.list,source)
+  res$chemical_id <- cid.list$chemical_id
+  #res <- merge(res,cid.list)
+  res <- res[,!is.element(names(res),c("casrn","name"))]
+
+
+  #####################################################################
+  cat("pull out record source to refs\n")
+  #####################################################################
+  refs <- res[,c("toxval_id","source","year","document_name")]
+  #####################################################################
+  cat("add extra columns to refs\n")
+  #####################################################################
+  refs$record_source_type <- "government document"
+  refs$record_source_note <- "-"
+  refs$record_source_level <- "primary (risk assessment values)"
+  #refs$url <- "https://www.atsdr.cdc.gov/mrls/mrllist.asp"
+  #refs$year <- "2019"
+
+  #####################################################################
+  cat("delete unused columns from res\n")
+  #####################################################################
+  res <- res[,!is.element(names(res),c("document_name"))]
+
+  #####################################################################
+  cat("load res and refs to the database\n")
+  #####################################################################
+  res <- unique(res)
+  refs <- unique(refs)
+  res$datestamp <- Sys.Date()
+  for(i in 1:nrow(res)) res[i,"toxval_uuid"] <- UUIDgenerate()
+  for(i in 1:nrow(refs)) refs[i,"record_source_uuid"] <- UUIDgenerate()
+  runInsertTable(res, "toxval", toxval.db, verbose)
+  runInsertTable(refs, "record_source", toxval.db, verbose)
+
+  #####################################################################
+  cat("load chemical info to chemical_list\n")
+  #####################################################################
+  toxval.load.chemical.list.by.source(toxval.db, source)
+
+
+  #####################################################################
+  cat("map chemicals to dsstox\n")
+  #####################################################################
+  map.chemical.to.dsstox.by.source(toxval.db, source)
+  table.list <- c("toxval","cancer_summary","genetox_summary","genetox_details","skin_eye","chemical_list","bcfbaf")
+  for(table in table.list) set.dtxsid.by.source(toxval.db,table,source)
+
+  # #####################################################################
+  # cat("fix species by source\n")
+  # #####################################################################
+  # fix.species.by.source(toxval.db, source)
+  
+  #####################################################################
+  cat("fix species by source\n")
+  #####################################################################
+  fix.species.ecotox.by.source(toxval.db, source)
+  
+  
+  #####################################################################
+  cat("fix human_eco by source\n")
+  #####################################################################
+  fix.human_eco.by.source(toxval.db, source, reset = T)
+
+  #####################################################################
+  cat("fix toxval_numeric_qualifier by source\n")
+  #####################################################################
+  fix.toxval_numeric_qualifier.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix exposure_route by type and source\n")
+  #####################################################################
+  fix.exposure_route.by.type.new.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix exposure_form by source\n")
+  #####################################################################
+  fix.exposure_form.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix priority_id by source\n")
+  #####################################################################
+  fix.priority_id.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix all.parameters(exposure_method, exposure_route, sex,strain,
+      study_duration_class, study_duration_units, study_type,toxval_type,
+      exposure_form, media, toxval_subtype) by source\n")
+  #####################################################################
+  fix.all.param.new.by.source(toxval.db, source)
+  
+  #####################################################################
+  cat("fix generation by source\n")
+  #####################################################################
+  fix.generation.by.source(toxval.db, source)
+  
+  
+  #####################################################################
+  cat("fix critical_effect by source\n")
+  #####################################################################
+  fix.critical_effect.icf.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix units by source\n")
+  #####################################################################
+  fix.units.new.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix risk assessment class by source\n")
+  #####################################################################
+
+  fix.risk_assessment_class.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fill chemical by source\n")
+  #####################################################################
+  fill.chemical.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("export missing rac by source\n")
+  #####################################################################
+  export.missing.rac.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix empty cells to hyphen by source\n")
+  #####################################################################
+  fix.empty.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix empty cells in record source to hyphen by source\n")
+  #####################################################################
+  fix.empty.record_source.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("set toxval defaults globally by source\n")
+  #####################################################################
+  fill.toxval.defaults.global.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix qa status by source\n")
+  #####################################################################
+  fix.qa_status.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix hyphen cells to 'Not Specified' by source\n")
+  #####################################################################
+  fix.hyphen.by.source(toxval.db, source)
+  
+  
+  #####################################################################
+  cat("set hash toxval by source\n")
+  #####################################################################
+  set.hash.toxval.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("set hash record_source by source\n")
+  #####################################################################
+  set.hash.record_source.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("map hash record_source by source\n")
+  #####################################################################
+  map.hash.record_source.by.source(toxval.db, source )
+
+  #####################################################################
+  cat("perform extra steps if any\n")
+  #####################################################################
+
+  #####################################################################
+  cat("stop output log \n")
+  #####################################################################
+  closeAllConnections()
+  log_close()
+
+  output_message <- read.delim(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"), stringsAsFactors = F, header = F)
+  names(output_message) <- "message"
+
+  output_log <- read.delim(paste0(toxval.config()$datapath,"log/",source,"_",Sys.Date(),".log"), stringsAsFactors = F, header = F)
+  names(output_log) <- "log"
+
+  new_log <- log_message(output_log, output_message[,1])
+  writeLines(new_log, paste0(toxval.config()$datapath,"output_log/",source,"_",Sys.Date(),".txt"))
+
+
+  #####################################################################
+  cat("finish\n")
+  #####################################################################
+}
