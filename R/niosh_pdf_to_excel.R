@@ -5,15 +5,17 @@ library('shiny')
 library('miniUI')
 
 #--------------------------------------------------------------------------------------
-# code to create niosh_IDLH_2020.xlsx from CDC - Index of Chemicals - NIOSH Publications and Products.pdf produced 
+# code to create niosh_IDLH_2020.xlsx from CDC - Index of Chemicals - NIOSH Publications and Products.pdf produced
 # from saving the webpage(https://www.cdc.gov/niosh/idlh/intridl4.html) as pdf in ../niosh/niosh_files
+#' @title niosh.pdf.to.excel
+#' @description Conversion of NIOSH pdf to Excel file
 #' @param infile The input file ../niosh/niosh_files/CDC - Index of Chemicals - NIOSH Publications and Products.pdf
 
 
 #--------------------------------------------------------------------------------------
 niosh.pdf.to.excel = function(infile){
   printCurrentFunction()
-  
+
   # table_coordinates provides area dimensions to create niosh table
   table_coordinates <- locate_areas(infile)
 
@@ -35,10 +37,10 @@ niosh.pdf.to.excel = function(infile){
   niosh_table <- lapply(niosh_table, setNames, names_niosh_table)
 
   # combine all the tables
-  clean_niosh_table <- reduce(niosh_table, bind_rows) 
+  clean_niosh_table <- reduce(niosh_table, bind_rows)
   write.xlsx(clean_niosh_table, "raw_niosh_table1.xlsx")
 
-  # fix casrn metadata 
+  # fix casrn metadata
   casrn_details_cols <- grep("[a-zA-Z]", clean_niosh_table$casrn)
   casrn_details_not_na <- casrn_details_cols[clean_niosh_table$casrn[casrn_details_cols] != "n/a"]
 
@@ -48,7 +50,7 @@ niosh.pdf.to.excel = function(infile){
 
   for (i in casrn_details_not_na){
     df1[i-1,] <- unname(mapply(paste, sep = " ", df1[i-1,], df1[i,]))
-  
+
   }
 
   # fix new_updated_values_2016-present metadata
@@ -56,7 +58,7 @@ niosh.pdf.to.excel = function(infile){
 
   for (i in new_values_details_cols){
     df1[i-1,] <- unname(mapply(paste, sep = " ", df1[i-1,], df1[i,]))
-  
+
   }
 
   # remove extra rows of metadata after pasting it with the original value
@@ -79,7 +81,7 @@ niosh.pdf.to.excel = function(infile){
   old_value_details <- old_value_details_cols[df1$IDLH_value_1994[old_value_details_cols] != "Unknown"]
   for (i in old_value_details){
     df1[i-1,] <- unname(mapply(paste, sep = " ", df1[i-1,], df1[i,]))
-  
+
   }
   # remove extra rows of metadata after pasting it with the original value
   df1 <- df1[!(rownames(df1) %in% old_value_details),]
@@ -93,7 +95,7 @@ niosh.pdf.to.excel = function(infile){
   df1[num_details,"toxval_numeric_details"] <- gsub("^.*[[:alnum:]]\\s*(\\(.*\\))", "\\1", df1[num_details,"toxval_numeric"])
   df1[num_details,"toxval_numeric"] <- gsub("(^.*[[:alnum:]]\\s*)\\(.*\\)$", "\\1", df1[num_details,"toxval_numeric"])
 
-  #create field toxval units 
+  #create field toxval units
   df1$toxval_units <- gsub("^\\d+|^\\d+\\.\\d+|^\\d+\\,\\d+","",df1$toxval_numeric)
   df1$toxval_units <- gsub("^\\s+|\\s+$", "", df1$toxval_units)
 
