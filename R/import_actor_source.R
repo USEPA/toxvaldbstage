@@ -9,21 +9,21 @@ library('tidyr')
 #' @param do.init if TRUE, read the data in from the res_actor_2021q4 database and set up the matrix
 #' @export
 #--------------------------------------------------------------------------------------
-import_actor_source <- function(toxval.db,infile,filepath verbose=F) {
+import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
   printCurrentFunction(toxval.db)
-  
+
   #####################################################################
   cat("Extract ACToR data based on the assays listed in the input file as useme 1 \n")
   #####################################################################
-  
+
   assay_dict <- read.xlsx(infile)
   assay_dict_to_use <- assay_dict[which(assay_dict$useme == 1),]
-  
+
   assay_test <- unique(assay_dict_to_use$assay_id)
   # testing with a subset of data
   assay_test <- assay_test[225:230]
-  
-  
+
+
   actor_tables <- list()
   for(i in 1:length(assay_test)) {
     query <- paste0("SELECT DISTINCT f.casrn,h.name ,a.source, i.url,a.source_name_aid ,g.source_name_sid, g.source_name_cid,a.assay_id,a.description as assay_description, b.assay_component_id, a.name as assay_name,
@@ -64,23 +64,23 @@ import_actor_source <- function(toxval.db,infile,filepath verbose=F) {
     actor_tables[[i]] <- res1
 
   }
-  
-  
+
+
   # name each table in the list of df's based on the names represented in source_name_sid column
   table_names <- unique(unlist(lapply(actor_tables, '[[', "source_name_aid")))
   table_names <- as.character(table_names)
   names(actor_tables) <- table_names
-  
+
   # create new columns for each value represented in assay_component_name field
   col_names <- list()
   for (i in 1:length(table_names)){
     col_names[[i]] <- unique(unlist(lapply(actor_tables[i], '[[', "assay_component_name")))
     actor_tables[[i]][col_names[[i]]] <- NA
   }
-  
+
   # changing dot in assay_component_name column values to underscore
-  
-  # multiple spaces and dots to one 
+
+  # multiple spaces and dots to one
   actor_tables <- lapply(actor_tables, function(x) {
     x[,"assay_component_name"] <- gsub("([\\.\\s])\\1+", "\\1", x[,"assay_component_name"], perl=TRUE)
     return(x)
@@ -90,22 +90,22 @@ import_actor_source <- function(toxval.db,infile,filepath verbose=F) {
     x[,"assay_component_name"] <- str_replace_all(x[,"assay_component_name"],"\\s+|\\.", "_")
     return(x)
   })
-  
+
   actor_tables <- lapply(actor_tables, function(x) {
     colnames(x) <- gsub("([\\.\\s])\\1+", "\\1", colnames(x), perl=TRUE)
     return(x)
   })
-  
+
   actor_tables <- lapply(actor_tables, function(x) {
     colnames(x) <- str_replace_all(colnames(x),"\\s+|\\.+", "_")
     return(x)
   })
-  
+
   print(names(actor_tables))
   #print(View(actor_tables[[1]]))
-  
+
   # # write each df to individual excel files
-  # 
+  #
   # for(i in seq_along(actor_tables)) {
   #   write.xlsx(actor_tables[[i]], paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/",names(actor_tables)[i], ".xlsx"))
   # }
@@ -254,22 +254,22 @@ import_actor_source <- function(toxval.db,infile,filepath verbose=F) {
     }
   }
 
-  # read in the newly created actor files from ACToR_2021 folder in ACToR_Replacements 
-  
+  # read in the newly created actor files from ACToR_2021 folder in ACToR_Replacements
+
   files.list <- list.files(path = filepath, pattern = "*.xlsx")
   any_temp_files <- grep("^\\~\\$.*", files.list, value = T)
   files.list <- files.list[! files.list %in% any_temp_files]
   files.list <- paste0( filepath, '/',files.list)
   res <- lapply(files.list,read.xlsx)
-  
+
   names.list <- gsub("(.*)(\\.xlsx)","\\1",files.list)
-  
+
   # insert the files in source db
-  
+
   stop = FALSE
   for( i in 1:length(res)){
     for (j in 1:length(names.list)){
-      
+
       runInsertTable(res[[i]],names.list[j],toxval.db,do.halt=T,verbose=F)
       i <- i+1
       if (i == length(res)+1){
@@ -279,7 +279,7 @@ import_actor_source <- function(toxval.db,infile,filepath verbose=F) {
     }
     if (stop){break}
   }
-  
-  
-  
-}    
+
+
+
+}
