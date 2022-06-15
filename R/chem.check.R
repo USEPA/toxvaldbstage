@@ -72,7 +72,7 @@ chem.check <- function(res0,
   indir = "../chemcheck/"
   if(is.null(source)) file = paste0(indir,"chemcheck no source.xlsx")
   else file = paste0(indir,"chemcheck ",source,".xlsx")
-  openxlsx::write.xlsx(ccheck,file)
+  if(nrow(ccheck)>0) openxlsx::write.xlsx(ccheck,file)
 
   if(!name.OK) cat("Some names fixed\n")
   else cat("All names OK\n")
