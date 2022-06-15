@@ -51,8 +51,7 @@ import_chiu_source <- function(db="dev_toxval_source_v5",
   #####################################################################
   cat("Build the hash key and load the data \n")
   #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"source_chiu",F,F,res)
+  toxval_source.hash.and.load(db,source,"source_chiu",F,T,res)
 }
 
 

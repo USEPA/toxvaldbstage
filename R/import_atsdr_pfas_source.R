@@ -446,14 +446,25 @@ import_atsdr_pfas_source <- function(db,
   #####################################################################
   source = "ATSDR PFAS"
   res = as.data.frame(all_res)
+  res = subset(res,select=-c(atsdr_pfas_id))
+  res$source = source
   res$clowder_id = "-"
+  res$document_name = "-"
   res = fix.non_ascii.v2(res,source)
   res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")
+
+  #####################################################################
+  cat("Set the default values for missing data\n")
+  #####################################################################
+  res = source_set_defaults(res,source)
+
+  #####################################################################
+  cat("Set the clowder_id and document name\n")
+  #####################################################################
+  res = set_clowder_id(res,source)
+
   #####################################################################
   cat("Build the hash key and load the data \n")
   #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"new_atsdr_pfas",F,F,res)
-
-  return(1)
+  toxval_source.hash.and.load(db,source,"source_atsdr_pfas",F,T,res)
 }
