@@ -441,30 +441,10 @@ import_atsdr_pfas_source <- function(db,
   all_res[grep("\\[",all_res$critical_effect),"critical_effect"] <- gsub("\\[","(",all_res[grep("\\[",all_res$critical_effect),"critical_effect"])
   all_res[grep("\\]",all_res$critical_effect),"critical_effect"] <- gsub("\\]",")",all_res[grep("\\]",all_res$critical_effect),"critical_effect"])
 
-  #####################################################################
-  cat("Do the chemical checking\n")
-  #####################################################################
-  source = "ATSDR PFAS"
-  res = as.data.frame(all_res)
-  res = subset(res,select=-c(atsdr_pfas_id))
-  res$source = source
-  res$clowder_id = "-"
-  res$document_name = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")
+  all_res = subset(all_res,select=-c(atsdr_pfas_id))
 
   #####################################################################
-  cat("Set the default values for missing data\n")
+  cat("Prep and load the data\n")
   #####################################################################
-  res = source_set_defaults(res,source)
-
-  #####################################################################
-  cat("Set the clowder_id and document name\n")
-  #####################################################################
-  res = set_clowder_id(res,source)
-
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  toxval_source.hash.and.load(db,source,"source_atsdr_pfas",F,T,res)
+  source_prep_and_load(db,source="ATSDR PFAS",table="source_atsdr_pfas",res=all_res,F,T,T)
 }

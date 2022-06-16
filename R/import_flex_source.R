@@ -32,58 +32,63 @@ import_flex_source <- function(db,
     res0 = res[[i]]
     res0 = res0[!is.element(res0$casrn,"NOCAS"),]
     source = res0[1,"source"]
-    res0 = fix.non_ascii.v2(res0,source)
-
-    cat("-------------------------------\n",nres,"\n",source,"\n-------------------------------\n")
+    table = paste0("source_",nres)
+    cat("-------------------------------\n",nres,":",source,":",table,"\n-------------------------------\n")
     #####################################################################
-    cat("Do the chemical checking\n")
+    cat("Prep and load the data\n")
     #####################################################################
-    res0 = as.data.frame(res0)
-    res0$clowder_id = "-"
-    res0 = fix.non_ascii.v2(res0,source)
-    res0 = source_chemical.process(db,res0,source,chem.check.halt,casrn.col="casrn",name.col="name")
-
-    #####################################################################
-    cat("Set the default values for missing data\n")
-    #####################################################################
-    res0 = source_set_defaults(res0,source)
-
-    #####################################################################
-    cat("Set the clowder_id and document name\n")
-    #####################################################################
-    res0 = set_clowder_id(res0,source)
-
-    #####################################################################
-    cat("Build the hash key and load the data \n")
-    #####################################################################
-    toxval_source.hash.and.load(db,source,nres,F,F,res0)
-  }
-
-  return()
-  ############################################################################
-  # old code
-  ############################################################################
-  res <- lapply(res, cbind, clowder_id = c("-"))
-  res <- lapply(res, cbind, source_hash = c("-"))
-
-  for(i in 1:length(res)){
-    res[[i]]$source_id <- seq_along(res[[i]][,1])
-  }
-
-  for(i in 1:length(res)){
-    res[[i]] <- res[[i]][,c("source_id", "source_hash","clowder_id", names(res[[i]])[!names(res[[i]]) %in% c("source_id", "source_hash","clowder_id") ])]
-  }
-
-  stop = FALSE
-  for( i in 1:length(res)){
-    for (j in 1:length(names.list)){
-      ###runInsertTable(res[[i]],names.list[j],db,do.halt=T,verbose=F)
-      i <- i+1
-      if (i == length(res)+1){
-        stop = TRUE
-        break
-      }
-    }
-    if (stop){break}
+    source_prep_and_load(db,source=source,table=table,res=res0,F,T,T)
   }
 }
+#   #####################################################################
+#   cat("Do the chemical checking\n")
+#   #####################################################################
+#   res0 = as.data.frame(res0)
+#   res0$clowder_id = "-"
+#   res0 = fix.non_ascii.v2(res0,source)
+#   res0 = source_chemical.process(db,res0,source,chem.check.halt,casrn.col="casrn",name.col="name")
+#
+#   #####################################################################
+#   cat("Set the default values for missing data\n")
+#   #####################################################################
+#   res0 = source_set_defaults(res0,source)
+#
+#   #####################################################################
+#   cat("Set the clowder_id and document name\n")
+#   #####################################################################
+#   res0 = set_clowder_id(res0,source)
+#
+#   #####################################################################
+#   cat("Build the hash key and load the data \n")
+#   #####################################################################
+#   toxval_source.hash.and.load(db,source,nres,F,F,res0)
+#}
+#
+# return()
+# ############################################################################
+# # old code
+# ############################################################################
+# res <- lapply(res, cbind, clowder_id = c("-"))
+# res <- lapply(res, cbind, source_hash = c("-"))
+#
+# for(i in 1:length(res)){
+#   res[[i]]$source_id <- seq_along(res[[i]][,1])
+# }
+#
+# for(i in 1:length(res)){
+#   res[[i]] <- res[[i]][,c("source_id", "source_hash","clowder_id", names(res[[i]])[!names(res[[i]]) %in% c("source_id", "source_hash","clowder_id") ])]
+# }
+#
+# stop = FALSE
+# for( i in 1:length(res)){
+#   for (j in 1:length(names.list)){
+#     ###runInsertTable(res[[i]],names.list[j],db,do.halt=T,verbose=F)
+#     i <- i+1
+#     if (i == length(res)+1){
+#       stop = TRUE
+#       break
+#     }
+#   }
+#   if (stop){break}
+# }
+#}

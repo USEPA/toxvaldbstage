@@ -983,44 +983,5 @@ import_atsdr_pfas_2021_source <- function(db,
   cat("Prep and load the data\n")
   #####################################################################
   source_prep_and_load(db,source="ATSDR PFAS 2021",table="source_atsdr_pfas_2021",res=new_res,F,T,T)
-
-
-  #  res$source = source
-  # res$clowder_id = "-"
-  # res$document_name = "-"
-  # res$qc_status = "-"
-  # res = fix.non_ascii.v2(res,source)
-  # res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")
-  #
-  # #####################################################################
-  # cat("Set the default values for missing data\n")
-  # #####################################################################
-  # res = source_set_defaults(res,source)
-  #
-  # #####################################################################
-  # cat("Set the clowder_id and document name\n")
-  # #####################################################################
-  # res = set_clowder_id(res,source)
-  #
-  # #####################################################################
-  # cat("Build the hash key and load the data \n")
-  # #####################################################################
-  # toxval_source.hash.and.load(db,source,"source_atsdr_pfas_2021",F,T,res)
-  #
-
-  #
-  # #####################################################################
-  # cat("Do the chemical checking\n")
-  # #####################################################################
-  # source = "ATSDR PFAS 2021"
-  # res = as.data.frame(new_res)
-  # res = fix.non_ascii.v2(res,source)
-  # res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")
-  # #####################################################################
-  # cat("Build the hash key and load the data \n")
-  # #####################################################################
-  # res = subset(res,select=-c(chemical_index))
-  # toxval_source.hash.and.load(db,source,"source_atsdr_pfas_2021",F,T,res)
-  # return(1)
 }
 
