@@ -147,6 +147,13 @@ set_clowder_id <- function(res,source) {
     cat("clowder_id and document_name set for ",source,"\n")
     return(res)
   }
+  if(is.element(source,c("DOD ERED"))) {
+    cat("This is a source that needs to get fixed clowder_id code\n")
+    res$clowder_id="-"
+    res$document_name="-"
+    cat("clowder_id and document_name set for ",source,"\n")
+    return(res)
+  }
 
   ##########################################################
   cat("Do the non-easy sources\n")
