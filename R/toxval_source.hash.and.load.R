@@ -20,6 +20,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
 
   if(is.element("chemical_index",names(res))) res = subset(res,select=-c(chemical_index))
   res$source_hash = "-"
+  cat("dimension of res:",dim(res),"\n")
   #####################################################################
   cat("Build the hash key \n")
   #####################################################################
@@ -61,6 +62,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   to.add = nlist[!is.element(nlist,nlist1)]
   if(length(to.add)>0) {
     cat("columns to add:",to.add,"\n")
+    browser()
     temp = as.data.frame(matrix(nrow=nrow(res),ncol=length(to.add)))
     names(temp) = to.add
     temp[] = "-"
