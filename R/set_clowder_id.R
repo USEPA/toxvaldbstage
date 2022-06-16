@@ -123,12 +123,34 @@ set_clowder_id <- function(res,source) {
     cat("clowder_id and document_name set for ",source,"\n")
     return(res)
   }
-  if(is.element(source,c("OSHA Air Contaminants"))) {
+  if(is.element(source,c("OSHA Air contaminants"))) {
     res$clowder_id="61fac10de4b04a563fdc9c8d"
     res$document_name="ToxValQA29180809_OSHA_TABLEZ-1LimitsforAirContaminants.pdf"
     cat("clowder_id and document_name set for ",source,"\n")
     return(res)
   }
+  if(is.element(source,c("Mass. Drinking Water Standards"))) {
+    res$clowder_id="-"
+    res$document_name="-"
+    cat("clowder_id and document_name set for ",source,"\n")
+    return(res)
+  }
+  if(is.element(source,c("California DPH"))) {
+    res$clowder_id="-"
+    res$document_name="-"
+    cat("clowder_id and document_name set for ",source,"\n")
+    return(res)
+  }
+  if(is.element(source,c("FDA CEDI"))) {
+    res$clowder_id="619d3668e4b0993a3937ea1c"
+    res$document_name="ToxValQA29176904_FDA_CumulativeEstimatedDailyIntake.pdf"
+    cat("clowder_id and document_name set for ",source,"\n")
+    return(res)
+  }
+
+  ##########################################################
+  cat("Do the non-easy sources\n")
+  ##########################################################
 
   file = "../clowder_v3/toxval_document_map_icf.xlsx"
   map.icf = openxlsx::read.xlsx(file)
@@ -172,34 +194,10 @@ set_clowder_id <- function(res,source) {
       res = res[,nlist]
       return(res)
     }
-    else if(is.element(source,c("Chiu"))) {
-      lrtab = unique(runQuery("select long_ref, title from record_source where source='Chiu'","dev_toxval_v8"))
-      lrtab$title = tolower(lrtab$title)
-      for(i in 1:nrow(map)) {
-        title = str_trim(tolower(map[i,"study_name"]))
-        cid = map[i,"clowder_id"]
-        docname = map[i,"document_name"]
-        if(is.element(title,lrtab$title)) {
-          longref = lrtab[is.element(lrtab$title,title),"long_ref"]
-          res[is.element(res$long_ref,longref),"clowder_id"] = clowder_id
-          res[is.element(res$long_ref,longref),"document_name"] = docname
-        }
-      }
-      n1 = nrow(res)
-      n2 = nrow(res[res$clowder_id!="-",])
-      res2 = res[res$clowder_id=="-",]
-      n3 = length(unique(res2$long_ref))
-      cat("matching for source",source,":",n2," out of ",n1," missing unique documents:",n3,"\n")
-      browser()
-      nlist = names(res)
-      nlist = nlist[!is.element(nlist,"title2")]
-      res = res[,nlist]
-      return(res)
-    }
   }
   else {
     cat("try the v8 records\n")
-    browser()
+    #browser()
     return(res)
   }
 }
