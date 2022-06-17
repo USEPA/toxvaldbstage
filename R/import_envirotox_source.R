@@ -38,26 +38,40 @@ import_envirotox_source <- function(db,
   #   res[i, "original_cas"] <- fix.casrn(res[i, "original_cas"])
   # }
   names.list <- names(res)
-  res[,"source_id"] <- c(1:length(res[,1]))
-  res[,"source_hash"] <- "-"
-  res[,"clowder_id"] <- "61f14c70e4b0ebacf2ec476c"
-  res <- res[,c("source_id","source_hash","clowder_id", names.list)]
+  # res[,"source_id"] <- c(1:length(res[,1]))
+  # res[,"source_hash"] <- "-"
+  # res[,"clowder_id"] <- "61f14c70e4b0ebacf2ec476c"
+  # res <- res[,c("source_id","source_hash","clowder_id", names.list)]
 
-  #####################################################################
-  cat("Do the chemical checking\n")
-  #####################################################################
-  source = "EnviroTox_v2"
-  res = as.data.frame(res)
   res = res[!is.element(res$cas,"NOCAS"),]
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="cas",name.col="chemical_name",verbose=F)
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"original_envirotox",F,F,res)
-  browser()
-  return(1)
-  runInsertTable(res,"original_envirotox",db,do.halt=T,verbose=F)
 
+  names(res) = c("casrn","name","latin_name",
+                 "trophic_level","effect","effect_value",
+                 "unit","test_type","test_statistic",
+                 "duration","duration_days","duration_hours",
+                 "effect_is_5x_above_water_solubility","source","version",
+                 "reported_chemical_name","original_cas")
+  #####################################################################
+  cat("Prep and load the data\n")
+  #####################################################################
+  source_prep_and_load(db,source="EnviroTox_v2",table="source_envirotox",res=res,F,T,T)
 }
+
+#   #####################################################################
+#   cat("Do the chemical checking\n")
+#   #####################################################################
+#   source = "EnviroTox_v2"
+#   res = as.data.frame(res)
+#   res = res[!is.element(res$cas,"NOCAS"),]
+#   res = fix.non_ascii.v2(res,source)
+#   res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="cas",name.col="chemical_name",verbose=F)
+#   #####################################################################
+#   cat("Build the hash key and load the data \n")
+#   #####################################################################
+#   res = subset(res,select=-c(chemical_index))
+#   toxval_source.hash.and.load(db,source,"original_envirotox",F,F,res)
+#   browser()
+#   return(1)
+#   runInsertTable(res,"original_envirotox",db,do.halt=T,verbose=F)
+#
+# }

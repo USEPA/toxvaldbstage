@@ -11,7 +11,7 @@ import_hpvis_source <- function(db,
   printCurrentFunction(db)
 
   #####################################################################
-  cat("Build original_hpvis list of dataframes called res incorporating all the input source files \n")
+  cat("build original_hpvis list of dataframes called res incorporating all the input source files \n")
   #####################################################################
   files.list <- list.files(filepath, pattern = "*.xlsx")
   files.list <- paste0( filepath, '/',files.list)
@@ -28,31 +28,9 @@ import_hpvis_source <- function(db,
 
   res <- lapply(res, function(x) setNames(x, gsub(x = names(x), pattern = "\\.", replacement = "_")))
   res <- lapply(res, function(x) setNames(x, gsub(x = names(x), pattern = "\\_$", replacement = "")))
-  # table_names <- tolower(c("hpvis_ecotox_aquatic_invertebrate_acute","hpvis_ecotox_aquatic_invertebrate_chronic",
-  #                          "hpvis_ecotox_aquatic_plant_acute","hpvis_ecotox_aquatic_plant_chronic","hpvis_ecotox_aquatic_vertebrate_acute",
-  #                          "hpvis_ecotox_aquatic_vertebrate_chronic","hpvis_ecotox_soil_organism_chronic","hpvis_ecotox_terrestrial_nonmammalian","hpvis_eye_irritation",
-  #                          "hpvis_genetox_in_vitro","hpvis_genetox_in_vivo", "hpvis_mammalian_acute","hpvis_mammalian_carcinogenicity","hpvis_mammalian_devtox",
-  #                          "hpvis_mammalian_immunotox","hpvis_mammalian_neurotox","hpvis_mammalian_repeat_dose","hpvis_mammalian_reprotox","hpvis_search_categories",
-  #                          "hpvis_skin_irritation","hpvis_skin_sensitization"))
-  #
-  # table_names <- paste0("original_", table_names)
-  #
-  # stop = FALSE
-  # for( i in 1:length(res)){
-  #   for (j in 1:length(table_names)){
-  #
-  #     runInsertTable(res[[i]],table_names[j],db,do.halt=T,verbose=F)
-  #     i <- i+1
-  #     if (i == length(res)+1){
-  #       stop = TRUE
-  #       break
-  #     }
-  #   }
-  #   if (stop){break}
-  # }
-  #
+
   #####################################################################
-  cat("Fix casrn and chemical name and then form new list of dataframes called res1(excluding search_categories)\n")
+  cat("fix casrn and chemical name and then form new list of dataframes called res1(excluding search_categories)\n")
   #####################################################################
   cas_categories <- grep("CAS_Number", names(res[[1]]), value = T)
   name_categories <- grep("Chemical_Name", names(res[[1]]), value = T)
@@ -86,7 +64,6 @@ import_hpvis_source <- function(db,
     subset_cas[[i]] <- as.data.frame(subset_cas[[i]]) %>% mutate(cas_key2 = ifelse(subset_cas[[i]]$Category_Chemical_CAS_Number %in% subset_cas[[i]]$Test_Substance_CAS_Number,chemical_categories_key_table[1,1], chemical_categories_key_table[3,1]))
     subset_cas[[i]]$cas_key <- paste(subset_cas[[i]]$cas_key1, subset_cas[[i]]$cas_key2, sep = "," )
     subset_cas[[i]] <- subset_cas[[i]][,c(-4,-5)]
-
   }
 
   for (i in 1:length(subset_name)){
@@ -137,20 +114,19 @@ import_hpvis_source <- function(db,
     chemical_subset[[i]] <- chemical_subset[[i]][,c(-9,-10,-12,-13)]
   }
   res1 <- res[-19]
-
   for (i in 1:length(res1)) {
     res1[[i]] <- cbind(res1[[i]], chemical_subset[[i]][,c(9,4,10,8)])
   }
 
   #####################################################################
-  cat("Remove the ocuurences of newline character from res1 data  \n")
+  cat("remove the ocuurences of newline character from res1 data  \n")
   #####################################################################
   for (i in 1:length(res1)){
     res1[[i]] <- lapply(res1[[i]], gsub, pattern ="\\n", replacement = "")
     res1[[i]] <- data.frame(res1[[i]], stringsAsFactors = F)
   }
   #####################################################################
-  cat(" Incorporate new_column names and keys to search categories\n")
+  cat("incorporate new_column names and keys to search categories\n")
   #####################################################################
   res$hpvis_search_categories$new_column_name <- gsub(" ","_", res$hpvis_search_categories$name)
   chem_colname_table <- data.frame(useme = rep("-", 6), name = rep("-", 6), description = rep("-", 6), new_column_name = as.vector(chemical_categories_key_table$chemical_key_value), stringsAsFactors = F)
@@ -158,25 +134,23 @@ import_hpvis_source <- function(db,
   res$hpvis_search_categories$new_column_name_key <- gsub("[a-z\\:\\(\\)\\-\\'\\.]+", "", res$hpvis_search_categories$new_column_name)
   res$hpvis_search_categories$new_column_name_key <- gsub("_$|--", "",res$hpvis_search_categories$new_column_name_key)
   res$hpvis_search_categories$new_column_name_key <- gsub("__", "_",res$hpvis_search_categories$new_column_name_key)
-
-  runInsertTable(res$hpvis_search_categories, "new_hpvis_search_categories",db,do.halt=T,verbose=F )
+  #runInsertTable(res$hpvis_search_categories, "new_hpvis_search_categories",db,do.halt=T,verbose=F )
 
   #####################################################################
-  cat(" Build hpvis source names key table and include hpvis_source_key to res1\n")
+  cat("build hpvis source names key table and include hpvis_source_key to res1\n")
   #####################################################################
   hpvis_source_keys_table <- data.frame(source_name = res_names[-19], source_name_key = gsub("[a-z ]+","",res_names[-19]), stringsAsFactors = F)
   hpvis_source_keys_table$source_name_key[c(10,11)] <- c("GIVT","GIVV")
   hpvis_source_keys_table$new_source_names <- names(res1)
-
   for (i in 1:length(res1)){
     if (names(res1)[i] %in% hpvis_source_keys_table$new_source_names[i]){
       res1[[i]]$hpvis_source_key <- rep(hpvis_source_keys_table$source_name_key[i], nrow(res1[[i]]))
     }
   }
-  runInsertTable(hpvis_source_keys_table, "hpvis_source_name_key_table",db,do.halt=T,verbose=F )
+  #runInsertTable(hpvis_source_keys_table, "hpvis_source_name_key_table",db,do.halt=T,verbose=F )
 
   #####################################################################
-  cat(" fix row displacement and remove empty columns from res1 dataframes\n")
+  cat("fix row displacement and remove empty columns from res1 dataframes\n")
   #####################################################################
   res1[[2]][176,c(96:133)] <- gsub("",NA,res1[[2]][176,c(96:133)])
   res1[[10]][,c(37:38)] <- gsub("",NA,res1[[10]][,c(37:38)])
@@ -187,7 +161,7 @@ import_hpvis_source <- function(db,
   }
 
   #####################################################################
-  cat("Remove the ocuurences of line ending character from res1 data  \n")
+  cat("remove the ocuurences of line ending character from res1 data  \n")
   #####################################################################
   for (i in 1:length(res1)){
     res1[[i]] <- lapply(res1[[i]], gsub, pattern ="\\r", replacement = "")
@@ -222,14 +196,11 @@ import_hpvis_source <- function(db,
       subset_expo_dur[[i]]$combined_exposure_duration_index_name <- gsub("^1$","Exposure_Duration", (subset_expo_dur[[i]]$combined_exposure_duration_index_name))
     }
   }
-
   for (i in 1:length(subset_expo_dur_units)){
     if ( ncol(subset_expo_dur_units[[i]]) == 3 ) {
       subset_expo_dur_units[[i]] <- subset_expo_dur_units[[i]][c("Exposure_Units.1","Exposure_Units","Exposure_Period_Units")]
     }
   }
-
-
   for (i in 1:length(subset_expo_dur_units)){
     if (ncol(subset_expo_dur_units[[i]]) == 3) {
       subset_expo_dur_units[[i]]$combined_exposure_duration_units <- subset_expo_dur_units[[i]][cbind(seq_along(as.numeric(subset_expo_dur[[i]]$combined_exposure_duration_index)), as.numeric(subset_expo_dur[[i]]$combined_exposure_duration_index))]
@@ -244,7 +215,7 @@ import_hpvis_source <- function(db,
   }
 
   #####################################################################
-  cat(" assign appropriate data types\n")
+  cat("assign appropriate data types\n")
   #####################################################################
   for (i in 1:length(res1)) {
     res1[[i]] <- lapply(res1[[i]], function(x) type.convert(as.character(x), as.is = T))
@@ -344,7 +315,7 @@ import_hpvis_source <- function(db,
   }
 
   #####################################################################
-  cat("Build duration and duration units from combined exposure duration and toxval exposure duration.
+  cat("build duration and duration units from combined exposure duration and toxval exposure duration.
       hpvis_expo_duration2 has the indexes representing the source field name of the duration value and its corresponding unit\n")
   #####################################################################
   expo_dur_cols2 <- lapply(res3, function(x) {
@@ -449,7 +420,7 @@ import_hpvis_source <- function(db,
   res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "Type_of_Study", replacement = "study_type")))
 
   #####################################################################
-  cat("Rename exposure period and its unit in dataframes having single entry of both\n")
+  cat("rename exposure period and its unit in dataframes having single entry of both\n")
   #####################################################################
   expo_dur_cols3 <- lapply(res_new, function(x) {
     grep("^Exposure_Period$|Duration|^Exposure_Period_Units$", names(x), ignore.case = T)
@@ -464,7 +435,7 @@ import_hpvis_source <- function(db,
   res_new[names(res_new) %in% names(subset_expo_dur3)] <- lapply(res_new[names(res_new) %in% names(subset_expo_dur3)], function(x) setNames(x, gsub(x = names(x), pattern = "^Exposure_Period_Units$", replacement = "duration_units")))
 
   #####################################################################
-  cat("Replace dot characters to underscores in all data frame column names \n")
+  cat("replace dot characters to underscores in all data frame column names \n")
   #####################################################################
   res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "\\.", replacement = "_")))
 
@@ -486,7 +457,7 @@ import_hpvis_source <- function(db,
   }
 
   #####################################################################
-  cat("Change column names for Category, Sponsored and Test_Substance cas and name columns to include the corresponding keys along with the name. eg: test_substance_cas_number_t_s_cas_n\n")
+  cat("change column names for Category, Sponsored and Test_Substance cas and name columns to include the corresponding keys along with the name. eg: test_substance_cas_number_t_s_cas_n\n")
   #####################################################################
   for ( i in 1:length(res_new)){
     old_cas_names <- chemical_categories_key_table$chemical_key_value
@@ -495,7 +466,7 @@ import_hpvis_source <- function(db,
   }
 
   #####################################################################
-  cat("Fix multiple underscores and trailing underscores in column names\n")
+  cat("fix multiple underscores and trailing underscores in column names\n")
   #####################################################################
   res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "_+", replacement = "_")))
   res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "_$", replacement = "")))
@@ -514,29 +485,29 @@ import_hpvis_source <- function(db,
     res_new[[i]][sapply(res_new[[i]], function(x) all(is.na(x) == T))] <- ""
   }
 
-  #####################################################################
-  cat("Build new hpvis tables\n")
-  #####################################################################
-  table_names <- tolower(c("hpvis_ecotox_aquatic_invertebrate_acute","hpvis_ecotox_aquatic_invertebrate_chronic",
-                           "hpvis_ecotox_aquatic_plant_acute","hpvis_ecotox_aquatic_plant_chronic","hpvis_ecotox_aquatic_vertebrate_acute",
-                           "hpvis_ecotox_aquatic_vertebrate_chronic","hpvis_ecotox_soil_organism_chronic","hpvis_ecotox_terrestrial_nonmammalian","hpvis_eye_irritation",
-                           "hpvis_genetox_in_vitro","hpvis_genetox_in_vivo", "hpvis_mammalian_acute","hpvis_mammalian_carcinogenicity","hpvis_mammalian_devtox",
-                           "hpvis_mammalian_immunotox","hpvis_mammalian_neurotox","hpvis_mammalian_repeat_dose","hpvis_mammalian_reprotox",
-                           "hpvis_skin_irritation","hpvis_skin_sensitization"))
-  table_names <- paste0("new_", table_names)
+  # #####################################################################
+  # cat("build new hpvis tables\n")
+  # #####################################################################
+  # table_names <- tolower(c("hpvis_ecotox_aquatic_invertebrate_acute","hpvis_ecotox_aquatic_invertebrate_chronic",
+  #                          "hpvis_ecotox_aquatic_plant_acute","hpvis_ecotox_aquatic_plant_chronic","hpvis_ecotox_aquatic_vertebrate_acute",
+  #                          "hpvis_ecotox_aquatic_vertebrate_chronic","hpvis_ecotox_soil_organism_chronic","hpvis_ecotox_terrestrial_nonmammalian","hpvis_eye_irritation",
+  #                          "hpvis_genetox_in_vitro","hpvis_genetox_in_vivo", "hpvis_mammalian_acute","hpvis_mammalian_carcinogenicity","hpvis_mammalian_devtox",
+  #                          "hpvis_mammalian_immunotox","hpvis_mammalian_neurotox","hpvis_mammalian_repeat_dose","hpvis_mammalian_reprotox",
+  #                          "hpvis_skin_irritation","hpvis_skin_sensitization"))
+  # table_names <- paste0("new_", table_names)
 
-  stop = FALSE
-  for( i in 1:length(res_new)){
-    for (j in 1:length(table_names)){
-      runInsertTable(res_new[[i]],table_names[j],db,do.halt=T,verbose=F)
-      i <- i+1
-      if (i == length(res_new)+1){
-        stop = TRUE
-        break
-      }
-    }
-    if (stop){break}
-  }
+  # stop = FALSE
+  # for( i in 1:length(res_new)){
+  #   for (j in 1:length(table_names)){
+  #     runInsertTable(res_new[[i]],table_names[j],db,do.halt=T,verbose=F)
+  #     i <- i+1
+  #     if (i == length(res_new)+1){
+  #       stop = TRUE
+  #       break
+  #     }
+  #   }
+  #   if (stop){break}
+  # }
 
   #####################################################################
   cat("required columns contain the major columns represented in the existing toxval source\n")
@@ -564,7 +535,7 @@ import_hpvis_source <- function(db,
   new_res <- lapply(res_new, function(x) subset(x, select = intersect(reqd_cols, colnames(x))))
 
   #####################################################################
-  cat("In case any required col not being present in a data frame add that column and assign it as empty\n")
+  cat("in case any required col not being present in a data frame add that column and assign it as empty\n")
   #####################################################################
   for ( i in 1:length(new_res)){
     new_res[[i]][setdiff(reqd_cols,names(new_res[[i]]))] <- ""
@@ -600,63 +571,141 @@ import_hpvis_source <- function(db,
   hpvis_all_data[grep("SI", hpvis_all_data$hpvis_source_key), "new_study_type"] <- "skin irritation"
   hpvis_all_data[grep("SS", hpvis_all_data$hpvis_source_key), "new_study_type"] <- "skin sensitization"
 
-  #####################################################################
-  cat("Do the chemical checking\n")
-  #####################################################################
-  source = "HPVIS"
-  res = as.data.frame(hpvis_all_data)
+  res = hpvis_all_data
+  nlist = c(
+    "hpvis_id","casrn","cas_key",
+    "name","name_key","toxval_type",
+    "toxval_numeric","toxval_numeric_qualifier","toxval_units",
+    "toxval_basis_for_concentration","toxval_upper_range","new_species",
+    "new_strain","new_route_of_administration","duration",
+    "duration_units","duration_index_name","year_study_performed",
+    "program_flag","consortium_name","glp",
+    "reliability","study_reference","hpvis_source_key",
+    "category_chemical_cas_number_c_c_cas_n","category_chemical_name_c_c_n","dose_remarks",
+    "key_study_sponsor_indicator","method_guideline_followed","reliability_remarks",
+    "results_remarks","sponsor_name","sponsored_chemical_cas_number_s_c_cas_n",
+    "sponsored_chemical_name_s_c_n","sponsored_chemical_result_type","submission_name",
+    "submitter_s_name","test_conditions_remarks","test_substance_cas_number_t_s_cas_n",
+    "test_substance_chemical_name_t_s_c_n","test_substance_purity","sex",
+    "type_of_exposure","study_type","population",
+    "new_study_type"
+  )
+
+
+  nlist = c(
+    "hpvis_id","casrn",
+    "name","toxval_type",
+    "toxval_numeric","toxval_numeric_qualifier","toxval_units",
+    "toxval_basis_for_concentration","toxval_upper_range",
+    "new_species","new_strain","sex",
+    "population",
+    "type_of_exposure",
+    "new_route_of_administration",
+    "duration", "duration_units","duration_index_name",
+    "new_study_type",
+    "year_study_performed",
+    "program_flag","consortium_name",
+    "reliability","study_reference","hpvis_source_key",
+    "dose_remarks",
+    "glp","key_study_sponsor_indicator","method_guideline_followed",
+    "reliability_remarks","test_substance_purity",
+    "results_remarks",
+    "test_conditions_remarks",
+    "submission_name","sponsor_name","submitter_s_name",
+    "sponsored_chemical_result_type")
+  res = res[,nlist]
+
+  nlist = c(
+    "hpvis_id","casrn",
+    "name","toxval_type",
+    "toxval_numeric","toxval_numeric_qualifier","toxval_units",
+    "toxval_basis_for_concentration","toxval_upper_range",
+    "species","strain","sex",
+    "population",
+    "exposure_method",
+    "exposure_route",
+    "study_duration_value", "study_duration_units","duration_index_name",
+    "study_type",
+    "year",
+    "program_flag","consortium_name",
+    "reliability","study_reference","hpvis_source_key",
+    "dose_remarks",
+    "glp","key_study_sponsor_indicator","method_guideline_followed",
+    "reliability_remarks","test_substance_purity",
+    "results_remarks",
+    "test_conditions_remarks",
+    "submission_name","sponsor_name","submitter_s_name",
+    "sponsored_chemical_result_type")
+  names(res) = nlist
+  cat(nrow(res),"\n")
+  res = res[!is.na(res$toxval_numeric),]
+  cat(nrow(res),"\n")
   res = res[!is.na(res$casrn),]
+  cat(nrow(res),"\n")
   res = res[!is.na(res$name),]
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
+  cat(nrow(res),"\n")
   #####################################################################
-  cat("Build the hash key and load the data \n")
+  cat("Prep and load the data\n")
   #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"new_combined_hpvis_table",F,F,res)
-  browser()
-  return(1)
-
-
-
-  runInsertTable(hpvis_all_data, "new_combined_hpvis_table",db,do.halt=T,verbose=F )
-
-
-
-
-   toxval_hpvis_all_data <- hpvis_all_data[!(is.na(hpvis_all_data$toxval_numeric)| hpvis_all_data$toxval_numeric ==""),]
-
-  #####################################################################
-  cat("combine just mammalian data\n")
-  #####################################################################
-  mammalian_all_data <- do.call("rbind", new_res[c(12:18)])
-  row.names(mammalian_all_data) <- NULL
-  mammalian_all_data <- unique(mammalian_all_data)
-  mammalian_all_data["hpvis_id"] <- c(1:length(mammalian_all_data[,1]))
-  mammalian_all_data <- mammalian_all_data[c("hpvis_id",names(mammalian_all_data[-45]))]
-  mammalian_all_data <- lapply(mammalian_all_data, function(x) type.convert(as.character(x), as.is = T))
-  mammalian_all_data <- data.frame(mammalian_all_data, stringsAsFactors = F)
-  mammalian_all_data[sapply(mammalian_all_data, function(x) all(is.na(x) == T))] <- ""
-  names(mammalian_all_data) <- tolower(names(mammalian_all_data))
-  names(mammalian_all_data) <- gsub("\\.$","\\)",names(mammalian_all_data))
-  names(mammalian_all_data) <- gsub("\\.","\\(",names(mammalian_all_data))
-  toxval_mammalian_all_data <- mammalian_all_data[!(is.na(mammalian_all_data$toxval_numeric)| mammalian_all_data$toxval_numeric ==""),]
-
-  # #####################################################################
-  # cat("Build hpvis_chemical_information table from hpvis_all_data\n")
-  # #####################################################################
-  # chemical_information <- hpvis_all_data[,c("casrn","name")]
-  # chemical_information <- unique(chemical_information[,1:2])
-  # chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))
-  # chemical_information <- chemical_information[c('chemical_id','name','casrn')]
-  #
-  # runInsertTable(chemical_information, "hpvis_chemical_information",db,do.halt=T,verbose=F )
-
-
+  source_prep_and_load(db,source="HPVIS",table="source_hpvis",res=res,F,T,T)
 }
-
-
-
-
-
+#   #####################################################################
+#   cat("Do the chemical checking\n")
+#   #####################################################################
+#   source = "HPVIS"
+#   res = as.data.frame(hpvis_all_data)
+#   res = res[!is.na(res$casrn),]
+#   res = res[!is.na(res$name),]
+#   res$clowder_id = "-"
+#   res = fix.non_ascii.v2(res,source)
+#   res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
+#   #####################################################################
+#   cat("Build the hash key and load the data \n")
+#   #####################################################################
+#   res = subset(res,select=-c(chemical_index))
+#   toxval_source.hash.and.load(db,source,"new_combined_hpvis_table",F,F,res)
+#   browser()
+#   return(1)
+#
+#
+#
+#   runInsertTable(hpvis_all_data, "new_combined_hpvis_table",db,do.halt=T,verbose=F )
+#
+#
+#
+#
+#    toxval_hpvis_all_data <- hpvis_all_data[!(is.na(hpvis_all_data$toxval_numeric)| hpvis_all_data$toxval_numeric ==""),]
+#
+#   #####################################################################
+#   cat("combine just mammalian data\n")
+#   #####################################################################
+#   mammalian_all_data <- do.call("rbind", new_res[c(12:18)])
+#   row.names(mammalian_all_data) <- NULL
+#   mammalian_all_data <- unique(mammalian_all_data)
+#   mammalian_all_data["hpvis_id"] <- c(1:length(mammalian_all_data[,1]))
+#   mammalian_all_data <- mammalian_all_data[c("hpvis_id",names(mammalian_all_data[-45]))]
+#   mammalian_all_data <- lapply(mammalian_all_data, function(x) type.convert(as.character(x), as.is = T))
+#   mammalian_all_data <- data.frame(mammalian_all_data, stringsAsFactors = F)
+#   mammalian_all_data[sapply(mammalian_all_data, function(x) all(is.na(x) == T))] <- ""
+#   names(mammalian_all_data) <- tolower(names(mammalian_all_data))
+#   names(mammalian_all_data) <- gsub("\\.$","\\)",names(mammalian_all_data))
+#   names(mammalian_all_data) <- gsub("\\.","\\(",names(mammalian_all_data))
+#   toxval_mammalian_all_data <- mammalian_all_data[!(is.na(mammalian_all_data$toxval_numeric)| mammalian_all_data$toxval_numeric ==""),]
+#
+#   # #####################################################################
+#   # cat("Build hpvis_chemical_information table from hpvis_all_data\n")
+#   # #####################################################################
+#   # chemical_information <- hpvis_all_data[,c("casrn","name")]
+#   # chemical_information <- unique(chemical_information[,1:2])
+#   # chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))
+#   # chemical_information <- chemical_information[c('chemical_id','name','casrn')]
+#   #
+#   # runInsertTable(chemical_information, "hpvis_chemical_information",db,do.halt=T,verbose=F )
+#
+#
+# }
+#
+#
+#
+#
+#

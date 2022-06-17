@@ -12,213 +12,108 @@ import_heast_source <- function(db,
   #####################################################################
   cat("Build original_heast_table \n")
   #####################################################################
-  res <- openxlsx::read.xlsx(infile,1,colNames = T)
-  #runInsertTable(res,"original_heast_table",db,do.halt=T,verbose=F)
-
-  res$source_id <- c(1:dim(res)[1])
-  res$source_hash <- "-"
-  res$clowder_id <- "-"
-  res$document_name <- "-"
-  res <- res[c("source_id","source_hash","clowder_id",names(res)[which(!names(res) %in% c("source_id","source_hash","clowder_id","document_name"))],"document_name")]
-  #print(names(res))
-  #runInsertTable(res,"original_heast",db,do.halt=T,verbose=F)
-  query <- paste0("select * from original_heast")
-  res <- runQuery(query,db)
-
-  # #####################################################################
-  # cat("Build heast_chemical_information table from res\n")
-  # #####################################################################
-  # chemical_information <- res[,c("casrn","name")]
-  # chemical_information <- unique(chemical_information[,1:2])
-  # chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))
-  # chemical_information <- chemical_information[c('chemical_id','name','casrn')]
-  # runInsertTable(chemical_information,"heast_chemical_information",db,do.halt=T,verbose=F)
-
-  #####################################################################
-  cat("Make revised version of original_heast_table called res1 with a new_study_duration_qualifier field\n")
-  #####################################################################
-  res1 <- res
-  names(res1)[which(names(res1) == "study_duration_value")] <- "study_duration_value_original"
-  names(res1)[which(names(res1) == "study_duration_units")] <- "study_duration_units_original"
-  #res1$study_duration_value <- res1$study_duration_value_original
-  res1$study_duration_value <- gsub("^\\s+|\\s+$", "", res1$study_duration_value)
-  non_numeric_dur_val <-  grep('[^0-9.]', res1$study_duration_value, value = T)
-  non_numeric_dur_pos <- grep('[^0-9.]', res1$study_duration_value)
-  #study_dur_qual <- gsub("[0-9.]","", non_numeric_dur_val)
-  study_dur_qual <- non_numeric_dur_val
-  study_dur_qual[grep("^[^[:alnum:]]",study_dur_qual)] <- gsub("(^[^[:alnum:]])(\\s*.*)","\\1", study_dur_qual[grep("^[^[:alnum:]]",study_dur_qual)])
-  study_dur_qual[grep("^[^[:alnum:]]",study_dur_qual, invert = T)] <- "-"
-  qualifier_table <- data.frame(non_numeric_dur_val, study_dur_qual, stringsAsFactors = F)
-  res1$study_duration_qualifier <- "-"
-  for (i in 1:length(qualifier_table$non_numeric_dur_val)){
-    for (k in 1:nrow(res1)){
-      res1$study_duration_qualifier[k][res1$study_duration_value[k] %in% qualifier_table$non_numeric_dur_val[[i]]] <- qualifier_table$study_dur_qual[i]
-    }
+  res0 <- openxlsx::read.xlsx(infile,1,colNames = T)
+  res0 = res0[order(res0$row_id),]
+  for(i in 1:nrow(res0)) {
+    if(is.na(res0[i,"name"])) res0[i,"name"] = res0[(i-1),"name"]
+  }
+  clist = unique(res0$name)
+  res = NULL
+  for(chem in clist) {
+    temp = res0[is.element(res0$name,chem),]
+    temp1 = temp[1,]
+    ce = NULL
+    for(i in 1:nrow(temp)) ce = c(ce,paste0(temp[i,"target"],":",temp[i,"critical_effect"]))
+    temp1[1,"critical_effect"] = paste(ce,collapse="|")
+    res = rbind(res,temp1)
   }
 
+  nlist1 = c(
+  "row_id","name","casrn",
+  "species","exposure_route","exposure_method","study_duration_value","study_duration_units","study_duration_class",
+  "critical_effect","comment","ornl_table",
+  "toxval_type","toxval_numeric","toxval_units"
+  )
+  res1 = res[,nlist1]
+  res1$uf = NA
+  nlist = names(res1)
+
+  nlist2 = c(
+    "row_id","name","casrn",
+    "species","exposure_route","exposure_method","study_duration_value","study_duration_units","study_duration_class",
+    "critical_effect","comment","ornl_table",
+    "toxval_type","toxval_numeric","toxval_units",
+    "rfc_subchronic","rfc_subchronic_units","rfc_subchronic_uf"
+  )
+
+  res2 = res[,nlist2]
+  res2 = res2[!is.na(res2$rfc_subchronic),]
+  res2$study_duration_value = NA
+  res2$study_duration_units = NA
+  res2$study_duration_class = "subchronic"
+  res2$toxval_type = "RfC"
+  res2$toxval_numeric = res2$rfc_subchronic
+  res2$toxval_units = res2$rfc_subchronic_units
+  res2$uf = res2$rfc_subchronic_uf
+  res2 = res2[,nlist]
+
+  nlist3 = c(
+    "row_id","name","casrn",
+    "species","exposure_route","exposure_method","study_duration_value","study_duration_units","study_duration_class",
+    "critical_effect","comment","ornl_table",
+    "toxval_type","toxval_numeric","toxval_units",
+    "rfd_subchronic","rfd_subchronic_units","rfd_subchronic_uf"
+  )
+  res3 = res[,nlist3]
+  res3 = res3[!is.na(res3$rfd_subchronic),]
+  res3$study_duration_value = NA
+  res3$study_duration_units = NA
+  res3$study_duration_class = "subchronic"
+  res3$toxval_type = "RfD"
+  res3$toxval_numeric = res3$rfd_subchronic
+  res3$toxval_units = res3$rfd_subchronic_units
+  res3$uf = res3$rfd_subchronic_uf
+  res3 = res3[,nlist]
+
+  nlist4 = c(
+    "row_id","name","casrn",
+    "species","exposure_route","exposure_method","study_duration_value","study_duration_units","study_duration_class",
+    "critical_effect","comment","ornl_table",
+    "toxval_type","toxval_numeric","toxval_units",
+    "rfc_chronic","rfc_chronic_units","rfc_chronic_uf"
+  )
+  res4 = res[,nlist4]
+  res4 = res4[!is.na(res4$rfc_chronic),]
+  res4$study_duration_value = NA
+  res4$study_duration_units = NA
+  res4$study_duration_class = "chronic"
+  res4$toxval_type = "RfC"
+  res4$toxval_numeric = res4$rfc_chronic
+  res4$toxval_units = res4$rfc_chronic_units
+  res4$uf = res4$rfc_chronic_uf
+  res4 = res4[,nlist]
+
+  nlist5 = c(
+    "row_id","name","casrn",
+    "species","exposure_route","exposure_method","study_duration_value","study_duration_units","study_duration_class",
+    "critical_effect","comment","ornl_table",
+    "toxval_type","toxval_numeric","toxval_units",
+    "rfd_chronic","rfd_chronic_units","rfd_chronic_uf"
+  )
+  res5 = res[,nlist5]
+  res5 = res5[!is.na(res5$rfd_chronic),]
+  res5$study_duration_value = NA
+  res5$study_duration_units = NA
+  res5$study_duration_class = "chronic"
+  res5$toxval_type = "RfD"
+  res5$toxval_numeric = res5$rfd_chronic
+  res5$toxval_units = res5$rfd_chronic_units
+  res5$uf = res5$rfd_chronic_uf
+  res5 = res5[,nlist]
+
+  res = rbind(res1,res2,res3,res4,res5)
   #####################################################################
-  cat("Create heast_study_duration_value_replacement_table to record replacements in study duration values\n")
+  cat("Prep and load the data\n")
   #####################################################################
-  res1$study_duration_value <- gsub(">|Up to|generations", "", res1$study_duration_value)
-  res1$study_duration_value <- gsub("^\\s+|\\s+$", "", res1$study_duration_value)
-  replace_study_dur_all <- grep("^[a-zA-Z]+", res1$study_duration_value, value = T)
-  replace_study_dur <- unique(grep("^[a-zA-Z]+", res1$study_duration_value, value = T))
-  replace_study_dur_val <- c(1,2,2,2,1,28)
-  replace_study_dur_unit <- c("days","years","years","generation","days","days")
-  dur_val_replacement <- data.frame(replace_study_dur, replace_study_dur_val, replace_study_dur_unit, stringsAsFactors = F)
-  # runInsertTable(dur_val_replacement,"heast_study_duration_value_replacement_table",db,do.halt=T,verbose=F)
-  #
-  #####################################################################
-  cat("Build new_heast_table and new_heast_rfd_rfc_table\n")
-  #####################################################################
-  for (i in 1:length(dur_val_replacement$replace_study_dur)){
-    for (k in 1:nrow(res1)){
-      res1$study_duration_value[k][res1$study_duration_value_original[k] %in% dur_val_replacement$replace_study_dur[[i]]] <- dur_val_replacement$replace_study_dur_val[i]
-    }
-  }
-
-  for (i in 1:length(dur_val_replacement$replace_study_dur)){
-    for (k in 1:nrow(res1)){
-      res1$study_duration_units[k][res1$study_duration_value_original[k] %in% dur_val_replacement$replace_study_dur[[i]]] <- dur_val_replacement$replace_study_dur_unit[i]
-    }
-  }
-
-  mult_val <- grep("[^0-9.]", res1$study_duration_value, value = T)
-  mult_val_new <- "-"
-  for(i in 1:length(mult_val)){
-    mult_val_new[i] <- max(as.numeric(as.character(unlist(strsplit(gsub("[a-zA-Z\\+\\/\\-]+"," ",mult_val[i]),"\\s+")))))
-  }
-
-  multiple_values <- data.frame(mult_val,mult_val_new, stringsAsFactors = F )
-  for (i in 1:length(multiple_values$mult_val)){
-    for (k in 1:nrow(res1)){
-      res1$study_duration_value[k][res1$study_duration_value[k] %in% multiple_values$mult_val[[i]]] <- multiple_values$mult_val_new[i]
-    }
-  }
-
-
-  res1$study_duration_value[which(is.na(res1$study_duration_value))] <- ""
-  res1$study_duration_units[which(is.na(res1$study_duration_units))] <- "-"
-  res1$study_duration_value <- as.numeric(res1$study_duration_value)
-  res1$strain <- "-"
-  res1$sex <- "-"
-  res1$exposure_route_original <- res1$exposure_route
-  res1$exposure_method_original <- res1$exposure_route
-  exposure_route_delimiter <-grep("\\:", res1$exposure_route)
-  res1$exposure_method <- res1$exposure_route
-  res1[exposure_route_delimiter,"exposure_method"] <- gsub("(.*\\:\\s*)(.*)","\\2",res1[exposure_route_delimiter,"exposure_method"])
-  res1[exposure_route_delimiter,"exposure_route"] <- gsub("(.*)(\\s*\\:.*)","\\1",res1[exposure_route_delimiter,"exposure_route"])
-  res1$year <- ""
-  res1$year <- as.integer(res1$year)
-  #res1 <- res1[!is.na(res1$toxval_numeric),]
-  res1["heast_id"] <- c(1:dim(res1)[1])
-  res1 <- res1[c("heast_id","source_hash",names(res1[5:10]),names(res1[35:36]),names(res1[c(11,39,37,38,12,13,14,32,33,34,15,16,29,30,40)]), names(res1[17:28]))]
-
-  #print(names(res1))
-  ## without source_hash, id, clowder_id, document_name
-  # res1 <- res1[c("heast_id","source_hash",names(res1[2:7]),names(res1[31:32]),names(res1[c(8,35,33,34,9,10,11,28,29,30,12,13,26,27,36)]), names(res1[14:25]))]
-  #print(View(res1))
-
-  #old
-  # res1 <- res1[c("heast_id",names(res1[1:11]), names(res1[28:30]), names(res1[12:27]), names(res1[31:34]))]
-  # runInsertTable(res1,"whole_heast_table",db,do.halt=T,verbose=F)
-  #
-  # query <- "select ht.*, ci.chemical_id from whole_heast_table ht inner join heast_chemical_information ci on ci.name = ht.name and ci.casrn =ht.casrn"
-  # res2 <- runQuery(query,db)
-  # res2_var <- names(res2) %in% c("name","casrn")
-  # res2 <- res2[!res2_var]
-  #
-
-  # # without source_hash, id, clowder_id, document_name
-  # res3 <- res1[,-c(25:36)]
-  # res3 <- res3[!is.na(res3$toxval_numeric),]
-  # print(View(res3))
-  # # runInsertTable(res3,"new_heast",db,do.halt=T,verbose=F)
-
-  res3 <- res1[,-c(26:37)]
-  res3 <- res3[!is.na(res3$toxval_numeric),]
-  #print(View(res3))
-  #####################################################################
-  cat("Do the chemical checking\n")
-  #####################################################################
-  source = "HEAST"
-  res = as.data.frame(res3)
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"new_heast",F,F,res)
-
-  ###runInsertTable(res3,"new_heast",db,do.halt=T,verbose=F)
-
-  new_res <- res1[,c(1:4,26:37)]
-  new_res$rfc_type1[!is.na(new_res$rfc_subchronic)] <- "RfC_subchronic"
-  new_res$rfd_type2[!is.na(new_res$rfd_subchronic)] <- "RfD_subchronic"
-  new_res$rfc_type3[!is.na(new_res$rfc_chronic)] <- "RfC_chronic"
-  new_res$rfd_type4[!is.na(new_res$rfd_chronic)] <- "RfD_chronic"
-
-  # rfc_type 1 to 4
-  new_res <- cbind(new_res, toxval_type <- do.call(pmax, c(new_res[c(17:20)], list(na.rm = T))))
-  # all 4 uf fields
-  new_res <- cbind(new_res, toxval_uf <- do.call(pmax, c(new_res[c(5,8,11,14)], list(na.rm = T))))
-  # all 4 numeric fields
-  new_res <- cbind(new_res, toxval_numeric <- do.call(pmax, c(new_res[c(6,9,12,15)], list(na.rm = T))))
-  # all 4 unit fields
-  new_res <- cbind(new_res, toxval_units <- do.call(pmax, c(new_res[c(7,10,13,16)], list(na.rm = T))))
-
-  # # without source_hash, id, clowder_id, document_name
-  # new_res <- res1[,c(1:3,25:36)]
-  # new_res$rfc_type1[!is.na(new_res$rfc_subchronic)] <- "RfC_subchronic"
-  # new_res$rfd_type2[!is.na(new_res$rfd_subchronic)] <- "RfD_subchronic"
-  # new_res$rfc_type3[!is.na(new_res$rfc_chronic)] <- "RfC_chronic"
-  # new_res$rfd_type4[!is.na(new_res$rfd_chronic)] <- "RfD_chronic"
-  # # rfc_type 1 to 4
-  # new_res <- cbind(new_res, toxval_type <- do.call(pmax, c(new_res[c(16:19)], list(na.rm = T))))
-  # # all 4 uf fields
-  # new_res <- cbind(new_res, toxval_uf <- do.call(pmax, c(new_res[c(4,7,10,13)], list(na.rm = T))))
-  # # all 4 numeric fields
-  # new_res <- cbind(new_res, toxval_numeric <- do.call(pmax, c(new_res[c(5,8,11,14)], list(na.rm = T))))
-  # # all 4 unit fields
-  # new_res <- cbind(new_res, toxval_units <- do.call(pmax, c(new_res[c(6,9,12,15)], list(na.rm = T))))
-  #
-  # # new_res <- res2[,c(1,16:27,34)]
-  # # new_res <- cbind(new_res, toxval_type <- do.call(pmax, c(new_res[c(15:18)], list(na.rm = T))))
-  # # new_res <- cbind(new_res, toxval_uf <- do.call(pmax, c(new_res[c(2,5,8,11)], list(na.rm = T))))
-  # # new_res <- cbind(new_res, toxval_numeric <- do.call(pmax, c(new_res[c(3,6,9,12)], list(na.rm = T))))
-  # # new_res <- cbind(new_res, toxval_units <- do.call(pmax, c(new_res[c(4,7,10,13)], list(na.rm = T))))
-  #
-  new_res <- new_res[,c(1:4,21:24)]
-  names(new_res) <- c("heast_id","source_hash","name","casrn","toxval_type","toxval_uf","toxval_numeric","toxval_units")
-  new_res$toxval_type <- as.character(new_res$toxval_type)
-  new_res$toxval_uf <- gsub("N/A","-999",new_res$toxval_uf)
-  new_res$toxval_uf <- gsub("-","",new_res$toxval_uf)
-  new_res$toxval_uf <- as.numeric(new_res$toxval_uf)
-  new_res$toxval_numeric <- as.numeric(new_res$toxval_numeric)
-  new_res$toxval_units <- as.character(new_res$toxval_units)
-  new_res$toxval_subtype <- gsub(".*\\_","", new_res$toxval_type)
-  new_res$toxval_type <- gsub("\\_.*","", new_res$toxval_type)
-  new_res <- new_res[!is.na(new_res$toxval_numeric),]
-  new_res$heast_rfd_rfc_id <- c(1:dim(new_res)[1])
-  new_res <- new_res[c('heast_rfd_rfc_id', names(new_res[-10]))]
-
-  #####################################################################
-  cat("Do the chemical checking\n")
-  #####################################################################
-  source = "HEAST"
-  res = as.data.frame(new_res)
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"new_heast_rfd_rfc",F,F,res)
-  browser()
-  return(1)
-  runInsertTable(new_res,"new_heast_rfd_rfc",db,do.halt=T,verbose=F)
+  source_prep_and_load(db,source="HEAST",table="source_heast",res=res,F,T,T)
 }
-

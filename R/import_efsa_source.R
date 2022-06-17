@@ -141,36 +141,3 @@ import_efsa_source <- function(db,
   #####################################################################
   source_prep_and_load(db,source="EFSA",table="source_efsa",res=res,F,T,T)
 }
-#   #####################################################################
-#   cat("Do the chemical checking\n")
-#   #####################################################################
-#   source = "EFSA"
-#   res = as.data.frame(total)
-#   res = res[!is.na(res$casrn),]
-#   res = res[res$casrn!="",]
-#   badcas = c("601-803-4","2106-46-6","999999-91-4","53383-2-7")
-#   res = res[!is.element(res$casrn,badcas),]
-#   res$clowder_id = "-"
-#   res = fix.non_ascii.v2(res,source)
-#   res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
-#   #####################################################################
-#   cat("Build the hash key and load the data \n")
-#   #####################################################################
-#   res = subset(res,select=-c(chemical_index))
-#   toxval_source.hash.and.load(db,source,"new_efsa",F,F,res)
-#   browser()
-#   return(1)
-#   runInsertTable(total,"new_efsa",db,do.halt=T,verbose=F)
-#
-#   # #####################################################################
-#   # cat("Build efsa_chemical_information table from total\n")
-#   # #####################################################################
-#   # chemical_information <- total[,c("name","casrn")]
-#   # chemical_information <- unique(chemical_information[,1:2])
-#   # chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))
-#   # chemical_information <- chemical_information[c('chemical_id','name','casrn')]
-#   #
-#   # runInsertTable(chemical_information,"efsa_chemical_information",db,do.halt=T,verbose=F)
-#   #
-#   #
-# }

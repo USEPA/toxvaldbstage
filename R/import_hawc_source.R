@@ -110,46 +110,14 @@ import_hawc_source <- function(db,
   new_hawc_df_final[,"source_id"] <- c(1:length(new_hawc_df_final[,1]))
   new_hawc_df_final <- new_hawc_df_final[,c("source_id",names(new_hawc_df_final[-46]))]
 
-  #####################################################################
-  cat("Do the chemical checking\n")
-  #####################################################################
-  source = "HAWC"
-  res = as.data.frame(new_hawc_df_final)
+  res = new_hawc_df_final
   res = res[!is.element(res$casrn,"NOCAS"),]
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
+  names(res)[is.element(names(res),"LOEL_original")] = "loel_original"
+  names(res)[is.element(names(res),"NOEL_original")] = "noel_original"
+  names(res)[is.element(names(res),"FEL_original")] = "fel_original"
 
   #####################################################################
-  cat("Set the default values for missing data\n")
+  cat("Prep and load the data\n")
   #####################################################################
-  res = source_set_defaults(res,source)
-
-  #####################################################################
-  cat("Set the clowder_id and document name\n")
-  #####################################################################
-  res = set_clowder_id(res,source)
-
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"hawc_new",F,F,res)
-  browser()
-  return(1)
-  runInsertTable(new_hawc_df_final,"hawc_new",db,do.halt=T,verbose=F)
-  #print(str(new_hawc_df_final))
-
-  # #####################################################################
-  # cat("Build hawc_chemical_information table from new_hawc_df_final\n")
-  # #####################################################################
-  # chemical_information <- new_hawc_df_final[,c("name","casrn")]
-  # chemical_information <- unique(chemical_information[,1:2])
-  # chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))
-  # chemical_information <- chemical_information[,c('chemical_id','name','casrn')]
-  # #print(View(chemical_information))
-  # #runInsertTable(chemical_information,"hawc_chemical_information",db,do.halt=T,verbose=F)
-
+  source_prep_and_load(db,source="HAWC",table="source_hawc",res=res,F,T,T)
 }
-
-
