@@ -47,15 +47,15 @@ get.clowder.file.maps <- function(apiKey){
     filter(grepl("^ToxValQA", filename))
 
   # Pull metadata for ToxValQA files
-  CCTE = lapply(toxvalQA$id, function(id){
+  CCTE = lapply(toxvalQA$id, function(toxval_id){
     # Rest between requests
     Sys.sleep(0.25)
-    httr::GET(paste0("https://clowder.edap-cluster.com/api/files/",id,"/metadata.jsonld"),
+    httr::GET(paste0("https://clowder.edap-cluster.com/api/files/",toxval_id,"/metadata.jsonld"),
               # API Key as header instead of query parameter
               add_headers(`X-API-Key` = apiKey)) %>%
       httr::content() %>%
       data.frame(stringsAsFactors = FALSE) %>%
-      mutate(clowder_id = id)
+      mutate(clowder_id = toxval_id)
   }) %>%
     # Combine and Fill Columns NA if missing
     plyr::rbind.fill() %>%
