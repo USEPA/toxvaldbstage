@@ -54,14 +54,15 @@ get.clowder.file.maps <- function(apiKey){
               # API Key as header instead of query parameter
               add_headers(`X-API-Key` = apiKey)) %>%
       httr::content() %>%
-      data.frame(stringsAsFactors = FALSE)
+      data.frame(stringsAsFactors = FALSE) %>%
+      mutate(clowder_id = id)
   }) %>%
     # Combine and Fill Columns NA if missing
     plyr::rbind.fill() %>%
     # Filter to user uploaded metadata
     filter(`agent..type` == "cat:user" | `agent..type.1` == "cat:user") %>%
     # Select metadata tags
-    select(id, starts_with("content.")) %>%
+    select(clowder_id, starts_with("content.")) %>%
     # Rename columns
     dplyr::rename_all(~stringr::str_replace(.,"^content.","")) %>%
     dplyr::rename_all(~stringr::str_replace_all(., "\\.", "_"))
