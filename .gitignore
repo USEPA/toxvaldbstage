@@ -48,5 +48,6 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
-# Repo
+# Ignore test data and dev setup
 Repo/
+dev_setup.R

@@ -8,15 +8,22 @@ Description: The database has 2 main parts - toxval_source containing
     source data in separate tables, and the main toxval schema which
     combines data from multiple sources into a single format
 Imports: 
-  DBI, 
-  RMySQL, 
-  xlsx, 
-  openxlsx, 
-  dplyr, 
-  tidyr, 
-  stringr, 
-  tibble, 
-  janitor
+    DBI,
+    RMySQL,
+    xlsx,
+    openxlsx,
+    dplyr,
+    tidyr,
+    stringr,
+    tibble,
+    janitor,
+    XML,
+    logr,
+    miniUI,
+    RCurl,
+    gsubfn,
+    textclean,
+    tabulizer
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
