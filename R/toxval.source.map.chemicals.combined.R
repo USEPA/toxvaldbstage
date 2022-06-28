@@ -5,7 +5,7 @@
 # dplyr_1.0.8; RMySQL_0.10.23; DBI_1.1.2; readxl_1.3.1
 
 #-------------------------------------------------------------------------------------
-#' @title toxval.source.map.chemicals
+#' @title toxval.source.map.chemicals.combined
 #' @description push ChemReg curated chemicals to toxval_source db tables
 #' @param source.db The version of toxval source database to use.
 #' @param input.path Path to folder with original chemical lists
@@ -14,7 +14,7 @@
 #' @import RMySQL dplyr readxl
 #' @export
 #--------------------------------------------------------------------------------------
-toxval.source.map.chemicals <- function(source.db, input.path, curated.path){
+toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.path){
   message("Function still in draft phase - waiting for curated chemical files")
   return()
   # Get source chemical table name to ID map
@@ -27,10 +27,10 @@ toxval.source.map.chemicals <- function(source.db, input.path, curated.path){
       # Split by "_"
       strsplit(., split="_") %>%
       unlist() %>%
-    # Restructure split string parts into table
-    data.frame(id = paste0(.[length(.)]),
-               source_chem_table = paste(., collapse="_") %>% tolower(),
-               stringsAsFactors = FALSE) %>%
+      # Restructure split string parts into table
+      data.frame(id = paste0(.[length(.)]),
+                 source_chem_table = paste(., collapse="_") %>% tolower(),
+                 stringsAsFactors = FALSE) %>%
       select(id, source_chem_table) %>%
       distinct() %>%
       # Remove parentheses from table name
@@ -59,16 +59,18 @@ toxval.source.map.chemicals <- function(source.db, input.path, curated.path){
     tbl_id = strsplit(chems$External_ID[1], split="_")[[1]][1] %>%
       gsub("ToxVal", "", .)
     # Get toxval source chemical table name to query
-    src_chem_tbl = source_table_list$source_chem_table[source_table_list$id == tbl_id]
+    #src_chem_tbl = source_table_list$source_chem_table[source_table_list$id == tbl_id]
     # Get chemical table for source
-    chem_tbl = runQuery(paste0("SELECT * FROM ", src_chem_tbl), db=source.db)
+    chem_tbl = runQuery(paste0("SELECT * FROM source_chemical where ",
+                               "chemical_id like 'ToxVal", tbl_id,"%'"), db=source.db)
+    orig_chem_file =
     # Get BIN file information
     b_file = curated_list$`BIN Files`[grepl(paste0("ToxVal", tbl_id),
                                             curated_list$`BIN Files`)] %>%
       paste0(curated.path, "BIN Files/", .) %>%
       readxl::read_xlsx(path=.)
     # Get Jira cleaned information (connect BIN to external_id)
-    j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", tbl_id, ".xlsx"),
+    j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", tbl_id, "_full.xlsx"),
                                                     curated_list$jira_chemical_files)] %>%
       paste0(curated.path, "jira_chemical_files/", .) %>%
       readxl::read_xlsx(path=.) %>%
@@ -76,18 +78,23 @@ toxval.source.map.chemicals <- function(source.db, input.path, curated.path){
       mutate(raw_casrn = ifelse(raw_casrn == "-", NA, raw_casrn))
 
     # Join chemical file information
+    chem_map = j_file %>%
+      left_join(b_file,
+                by=c("raw_casrn"="Query Casrn",
+                     "raw_name"="Query Name")) %>%
+      select(-chemical_id, -raw_casrn, -raw_name)
     out = chem_tbl %>%
-      # Join to joined Jira and BIN file
-      left_join(j_file %>%
-                  left_join(b_file,
-                            by=c("raw_casrn"="Query Casrn",
-                                 "raw_name"="Query Name")) %>%
-                  select(-raw_casrn, -raw_name),
-                by="chemical_id") %>%
-      left_join(chems, by=c("chemical_id"="External_ID")) %T>% {
+      select(source, raw_casrn, raw_name, cleaned_casrn, cleaned_name) %>%
+      left_join(chem_map,
+                # Joining by raw_name and raw_casrn for now since chemical_id changed
+                # between curation efforts
+                by=c("raw_name"="original_name",
+                     "raw_casrn"="original_casrn")) %T>% {
         # Output an intermediate check for incomplete cases to see if join successful
         out_check <<- filter(., !complete.cases(.))
-      }
+      } #%>%
+      # Rename columns casrn, name, dtxsid, dtxrid, quality, flags
+      #dplyr::rename()
     # If any incomplete cases aren't "No Hits", error stop...
     if(any(!out_check$`Lookup Result` %in% c("No Hits"))){
       stop("Error processing ", c_list, "...incomplete join cases found...")
