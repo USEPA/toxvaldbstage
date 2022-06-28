@@ -20,6 +20,10 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
 
   if(is.element("chemical_index",names(res))) res = subset(res,select=-c(chemical_index))
   res$source_hash = "-"
+  res$parent_hash = "-"
+  res$create_time = Sys.time()
+  res$modify_time = NA
+  res$created_by = "toxval source script"
   cat("dimension of res:",dim(res),"\n")
   #####################################################################
   cat("Build the hash key \n")
@@ -28,7 +32,8 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   if(nold>0) {
     sample0 = runQuery(paste0("select * from ",table, " limit 1"),db)
     nlist = names(sample0)
-    nlist = nlist[!is.element(nlist,c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status"))]
+    nlist = nlist[!is.element(nlist,c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
+                                      "parent_hash","create_time","modify_time","created_by"))]
     sh0 = sample0[1,"source_hash"]
     sample = sample0[,nlist]
     sh1 = digest(paste0(sample,collapse=""), serialize = FALSE)
@@ -37,14 +42,16 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   }
   else {
     nlist = runQuery(paste0("desc ",table),db)[,1]
-    nlist = nlist[!is.element(nlist,c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status"))]
+    nlist = nlist[!is.element(nlist,c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
+                                      "parent_hash","create_time","modify_time","created_by"))]
   }
 
   #####################################################################
   cat("check the columns\n")
   #####################################################################
   nlist0 = names(res)
-  nlist0 = nlist0[!is.element(nlist0,c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status"))]
+  nlist0 = nlist0[!is.element(nlist0,c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
+                                       "parent_hash","create_time","modify_time","created_by"))]
   nlist01 = nlist0[!is.element(nlist0,nlist)]
   nlist10 = nlist[!is.element(nlist,nlist0)]
   if(length(nlist01)>0) {
