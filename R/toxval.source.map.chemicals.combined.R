@@ -63,7 +63,11 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
     # Get chemical table for source
     chem_tbl = runQuery(paste0("SELECT * FROM source_chemical where ",
                                "chemical_id like 'ToxVal", tbl_id,"%'"), db=source.db)
-    orig_chem_file =
+    orig_chem_file = curated_list$`DSSTox Files`[grepl(paste0("ToxVal", tbl_id),
+                                                       curated_list$`DSSTox Files`)] %>%
+      paste0(curated.path, "DSSTox Files/", .) %>%
+      readxl::read_xlsx(path=.) %>%
+      select(chemical_id = Extenal_ID, dtxrid = DSSTox_Source_Record_Id, quality=`DSSTox_QC-Level`)
     # Get BIN file information
     b_file = curated_list$`BIN Files`[grepl(paste0("ToxVal", tbl_id),
                                             curated_list$`BIN Files`)] %>%
@@ -82,9 +86,11 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
       left_join(b_file,
                 by=c("raw_casrn"="Query Casrn",
                      "raw_name"="Query Name")) %>%
+      left_join(orig_chem_file,
+                by="chemical_id") %>%
       select(-chemical_id, -raw_casrn, -raw_name)
     out = chem_tbl %>%
-      select(source, raw_casrn, raw_name, cleaned_casrn, cleaned_name) %>%
+      select(chemical_id, source, raw_casrn, raw_name, cleaned_casrn, cleaned_name) %>%
       left_join(chem_map,
                 # Joining by raw_name and raw_casrn for now since chemical_id changed
                 # between curation efforts
@@ -99,9 +105,47 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
     if(any(!out_check$`Lookup Result` %in% c("No Hits"))){
       stop("Error processing ", c_list, "...incomplete join cases found...")
     }
-    # # Drop old chemical table (we pulled it into the new table to be written)
-    # runStatement(paste0("DROP TABLE ", src_chem_tbl), db=source.db)
-    # # Replace with new chemical table
-    # runInsertTable(chem_tbl,src_chem_tbl,source.db,do.halt=TRUE,verbose=FALSE)
+
+    # Rename/select columns for final push to database
+    #chemical_id, casrn, name, dtxsid, dtxrid, quality, flags
+    out = out %>%
+      select(chemical_id,
+             casrn=`Top Hit Casrn`,
+             name=`Top Hit Name`,
+             dtxsid=`Top HIT DSSTox_Substance_Id`,
+             dtxrid,
+             quality,
+             flags=`Lookup Result`) %>%
+      # Filter out ones that didn't map
+      filter(!is.na(dtxsid))
+
+    # Push mappings
+    for(c_id in out$chemical_id){
+      map = out %>%
+        filter(chemical_id == c_id)
+
+      varSet <- lapply(map %>%
+                         select(-chemical_id) %>%
+                         names(), function(x){ paste0(x, " = '",map[[x]], "'") }) %>%
+        paste0(collapse = ", ")
+
+      paste0("UPDATE source_chemical SET ",
+             varSet,
+             " WHERE chemical_id = '", c_id, "'") %>%
+      runQuery(query=., db=source.db, do.halt = FALSE)
+    }
+    # Eventually convert to batch INNER JOIN logic
+    # Requires CREATE TABLE rights on database to push tmp map table
+    # paste0("UPDATE z_test_source_chemical AS t1 ",
+    #        "INNER JOIN SELECT * FROM z_tmp_source_chemical_map WHERE ",
+    #        "t1.chemical_id in (",
+    #        #toString(out$chemical_id),
+    #        ") ",
+    #        "AS t2 USING (chemical_id) ",
+    #        "SET ", varSet,#paste0(varSet[c(1:9,11:15)], collapse=","),
+    #        " WHERE t1.chemical_id in (",
+    #        #toString(out$chemical_id),
+    #        ") "
+    #        )
   }
 }
