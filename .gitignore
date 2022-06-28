@@ -49,5 +49,5 @@ po/*~
 rsconnect/
 
 # Ignore test data and dev setup
-test_data/
+Repo/
 dev_setup.R
