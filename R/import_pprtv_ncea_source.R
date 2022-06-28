@@ -1,6 +1,3 @@
-library(openxlsx)
-library(tibble)
-library(janitor)
 #--------------------------------------------------------------------------------------
 #' Load pprtv_ncea Source Info into dev_toxval_source_v2.
 #' @param db The version of toxval into which the source info is loaded.
@@ -88,7 +85,7 @@ import_pprtv_ncea_source <- function(db,
                     "TisGen_ID", "DoseReg_ID", "TissueOrGen","Co_Crit","LOC_CancerEffect","NOELConfidence","Tissue_Types")
   colnames_res_to_change <-  data.frame(cols_2_rename, renamed_cols, stringsAsFactors = F)
 
-  runInsertTable(colnames_res_to_change, "pprtv_ncea_modified_colnames",db,do.halt=T,verbose=F )
+  #runInsertTable(colnames_res_to_change, "pprtv_ncea_modified_colnames",db,do.halt=T,verbose=F )
   for (i in 1:length(res)){
     for (j in 1:nrow(colnames_res_to_change)){
       names(res[[i]])[match(colnames_res_to_change$cols_2_rename[j], names(res[[i]]))] = colnames_res_to_change$renamed_cols[j]
@@ -134,6 +131,7 @@ import_pprtv_ncea_source <- function(db,
   cat("convert character UF to numeric in pprtv_ncea_new_scrape_table  \n")
   #####################################################################
   res$pprtv_ncea_new_scrape_table$UF <- as.numeric(res$pprtv_ncea_new_scrape_table$UF)
+
   #####################################################################
   cat("Create PPRTV Source tables \n")
   #####################################################################
@@ -185,43 +183,21 @@ import_pprtv_ncea_source <- function(db,
   new_pprtv_ncea <- new_pprtv_ncea[c("pprtv_ncea_id",names(new_pprtv_ncea[-31]))]
   print(new_pprtv_ncea[new_pprtv_ncea$casrn=="110-54-3","name"])
 
-  #####################################################################
-  cat("Do the chemical checking\n")
-  #####################################################################
-  source = "PPRTV (NCEA)"
   res = as.data.frame(new_pprtv_ncea)
   res = res[!is.element(res$casrn,"VARIOUS"),]
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = res[!is.na(res$name),]
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=T)
+
+  res = subset(res,select=-c(pprtv_ncea_id))
+  nlist = c("casrn","name","rfv_id","toxval_type",
+            "toxval_numeric","toxval_units","study_type","toxval_subtype","phenotype",
+            "pod_numeric","pod_type","pod_units",
+            "uf_a","uf_d","uf_h","uf_l","uf_s","uf_c",
+            "year","author","title","long_ref","species","strain",
+            "sex","exposure_route","exposure_method",
+            "study_duration_class","study_duration_value","study_duration_units")
+  names(res) = nlist
+  res[is.element(res$casrn,"64724-95-6"),"casrn"] = "64742-95-6"
   #####################################################################
-  cat("Build the hash key and load the data \n")
+  cat("Prep and load the data\n")
   #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"new_pprtv_ncea",F,F,res)
-  browser()
-  return(1)
-
-
-  ##runInsertTable(new_pprtv_ncea, "new_pprtv_ncea",db,do.halt=T,verbose=F )
-  #write.xlsx(new_pprtv_ncea, file = "new_pprtv_ncea.xlsx", sheetName = "Sheet 1")
-
-  ####################################################################
-  cat("Build pprtv_ncea_chemical_information table from new_pprtv_ncea\n")
-  #####################################################################
-
-  chemical_information <- new_pprtv_ncea[,2:3]
-  chemical_information <- unique(chemical_information[,1:2])
-  chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))
-  chemical_information <- chemical_information[c('chemical_id','name','casrn')]
-
-  runInsertTable(chemical_information,"pprtv_ncea_chemical_information",db,do.halt=T,verbose=F)
-
-
+  source_prep_and_load(db,source="PPRTV (NCEA)",table="source_pprtv_ncea",res=res,F,T,T)
 }
-
-
-
-
-

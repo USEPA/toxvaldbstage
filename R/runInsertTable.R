@@ -51,7 +51,7 @@ runInsertTable <- function(mat,table,db,do.halt=T,verbose=F,get.id=T) {
     }
 
     con <- dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
-    dbWriteTable(con,name=table,value=mat,row.names=F,overwrite=F,append=T)
+    res = dbWriteTable(con,name=table,value=mat,row.names=F,overwrite=F,append=T)
     if(get.id) {
       rs2 <- dbSendQuery(con, "select LAST_INSERT_ID()")
       d2 <- dbFetch(rs2, n = -1)

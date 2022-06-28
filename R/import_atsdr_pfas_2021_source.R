@@ -6,7 +6,7 @@
 #--------------------------------------------------------------------------------------
 import_atsdr_pfas_2021_source <- function(db,
                                           indir="../atsdr_pfas_2021/atsdr_pfas_2021_files",
-                                          chem.check.halt=T) {
+                                          chem.check.halt=F) {
   printCurrentFunction(db)
   #####################################################################
   cat("Build list of dataframes with all 6 ATSDR_TP_2021 files\n")

@@ -9,7 +9,7 @@ library(openxlsx)
 #--------------------------------------------------------------------------------------
 import_pfas_summary_pods_source <- function(db,
                                             infile1="../PFAS Summary PODs/PFAS Summary PODs_files/PFAS 150 Study Level PODs_061920.xlsx",
-                                            infile2="../PFAS Summary PODs/PFAS Summary PODs_files/CompToxChemicalsDashboard-Batch-Search_2020-07-20_17_18_42.xls",
+                                            infile2="../PFAS Summary PODs/PFAS Summary PODs_files/CompToxChemicalsDashboard-Batch-Search_2020-07-20_17_18_42.xlsx",
                                             chem.check.halt=T) {
   printCurrentFunction(db)
 
@@ -22,7 +22,7 @@ import_pfas_summary_pods_source <- function(db,
   pod_summary <- res
   pod_summary <- lapply(pod_summary, function(x) type.convert(as.character(x), as.is = T))
   pod_summary <- data.frame(pod_summary, stringsAsFactors = F)
-  runInsertTable(pod_summary,"whole_pfas_summary_pods",db,do.halt=T,verbose=F)
+  #runInsertTable(pod_summary,"whole_pfas_summary_pods",db,do.halt=T,verbose=F)
 
   #####################################################################
   cat("Build pfas_summary_pods_study_dict from infile1 sheet 1 \n")
@@ -30,14 +30,15 @@ import_pfas_summary_pods_source <- function(db,
   study_summary <- openxlsx::read.xlsx(infile1,1)
   study_summary <- lapply(study_summary, function(x) type.convert(as.character(x), as.is = T))
   study_summary <- data.frame(study_summary, stringsAsFactors = F)
-  runInsertTable(study_summary,"pfas_summary_pods_study_dict",db,do.halt=T,verbose=F)
+  #runInsertTable(study_summary,"pfas_summary_pods_study_dict",db,do.halt=T,verbose=F)
 
   #####################################################################
   cat("Build pfas_summary_pods_casrn_dict by batch searching casrns and name using DTXSIDs from CompTox dashboard \n")
   #####################################################################
-  casrn_dict <- read_excel(infile2,sheet = 1, col_names = T)
+  #casrn_dict <- read_excel(infile2,sheet = 1, col_names = T)
+  casrn_dict <- openxlsx::read.xlsx(infile2,1)
   casrn_dict <- data.frame(casrn_dict,stringsAsFactors = F)
-  runInsertTable(casrn_dict,"pfas_summary_pods_casrn_dict",db,do.halt=T,verbose=F)
+  #runInsertTable(casrn_dict,"pfas_summary_pods_casrn_dict",db,do.halt=T,verbose=F)
 
   #####################################################################
   cat("Build new_pfas_summary_pods table from res \n")
@@ -104,37 +105,10 @@ import_pfas_summary_pods_source <- function(db,
   res <- res[,names.list]
   res <- lapply(res, function(x) type.convert(as.character(x), as.is = T))
   res <- data.frame(res, stringsAsFactors = F)
-  res["pfas_summary_pods_id"] <- c(1:length(res[,1]))
-  res <- res[c("pfas_summary_pods_id",names(res[-14]))]
+  res$short_ref = res$long_ref
 
   #####################################################################
-  cat("Do the chemical checking\n")
+  cat("Prep and load the data\n")
   #####################################################################
-  source = "PFAS Summary PODs"
-  res = as.data.frame(res)
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"new_pfas_summary_pods",F,T,res)
-  browser()
-  return(1)
-
-
-
-  runInsertTable(res,"new_pfas_summary_pods",db,do.halt=T,verbose=F)
-  #####################################################################
-  cat("Build  pfas_summary_pods_chemical_information table from res\n")
-  #####################################################################
-  chemical_information <- res[,c("name","casrn")]
-  chemical_information <- unique(chemical_information[,1:2])
-  chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))
-  chemical_information <- chemical_information[c('chemical_id','name','casrn')]
-  runInsertTable(chemical_information,"pfas_summary_pods_chemical_information",db,do.halt=T,verbose=F)
-
-
+  source_prep_and_load(db,source="PFAS Summary PODs",table="source_pfas_summary_pods",res=res,F,T,T)
 }
-

@@ -5,7 +5,7 @@
 #--------------------------------------------------------------------------------------
 import_envirotox_source <- function(db,
                                     infile="../envirotox/envirotox_files/envirotox_taxonomy clean casrn.xlsx",
-                                    chem.check.halt=T) {
+                                    chem.check.halt=F) {
   printCurrentFunction(db)
   #####################################################################
   cat("Read envirotox file sheet1(test) as res \n")
@@ -56,22 +56,3 @@ import_envirotox_source <- function(db,
   #####################################################################
   source_prep_and_load(db,source="EnviroTox_v2",table="source_envirotox",res=res,F,T,T)
 }
-
-#   #####################################################################
-#   cat("Do the chemical checking\n")
-#   #####################################################################
-#   source = "EnviroTox_v2"
-#   res = as.data.frame(res)
-#   res = res[!is.element(res$cas,"NOCAS"),]
-#   res = fix.non_ascii.v2(res,source)
-#   res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="cas",name.col="chemical_name",verbose=F)
-#   #####################################################################
-#   cat("Build the hash key and load the data \n")
-#   #####################################################################
-#   res = subset(res,select=-c(chemical_index))
-#   toxval_source.hash.and.load(db,source,"original_envirotox",F,F,res)
-#   browser()
-#   return(1)
-#   runInsertTable(res,"original_envirotox",db,do.halt=T,verbose=F)
-#
-# }

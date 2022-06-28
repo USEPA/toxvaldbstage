@@ -7,7 +7,7 @@ library(dplyr)
 #--------------------------------------------------------------------------------------
 import_pfas_150_sem_source <- function(db,
                                        infile="../PFAS 150 SEM/PFAS 150 SEM_files/PFAS150 animal study template combined_clearance with DTXSID and CASRN.xlsx",
-                                       chem.check.halt=T) {
+                                       chem.check.halt=F) {
   printCurrentFunction(db)
 
   #####################################################################
@@ -108,7 +108,6 @@ import_pfas_150_sem_source <- function(db,
 
   s_dec_non_dup_1 <- s_dec_non_dup[mapply(grepl, s_dec_non_dup$toxval_numeric, s_dec_non_dup$toxval_units),]
   #3
-
   s_dec_non_dup_1_missing <- setdiff(s_dec_non_dup, s_dec_non_dup_1)
   #0
 
@@ -122,7 +121,10 @@ import_pfas_150_sem_source <- function(db,
   # combining subsets with 1. duplicated entries having value matches in doses,
   #2. non duplicated entries having value matches in doses,
   #3. non duplcated entries not having value matches in doses
-  s_dec_new <- rbind(s_dec_dup_1,s_dec_non_dup_1, s_dec_non_dup_1_missing)
+  if(nrow(s_dec_non_dup_1_missing)>0)
+    s_dec_new <- rbind(s_dec_dup_1,s_dec_non_dup_1, s_dec_non_dup_1_missing)
+  else
+    s_dec_new <- rbind(s_dec_dup_1,s_dec_non_dup_1)
   ##############################################################################
   #testing range values
   s_range <- s[grep("\\d+\\-\\d+", s$toxval_numeric),]
@@ -144,23 +146,6 @@ import_pfas_150_sem_source <- function(db,
   res2 <- res3
   rm(res3)
   ##################################################################################
-
-  # #####################################################################
-  # cat("Do the chemical checking\n")
-  # #####################################################################
-  # source = "PFAS 150 SEM"
-  # res = as.data.frame(res2)
-  # res$clowder_id = "-"
-  # res = fix.non_ascii.v2(res,source)
-  # res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
-  # #####################################################################
-  # cat("Build the hash key and load the data \n")
-  # #####################################################################
-  # res = subset(res,select=-c(chemical_index))
-  # toxval_source.hash.and.load(db,source,"original_pfas_150_sem",F,F,res)
-  # browser()
-
-  ###runInsertTable(res2,"original_pfas_150_sem",db,do.halt=T,verbose=F)
 
   ##################################################################################
   #fix year
@@ -248,29 +233,8 @@ import_pfas_150_sem_source <- function(db,
   res4 <- rbind(res2_d,res2_e)
 
   #####################################################################
-  cat("Do the chemical checking\n")
+  cat("Prep and load the data\n")
   #####################################################################
-  source = "PFAS 150 SEM"
-  res = as.data.frame(res4)
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"new_pfas_150_sem",F,F,res)
-  browser()
-  return(1)
-  runInsertTable(res4,"new_pfas_150_sem",db,do.halt=T,verbose=F)
-
-  # #####################################################################
-  # cat("Build pfas_150_sem_chemical_information table\n")
-  # #####################################################################
-  # chemical_information <- res4[,c("casrn","name")]
-  # chemical_information <- unique(chemical_information[,1:2])
-  # chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))
-  # chemical_information <- chemical_information[c('chemical_id','name','casrn')]
-  # runInsertTable(chemical_information,"pfas_150_sem_chemical_information",db,do.halt=T,verbose=F)
-
+  source_prep_and_load(db,source="PFAS 150 SEM",table="source_pfas_150_sem",res=res4,F,T,T)
 }
+#

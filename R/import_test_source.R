@@ -43,17 +43,10 @@ import_test_source <- function(db,
   res1[critical_effect_to_clean,"critical_effect"] <- gsub("\\)","",res1[critical_effect_to_clean,"critical_effect"])
   res1[is.na(res1$name),"name"] = "noname"
   res1[res1$name=="-","name"] = "noname"
+
+  res = subset(res1,select=-c(test_id))
   #####################################################################
-  cat("Do the chemical checking\n")
+  cat("Prep and load the data\n")
   #####################################################################
-  source = "TEST"
-  res = as.data.frame(res1)
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"new_test_table",F,T,res)
+  source_prep_and_load(db,source="TEST",table="source_test",res=res,F,T,T)
 }

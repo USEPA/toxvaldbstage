@@ -5,7 +5,7 @@
 #--------------------------------------------------------------------------------------
 import_efsa2_source <- function(db,
                                 infile="../efsa2/efsa2_files/merge2/EFSA_combined_new.xlsx",
-                                chem.check.halt=T) {
+                                chem.check.halt=F) {
   printCurrentFunction(db)
 
   #####################################################################

@@ -6,6 +6,24 @@
 #--------------------------------------------------------------------------------------
 set_clowder_id <- function(res,source) {
   printCurrentFunction(source)
+  file = "../clowder_v3/toxval_document_map_icf.xlsx"
+  map.icf = openxlsx::read.xlsx(file)
+
+  file = "../clowder_v3/toxval_document_map_ccte.xlsx"
+  map.ccte = openxlsx::read.xlsx(file)
+
+  map.icf = fix.non_ascii.v2(map.icf,"map.icf")
+  map.ccte = fix.non_ascii.v2(map.ccte,"map.ccte")
+  if(source=="HESS") {
+    for(dn in unique(res$document_name)) {
+      if(is.element(dn,map.icf$document_name)) {
+        cid = map.icf[is.element(map.icf$document_name,dn),"clowder_id"]
+        res[is.element(res$document_name,dn),"clowder_id"] = cid
+      }
+    }
+    cat("clowder_id and document_name set for ",source,"\n")
+    return(res)
+  }
 
   # Set the easy ones
   if(source=="Alaska DEC") {
@@ -75,7 +93,7 @@ set_clowder_id <- function(res,source) {
     return(res)
   }
   if(is.element(source,c("NIOSH"))) {
-    res$clowder_id="61fac10de4b04a563fdc9c88"
+    res$clowder_id="61fabd3de4b04a563fdc9b99"
     res$document_name="ToxValQA33091630_NIOSH_2020_ImmediatelyDangerous-(IDLH)Values.pdf"
     return(res)
     cat("clowder_id and document_name set for ",source,"\n")
@@ -100,19 +118,19 @@ set_clowder_id <- function(res,source) {
     return(res)
   }
   if(source=="RSL") {
-    res[,"clowder_id"] = "61fac10ee4b04a563fdc9c92"
+    res[,"clowder_id"] = "61fabdc0e4b04a563fdc9bdd"
     res[,"document_name"] = "ToxValQA33099727_EPA_2021_RegionalScreeningLevels-(TR=1E-06,THQ=1.0).pdf"
     res[res$risk_assessment_class=="subchronic","clowder_id"] = "61fac10fe4b04a563fdc9c9c"
     res[res$risk_assessment_class=="subchronic","document_name"] = "ToxValQA33106078_EPA_2021_RegionalScreeningLevels-SubchronicToxicityValues.pdf"
-    res[res$toxval_subtype=="Thq =  1","clowder_id"] = "61fac10ee4b04a563fdc9c92"
+    res[res$toxval_subtype=="Thq =  1","clowder_id"] = "61fabdc0e4b04a563fdc9bdd"
     res[res$toxval_subtype=="Thq =  1","document_name"] = "ToxValQA33099727_EPA_2021_RegionalScreeningLevels-(TR=1E-06,THQ=1.0).pdf"
-    res[res$toxval_subtype=="Thq =  0.1","clowder_id"] = "61fac10ee4b04a563fdc9c97"
+    res[res$toxval_subtype=="Thq =  0.1","clowder_id"] = "61fabdc0e4b04a563fdc9bdf"
     res[res$toxval_subtype=="Thq =  0.1","document_name"] = "ToxValQA33100390_EPA_2021_RegionalScreeningLevels-(TR=1E-06,THQ=0.1).pdf"
     cat("clowder_id and document_name set for ",source,"\n")
     return(res)
   }
   if(source=="USGS HBSL") {
-    res$clowder_id = "61fac110e4b04a563fdc9ca1"
+    res$clowder_id = "61fabdc3e4b04a563fdc9c0b"
     res$document_name = "ToxValQA29186291_USGS_2018_Health-BasedScreening-Water-QualityData.pdf"
     cat("clowder_id and document_name set for ",source,"\n")
     return(res)
@@ -124,30 +142,30 @@ set_clowder_id <- function(res,source) {
     return(res)
   }
   if(is.element(source,c("OSHA Air contaminants"))) {
-    res$clowder_id="61fac10de4b04a563fdc9c8d"
+    res$clowder_id="61fabd47e4b04a563fdc9bb8"
     res$document_name="ToxValQA29180809_OSHA_TABLEZ-1LimitsforAirContaminants.pdf"
     cat("clowder_id and document_name set for ",source,"\n")
     return(res)
   }
-  if(is.element(source,c("Mass. Drinking Water Standards"))) {
-    res$clowder_id="-"
-    res$document_name="-"
-    cat("clowder_id and document_name set for ",source,"\n")
-    return(res)
-  }
-  if(is.element(source,c("California DPH"))) {
-    res$clowder_id="-"
-    res$document_name="-"
-    cat("clowder_id and document_name set for ",source,"\n")
-    return(res)
-  }
   if(is.element(source,c("FDA CEDI"))) {
-    res$clowder_id="619d3668e4b0993a3937ea1c"
+    res$clowder_id="619d2972e4b0993a3937de4f"
     res$document_name="ToxValQA29176904_FDA_CumulativeEstimatedDailyIntake.pdf"
     cat("clowder_id and document_name set for ",source,"\n")
     return(res)
   }
-  if(is.element(source,c("DOD ERED"))) {
+  if(is.element(source,c("Wignall"))) {
+    res$clowder_id="62b3091fe4b07abf29f567eb"
+    res$document_name="ToxValDBQA Wignall EHP 2014.pdf"
+    cat("clowder_id and document_name set for ",source,"\n")
+    return(res)
+  }
+  if(is.element(source,c("DOD ERED",
+                         "HEAST",
+                         "IRIS",
+                         "PFAS 150 SEM",
+                         "Mass. Drinking Water Standards",
+                         "California DPH",
+                         "PFAS Summary PODs"))) {
     cat("This is a source that needs to get fixed clowder_id code\n")
     res$clowder_id="-"
     res$document_name="-"
@@ -159,15 +177,7 @@ set_clowder_id <- function(res,source) {
   cat("Do the non-easy sources\n")
   ##########################################################
 
-  file = "../clowder_v3/toxval_document_map_icf.xlsx"
-  map.icf = openxlsx::read.xlsx(file)
-
-  file = "../clowder_v3/toxval_document_map_ccte.xlsx"
-  map.ccte = openxlsx::read.xlsx(file)
-
-  map.icf = fix.non_ascii.v2(map.icf,"map.icf")
-  map.ccte = fix.non_ascii.v2(map.ccte,"map.ccte")
-  nlist = names(res)
+   nlist = names(res)
   if(!is.element("clowder_id",nlist)) res$clowder_id = "-"
   if(!is.element("document_name",nlist)) res$document_name = "-"
 
@@ -195,7 +205,6 @@ set_clowder_id <- function(res,source) {
       res2 = res[res$clowder_id=="-",]
       n3 = length(unique(res2$title))
       cat("matching for source",source,":",n2," out of ",n1," missing unique documents:",n3,"\n")
-      browser()
       nlist = names(res)
       nlist = nlist[!is.element(nlist,"title2")]
       res = res[,nlist]

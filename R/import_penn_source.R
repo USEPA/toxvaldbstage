@@ -6,14 +6,14 @@ library(openxlsx)
 #' @param infile The input file ./penn/penn_files/Penn DEP Table 5a.xlsx
 #--------------------------------------------------------------------------------------
 import_penn_source <- function(db,
-                               infile="../penn/penn_files/Penn DEP Table 5a.xls",
+                               infile="../penn/penn_files/Penn DEP Table 5a.xlsx",
                                chem.check.halt=T) {
   printCurrentFunction(db)
 
   #####################################################################
   cat("Build original_penn_table \n")
   #####################################################################
-  res <- read.xlsx(infile,1,colNames = T)
+  res <- openxlsx::read.xlsx(infile)
   res[3,9] <- gsub("\\(.*?\\)","(ug/m3)", res[3,9])
 
   res_header <- res[c(3,4,5,6),]
@@ -42,48 +42,26 @@ import_penn_source <- function(db,
   new_header <- gsub("\\s+", " ", str_trim(new_header))
   names(res) <- new_header
   rm(h1,h2,h3,h4,h5,k1,k2,k3,k4)
-  # #####################################################################
-  # cat("Do the chemical checking\n")
-  # #####################################################################
-  # source = "Pennsylvania DEP ToxValues"
-  # res = as.data.frame(res)
-  # res = res[!is.element(res[,"Regulated Substance"],"A. Organic Regulated Substances"),]
-  # res = res[!is.na(res[,"Regulated Substance"]),]
-  # res = res[!is.element(res$CAS,"CAS"),]
-  # res$clowder_id = "-"
-  # res = fix.non_ascii.v2(res,source)
-  # res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="CAS",name.col="Regulated Substance",verbose=F)
-  # #####################################################################
-  # cat("Build the hash key and load the data \n")
-  # #####################################################################
-  # res = subset(res,select=-c(chemical_index))
-  # toxval_source.hash.and.load(db,source,"original_penn_table",F,T,res)
-  # browser()
-  # return(1)
-
-  ###runInsertTable(res,"original_penn_table",db,do.halt=T,verbose=F)
 
   #####################################################################
   cat("Build penn_key_descriptions \n")
   #####################################################################
-
-   key_desc_info <- res[372:376, c(1,2,7)]
-   key_desc_info <- data.frame(unlist(key_desc_info))
-   key_desc_info <- as.character(key_desc_info[,1])
-   key_desc_info <- key_desc_info[!is.na(key_desc_info)]
-   key_desc_info <- unlist( strsplit( key_desc_info , "=" ) )
-   key_description <- key_desc_info[seq(2,length(key_desc_info),2)]
-   key_description <- gsub("^\\s+|\\s+$","", key_description)
-   key_value <- key_desc_info[seq(1,length(key_desc_info),2)]
-   key_value <- gsub("^\\s+|\\s+$","", key_value)
-   key_value = key_value[2:length(key_value)]
-   penn_key <- data.frame(key_value,key_description, stringsAsFactors = F)
-   runInsertTable(penn_key,"penn_key_descriptions",db,do.halt=T,verbose=F)
+  key_desc_info <- res[372:376, c(1,2,7)]
+  key_desc_info <- data.frame(unlist(key_desc_info))
+  key_desc_info <- as.character(key_desc_info[,1])
+  key_desc_info <- key_desc_info[!is.na(key_desc_info)]
+  key_desc_info <- unlist( strsplit( key_desc_info , "=" ) )
+  key_description <- key_desc_info[seq(2,length(key_desc_info),2)]
+  key_description <- gsub("^\\s+|\\s+$","", key_description)
+  key_value <- key_desc_info[seq(1,length(key_desc_info),2)]
+  key_value <- gsub("^\\s+|\\s+$","", key_value)
+  key_value = key_value[2:length(key_value)]
+  # penn_key <- data.frame(key_value,key_description, stringsAsFactors = F)
+  # runInsertTable(penn_key,"penn_key_descriptions",db,do.halt=T,verbose=F)
 
   #####################################################################
   cat("Build whole_penn_table and create dataframe res1 \n")
   #####################################################################
-
   res1 <- res[7:370,]
   names(res1) <- names(res)
   res1["penn_id"] <- c(1:dim(res1)[1])
@@ -107,7 +85,6 @@ import_penn_source <- function(db,
   res1$VOC[1:nrow(res1) %in% voc_X] <- rep('Y', length(voc_X))
   res1$`Organic Liquid`[1:nrow(res1) %in% org_liq_X] <- rep('Y', length(org_liq_X))
   replace_keys <- grep("key", names(res1))
-
   for (u in replace_keys){
     for (v in 1:dim(res1)[1]){
       for(k in 1:length(key_description)){
@@ -124,18 +101,8 @@ import_penn_source <- function(db,
                       "IUR_key","Koc","VOC","Aqueous Solubility (mg/L)",
                       "Aqueous Solubility Reference1","TF Vol from Surface Soil",
                       "TF Vol from SubSurface Soil","Organic Liquid",
-                      "Boiling Point (degrees C)","Degradation Coefficient (K)(yr-1)","")
+                      "Boiling Point (degrees C)","Degradation Coefficient (K)(yr-1)")
   res1 = res1[,1:20]
-  runInsertTable(res1,"whole_penn_table",db,do.halt=T,verbose=F)
-
-  # #####################################################################
-  # cat("Build penn_chemical_information table from res1\n")
-  # #####################################################################
-  # chemical_information <- res1[,2:3]
-  # chemical_information <- unique(chemical_information[,1:2])
-  # chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))
-  # chemical_information <- chemical_information[c('chemical_id','name','casrn')]
-  # runInsertTable(chemical_information,"penn_chemical_information",db,do.halt=T,verbose=F)
 
   #####################################################################
   cat("Build new_penn_table from res1\n")
@@ -170,29 +137,10 @@ import_penn_source <- function(db,
   penn_types["penn_id"] <- c(1:dim(penn_types)[1])
   penn_types <- penn_types[c("penn_id",names(penn_types[-7]))]
 
+  nlist = c("casrn","name","toxval_numeric","toxval_source","toxval_type","toxval_units")
+  res = penn_types[,nlist]
   #####################################################################
-  cat("Do the chemical checking\n")
+  cat("Prep and load the data\n")
   #####################################################################
-  source = "Pennsylvania DEP ToxValues"
-  res = as.data.frame(penn_types)
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"new_penn_table",F,T,res)
-  browser()
-  return(1)
-  runInsertTable(penn_types,"new_penn_table",db,do.halt=T,verbose=F)
-
-  #query <- "select nwp.*, ci.chemical_id from new_whole_penn_table nwp inner join penn_chemical_information ci on ci.name = nwp.name and ci.casrn =nwp.casrn"
-  #res2 <- runQuery(query,db)
-  #res2_var <- names(res2) %in% c("name","casrn")
-  #res2 <- res2[!res2_var]
-  #runInsertTable(res2,"new_penn_table",db,do.halt=T,verbose=F)
-
-
+  source_prep_and_load(db,source="Pennsylvania DEP ToxValues",table="source_penn",res=res,F,T,T)
 }
-

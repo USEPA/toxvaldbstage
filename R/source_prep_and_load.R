@@ -11,15 +11,18 @@
 #' chemical  mapping
 #--------------------------------------------------------------------------------------
 source_prep_and_load <- function(db,source,table,res,
-                                 do.reset=FALSE,do.insert=FALSE,chem.check.halt=TRUE){
+                                 do.reset=FALSE,do.insert=FALSE,chem.check.halt=FALSE){
   printCurrentFunction(paste(db,"\n",source,":",table))
+
+  chem.check.halt = F
+
   #####################################################################
   cat("Do the chemical checking\n")
   #####################################################################
   res = as.data.frame(res)
   res$source = source
   res$clowder_id = "-"
-  res$document_name = "-"
+  if(!is.element(source,c("HESS"))) res$document_name = "-"
   res$qc_status = "-"
   res = fix.non_ascii.v2(res,source)
   res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")

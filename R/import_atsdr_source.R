@@ -27,7 +27,6 @@ import_atsdr_source <- function(db,
   res = res[!is.element(res$casrn,"NOCAS"),]
   #####################################################################
   cat("Prep and load the data\n")
-  #####################################################################
   source_prep_and_load(db,source="ATSDR MRLs 2020",table="source_atsdr",res=res,F,T,T)
 }
 

@@ -11,7 +11,7 @@ import_hawc_pfas_150_source <- function(db,
                                         infile1="../hawc_pfas_150/hawc_pfas_files/hawc_pfas_150_raw3.xlsx",
                                         infile2="../hawc_pfas_150/hawc_pfas_files/hawc_pfas_150_doses3.xlsx",
                                         infile3="../hawc_pfas_150/hawc_pfas_files/hawc_pfas_150_groups3.xlsx",
-                                        chem.check.halt=T) {
+                                        chem.check.halt=F) {
   printCurrentFunction(db)
 
   #####################################################################

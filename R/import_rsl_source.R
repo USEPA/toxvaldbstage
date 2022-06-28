@@ -325,51 +325,13 @@ import_rsl_source <- function(db,
   final_rsl <- final_rsl[,c("source_id","source_hash","name","casrn","toxval_numeric","risk_assessment_class","toxval_subtype","toxval_type","toxval_units","subsource","exposure_route","source","study_type", "source_url")]
   #  print(View(final_rsl))
 
+  x = substr(final_rsl$casrn,1,1)
+  mask = vector(length=length(x),mode="integer")
+  mask[] = 1
+  mask[x=="E"] = 0
+  final_rsl = final_rsl[mask==1,]
   #####################################################################
-  cat("Do the chemical checking\n")
+  cat("Prep and load the data\n")
   #####################################################################
-  source = "RSL"
-  res = as.data.frame(final_rsl)
-  cas = res$casrn
-  cas = substr(cas,1,1)
-  res = res[cas!="E",]
-  res[is.na(res$name),"name"] = "No name"
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
-
-  #####################################################################
-  cat("Set the default values for missing data\n")
-  #####################################################################
-  res = source_set_defaults(res,source)
-
-  #####################################################################
-  cat("Set the clowder_id and document name\n")
-  #####################################################################
-  res = set_clowder_id(res,source)
-
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  toxval_source.hash.and.load(db,source,"nov_2021_rsl_table",F,F,res)
-  browser()
-  return(1)
-  ###runInsertTable(final_rsl,"new_2021_rsl_table",db,do.halt=T,verbose=F)
-
-  ####################################################################
-  cat("Build table rsl_general_info \n")
-  #####################################################################
-  general_info <- openxlsx::read.xlsx(infile2, 1)
-  #runInsertTable(general_info,"rsl_general_info",db,do.halt=T,verbose=F)
-
-  #####################################################################
-  cat("Build rsl_key_descriptions \n")
-  #####################################################################
-
-  key_descriptions <- openxlsx::read.xlsx(infile3, 1)
-  colnames(key_descriptions) <- c("key","key_description")
-  #runInsertTable(key_descriptions,"rsl_key_descriptions",db,do.halt=T,verbose=F)
-
-
+  source_prep_and_load(db,source="RSL",table="source_rsl",res=final_rsl,F,T,T)
 }
-

@@ -11,7 +11,7 @@
 import_chiu_source <- function(db,
                                indir="../chiu/chiu_files/",
                                infile="Full_RfD_databaseQAed-FINAL.xlsx",
-                               chem.check.halt=T) {
+                               chem.check.halt=F) {
   printCurrentFunction(db)
   #####################################################################
   cat("Build original_chiu from source file \n")

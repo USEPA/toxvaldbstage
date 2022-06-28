@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' Deal with the process of making the source_chemical informaiton
+#' Deal with the process of making the source_chemical information
 #' @param db The version of toxval into which the source info is loaded.
 #' @param infile1 The input file ./test/test_files/TEST data.xlsx
 #' @param infile2 The input file ./test/test_files/test_chemicals_invitrodb.csv to map casrn to names from prod_internal_invitrodb_v3_2.chemical
@@ -7,7 +7,7 @@
 source_chemical.process <- function(db,
                                     res,
                                     source,
-                                    chem.check.halt=T,
+                                    chem.check.halt=FALSE,
                                     casrn.col="casrn",
                                     name.col="name",
                                     verbose=F) {

@@ -15,7 +15,7 @@ import_atsdr_pfas_source <- function(db,
                                      infile4="../atsdr_pfas/atsdr_pfas_files/ATSDR_PFOA_Oral.xlsx",
                                      infile5="../atsdr_pfas/atsdr_pfas_files/ATSDR_PFOS_Oral.xlsx",
                                      indir="../atsdr_pfas/atsdr_pfas_files",
-                                     chem.check.halt=T) {
+                                     chem.check.halt=F) {
   printCurrentFunction(db)
 
   #####################################################################
