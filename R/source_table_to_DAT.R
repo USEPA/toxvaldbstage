@@ -13,11 +13,12 @@
 #' @param source_table The name of toxval source table to use.
 #' @param source The name of toxval source to use.
 #' @param limit Excel file grouping limit (default is max XLSX row limit)
+#' @param sample_p Percentage of records to sample down to
 #' @return Processed source table to DAT format cached and returned.
 #' @import dplyr RMySQL DBI readxl magrittr tidyr writexl
 #' @export
 #--------------------------------------------------------------------------------------
-source.table.to.DAT <- function(source.db, source_table, limit = 1000000){
+source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample_p = NA){
   # Skip if does not have the required ID field
   name_check = runQuery(paste("SELECT * FROM ", source_table, " LIMIT 1"),
                         db=source.db) %>%
@@ -30,7 +31,20 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000){
   src_data = runQuery(paste("SELECT * FROM ", source_table),
                      db=source.db) %>%
     # Set record_id for DAT template from source_hash
-    dplyr::rename(record_id = source_hash)
+    dplyr::rename(record_id = source_hash) %T>% {
+      # Get sample count based on sample_p
+      sample_n <<- ceiling(nrow(.) * sample_p)
+    } %>%
+    filter(clowder_id != "-")
+
+  # Sample down if sample_p parameter used
+  if(!is.na(sample_n)){
+    src_data = src_data %>%
+      #group_by(clowder_id) %>%
+      slice_sample(n=sample_n)
+
+  }
+
   # Remove columns
   rm_list = c("source_id", "chemical_id", "source", "subsource")
   src_data[, rm_list] <- NULL
