@@ -72,7 +72,9 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
     b_file = curated_list$`BIN Files`[grepl(paste0("ToxVal", tbl_id),
                                             curated_list$`BIN Files`)] %>%
       paste0(curated.path, "BIN Files/", .) %>%
-      readxl::read_xlsx(path=.)
+      readxl::read_xlsx(path=.) %>%
+      # Some BIN files have quotation marks around the query...removing...
+      mutate(`Query Name` = gsub("\"", "", `Query Name`))
     # Get Jira cleaned information (connect BIN to external_id)
     j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", tbl_id, "_full.xlsx"),
                                                     curated_list$jira_chemical_files)] %>%
@@ -88,7 +90,8 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
                      "raw_name"="Query Name")) %>%
       left_join(orig_chem_file,
                 by="chemical_id") %>%
-      select(-chemical_id, -raw_casrn, -raw_name)
+      select(-chemical_id, -raw_casrn, -raw_name) %>%
+      mutate(original_casrn = as.character(original_casrn))
     out = chem_tbl %>%
       select(chemical_id, source, raw_casrn, raw_name, cleaned_casrn, cleaned_name) %>%
       left_join(chem_map,
@@ -102,9 +105,9 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
       # Rename columns casrn, name, dtxsid, dtxrid, quality, flags
       #dplyr::rename()
     # If any incomplete cases aren't "No Hits", error stop...
-    if(any(!out_check$`Lookup Result` %in% c("No Hits"))){
-      stop("Error processing ", c_list, "...incomplete join cases found...")
-    }
+    # if(any(!out_check$`Lookup Result` %in% c("No Hits"))){
+    #   stop("Error processing ", c_list, "...incomplete join cases found...")
+    # }
 
     # Rename/select columns for final push to database
     #chemical_id, casrn, name, dtxsid, dtxrid, quality, flags
@@ -126,14 +129,15 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
 
       varSet <- lapply(map %>%
                          select(-chemical_id) %>%
-                         names(), function(x){ paste0(x, " = '",map[[x]], "'") }) %>%
+                         names(), function(x){ paste0(x, " = \"",map[[x]], "\"") }) %>%
         paste0(collapse = ", ")
 
       paste0("UPDATE source_chemical SET ",
              varSet,
              " WHERE chemical_id = '", c_id, "'") %>%
-      runQuery(query=., db=source.db, do.halt = FALSE)
+        runQuery(query=., db=source.db, do.halt = FALSE)
     }
+
     # Eventually convert to batch INNER JOIN logic
     # Requires CREATE TABLE rights on database to push tmp map table
     # paste0("UPDATE z_test_source_chemical AS t1 ",
