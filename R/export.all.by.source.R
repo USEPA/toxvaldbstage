@@ -16,14 +16,14 @@ export.all.by.source <- function(toxval.db, source=NULL) {
 
   slist = sort(runQuery("select distinct source from toxval",toxval.db)[,1])
   if(!is.null(source)) slist=source
-  nlist = c("source","rows","dtxsid","toxval_type","toxval_units","rac","study_type",
-            "study_duration_class","study_duration_units","species","strain","sex",
-            "human_eco","exposure_route","exposure_method","exposure_form","media",
-            "critical_effect","long_ref")
-  res = as.data.frame(matrix(nrow=length(slist),ncol=length(nlist)))
-  names(res) = nlist
-  res$source = slist
-  rownames(res) = res$source
+  # nlist = c("source","rows","dtxsid","toxval_type","toxval_units","rac","study_type",
+  #           "study_duration_class","study_duration_units","species","strain","sex",
+  #           "human_eco","exposure_route","exposure_method","exposure_form","media",
+  #           "critical_effect","long_ref")
+  # res = as.data.frame(matrix(nrow=length(slist),ncol=length(nlist)))
+  # names(res) = nlist
+  # res$source = slist
+  # rownames(res) = res$source
   #file = paste0(dir,"/source_counts ",Sys.Date(),".xlsx")
   #openxlsx::write.xlsx(res,file)
   #browser()
@@ -70,13 +70,11 @@ export.all.by.source <- function(toxval.db, source=NULL) {
                     f.year,
                     f.issue,
                     f.url,
-                    f.document_name,
-                    b.toxval_uuid,
-                    b.toxval_hash
+                    f.document_name
                     FROM
                     toxval b
                     INNER JOIN chemical a on a.dtxsid=b.dtxsid
-                    LEFT JOIN species_ecotox d on b.species_id=d.species_id
+                    LEFT JOIN species d on b.species_id=d.species_id
                     INNER JOIN toxval_type_dictionary e on b.toxval_type=e.toxval_type
                     INNER JOIN record_source f on b.toxval_id=f.toxval_id
                     WHERE
@@ -100,7 +98,7 @@ export.all.by.source <- function(toxval.db, source=NULL) {
 
     col.list = col.list[is.element(col.list,names(mat))]
         cat(src,nrow(mat),"\n")
-    res[src,"rows"] = nrow(mat)
+    #res[src,"rows"] = nrow(mat)
     file = paste0(dir,"/toxval_all_",toxval.db,"_",src,".xlsx")
     sty = createStyle(halign="center",valign="center",textRotation=90,textDecoration = "bold")
     openxlsx::write.xlsx(mat,file,firstRow=T,headerStyle=sty)
