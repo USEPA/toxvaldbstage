@@ -113,7 +113,7 @@ fix.units.by.source <- function(toxval.db,source, do.convert=T) {
     for (i in 1: nrow(conv)){
       species <- conv[i,1]
       factor <- conv[i,2]
-      sid.list <- runQuery(paste0("select species_id from species_ecotox where common_name ='",species,"'"),toxval.db)[,1]
+      sid.list <- runQuery(paste0("select species_id from species where common_name ='",species,"'"),toxval.db)[,1]
       for(sid in sid.list) {
         cat(species, sid,":",length(sid.list),"\n")
         query = paste0("update toxval

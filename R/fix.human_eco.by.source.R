@@ -21,17 +21,17 @@ fix.human_eco.by.source <- function(toxval.db,source, reset=T){
   }
   query = paste0("update toxval set human_eco='eco' where source='",source,"'")
   runQuery(query,toxval.db)
-  query = paste0("update toxval set human_eco='not specified' where species_id in (select species_id from species_ecotox where ecotox_group='Not Specified') and source='",source,"'")
+  query = paste0("update toxval set human_eco='not specified' where species_id in (select species_id from species where ecotox_group='Not Specified') and source='",source,"'")
   runQuery(query,toxval.db)
-  query = paste0("update toxval set human_eco='human health' where species_id in (select species_id from species_ecotox where ecotox_group='Mammals') and source='",source,"'")
+  query = paste0("update toxval set human_eco='human health' where species_id in (select species_id from species where ecotox_group='Mammals') and source='",source,"'")
   runQuery(query,toxval.db)
 
 }
 #   # Set human_eco
 #   cat("set human eco\n")
 #   runQuery("update toxval set human_eco='eco'",toxval.db)
-#   runQuery("update toxval set human_eco='not specified' where species_id in (select species_id from species_ecotox where ecotox_group='Not Specified')",toxval.db)
-#   runQuery("update toxval set human_eco='human health' where species_id in (select species_id from species_ecotox where ecotox_group='Mammals')",toxval.db)
+#   runQuery("update toxval set human_eco='not specified' where species_id in (select species_id from species where ecotox_group='Not Specified')",toxval.db)
+#   runQuery("update toxval set human_eco='human health' where species_id in (select species_id from species where ecotox_group='Mammals')",toxval.db)
 #
 #
 #
@@ -47,7 +47,7 @@ fix.human_eco.by.source <- function(toxval.db,source, reset=T){
 #   ################################################################################################
 #   cat("  set mammalian records to 'human health'\n")
 #   query <- paste0("update toxval set human_eco='human health' where human_eco='not classified' and species_id in
-#   (select species_id from species_ecotox where ecotox_group='mammals') and source like '",source,"'")
+#   (select species_id from species where ecotox_group='mammals') and source like '",source,"'")
 #   runQuery(query,toxval.db)
 #   n1 = runQuery(paste0("select count(*) from toxval where human_eco='not classified' and source like '",source,"'"),toxval.db)[1,1]
 #   cat("step 2:",n0,n1,"\n")
@@ -55,7 +55,7 @@ fix.human_eco.by.source <- function(toxval.db,source, reset=T){
 #   ################################################################################################
 #   cat("  set appropriate records to 'eco'\n")
 #   query <- paste0("update toxval set human_eco='eco' where human_eco='not classified' and species_id in
-#   (select species_id from species_ecotox where ecotox_group in
+#   (select species_id from species where ecotox_group in
 #   ('algae, moss, fungi',
 #   'amphibians',
 #   'birds',
@@ -150,7 +150,7 @@ fix.human_eco.by.source <- function(toxval.db,source, reset=T){
 #   cat("step 11:",n0,n1,"\n")
 #   ################################################################################################
 #   runQuery(paste0("update toxval set human_eco='eco' where human_eco='not classified' and species_id in
-#            (select species_id from species_ecotox
+#            (select species_id from species
 #            where ecotox_group
 #            in (
 #            'algae, moss, fungistandard test species',
@@ -174,7 +174,7 @@ fix.human_eco.by.source <- function(toxval.db,source, reset=T){
 #
 #   ################################################################################################
 #   runQuery(paste0("update toxval set human_eco='human health' where human_eco='not classified' and species_id in
-#            (select species_id from species_ecotox
+#            (select species_id from species
 #            where ecotox_group
 #            in (
 #            'mammalsstandard test species'
@@ -185,7 +185,7 @@ fix.human_eco.by.source <- function(toxval.db,source, reset=T){
 #
 #   ################################################################################################
 #   runQuery(paste0("update toxval set human_eco='eco' where human_eco='not classified' and species_id in
-#            (select species_id from species_ecotox
+#            (select species_id from species
 #            where common_name
 #            in (
 #            'aquatic community organisms - sediment','aquatic community organisms - water'
@@ -235,7 +235,7 @@ fix.human_eco.by.source <- function(toxval.db,source, reset=T){
 #   cat("counts in human health, eco, genetox and not classified:",count.hh,count.ec,count.gt,count.nc,"\n")
 #
 #   x <- runQuery(paste0("select a.species_id, a.common_name, a.latin_name, a.ecotox_group,
-#                 a.habitat, b.species_original, b.human_eco from species_ecotox a, toxval b where a.species_id=b.species_id and source like '",source,"'"),toxval.db)
+#                 a.habitat, b.species_original, b.human_eco from species a, toxval b where a.species_id=b.species_id and source like '",source,"'"),toxval.db)
 #   x <- unique(x)
 #   # file <- paste0("./species/species_by_human_eco_",source,"_",Sys.Date(),".xlsx")
 #   # write.xlsx(x,file)
