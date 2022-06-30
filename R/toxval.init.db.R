@@ -18,7 +18,7 @@ toxval.init.db <- function(toxval.db) {
   import.dictionary(toxval.db)
 
   #################################################################
-  cat("load the species_ecotox table\n")
+  cat("load the species table\n")
   #################################################################
   date_string="2022-05-25"
   file =paste0(toxval.config()$datapath,"species/ecotox_species_dictionary_",date_string,".xlsx")
@@ -43,10 +43,18 @@ toxval.init.db <- function(toxval.db) {
   dict2$variety = NA
   dict2 = dict2[,names(dict)]
   dict = rbind(dict,dict2)
-  count = runQuery("select count(*) from species_ecotox where species_id=-1",toxval.db)[1,1]
+  count = runQuery("select count(*) from species where species_id=-1",toxval.db)[1,1]
   if(count==0) {
-    runInsert("insert into species_ecotox (species_id,common_name,latin_name) values (-1,'Not Specified','Not Specified')",toxval.db,do.halt=T)
+    runInsert("insert into species (species_id,common_name,latin_name) values (-1,'Not Specified','Not Specified')",toxval.db,do.halt=T)
   }
-  runQuery("delete from species_ecotox where species_id>=0",toxval.db)
-  runInsertTable(dict,"species_ecotox",toxval.db)
+  runQuery("delete from species where species_id>=0",toxval.db)
+  runInsertTable(dict,"species",toxval.db)
+  runQuery("update species set common_name='Rat' where species_id=4510",toxval.db)
+  runQuery("update species set common_name='Mouse' where species_id=4913",toxval.db)
+  runQuery("update species set common_name='Dog' where species_id=4928",toxval.db)
+  runQuery("update species set common_name='Dog' where species_id=7630",toxval.db)
+  runQuery("update species set common_name='Rabbit' where species_id=22808",toxval.db)
+  runQuery("update species set common_name='Cat' where species_id=7378",toxval.db)
+
+  runQuery("update toxval set species_id=4510 where species_id=23410",toxval.db)
 }
