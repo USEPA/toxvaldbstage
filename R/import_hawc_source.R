@@ -14,6 +14,7 @@ import_hawc_source <- function(db,
                                infile2="../hawc/hawc_files/dose_dict.xlsx",
                                chem.check.halt=T) {
   printCurrentFunction(db)
+  source = "HAWC"
 
   #####################################################################
   cat("Build original_hawc table \n")
