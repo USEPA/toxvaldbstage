@@ -1,6 +1,6 @@
 #--------------------------------------------------------------------------------------
 #'
-#' Load the species_ecotox table and the species_id column in toxval
+#' Load the species table and the species_id column in toxval
 #'
 #' This function replaces fix.species
 #' This function precedes toxvaldb.load.species
@@ -10,7 +10,7 @@
 #' @param date.string Date suffix on the input species dictionary
 #' @export
 #--------------------------------------------------------------------------------------
-toxval.load.species_ecotox <- function(toxval.db,restart=F,date_string="2022-05-25") {
+toxval.load.species <- function(toxval.db,restart=F,date_string="2022-05-25") {
   printCurrentFunction()
   file = paste0(toxval.config()$datapath,"species/ecotox_species_dictionary_",date_string,".xlsx")
   dict = openxlsx::read.xlsx(file)
@@ -34,24 +34,24 @@ toxval.load.species_ecotox <- function(toxval.db,restart=F,date_string="2022-05-
   dict2$variety = NA
   dict2 = dict2[,names(dict)]
   dict = rbind(dict,dict2)
-  count = runQuery("select count(*) from species_ecotox where species_id=-1",toxval.db)[1,1]
+  count = runQuery("select count(*) from species where species_id=-1",toxval.db)[1,1]
   if(count==0) {
-    runInsert("insert into species_ecotox (species_id,common_name,latin_name) values (-1,'Not Specified','Not Specified')",toxval.db,do.halt=T)
+    runInsert("insert into species (species_id,common_name,latin_name) values (-1,'Not Specified','Not Specified')",toxval.db,do.halt=T)
   }
   if(restart) {
     cat("Reset species_id\n")
     runQuery("update toxval set species_id=-1",toxval.db)
-    runQuery("delete from species_ecotox where species_id>=0",toxval.db)
-    runInsertTable(dict,"species_ecotox",toxval.db)
+    runQuery("delete from species where species_id>=0",toxval.db)
+    runInsertTable(dict,"species",toxval.db)
   }
 
   # Do the special steps for Rat and Mouse
-  runQuery("update species_ecotox set common_name='Norway Rat' where species_id=4510",toxval.db)
-  runQuery("update species_ecotox set common_name='House Mouse' where species_id=4913",toxval.db)
-  runQuery("update species_ecotox set common_name='Domestic Dog' where species_id=4928",toxval.db)
-  runQuery("update species_ecotox set common_name='Dog Family' where species_id=7630",toxval.db)
-  runQuery("update species_ecotox set common_name='Old World Rabbits' where species_id=22808",toxval.db)
-  runQuery("update species_ecotox set common_name='Cat Family' where species_id=7378",toxval.db)
+  runQuery("update species set common_name='Norway Rat' where species_id=4510",toxval.db)
+  runQuery("update species set common_name='House Mouse' where species_id=4913",toxval.db)
+  runQuery("update species set common_name='Domestic Dog' where species_id=4928",toxval.db)
+  runQuery("update species set common_name='Dog Family' where species_id=7630",toxval.db)
+  runQuery("update species set common_name='Old World Rabbits' where species_id=22808",toxval.db)
+  runQuery("update species set common_name='Cat Family' where species_id=7378",toxval.db)
 
   dict$latin_name = tolower(dict$latin_name)
   dict$common_name = tolower(dict$common_name)
@@ -60,12 +60,12 @@ toxval.load.species_ecotox <- function(toxval.db,restart=F,date_string="2022-05-
   extra$latin_name = tolower(extra$latin_name)
   extra$species_original = tolower(extra$species_original)
 
-  slist = runQuery("select species_id from species_ecotox",toxval.db)[,1]
+  slist = runQuery("select species_id from species",toxval.db)[,1]
   extra2 = extra[!is.element(extra$species_id,slist),]
   if(nrow(extra2)>0) {
-    cat("Need to add records to species_ecotox\n")
+    cat("Need to add records to species\n")
     extra2 = extra2[,c("species_id","common_name","latin_name","ecotox_group")]
-    runInsertTable(extra2, "species_ecotox", toxval.db,verbose=T)
+    runInsertTable(extra2, "species", toxval.db,verbose=T)
   }
   if(restart) {
     so = runQuery("select distinct species_original from toxval where species_id= -1",toxval.db)[,1]
@@ -129,30 +129,13 @@ toxval.load.species_ecotox <- function(toxval.db,restart=F,date_string="2022-05-
       }
     }
     # Do the special steps for Rat and Mouse
-    runQuery("update species_ecotox set common_name='Rat' where species_id=4510",toxval.db)
-    runQuery("update species_ecotox set common_name='Mouse' where species_id=4913",toxval.db)
-    runQuery("update species_ecotox set common_name='Dog' where species_id=4928",toxval.db)
-    runQuery("update species_ecotox set common_name='Dog' where species_id=7630",toxval.db)
-    runQuery("update species_ecotox set common_name='Rabbit' where species_id=22808",toxval.db)
-    runQuery("update species_ecotox set common_name='Cat' where species_id=7378",toxval.db)
+    runQuery("update species set common_name='Rat' where species_id=4510",toxval.db)
+    runQuery("update species set common_name='Mouse' where species_id=4913",toxval.db)
+    runQuery("update species set common_name='Dog' where species_id=4928",toxval.db)
+    runQuery("update species set common_name='Dog' where species_id=7630",toxval.db)
+    runQuery("update species set common_name='Rabbit' where species_id=22808",toxval.db)
+    runQuery("update species set common_name='Cat' where species_id=7378",toxval.db)
 
     runQuery("update toxval set species_id=4510 where species_id=23410",toxval.db)
-
-  #   # Add default species to particular sources
-  #   human.list = c("Alaska DEC","Cal OEHHA","California DPH","DOD","DOE Protective Action Criteria",
-  #                  "EPA AEGL","EPA OPP","FDA CEDI","Health Canada","IRIS","Mass. Drinking Water Standards",
-  #                  "OSHA Air contaminants","OW Drinking Water Standards","Pennsylvania DEP MCLs",
-  #                  "Pennsylvania DEP ToxValues","PFAS Summary PODs","PPRTV (NCEA)","PPRTV (ORNL)",
-  #                  "RSL","USGS HBSL","Wignall")
-  #   for(src in human.list) {
-  #     query = paste0("update toxval set species_id=2000000 where species_id=1000000 and source='",src,"'")
-  #     runQuery(query,toxval.db)
-  #   }
-  #
-  #   # Set human_eco
-  #   cat("set human eco\n")
-  #   runQuery("update toxval set human_eco='eco'",toxval.db)
-  #   runQuery("update toxval set human_eco='not specified' where species_id in (select species_id from species_ecotox where ecotox_group='Not Specified')",toxval.db)
-  #   runQuery("update toxval set human_eco='human health' where species_id in (select species_id from species_ecotox where ecotox_group='Mammals')",toxval.db)
   }
 }
