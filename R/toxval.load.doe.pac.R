@@ -156,7 +156,7 @@ toxval.load.doe.pac <- function(toxval.db,source.db,log=F) {
   #####################################################################
   cat("do the post processing\n")
   #####################################################################
-  toxval.load.prostprocess(toxval.db,source.db,source)
+  toxval.load.postprocess(toxval.db,source.db,source)
 
   if(log) {
     #####################################################################

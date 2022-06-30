@@ -7,14 +7,13 @@ library(uuid)
 #' @param verbose Whether the loaded rows should be printed to the console.
 #' @export
 #-------------------------------------------------------------------------------------
-toxval.load.lanl <- function(toxval.db,source.db,log=F) {
+toxval.load.doe.ecorisk <- function(toxval.db,source.db,log=F) {
   printCurrentFunction(toxval.db)
 
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################
   source <- "DOE ECORISK"
-  source = SOURCE_NAME
   source_table = "source_lanl"
   verbose=F
   #####################################################################
@@ -46,39 +45,41 @@ toxval.load.lanl <- function(toxval.db,source.db,log=F) {
   res$source = source
   res$details_text = paste(source,"Details")
   print(dim(res))
-
   #####################################################################
   cat("Add the code from the original version from Aswani\n")
   #####################################################################
-  browser()
-  colnames(res) <- c('source_hash','chemical_category','chemical_group','name','casrn','media',"chemical_id",
-                     'species','No_Effect_ESL','Lowest_Effect_ESL', 'toxval_units', 'Minimum_ESL','source_source_id',
-                     "document_name")
-  res <- generate.originals(toxval.db,res)
+  nlist = c("casrn","source_hash","name","chemical_id","document_name","source","qc_status",
+            "medium","species","toxval_numeric","toxval_units","toxval_type")
+  res = res[,nlist]
+  nlist = c("casrn","source_hash","name","chemical_id","document_name","source","qc_status",
+            "media","species","toxval_numeric","toxval_units","toxval_type")
+  names(res) = nlist
+  #res = generate.originals(toxval.db,res)
 
-  res1 <-  res
-
-  res1$species <-  gsub("(.*)(\\([^\\(].*)", "\\1", res1$species)
-  res1$species <-  gsub("(.*)(\\-[^\\-].*)", "\\1", res1$species)
-
-  res1$species <-  gsub("^\\s+|\\s+$","", res1$species)
-  res1$toxval_units <-  gsub("µ", "u", res1$toxval_units)
+  res <-  res
+  res$species <-  gsub("(.*)(\\([^\\(].*)", "\\1", res$species)
+  res$species = str_trim(res$species)
+  # browser()
+  # res1$species <-  gsub("(.*)(\\-[^\\-].*)", "\\1", res1$species)
+  # browser()
+  # res1$species <-  gsub("^\\s+|\\s+$","", res1$species)
   #print(names(res1))
-  t1 <- res1[,c(1,4,5,6,7,8,10,12,13,14,16)]
-  colnames(t1)[6] <- c("toxval_numeric")
-  colnames(t1)[7] <- c("toxval_units")
-  t1["toxval_type"] <- c(rep(names(res1[8]), nrow(t1)))
-
-  t2 <- res1[,c(1,4,5,6,7,9,10,12,13,14,16)]
-  colnames(t2)[6] <- c("toxval_numeric")
-  colnames(t2)[7] <- c("toxval_units")
-  t2["toxval_type"] <- c(rep(names(res1[9]), nrow(t2)))
-
-  lanl_types <- rbind(t1,t2)
-  lanl_types <- subset(lanl_types,lanl_types[,"toxval_numeric"]!="")
-  lanl_types$toxval_numeric <- as.numeric(lanl_types$toxval_numeric)
-
-  res <- lanl_types
+  #browser()
+  # t1 <- res1[,c(1,4,5,6,7,8,10,12,13,14,16)]
+  # colnames(t1)[6] <- c("toxval_numeric")
+  # colnames(t1)[7] <- c("toxval_units")
+  # t1["toxval_type"] <- c(rep(names(res1[8]), nrow(t1)))
+  #
+  # t2 <- res1[,c(1,4,5,6,7,9,10,12,13,14,16)]
+  # colnames(t2)[6] <- c("toxval_numeric")
+  # colnames(t2)[7] <- c("toxval_units")
+  # t2["toxval_type"] <- c(rep(names(res1[9]), nrow(t2)))
+  #
+  # lanl_types <- rbind(t1,t2)
+  # lanl_types <- subset(lanl_types,lanl_types[,"toxval_numeric"]!="")
+  # lanl_types$toxval_numeric <- as.numeric(lanl_types$toxval_numeric)
+  #
+  # res <- lanl_types
   #####################################################################
   cat("find columns in res that do not map to toxval or record_source\n")
   #####################################################################
@@ -153,6 +154,10 @@ toxval.load.lanl <- function(toxval.db,source.db,log=F) {
   res = unique(res)
   refs = unique(refs)
   res$datestamp = Sys.Date()
+  res$source_table = source_table
+  res$source_url = "https://rais.ornl.gov/documents/ECO_BENCH_LANL.pdf"
+  res$subsource_url = "-"
+  res$details_text = paste(source,"Details")
   for(i in 1:nrow(res)) res[i,"toxval_uuid"] = UUIDgenerate()
   for(i in 1:nrow(refs)) refs[i,"record_source_uuid"] = UUIDgenerate()
   runInsertTable(res, "toxval", toxval.db, verbose)
@@ -162,7 +167,7 @@ toxval.load.lanl <- function(toxval.db,source.db,log=F) {
   #####################################################################
   cat("do the post processing\n")
   #####################################################################
-  toxval.load.prostprocess(toxval.db,source.db,source)
+  toxval.load.postprocess(toxval.db,source.db,source)
 
   if(log) {
     #####################################################################

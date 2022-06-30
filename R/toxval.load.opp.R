@@ -7,14 +7,166 @@
 #' @param verbose If TRUE, print out extra diagnostic messages
 #' @export
 #-------------------------------------------------------------------------------------
-toxval.load.opp <- function(toxval.db, source.db,verbose){
+toxval.load.opp <- function(toxval.db, source.db,log=F){
   printCurrentFunction(toxval.db)
-  
+  source <- "EPA OPP"
+  source_table = "source_opp"
+  verbose=F
+  #####################################################################
+  cat("start output log, log files for each source can be accessed from output_log folder\n")
+  #####################################################################
+  if(log) {
+    con1 = file.path(toxval.config()$datapath,paste0(source,"_",Sys.Date(),".log"))
+    con1 = log_open(con1)
+    con = file(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"))
+    sink(con, append=TRUE)
+    sink(con, append=TRUE, type="message")
+  }
+  #####################################################################
+  cat("clean source_info by source\n")
+  #####################################################################
+  import.source.info.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("clean by source\n")
+  #####################################################################
+  clean.toxval.by.source(toxval.db,source)
+
+  #####################################################################
+  cat("load data to res\n")
+  #####################################################################
+  query = paste0("select * from ",source_table)
+  res = runQuery(query,source.db,T,F)
+  res = res[ , !(names(res) %in% c("source_id","clowder_id","parent_hash","create_time","modify_time","created_by"))]
+  res$source = source
+  res$details_text = paste(source,"Details")
+  print(dim(res))
+
+  #####################################################################
+  cat("Add the code from the original version from Aswani\n")
+  #####################################################################
+  res = res[ , !(names(res) %in% c("sensitive_lifestage"))]
+  #browser()
+
+  #####################################################################
+  cat("find columns in res that do not map to toxval or record_source\n")
+  #####################################################################
+  cols1 = runQuery("desc record_source",toxval.db)[,1]
+  cols2 = runQuery("desc toxval",toxval.db)[,1]
+  cols = unique(c(cols1,cols2))
+  colnames(res)[which(names(res) == "species")] = "species_original"
+  res = res[ , !(names(res) %in% c("record_url","short_ref"))]
+  nlist = names(res)
+  nlist = nlist[!is.element(nlist,c("casrn","name"))]
+  nlist = nlist[!is.element(nlist,cols)]
+  if(length(nlist)>0) {
+    cat("columns to be dealt with\n")
+    print(nlist)
+    browser()
+  }
+  print(dim(res))
+
+  # examples ...
+  # names(res)[names(res) == "source_url"] = "url"
+  # colnames(res)[which(names(res) == "phenotype")] = "critical_effect"
+
+  #####################################################################
+  cat("Generic steps \n")
+  #####################################################################
+  res = unique(res)
+  res = fill.toxval.defaults(toxval.db,res)
+  res = generate.originals(toxval.db,res)
+  if(is.element("species_original",names(res))) res[,"species_original"] = tolower(res[,"species_original"])
+  res$toxval_numeric = as.numeric(res$toxval_numeric)
+  print(dim(res))
+  res=fix.non_ascii.v2(res,source)
+  res = data.frame(lapply(res, function(x) if(class(x)=="character") trimws(x) else(x)), stringsAsFactors=F, check.names=F)
+  res = unique(res)
+  res = res[,!is.element(names(res),c("casrn","name"))]
+  print(dim(res))
+
+  #####################################################################
+  cat("add toxval_id to res\n")
+  #####################################################################
+  count = runQuery("select count(*) from toxval",toxval.db)[1,1]
+  if(count==0) tid0 = 1
+  else tid0 = runQuery("select max(toxval_id) from toxval",toxval.db)[1,1] + 1
+  tids = seq(from=tid0,to=tid0+nrow(res)-1)
+  res$toxval_id = tids
+  print(dim(res))
+
+  #####################################################################
+  cat("pull out record source to refs\n")
+  #####################################################################
+  cols = runQuery("desc record_source",toxval.db)[,1]
+  nlist = names(res)
+  keep = nlist[is.element(nlist,cols)]
+  refs = res[,keep]
+  cols = runQuery("desc toxval",toxval.db)[,1]
+  nlist = names(res)
+  remove = nlist[!is.element(nlist,cols)]
+  res = res[ , !(names(res) %in% c(remove))]
+  print(dim(res))
+
+  #####################################################################
+  cat("add extra columns to refs\n")
+  #####################################################################
+  refs$record_source_type = "website"
+  refs$record_source_note = "to be cleaned up"
+  refs$record_source_level = "primary (risk assessment values)"
+  print(dim(res))
+
+  #####################################################################
+  cat("load res and refs to the database\n")
+  #####################################################################
+  res = unique(res)
+  refs = unique(refs)
+  res$datestamp = Sys.Date()
+  res$source_table = source_table
+  res$source_url = "https://ordspub.epa.gov/ords/pesticides/f?p=HHBP:home"
+  res$subsource_url = "-"
+  res$details_text = paste(source,"Details")
+  for(i in 1:nrow(res)) res[i,"toxval_uuid"] = UUIDgenerate()
+  for(i in 1:nrow(refs)) refs[i,"record_source_uuid"] = UUIDgenerate()
+  runInsertTable(res, "toxval", toxval.db, verbose)
+  runInsertTable(refs, "record_source", toxval.db, verbose)
+  print(dim(res))
+
+  #####################################################################
+  cat("do the post processing\n")
+  #####################################################################
+  toxval.load.postprocess(toxval.db,source.db,source)
+
+  if(log) {
+    #####################################################################
+    cat("stop output log \n")
+    #####################################################################
+    closeAllConnections()
+    log_close()
+    output_message = read.delim(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"), stringsAsFactors = F, header = F)
+    names(output_message) = "message"
+    output_log = read.delim(paste0(toxval.config()$datapath,"log/",source,"_",Sys.Date(),".log"), stringsAsFactors = F, header = F)
+    names(output_log) = "log"
+    new_log = log_message(output_log, output_message[,1])
+    writeLines(new_log, paste0(toxval.config()$datapath,"output_log/",source,"_",Sys.Date(),".txt"))
+  }
+  #####################################################################
+  cat("finish\n")
+  #####################################################################
+  return(0)
+
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################
   source <- "EPA OPP"
-  
+
   con1 <- file.path(toxval.config()$datapath,paste0(source,"_",Sys.Date(),".log"))
   con1 <- log_open(con1)
 
@@ -34,9 +186,9 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   #####################################################################
   cat("load data to res\n")
   #####################################################################
-  
+
   query <- "select * from original_opp_table"
-  
+
   res <- runQuery(query,source.db,T,F)
   res <- res[ , !(names(res) %in% c("source_id","clowder_id"))]
   res1 <- res
@@ -66,7 +218,7 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   toxval_type <- replace(toxval_type, toxval_type=="factor", "cancer_slope_factor")
   toxval_units <- gsub("^[^_]+_[^_]+_|^[^_]+_[^_]+_[^_]+_", "", type_names)
   #print(toxval_type)
-  
+
   print(names(res1))
   #print(View(res1))
   t1 <- res1[,c(1,2,3,4,6,12)]
@@ -82,8 +234,8 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   t1[,"toxval_numeric_qualifier"] <- "="
   t1[,"species_original"] <- "-"
   t1[,"risk_assessment_class"] <- "repeat_dose"
-  
-  
+
+
   t2 <- res1[,c(1,2,3,5,6,12)]
   #t2 <- res1[,c(1,2,4,5,8)]
   colnames(t2)[4] <- c("toxval_numeric")
@@ -96,9 +248,9 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   t2[,"toxval_numeric_qualifier"] <- "="
   t2[,"species_original"] <- "human"
   t2[,"risk_assessment_class"] <- "acute"
-  
-  
-  
+
+
+
   # t3 <- res1[,c(1,2,6,5,8)]
   # colnames(t3)[3] <- c("toxval_numeric")
   t3 <- res1[,c(1,2,3,7,9,12)]
@@ -113,10 +265,10 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   t3[,"toxval_numeric_qualifier"] <- "="
   t3[,"species_original"] <- "-"
   t3[,"risk_assessment_class"] <- "chronic"
-  
-  
-  
-  
+
+
+
+
   t4 <- res1[,c(1,2,3,8,9,12)]
   colnames(t4)[4] <- c("toxval_numeric")
   colnames(t4)[5] <- c("population")
@@ -130,8 +282,8 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   t4[,"toxval_numeric_qualifier"] <- "="
   t4[,"species_original"] <- "human"
   t4[,"risk_assessment_class"] <- "chronic"
-  
-  
+
+
   # t5 <- res1[,c(1,2,9,5,8)]
   # colnames(t5)[3] <- c("toxval_numeric")
   t5 <- res1[,c(1,2,3,10,9,12)]
@@ -146,8 +298,8 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   t5[,"toxval_numeric_qualifier"] <- "="
   t5[,"species_original"] <- "-"
   t5[,"risk_assessment_class"] <- "cancer"
-  
-  
+
+
   # t6 <- res1[,c(1,2,11,5,8)]
   # colnames(t6)[3] <- c("toxval_numeric")
   t6 <- res1[,c(1,2,3,13,9,12)]
@@ -162,10 +314,10 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   t6[,"toxval_numeric_qualifier"] <- ">="
   t6[,"species_original"] <- "-"
   t6[,"risk_assessment_class"] <- "cancer"
-  
-  
-  
-  # 
+
+
+
+  #
   # t7 <- res1[,c(1,2,12,5,8)]
   # colnames(t7)[3] <- c("toxval_numeric")
   t7 <- res1[,c(1,2,3,14,9,12)]
@@ -180,8 +332,8 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   t7[,"toxval_numeric_qualifier"] <- "<="
   t7[,"species_original"] <- "-"
   t7[,"risk_assessment_class"] <- "cancer"
-  
-  
+
+
 
   opp_types <- rbind(t1,t2,t3,t4,t5,t6,t7)
   opp_types <- subset(opp_types,opp_types[,"toxval_numeric"]!="")
@@ -189,7 +341,7 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   opp_types$toxval_numeric <- as.numeric(opp_types$toxval_numeric)
 
   res <- opp_types
-  
+
   #print(View(res))
 
   # res$population <- "-"
@@ -199,11 +351,11 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   # name.list <- names(res)
   # name.list[is.element(name.list,"phenotype")] <- "critical_effect"
   # names(res) <- name.list
-  # 
+  #
   res <- generate.originals(toxval.db,res)
-  # 
+  #
   # opp_types <- res
-  # 
+  #
   # opp_types$population[opp_types$toxval_type=="HHBP" & opp_types$study_duration_class=="acute"]<- opp_types$acute_HHBP_sensitive_lifestage[opp_types$toxval_type=="HHBP" & opp_types$study_duration_class=="acute"]
   # opp_types$population[opp_types$toxval_type=="HHBP" & opp_types$study_duration_class=="chronic"]<- opp_types$chronic_HHBP_sensitive_lifestage[opp_types$toxval_type=="HHBP" & opp_types$study_duration_class=="chronic"]
   # opp_types$species[opp_types$population != ""] <- "human"
@@ -215,9 +367,9 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   # opp_types$critical_effect[opp_types$toxval_type == "HHBP" & opp_types$toxval_numeric_qualifier == ">="] <- "cancer"
   # opp_types$critical_effect[opp_types$toxval_type == "HHBP" & opp_types$toxval_numeric_qualifier == "<="] <- "cancer"
   # opp_types$critical_effect[opp_types$toxval_type == "cancer_slope_factor"] <- "cancer"
-  # 
+  #
   # res <- opp_types
-  rm(opp_types) 
+  rm(opp_types)
   print(names(res))
 
   names.list <- c("source_hash","casrn", "name", "toxval_numeric", "population","document_name","toxval_type", "toxval_units",
@@ -227,8 +379,8 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
 
   res <- res[,(names(res)%in% names.list)]
   res[is.na(res[,"document_name"]),"document_name"] <- "-"
-  
-  
+
+
   #####################################################################
   cat("checks, finds and replaces non ascii characters in res with XXX\n")
   #####################################################################
@@ -245,7 +397,7 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   # res$study_type <- res$study_duration_class
   # res[res[,"study_type"]=="-","study_type"] <- "cancer"
   # res[res[,"study_type"]=="","study_type"] <- "-"
-  # 
+  #
   res$exposure_route <- "-"
   res$exposure_method <- "-"
   res$human_eco <- "human health"
@@ -375,8 +527,8 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   cat("fix species by source\n")
   #####################################################################
   fix.species.ecotox.by.source(toxval.db, source)
-  
-  
+
+
   #####################################################################
   cat("fix human_eco by source\n")
   #####################################################################
@@ -408,12 +560,12 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
       exposure_form, media, toxval_subtype) by source\n")
   #####################################################################
   fix.all.param.new.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix generation by source\n")
   #####################################################################
   fix.generation.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix critical_effect by source\n")
   #####################################################################
@@ -460,12 +612,12 @@ toxval.load.opp <- function(toxval.db, source.db,verbose){
   cat("fix qa status by source\n")
   #####################################################################
   fix.qa_status.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix hyphen cells to 'Not Specified' by source\n")
   #####################################################################
   fix.hyphen.by.source(toxval.db, source)
-  
+
 
   #####################################################################
   cat("set hash toxval by source\n")

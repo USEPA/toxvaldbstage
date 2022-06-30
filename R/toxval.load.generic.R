@@ -42,6 +42,9 @@ toxval.load.generic <- function(toxvaldb,source.db,log=F) {
   #####################################################################
   cat("Add the code from the original version from Aswani\n")
   #####################################################################
+  browser()
+  cremove = c("","","","")
+  res = res[ , !(names(res) %in% cremove)]
 
   #####################################################################
   cat("find columns in res that do not map to toxval or record_source\n")
@@ -106,9 +109,9 @@ toxval.load.generic <- function(toxvaldb,source.db,log=F) {
   #####################################################################
   cat("add extra columns to refs\n")
   #####################################################################
-  refs$record_source_type = "website"
-  refs$record_source_note = "to be cleaned up"
-  refs$record_source_level = "primary (risk assessment values)"
+  refs$record_source_type = "-"
+  refs$record_source_note = "-"
+  refs$record_source_level = "-"
   print(dim(res))
 
   #####################################################################
@@ -119,10 +122,10 @@ toxval.load.generic <- function(toxvaldb,source.db,log=F) {
   res$datestamp = Sys.Date()
   res$source_table = source_table
   res$source_url = "source_url"
-  res$subsource_url = "subsource_url"
+  res$subsource_url = "-"
   res$details_text = paste(source,"Details")
-  for(i in 1:nrow(res)) res[i,"toxval_uuid"] = UUIDgenerate()
-  for(i in 1:nrow(refs)) refs[i,"record_source_uuid"] = UUIDgenerate()
+  #for(i in 1:nrow(res)) res[i,"toxval_uuid"] = UUIDgenerate()
+  #for(i in 1:nrow(refs)) refs[i,"record_source_uuid"] = UUIDgenerate()
   runInsertTable(res, "toxval", toxval.db, verbose)
   runInsertTable(refs, "record_source", toxval.db, verbose)
   print(dim(res))

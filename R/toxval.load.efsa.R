@@ -1,4 +1,3 @@
-
 #-------------------------------------------------------------------------------------
 #' Load new_efsa from toxval_source to toxval
 #' @param toxval.db The version of toxval into which the tables are loaded.
@@ -6,21 +5,176 @@
 #' @param verbose Whether the loaded rows should be printed to the console.
 #' @export
 #--------------------------------------------------------------------------------------
-toxval.load.efsa <- function(toxval.db,source.db, verbose=T) {
+toxval.load.efsa <- function(toxval.db,source.db, log=F) {
   printCurrentFunction(toxval.db)
-  
+
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################
   source <- "EFSA"
-  
+  source_table = "source_efsa"
+  verbose=F
+  #####################################################################
+  cat("start output log, log files for each source can be accessed from output_log folder\n")
+  #####################################################################
+  if(log) {
+    con1 = file.path(toxval.config()$datapath,paste0(source,"_",Sys.Date(),".log"))
+    con1 = log_open(con1)
+    con = file(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"))
+    sink(con, append=TRUE)
+    sink(con, append=TRUE, type="message")
+  }
+  #####################################################################
+  cat("clean source_info by source\n")
+  #####################################################################
+  import.source.info.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("clean by source\n")
+  #####################################################################
+  clean.toxval.by.source(toxval.db,source)
+
+  #####################################################################
+  cat("load data to res\n")
+  #####################################################################
+  query = paste0("select * from ",source_table)
+  res = runQuery(query,source.db,T,F)
+  res = res[ , !(names(res) %in% c("source_id","clowder_id","parent_hash","create_time","modify_time","created_by"))]
+  res$source = source
+  res$details_text = paste(source,"Details")
+  print(dim(res))
+
+  #####################################################################
+  cat("Add the code from the original version from Aswani\n")
+  #####################################################################
+  res = res[ , !(names(res) %in% c("record_url","human_eco","url","source_study_id","efsa_id","output_id"  ))]
+
+  #####################################################################
+  cat("find columns in res that do not map to toxval or record_source\n")
+  #####################################################################
+  cols1 = runQuery("desc record_source",toxval.db)[,1]
+  cols2 = runQuery("desc toxval",toxval.db)[,1]
+  cols = unique(c(cols1,cols2))
+  colnames(res)[which(names(res) == "species")] = "species_original"
+  res = res[ , !(names(res) %in% c("record_url","short_ref"))]
+  nlist = names(res)
+  nlist = nlist[!is.element(nlist,c("casrn","name"))]
+  nlist = nlist[!is.element(nlist,cols)]
+  if(length(nlist)>0) {
+    cat("columns to be dealt with\n")
+    print(nlist)
+    browser()
+  }
+  print(dim(res))
+
+  # examples ...
+  # names(res)[names(res) == "source_url"] = "url"
+  # colnames(res)[which(names(res) == "phenotype")] = "critical_effect"
+
+  #####################################################################
+  cat("Generic steps \n")
+  #####################################################################
+  res = unique(res)
+  res = fill.toxval.defaults(toxval.db,res)
+  res = generate.originals(toxval.db,res)
+  if(is.element("species_original",names(res))) res[,"species_original"] = tolower(res[,"species_original"])
+  res$toxval_numeric = as.numeric(res$toxval_numeric)
+  print(dim(res))
+  res=fix.non_ascii.v2(res,source)
+  res = data.frame(lapply(res, function(x) if(class(x)=="character") trimws(x) else(x)), stringsAsFactors=F, check.names=F)
+  res = unique(res)
+  res = res[,!is.element(names(res),c("casrn","name"))]
+  print(dim(res))
+
+  #####################################################################
+  cat("add toxval_id to res\n")
+  #####################################################################
+  count = runQuery("select count(*) from toxval",toxval.db)[1,1]
+  if(count==0) tid0 = 1
+  else tid0 = runQuery("select max(toxval_id) from toxval",toxval.db)[1,1] + 1
+  tids = seq(from=tid0,to=tid0+nrow(res)-1)
+  res$toxval_id = tids
+  print(dim(res))
+
+  #####################################################################
+  cat("pull out record source to refs\n")
+  #####################################################################
+  cols = runQuery("desc record_source",toxval.db)[,1]
+  nlist = names(res)
+  keep = nlist[is.element(nlist,cols)]
+  refs = res[,keep]
+  cols = runQuery("desc toxval",toxval.db)[,1]
+  nlist = names(res)
+  remove = nlist[!is.element(nlist,cols)]
+  res = res[ , !(names(res) %in% c(remove))]
+  print(dim(res))
+
+  #####################################################################
+  cat("add extra columns to refs\n")
+  #####################################################################
+  #refs$record_source_type = "website"
+  refs$record_source_note = "to be cleaned up"
+  refs$record_source_level = "primary (risk assessment values)"
+  print(dim(res))
+
+  #####################################################################
+  cat("load res and refs to the database\n")
+  #####################################################################
+  res = unique(res)
+  refs = unique(refs)
+  res$datestamp = Sys.Date()
+  res$source_table = source_table
+  #res$source_url = "https://www.efsa.europa.eu/en/data-report/chemical-hazards-database-openfoodtox"
+  #res$subsource_url = "-"
+  res$details_text = paste(source,"Details")
+  for(i in 1:nrow(res)) res[i,"toxval_uuid"] = UUIDgenerate()
+  for(i in 1:nrow(refs)) refs[i,"record_source_uuid"] = UUIDgenerate()
+  runInsertTable(res, "toxval", toxval.db, verbose)
+  runInsertTable(refs, "record_source", toxval.db, verbose)
+  print(dim(res))
+
+  #####################################################################
+  cat("do the post processing\n")
+  #####################################################################
+  toxval.load.postprocess(toxval.db,source.db,source)
+
+  if(log) {
+    #####################################################################
+    cat("stop output log \n")
+    #####################################################################
+    closeAllConnections()
+    log_close()
+    output_message = read.delim(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"), stringsAsFactors = F, header = F)
+    names(output_message) = "message"
+    output_log = read.delim(paste0(toxval.config()$datapath,"log/",source,"_",Sys.Date(),".log"), stringsAsFactors = F, header = F)
+    names(output_log) = "log"
+    new_log = log_message(output_log, output_message[,1])
+    writeLines(new_log, paste0(toxval.config()$datapath,"output_log/",source,"_",Sys.Date(),".txt"))
+  }
+  #####################################################################
+  cat("finish\n")
+  #####################################################################
+  return(0)
+
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
   con1 <- file.path(toxval.config()$datapath,paste0(source,"_",Sys.Date(),".log"))
   con1 <- log_open(con1)
 
   con <- file(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"))
   sink(con, append=TRUE)
   sink(con, append=TRUE, type="message")
-  
+
   #####################################################################
   cat("clean source_info by source\n")
   #####################################################################
@@ -34,18 +188,18 @@ toxval.load.efsa <- function(toxval.db,source.db, verbose=T) {
   cat("load data to res\n")
   #####################################################################
   query <- "select  source_hash, casrn,name, source,subsource,source_url,record_url, toxval_type, toxval_numeric, toxval_numeric_qualifier,
-  toxval_units, critical_effect, population, exposure_route, exposure_method, study_type, study_duration_value, 
-  study_duration_units, species_original, human_eco, year, long_ref, title, record_source_type, document_name  from new_efsa" 
-  res <- runQuery(query,source.db,T,F) 
+  toxval_units, critical_effect, population, exposure_route, exposure_method, study_type, study_duration_value,
+  study_duration_units, species_original, human_eco, year, long_ref, title, record_source_type, document_name  from new_efsa"
+  res <- runQuery(query,source.db,T,F)
   #####################################################################
   cat("checks, finds and replaces non ascii characters in res with XXX\n")
   #####################################################################
   res <- fix.non_ascii(res)
-  
+
   # trims leading and trailing whitespaces from the dataframe
   res <- data.frame(lapply(res, function(x) if(class(x)=="character") trimws(x) else(x)), stringsAsFactors=F, check.names=F)
   #print(str(res))
-  
+
   print(dim(res))
   res <- res[!is.na(res[,"toxval_numeric"]),]
   #print(dim(res))
@@ -103,12 +257,12 @@ toxval.load.efsa <- function(toxval.db,source.db, verbose=T) {
     if(casrn==lastcasrn) {
       temp[i,"name"] <- temp[i-1,"name"]
     }
-    
+
     lastcasrn <- casrn
   }
-  
+
   temp <- unique(temp)
-  
+
   cat(" number of unique casrn,name after process:",nrow(temp),"\n")
   #temp2 <- temp
   #print(View(temp2))
@@ -118,11 +272,11 @@ toxval.load.efsa <- function(toxval.db,source.db, verbose=T) {
     name <- temp[casrn,"name"]
     res[i,"name"] <- name
   }
-  
+
   res$toxval_numeric_original <- res$toxval_numeric
   res[is.na(res[,"document_name"]),"document_name"] <- "-"
   res <- unique(res)
-  
+
   print(dim(res))
 
   #####################################################################
@@ -200,8 +354,8 @@ toxval.load.efsa <- function(toxval.db,source.db, verbose=T) {
   cat("fix species by source\n")
   #####################################################################
   fix.species.ecotox.by.source(toxval.db, source)
-  
-  
+
+
   #####################################################################
   cat("fix human_eco by source\n")
   #####################################################################
@@ -233,12 +387,12 @@ toxval.load.efsa <- function(toxval.db,source.db, verbose=T) {
       exposure_form, media, toxval_subtype) by source\n")
   #####################################################################
   fix.all.param.new.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix generation by source\n")
   #####################################################################
   fix.generation.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix critical_effect by source\n")
   #####################################################################
@@ -280,7 +434,7 @@ toxval.load.efsa <- function(toxval.db,source.db, verbose=T) {
   #####################################################################
   fill.toxval.defaults.global.by.source(toxval.db, source)
 
-  
+
   #####################################################################
   cat("fix qa status by source\n")
   #####################################################################
@@ -290,7 +444,7 @@ toxval.load.efsa <- function(toxval.db,source.db, verbose=T) {
   cat("fix hyphen cells to 'Not Specified' by source\n")
   #####################################################################
   fix.hyphen.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("set hash toxval by source\n")
   #####################################################################
@@ -309,7 +463,7 @@ toxval.load.efsa <- function(toxval.db,source.db, verbose=T) {
   #####################################################################
   cat("perform extra steps if any\n")
   #####################################################################
-  
+
   #####################################################################
   cat("stop output log \n")
   #####################################################################
@@ -324,7 +478,7 @@ toxval.load.efsa <- function(toxval.db,source.db, verbose=T) {
 
   new_log <- log_message(output_log, output_message[,1])
   writeLines(new_log, paste0(toxval.config()$datapath,"output_log/",source,"_",Sys.Date(),".txt"))
-  
+
 
   #####################################################################
   cat("finish\n")
