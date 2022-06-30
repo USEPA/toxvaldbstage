@@ -1,20 +1,20 @@
 #--------------------------------------------------------------------------------------
 #'
-#' Update the species_id in toxval from species_ecotox.
+#' Update the species_id in toxval from species.
 #'
 #' @param toxval.db The version of the database to use
 #' @export
 #--------------------------------------------------------------------------------------
-fix.species.ecotox.by.source <- function(toxval.db, source) {
+fix.species.by.source <- function(toxval.db, source) {
   printCurrentFunction(paste(toxval.db,":", source))
 
-  n = runQuery("select count(*) from species_ecotox",toxval.db)[1,1]
-  if(n==0) toxval.load.species_ecotox(toxval.db)
+  n = runQuery("select count(*) from species",toxval.db)[1,1]
+  if(n==0) toxval.load.species(toxval.db)
   dist_sps <- runQuery(paste0("select distinct(species_original) from toxval where source like '",source,"'"),toxval.db)
   names(dist_sps) <- "species_original"
   print(dim(dist_sps))
 
-  sps_ecotox <- runQuery("select * from species_ecotox ;",toxval.db)
+  sps_ecotox <- runQuery("select * from species ;",toxval.db)
   print(dim(sps_ecotox))
   sps_ecotox <- unique(sps_ecotox)
   print(dim(sps_ecotox))
