@@ -59,7 +59,7 @@ export.missing.rac.by.source <- function(toxval.db, source) {
                   FROM
                   toxval b
                   INNER JOIN chemical a on a.dtxsid=b.dtxsid
-                  LEFT JOIN species_ecotox d on b.species_id=d.species_id
+                  LEFT JOIN species d on b.species_id=d.species_id
                   INNER JOIN toxval_type_dictionary e on b.toxval_type=e.toxval_type
                   INNER JOIN record_source f on b.toxval_id=f.toxval_id
                   WHERE
