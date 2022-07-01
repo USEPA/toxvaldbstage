@@ -25,10 +25,10 @@
 #' }
 #'
 #' @param toxval.db The version of toxvaldb to use.
-#' @param do.convert If TRUE, so unit conversions, as opposed to just cleaning
+#' @param do.convert.units If TRUE, so unit conversions, as opposed to just cleaning
 #' @export
 #-------------------------------------------------------------------------------------
-fix.units.by.source <- function(toxval.db,source, do.convert=T) {
+fix.units.by.source <- function(toxval.db,source, do.convert.units=F) {
   printCurrentFunction(paste(toxval.db,":", source))
   dsstox.db <- toxval.config()$dsstox.db
 
@@ -70,7 +70,7 @@ fix.units.by.source <- function(toxval.db,source, do.convert=T) {
   #
   # Convert units to standard denominator (e.g. ppb to ppm by dividing by 1000)
   #
-  if(do.convert) {
+  if(do.convert.units) {
     cat(">>>> Convert units that are simple multiples of standard units\n")
     convos = read.xlsx(paste0(toxval.config()$datapath,"dictionary/toxval_units conversions 2018-09-12.xlsx"))
     nrows = dim(convos)[1]
@@ -81,7 +81,7 @@ fix.units.by.source <- function(toxval.db,source, do.convert=T) {
   }
   # Run conversions from molar to mg units, using MW
 
-  if(do.convert) {
+  if(do.convert.units) {
     cat(">>> Run conversions from molar to mg units, using MW\n")
     convos <- read.xlsx(paste0(toxval.config()$datapath,"dictionary/MW conversions.xlsx"))
     nrows <- dim(convos)[1]
@@ -97,7 +97,7 @@ fix.units.by.source <- function(toxval.db,source, do.convert=T) {
   # Convert ppm to mg/m3 for inhalation studies
   #
   # https://cfpub.epa.gov/ncer_abstracts/index.cfm/fuseaction/display.files/fileID/14285
-  if(do.convert) {
+  if(do.convert.units) {
     cat(">>> Convert ppm to mg/m3 for inhalation studies\n")
     query <- paste0("update toxval
                      set toxval_units = 'mg/m3', toxval_numeric = toxval_numeric*mw*0.0409
@@ -107,7 +107,7 @@ fix.units.by.source <- function(toxval.db,source, do.convert=T) {
 
   # Do the conversion from ppm to mg/kg-day on a species-wise basis for oral exposures
   #
-  if(do.convert) {
+  if(do.convert.units) {
     cat(">>> Do the conversion from ppm to mg/kg-day on a species-wise basis\n")
     conv = read.xlsx(paste0(toxval.config()$datapath,"dictionary/ppm to mgkgday by animal.xlsx"))
     for (i in 1: nrow(conv)){
@@ -128,7 +128,7 @@ fix.units.by.source <- function(toxval.db,source, do.convert=T) {
   #
   # make sure that eco studies are in mg/L and human health in mg/m3
   #
-  if(do.convert) {
+  if(do.convert.units) {
     cat(">>> Make sure that eco studies are in mg/L and human health in mg/m3\n")
     query <- paste0("
     update toxval
