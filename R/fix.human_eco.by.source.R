@@ -8,6 +8,11 @@ fix.human_eco.by.source <- function(toxval.db,source, reset=T){
   printCurrentFunction(paste(toxval.db,":", source))
   if(reset) runQuery(paste0("update toxval set human_eco='not specified' where source like '",source,"'"),toxval.db)
 
+  if(is.element(source,c("TEST","WHO IPCS","EPA OPPT","HAWC","HESS","HPVIS","NIOSH","PFAS 150 SEM"))) {
+    query = paste0("update toxval set human_eco='human health' where source='",source,"'")
+    runQuery(query,toxval.db)
+    return(0)
+  }
   human.list = c("Alaska DEC","Cal OEHHA","California DPH","DOD","DOE Protective Action Criteria",
                  "EPA AEGL","EPA OPP","FDA CEDI","Health Canada","IRIS","Mass. Drinking Water Standards",
                  "OSHA Air contaminants","OW Drinking Water Standards","Pennsylvania DEP MCLs",
