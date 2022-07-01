@@ -4,7 +4,7 @@
 #' @param sourcedb The source database namename
 #' @param source The source name
 #--------------------------------------------------------------------------------------
-toxval.load.postprocess <- function(toxval.db, source.db,source){
+toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.units=F){
   printCurrentFunction(toxval.db)
 
   #####################################################################
@@ -106,7 +106,7 @@ toxval.load.postprocess <- function(toxval.db, source.db,source){
   cat("fix units by source\n")
   #####################################################################
   # toxval_units_original
-  fix.units.by.source(toxval.db, source)
+  fix.units.by.source(toxval.db, source,do.convert.units)
 
   #####################################################################
   cat("fill chemical by source\n")

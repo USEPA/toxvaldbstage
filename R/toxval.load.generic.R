@@ -133,7 +133,7 @@ toxval.load.generic <- function(toxvaldb,source.db,log=F) {
   #####################################################################
   cat("do the post processing\n")
   #####################################################################
-  toxval.load.postprocess(toxval.db,source.db,source)
+  toxval.load.postprocess(toxval.db,source.db,source,do.convert.units=F)
 
   if(log) {
     #####################################################################

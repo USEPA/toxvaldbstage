@@ -143,7 +143,6 @@ toxval.load.hawc <- function(toxval.db, source.db,log=F){
             "route_of_exposure","exposure_duration_value","exposure_duration_text","doses","endpoint_url",
             "study_url")
   res = res[ , !(names(res) %in% cremove)]
-  browser()
 
   #####################################################################
   cat("find columns in res that do not map to toxval or record_source\n")

@@ -5,7 +5,7 @@
 #' @param verbose If TRUE, output extra debug information
 #' @export
 #--------------------------------------------------------------------------------------
-toxval.load.hawc.pfas.430 <- function(toxval.db, source.db,log=F){
+toxval.load.hawc_pfas_430 <- function(toxval.db, source.db,log=F){
   printCurrentFunction(toxval.db)
   source <- "HAWC PFAS 430"
   source_table = "source_hawc_pfas_430"
