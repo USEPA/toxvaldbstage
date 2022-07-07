@@ -19,7 +19,6 @@ map.chemical.to.dtxsid <- function(toxval.db,source,verbose=T) {
 
   chems = runQuery(paste0("select distinct chemical_id,cleaned_casrn as casrn from source_chemical where source='",source,"'"),toxval.db)
   chems$dtxsid = "NODTXSID"
-  #rownames(chems) = chems$casrn
   clist = chems$casrn
   clist = clist[is.element(clist,dsstox$casrn)]
   dtemp = dsstox[clist,]
@@ -33,25 +32,15 @@ map.chemical.to.dtxsid <- function(toxval.db,source,verbose=T) {
     if(verbose) if(i%%500==0) cat("dtxsid updated:",i," out of ",nrow(chems),"\n")
   }
 
-  #runQuery("analyze table source_chemical",toxval.db)
   query = paste0("update source_chemical set casrn=cleaned_casrn, name=cleaned_name where source='",source,"'")
   runQuery(query,toxval.db)
-  #runQuery("analyze table source_chemical",toxval.db)
   for(i in 1:nrow(chems)) {
     chemical_id = chems[i,"chemical_id"]
     casrn = chems[i,"casrn"]
-    # name0 = chems[i,"name"]
-    # if(is.na(name0)) name0 = "noname"
-    # name1 = stri_enc_toutf8(name0)
-    # if(name1!=name0) cat(paste0(" 01 [",name0,"] [",name1,"]"),"\n")
-    # name2 = stri_escape_unicode(name1)
-    # if(name2!=name1) cat(paste0(" 12 [",name1,"] [",name2,"]"),"\n")
-    # dtxsid = chems[i,"dtxsid"]
+     dtxsid = chems[i,"dtxsid"]
     query = paste0("update source_chemical set dtxsid='",dtxsid,"' where chemical_id='",chemical_id,"'")
     runQuery(query,toxval.db)
-    # query = paste0("update source_chemical set name='",name2,"' where chemical_id='",chemical_id,"'")
-    # runQuery(query,toxval.db)
-    query = paste0("update toxval set dtxsid='",dtxsid,"' where chemical_id='",chemical_id,"'")
+     query = paste0("update toxval set dtxsid='",dtxsid,"' where chemical_id='",chemical_id,"'")
     runQuery(query,toxval.db)
     if(verbose) if(i%%500==0) cat("chemicals updated:",i," out of ",nrow(chems),"\n")
   }
