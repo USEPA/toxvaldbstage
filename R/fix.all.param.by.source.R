@@ -57,7 +57,7 @@ fix.all.param.by.source <- function(toxval.db, source, fill.toxval_fix=F) {
   for(field in flist) {
     cat("   ",field,"\n")
     sdict = full_dict[full_dict$field==field,]
-    query = paste0("select distinct ",field," from toxval where source='",source,"'")
+    query = paste0("select distinct ",field,"_original from toxval where source='",source,"'")
     terms = runQuery(query,toxval.db)[,1]
     if(length(terms)>0) {
       sdict = sdict[is.element(sdict$term_original,terms),]
@@ -65,6 +65,7 @@ fix.all.param.by.source <- function(toxval.db, source, fill.toxval_fix=F) {
         for(i in 1:nrow(sdict)) {
           original = sdict[i,"term_original"]
           final = sdict[i,"term_final"]
+          #if(field=="toxval_units") cat(original,final,"\n")
           query <- paste0("update toxval set ",field,"=\"",final,"\" where ",field,"_original=\"",original,"\" and source = '",source,"'")
           runInsert(query,toxval.db,T,F,T)
         }
