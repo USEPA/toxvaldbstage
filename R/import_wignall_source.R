@@ -4,7 +4,7 @@
 #' @param infile The input file ./wignall/wignall_files/BMD_Results_2014-06-17_reviewed Mar 2018.xlsx
 #--------------------------------------------------------------------------------------
 import_wignall_source <- function(db,
-                                  infile="../wignall/wignall_files/BMD_Results_2014-06-17_reviewed Mar 2018.xlsx",
+                                  infile="../wignall/wignall_files/BMD_Results_2014-06-17_reviewed Mar 2018 parsed.xlsx",
                                   chem.check.halt=T) {
   printCurrentFunction(db)
 
@@ -41,6 +41,7 @@ import_wignall_source <- function(db,
             "reference")
   names(res1) = nlist
 
+  browser()
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
