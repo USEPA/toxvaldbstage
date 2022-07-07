@@ -61,18 +61,28 @@ toxval.load.wignall <- function(toxval.db,source.db, log=F){
   res2 = res[,c("chemical_id","document_name","source_hash","source","qc_status","subsource","uf","critical_effect","long_ref",
                 "pod_type","pod_numeric","pod_units")]
   res3 = res[,c("chemical_id","document_name","source_hash","source","qc_status","subsource","uf","critical_effect","long_ref",
-                "toxval_type","bmd","toxval_units")]
+                "toxval_type","bmd","pod_units")]
   res4 = res[,c("chemical_id","document_name","source_hash","source","qc_status","subsource","uf","critical_effect","long_ref",
-                "toxval_type","bmdl","toxval_units")]
+                "toxval_type","bmdl","pod_units")]
   res3$toxval_type = "BMD"
   res4$toxval_type = "BMDL"
-  res3$toxval_units = res1$toxval_units
-  res4$toxval_units = res1$toxval_units
   names(res2) = names(res1)
   names(res3) = names(res1)
   names(res4) = names(res1)
   res = rbind(res1,res2,res3,res4)
 
+  for(i in 1:nrow(res)) {
+    x = res[i,"toxval_numeric"]
+    if(contains(x,";")) {
+      y = str_split(x,";")[[1]]
+      z = min(y)
+      #cat(x,z,"\n")
+      res[i,"toxval_numeric"] = z
+      #browser()
+    }
+  }
+  res = res[!is.na(res$toxval_numeric),]
+  res = res[res$toxval_numeric!="-",]
   #####################################################################
   cat("checks, finds and replaces non ascii characters in res with XXX\n")
   #####################################################################
@@ -168,7 +178,6 @@ toxval.load.wignall <- function(toxval.db,source.db, log=F){
   res[res$toxval_type=="Oral Slope Factor","exposure_route"] = "oral"
   res[res$toxval_units=="mg/kg/day","exposure_route"] = "oral"
   res[res$toxval_units=="mg/m3","exposure_route"] = "inhalation"
-
   res[res$toxval_type=="Inhalation Unit Risk","exposure_route"] = "inhalation"
   res[res$toxval_type=="Chronic Inhalation REL","exposure_route"] = "inhalation"
   res[res$toxval_units=="mg/kg-d","exposure_route"] = "oral"
@@ -181,21 +190,7 @@ toxval.load.wignall <- function(toxval.db,source.db, log=F){
   res[res$toxval_units=="1/?g/m3","exposure_route"] = "inhalation"
   res[res$toxval_units=="microgram/m3","exposure_route"] = "inhalation"
 
-  # browser()
-  #
-  #
-  # browser()
-  #
-  # #
-  # #Stack em
-  # names(res)[10:12] <- c("toxval_numeric","toxval_units","toxval_type")
-  # #res$grouping_id <- res$source_source_id
-  #
-  # #print(View(res))
-  # res.stack <- rbind(res[,c(4:6,1:3,9,13:31,33:34,36:42)],res[,c(10:12,1:3,9,13:31,33:34,36:42)])
-  # res <- res.stack
-  # browser()
-  cremove = c("uf","species_original.1","species")
+   cremove = c("uf","species_original.1","species")
   res = res[ , !(names(res) %in% cremove)]
 
   #####################################################################
