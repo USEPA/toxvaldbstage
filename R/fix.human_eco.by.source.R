@@ -19,9 +19,9 @@ fix.human_eco.by.source <- function(toxval.db,source, reset=T){
                  "Pennsylvania DEP ToxValues","PFAS Summary PODs","PPRTV (NCEA)","PPRTV (ORNL)",
                  "RSL","USGS HBSL","Wignall")
   if(is.element(source,human.list)) {
-    query = paste0("update toxval set species_original='human' where species_id=1000000 and source='",source,"'")
+    query = paste0("update toxval set species_original='Human (RA)' where species_id=1000000 and source='",source,"'")
     runQuery(query,toxval.db)
-    query = paste0("update toxval set species_id=2000000 where species_id=1000000 and source='",source,"'")
+    query = paste0("update toxval set species_id=5000000 where species_id=1000000 and source='",source,"'")
     runQuery(query,toxval.db)
   }
   query = paste0("update toxval set human_eco='eco' where source='",source,"'")
