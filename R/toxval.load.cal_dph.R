@@ -60,7 +60,6 @@ toxval.load.cal_dph <- function(toxval.db, source.db,log=F){
     browser()
   }
   print(dim(res))
-
   # examples ...
   # names(res)[names(res) == "source_url"] = "url"
   # colnames(res)[which(names(res) == "phenotype")] = "critical_effect"
