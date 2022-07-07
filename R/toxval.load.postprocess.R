@@ -1,7 +1,7 @@
 #--------------------------------------------------------------------------------------
 #' Do all of the post-processing steps for a source
 #' @param toxval.db The database version to use
-#' @param sourcedb The source database namename
+#' @param sourcedb The source database name
 #' @param source The source name
 #--------------------------------------------------------------------------------------
 toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.units=F){
