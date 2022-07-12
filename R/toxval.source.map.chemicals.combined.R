@@ -10,11 +10,12 @@
 #' @param source.db The version of toxval source database to use.
 #' @param input.path Path to folder with original chemical lists
 #' @param curated.path Path to folder with curated chemical lists
+#' @param match.raw Boolean whether to match by raw name/casrn values (Default FALSE)
 #' @return None. SQL statements are executed.
 #' @import RMySQL dplyr readxl
 #' @export
 #--------------------------------------------------------------------------------------
-toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.path){
+toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.path, match.raw=FALSE){
   message("Function still in draft phase - waiting for curated chemical files")
   return()
   # Get source chemical table name to ID map
@@ -51,6 +52,7 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
 
   for(c_list in curated_list$`DSSTox Files`){
     cat(paste0("...Processing curation file: ", c_list, "\n"))
+
     # Get curated chemical list
     chems = readxl::read_xlsx(paste0(curated.path, "DSSTox Files/", c_list)) %>%
       dplyr::rename(External_ID = Extenal_ID) %>%
@@ -62,12 +64,29 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
     #src_chem_tbl = source_table_list$source_chem_table[source_table_list$id == tbl_id]
     # Get chemical table for source
     chem_tbl = runQuery(paste0("SELECT * FROM source_chemical where ",
-                               "chemical_id like 'ToxVal", tbl_id,"%'"), db=source.db)
-    orig_chem_file = curated_list$`DSSTox Files`[grepl(paste0("ToxVal", tbl_id),
-                                                       curated_list$`DSSTox Files`)] %>%
-      paste0(curated.path, "DSSTox Files/", .) %>%
-      readxl::read_xlsx(path=.) %>%
-      select(chemical_id = Extenal_ID, dtxrid = DSSTox_Source_Record_Id, quality=`DSSTox_QC-Level`)
+                               "chemical_id like 'ToxVal", tbl_id,"%' ",
+                               "and dtxrid is NULL"), db=source.db)
+
+    if(!nrow(chem_tbl)){
+      message("No chemicals to map for ", tbl_id, "...skipping!")
+      next
+    }
+
+    if(match.raw){
+      orig_chem_file = curated_list$`DSSTox Files`[grepl(paste0("ToxVal", tbl_id),
+                                                         curated_list$`DSSTox Files`)] %>%
+        paste0(curated.path, "DSSTox Files/", .) %>%
+        readxl::read_xlsx(path=.) %>%
+        select(chemical_id = Extenal_ID, dtxrid = DSSTox_Source_Record_Id, quality=`DSSTox_QC-Level`)
+    } else {
+      orig_chem_file = curated_list$`DSSTox Files`[grepl(paste0("ToxVal", tbl_id),
+                                                         curated_list$`DSSTox Files`)] %>%
+        paste0(curated.path, "DSSTox Files/", .) %>%
+        readxl::read_xlsx(path=.) %>%
+        select(chemical_id = Extenal_ID, dtxsid = DSSTox_Substance_Id,
+               dtxrid = DSSTox_Source_Record_Id, quality=`DSSTox_QC-Level`)
+    }
+
     # Get BIN file information
     b_file = curated_list$`BIN Files`[grepl(paste0("ToxVal", tbl_id),
                                             curated_list$`BIN Files`)] %>%
@@ -76,61 +95,133 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
       # Some BIN files have quotation marks around the query...removing...
       mutate(`Query Name` = gsub("\"", "", `Query Name`))
     # Get Jira cleaned information (connect BIN to external_id)
-    j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", tbl_id, "_full.xlsx"),
-                                                    curated_list$jira_chemical_files)] %>%
-      paste0(curated.path, "jira_chemical_files/", .) %>%
-      readxl::read_xlsx(path=.) %>%
-      # Match back to curated query which replaced "-" with NA for CASRN
-      mutate(raw_casrn = ifelse(raw_casrn == "-", NA, raw_casrn))
+    # If matching by raw information (first curation round had chemical ID values that changed)
+    if(match.raw){
+      j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", tbl_id, "_full.xlsx"),
+                                                      curated_list$jira_chemical_files)] %>%
+        paste0(curated.path, "jira_chemical_files/", .) %>%
+        readxl::read_xlsx(path=.) %>%
+        # Match back to curated query which replaced "-" with NA for CASRN
+        mutate(raw_casrn = ifelse(raw_casrn == "-", NA, raw_casrn))
 
-    # Join chemical file information
-    chem_map = j_file %>%
-      left_join(b_file,
-                by=c("raw_casrn"="Query Casrn",
-                     "raw_name"="Query Name")) %>%
-      left_join(orig_chem_file,
-                by="chemical_id") %>%
-      select(-chemical_id, -raw_casrn, -raw_name) %>%
-      mutate(original_casrn = as.character(original_casrn))
-    out = chem_tbl %>%
-      select(chemical_id, source, raw_casrn, raw_name, cleaned_casrn, cleaned_name) %>%
-      left_join(chem_map,
-                # Joining by raw_name and raw_casrn for now since chemical_id changed
-                # between curation efforts
-                by=c("raw_name"="original_name",
-                     "raw_casrn"="original_casrn")) %T>% {
-        # Output an intermediate check for incomplete cases to see if join successful
-        out_check <<- filter(., !complete.cases(.))
-      } #%>%
+      # Join chemical file information
+      chem_map = j_file %>%
+        left_join(b_file,
+                  by=c("raw_casrn"="Query Casrn",
+                       "raw_name"="Query Name")) %>%
+        left_join(orig_chem_file,
+                  by="chemical_id") %>%
+        select(-chemical_id, -raw_casrn, -raw_name) %>%
+        mutate(original_casrn = as.character(original_casrn)) %>%
+        distinct()
+
+      out = chem_tbl %>%
+        select(chemical_id, source, raw_casrn, raw_name, cleaned_casrn, cleaned_name) %>%
+        left_join(chem_map,
+                  # Joining by raw_name and raw_casrn for now since chemical_id changed
+                  # between curation efforts
+                  by=c("raw_name"="original_name",
+                       "raw_casrn"="original_casrn")) %T>% {
+                         # Output an intermediate check for incomplete cases to see if join successful
+                         out_check <<- filter(., !complete.cases(.))
+                       } #%>%
       # Rename columns casrn, name, dtxsid, dtxrid, quality, flags
       #dplyr::rename()
-    # If any incomplete cases aren't "No Hits", error stop...
-    # if(any(!out_check$`Lookup Result` %in% c("No Hits"))){
-    #   stop("Error processing ", c_list, "...incomplete join cases found...")
-    # }
+      # If any incomplete cases aren't "No Hits", error stop...
+      # if(any(!out_check$`Lookup Result` %in% c("No Hits"))){
+      #   stop("Error processing ", c_list, "...incomplete join cases found...")
+      # }
 
-    # Rename/select columns for final push to database
-    #chemical_id, casrn, name, dtxsid, dtxrid, quality, flags
-    out = out %>%
-      select(chemical_id,
-             casrn=`Top Hit Casrn`,
-             name=`Top Hit Name`,
-             dtxsid=`Top HIT DSSTox_Substance_Id`,
-             dtxrid,
-             quality,
-             flags=`Lookup Result`) %>%
-      # Filter out ones that didn't map
-      filter(!is.na(dtxsid))
+      # Rename/select columns for final push to database
+      #chemical_id, casrn, name, dtxsid, dtxrid, quality, flags
+      out = out %>%
+        select(chemical_id,
+               casrn=`Top Hit Casrn`,
+               name=`Top Hit Name`,
+               dtxsid=`Top HIT DSSTox_Substance_Id`,
+               dtxrid,
+               quality,
+               flags=`Lookup Result`) %>%
+        # Filter out ones that didn't map
+        filter(!is.na(dtxsid))
+    } else {
+      j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", tbl_id),
+                                                      curated_list$jira_chemical_files)] %>%
+        paste0(curated.path, "jira_chemical_files/", .) %>%
+        readxl::read_xlsx(path=.) %>%
+        # Match back to curated query which replaced "-" with NA for CASRN
+        mutate(raw_casrn = ifelse(raw_casrn == "-", NA, raw_casrn))
+
+      # Join chemical file information
+      chem_map = j_file %>%
+        left_join(b_file,
+                  by=c("raw_casrn"="Query Casrn",
+                       "raw_name"="Query Name")) %>%
+        left_join(orig_chem_file,
+                  by="chemical_id") %>%
+        select(-raw_casrn, -raw_name) %>%
+        distinct()
+
+      out = chem_tbl %>%
+        select(chemical_id, source, raw_casrn, raw_name) %>%
+        left_join(chem_map,
+                  # Joining by raw_name and raw_casrn for now since chemical_id changed
+                  # between curation efforts
+                  by="chemical_id") %T>% {
+                         # Output an intermediate check for incomplete cases to see if join successful
+                         out_check <<- filter(., !complete.cases(.))
+                  }
+      # If any incomplete cases aren't "No Hits", error stop...
+      # if(any(!out_check$`Lookup Result` %in% c("No Hits"))){
+      #   stop("Error processing ", c_list, "...incomplete join cases found...")
+      # }
+
+      # Rename/select columns for final push to database
+      #chemical_id, casrn, name, dtxsid, dtxrid, quality, flags
+      out = out %>%
+        select(chemical_id,
+               casrn=`Top Hit Casrn`,
+               name=`Top Hit Name`,
+               dtxsid,
+               dtxrid,
+               quality,
+               flags=`Lookup Result`) %>%
+        # Filter out ones that didn't map
+        #filter(!is.na(dtxsid)) %>%
+        distinct()
+    }
+
+    if(nrow(out) > nrow(chem_tbl)){
+      message("Error: mapped chemical rows have more than input chemical table data")
+      next
+    }
 
     # Push mappings
     for(c_id in out$chemical_id){
       map = out %>%
-        filter(chemical_id == c_id)
+        filter(chemical_id == c_id) %>%
+        # Only push columns that aren't NA
+        select(where(~!all(is.na(.))))
+
+      # NA values present for all columns or all but chemical_id, skip
+      if(length(map) <= 1){
+        message("No record to push...")
+        next
+      }
+      if(nrow(map) > 1){
+        message("Error: multiple rows mapped for single chemical ID")
+        next
+      }
 
       varSet <- lapply(map %>%
                          select(-chemical_id) %>%
-                         names(), function(x){ paste0(x, " = \"",map[[x]], "\"") }) %>%
-        paste0(collapse = ", ")
+                         names(), function(x){
+                           paste0(x, ' = "', map[[x]] %>%
+                                    # Escape quotation mark double-prime for names
+                                    gsub('"', '\\\\"', .),
+                                  '"')
+                           }) %>%
+        paste0(collapse = ', ')
 
       paste0("UPDATE source_chemical SET ",
              varSet,
@@ -153,3 +244,5 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
     #        )
   }
 }
+
+#toxval.source.map.chemicals.combined(source.db, input.path, curated.path, match.raw=FALSE)
