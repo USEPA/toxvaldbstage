@@ -42,6 +42,8 @@ toxval.load.atsdr.pfas.2021 <- function(toxval.db,source.db, log=F){
   res = res[ , !(names(res) %in% c("source_id","clowder_id","parent_hash","create_time","modify_time","created_by"))]
   print(dim(res))
 
+  res[res$exposure_form_original=="ACUTE EXPOSURE (Exposure was nose-only.)","study_type"] = "acute"
+  res[res$exposure_form_original=="ACUTE EXPOSURE (Exposure was nose-only.)","study_type_original"] = "acute"
   #####################################################################
   cat("add other columns to res\n")
   #####################################################################
