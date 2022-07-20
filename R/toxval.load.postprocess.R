@@ -17,16 +17,19 @@ toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.unit
   #####################################################################
   cat("load chemical info to source_chemical\n")
   #####################################################################
-  runQuery(paste0("delete from source_chemical where source='",source,"'"),toxval.db)
-  chems = runQuery(paste0("select * from source_chemical where source='",source,"'"),source.db)
-  chems$casrn = chems$cleaned_casrn
-  chems$name = chems$cleaned_cname
-  runInsertTable(chems, "source_chemical", toxval.db)
+  if(!is.element(source,c("ECOTOX","ToxRefDB")) toxval.load.source_chemical(toxval.db,source.db,source,verbose=T)
 
-  #####################################################################
-  cat("map chemicals to dsstox\n")
-  #####################################################################
-  map.chemical.to.dtxsid(toxval.db, source)
+  #
+  # runQuery(paste0("delete from source_chemical where source='",source,"'"),toxval.db)
+  # chems = runQuery(paste0("select * from source_chemical where source='",source,"'"),source.db)
+  # chems$casrn = chems$cleaned_casrn
+  # chems$name = chems$cleaned_cname
+  # runInsertTable(chems, "source_chemical", toxval.db)
+  #
+  # #####################################################################
+  # cat("map chemicals to dsstox\n")
+  # #####################################################################
+  # map.chemical.to.dtxsid(toxval.db, source)
 
   #####################################################################
   cat("get MW\n")
@@ -52,17 +55,26 @@ toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.unit
     study_duration_class, study_duration_units, study_type,toxval_type,
     exposure_form, media, toxval_subtype) by source\n")
   #####################################################################
-  # exposure_route_original
-  # exposure_method_original
-  # sex_original
-  # strain_original
-  # study_duration_class_original
-  # study_duration_units_original
-  # study_type_original
-  # toxval_type_original
-  # toxval_subtype_original
-  # media_original
-  fix.all.param.by.source(toxval.db, source)
+  # exposure_method
+  # strain
+  # exposure_route
+  # media
+  # study_type
+  # toxval_type
+  # iterate through the full_dict
+  # exposure_form
+  # exposure_method
+  # exposure_route
+  # generation
+  # media
+  # sex
+  # study_duration_class
+  # study_duration_units
+  # study_type
+  # toxval_subtype
+  # toxval_type
+  # toxval_units
+  if(source!="ECOTOX") fix.all.param.by.source(toxval.db, source)
 
   #####################################################################
   cat("fix strain by source\n")
@@ -73,12 +85,12 @@ toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.unit
   cat("fix exposure_form by source\n")
   #####################################################################
   # exposure_form_original
-  fix.exposure_form.by.source(toxval.db, source)
+  if(source!="ECOTOX") fix.exposure_form.by.source(toxval.db, source)
 
   #####################################################################
   cat("fix exposure_route by type and source\n")
   #####################################################################
-  fix.exposure_route.by.source(toxval.db, source)
+  if(source!="ECOTOX") fix.exposure_route.by.source(toxval.db, source)
 
   #####################################################################
   cat("fix toxval_numeric_qualifier by source\n")
@@ -100,7 +112,9 @@ toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.unit
   cat("fix critical_effect by source\n")
   #####################################################################
   # critical_effect_original
-  fix.critical_effect.icf.by.source(toxval.db, source)
+  doit = T
+  if(is.element(source,c("ToxRefDB","ECOTOX"))) doit = F
+  if(doit) fix.critical_effect.icf.by.source(toxval.db, source)
 
   #####################################################################
   cat("fix units by source\n")
