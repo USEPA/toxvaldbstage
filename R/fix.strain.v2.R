@@ -15,9 +15,12 @@ fix.strain.v2 <- function(toxval.db,source,date_string="2022-05-25") {
   cat("Start setting strain\n")
   if(length(so)>0) {
     for(i in 1:length(so)) {
-      tag = so[i]
+      tag = stri_escape_unicode(so[i])
+      tag = str_replace_all(tag,"\\'","")
       if(is.element(tag,dict$strain_original)) {
         strain = dict[is.element(dict$strain_original,tag),"strain"]
+        strain = stri_escape_unicode(strain)
+        strain = str_replace_all(strain,"\\'","")
         sg = dict[is.element(dict$strain_original,tag),"strain_group"]
         query = paste0("update toxval set strain='",strain,"', strain_group='",sg,"' where source='",source,"' and strain_original='",tag,"'")
         runQuery(query,toxval.db)
