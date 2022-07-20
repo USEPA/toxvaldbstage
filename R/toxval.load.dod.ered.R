@@ -212,6 +212,17 @@ toxval.load.dod.ered <- function(toxval.db,source.db,log=F) {
   new_dod$study_duration_units <- gsub("\\bwk\\b","weeks", new_dod$study_duration_units)
   names(new_dod)[names(new_dod)== "species"] <- "species_scientific_name"
 
+  new_dod[new_dod$study_duration_units=="days+hours","study_duration_units"] = "days"
+  new_dod[new_dod$study_duration_units=="egg-swimupMaxdh","study_duration_units"] = "-"
+  new_dod[new_dod$study_duration_units=="egg-swimupmaxdh","study_duration_units"] = "-"
+  new_dod[new_dod$study_duration_units=="-hours","study_duration_units"] = "hours"
+  new_dod[new_dod$study_duration_units=="dph","study_duration_units"] = "days post-hatch"
+  new_dod[new_dod$study_duration_units=="m","study_duration_units"] = "minutes"
+  new_dod[new_dod$study_duration_units=="crab","study_duration_units"] = "-"
+  new_dod[new_dod$study_duration_units=="<days","study_duration_units"] = "days"
+  new_dod[new_dod$study_duration_units=="snapshot","study_duration_units"] = "-"
+  new_dod[new_dod$study_duration_units=="-days","study_duration_units"] = "days"
+
   res <- new_dod
   names.list <- c("source_hash","study_type","species_original","lifestage","name","casrn","media","exposure_route" ,
                   "critical_effect","toxval_numeric","toxval_numeric_qualifier","toxval_units","toxval_type","long_ref","year",
