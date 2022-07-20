@@ -64,6 +64,7 @@ toxval.load.hawc <- function(toxval.db, source.db,log=F){
   res[oral_vals, "exposure_method"] <- gsub("(oral\\s+)(.*)","\\2",res[oral_vals, "exposure_method"])
   injection_vals <- grep("injection", res$exposure_method)
   res[injection_vals, "exposure_method"] <- gsub("(.*\\s+)(injection)","\\2",res[injection_vals, "exposure_method"])
+  res$exposure_method <- tolower(res$exposure_method)
 
   ######### fix study duration value and units
   #hour vals
