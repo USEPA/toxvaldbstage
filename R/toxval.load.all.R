@@ -10,7 +10,6 @@
 #' @param do.init If True, clean out all of the database tables
 #' @param do.reset If TRUE, empty the database to restart
 #' @param do.load If TRUE, load all of the source
-#' @param do.all If TRUE, do all of the steps
 #' @export
 #'
 #--------------------------------------------------------------------------------------
@@ -19,69 +18,64 @@ toxval.load.all <- function(toxval.db,
                             log=F,
                             do.init=F,
                             do.reset=F,
-                            do.load=F,
-                            do.all=F) {
+                            do.load=F) {
   printCurrentFunction(toxval.db)
 
-  if(do.all || do.init)  {
+  if(do.init)  {
     toxval.init.db(toxval.db,reset=do.reset)
   }
 
-  if(do.all || do.load)  {
-    #toxval.load.alaska_dec(toxval.db,source.db,log)
-    #toxval.load.atsdr.pfas.2021(toxval.db,source.db,log)
-    #toxval.load.atsdr.pfas(toxval.db,source.db,log)
-    #toxval.load.atsdr(toxval.db,source.db,log)
-    #toxval.load.cal_dph(toxval.db,source.db,log)
-    #toxval.load.caloehha(toxval.db,source.db,log)
-    #toxval.load.chiu(toxval.db,source.db,log)
-    #toxval.load.copper(toxval.db,source.db,log)
-    #toxval.load.cosmos(toxval.db,source.db,log)
-    #toxval.load.dod.ered(toxval.db,source.db,log)
-    #toxval.load.dod(toxval.db,source.db,log)
-    #toxval.load.doe.benchmarks(toxval.db,source.db,log)
-    #toxval.load.doe.ecorisk(toxval.db,source.db,log)
-    #toxval.load.doe.pac(toxval.db,source.db,log)
-    #toxval.load.efsa2(toxval.db,source.db,log)
-    #toxval.load.efsa(toxval.db,source.db,log)
-    #toxval.load.envirotox(toxval.db,source.db,log)
-    #toxval.load.epa_aegl(toxval.db,source.db,log)
-    #toxval.load.fda_cedi(toxval.db,source.db,log)
-    #toxval.load.hawc_pfas_150(toxval.db,source.db,log)
-    #toxval.load.hawc_pfas_430(toxval.db,source.db,log)
-    #toxval.load.hawc(toxval.db,source.db,log)
-    #toxval.load.healthcanada(toxval.db,source.db,log)
-    #toxval.load.heast(toxval.db,source.db,log)
-    #toxval.load.hess(toxval.db,source.db,log)
-    #toxval.load.hpvis(toxval.db,source.db,log)
-    #toxval.load.iris(toxval.db,source.db,log)
-    #toxval.load.mass_mmcl(toxval.db,source.db,log)
-    #toxval.load.niosh(toxval.db,source.db,log)
-    #toxval.load.opp(toxval.db,source.db,log)
-    #toxval.load.oppt(toxval.db,source.db,log)
-    #toxval.load.osha_air_limits(toxval.db,source.db,log)
-    #toxval.load.ow_dwsha(toxval.db,source.db,log)
-    #toxval.load.penn_dep(toxval.db,source.db,log)
-    #toxval.load.penn(toxval.db,source.db,log)
-    toxval.load.pfas_150_sem(toxval.db,source.db,log)
-    toxval.load.pfas_summary_pods(toxval.db,source.db,log)
-    toxval.load.pprtv.ncea(toxval.db,source.db,log)
-    toxval.load.pprtv.ornl(toxval.db,source.db,log)
-    toxval.load.rsl(toxval.db,source.db,log)
-    toxval.load.test(toxval.db,source.db,log)
-    toxval.load.usgs_hbsl(toxval.db,source.db,log)
-    toxval.load.who_ipcs(toxval.db,source.db,log)
-    toxval.load.wignall(toxval.db,source.db,log)
-
-    ####toxval.load.new_ecotox(toxval.db,source.db,log)
-    ####toxval.load.toxrefdb3(toxval.db,source.db,log)
-    ####toxval.load.echa3(toxval.db,source.db,log)
-    ####toxval.load.echa.echemportal.api(toxval.db,source.db,log)
-    ####toxval.load.echa.echemportal(toxval.db,source.db,log)
-    ####toxval.load.echa.iuclid(toxval.db,source.db,log)
-    ####toxval.load.echa(toxval.db,source.db,log)
-    ####toxval.load.ecotox(toxval.db,source.db,log)
-
+  if(do.load)  {
+    doit=F
+    if(doit) {
+      toxval.load.alaska_dec(toxval.db,source.db,log)
+      toxval.load.atsdr.pfas.2021(toxval.db,source.db,log)
+      toxval.load.atsdr.pfas(toxval.db,source.db,log)
+      toxval.load.atsdr(toxval.db,source.db,log)
+      toxval.load.cal_dph(toxval.db,source.db,log)
+      toxval.load.caloehha(toxval.db,source.db,log)
+      toxval.load.chiu(toxval.db,source.db,log)
+      toxval.load.copper(toxval.db,source.db,log)
+      toxval.load.cosmos(toxval.db,source.db,log)
+      toxval.load.dod.ered(toxval.db,source.db,log)
+      toxval.load.dod(toxval.db,source.db,log)
+      toxval.load.doe.benchmarks(toxval.db,source.db,log)
+      toxval.load.doe.ecorisk(toxval.db,source.db,log)
+      toxval.load.doe.pac(toxval.db,source.db,log)
+      toxval.load.efsa2(toxval.db,source.db,log)
+      toxval.load.efsa(toxval.db,source.db,log)
+      toxval.load.envirotox(toxval.db,source.db,log)
+      toxval.load.epa_aegl(toxval.db,source.db,log)
+      toxval.load.fda_cedi(toxval.db,source.db,log)
+      toxval.load.hawc_pfas_150(toxval.db,source.db,log)
+      toxval.load.hawc_pfas_430(toxval.db,source.db,log)
+      toxval.load.hawc(toxval.db,source.db,log)
+      toxval.load.healthcanada(toxval.db,source.db,log)
+      toxval.load.heast(toxval.db,source.db,log)
+      toxval.load.hess(toxval.db,source.db,log)
+      toxval.load.hpvis(toxval.db,source.db,log)
+      toxval.load.iris(toxval.db,source.db,log)
+      toxval.load.mass_mmcl(toxval.db,source.db,log)
+      toxval.load.niosh(toxval.db,source.db,log)
+      toxval.load.opp(toxval.db,source.db,log)
+      toxval.load.oppt(toxval.db,source.db,log)
+      toxval.load.osha_air_limits(toxval.db,source.db,log)
+      toxval.load.ow_dwsha(toxval.db,source.db,log)
+      toxval.load.penn_dep(toxval.db,source.db,log)
+      toxval.load.penn(toxval.db,source.db,log)
+      toxval.load.pfas_150_sem(toxval.db,source.db,log)
+      toxval.load.pfas_summary_pods(toxval.db,source.db,log)
+      toxval.load.pprtv.ncea(toxval.db,source.db,log)
+      toxval.load.pprtv.ornl(toxval.db,source.db,log)
+      toxval.load.rsl(toxval.db,source.db,log)
+      toxval.load.test(toxval.db,source.db,log)
+      toxval.load.usgs_hbsl(toxval.db,source.db,log)
+      toxval.load.who_ipcs(toxval.db,source.db,log)
+      toxval.load.wignall(toxval.db,source.db,log)
+      toxval.load.toxrefdb3(toxval.db,source.db,log)
+      toxval.load.ecotox(toxval.db,source.db,log)
+    }
+    toxval.load.echa.echemportal.api(toxval.db,source.db,log)
   }
 }
 
