@@ -82,9 +82,10 @@ fix.critical_effect.icf.by.source <- function(toxval.db, source) {
   for(i in 1:nrow(dict_new)) {
     original <- dict_new[i,2]
     final <- dict_new[i,1]
-    cat(original,":",final,"\n"); flush.console()
+    #cat(original,":",final,"\n"); flush.console()
     query <- paste0("update toxval set critical_effect =\"",final,"\" where critical_effect_original=\"",original,"\" and source like '",source,"'")
     runInsert(query,toxval.db,T,F,T)
+    if(i%%100==0) cat("finished ",i,"out of ",nrow(dict_new),"\n")
   }
   query <- paste0("update toxval set critical_effect ='-' where critical_effect_original is NULL and source like '",source,"'")
   runInsert(query,toxval.db,T,F,T)
