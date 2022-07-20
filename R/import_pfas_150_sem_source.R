@@ -13,7 +13,8 @@ import_pfas_150_sem_source <- function(db,
   #####################################################################
   cat("Build original_pfas_150_sem\n")
   #####################################################################
-  res <- openxlsx::read.xlsx(infile,4)
+  print(infile)
+  res <- openxlsx::read.xlsx(infile,sheet=4)
   names(res)[names(res) == "Citation"] <- "long_ref"
   names(res)[names(res) == "Chemical"] <- "name"
   names(res)[names(res) == "CASRN"] <- "casrn"
