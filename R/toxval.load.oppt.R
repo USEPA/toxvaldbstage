@@ -147,10 +147,15 @@ toxval.load.oppt <- function(toxval.db, source.db, log=F){
   #####################################################################
   cat("convert data types for toxval_numeric and study duration value as numeric\n")
   ####################################################################
-  res$toxval_numeric <- as.numeric(res$toxval_numeric)
+  #browser()
+  x1 = res$toxval_numeric
+  x2 = gsub("~", "", x1)
+  x3 = gsub(",", "", x2)
+  x4 = gsub(" ", "", x3)
+  x5 = as.numeric(x4)
+  res$toxval_numeric = x5
   res$study_duration_value[res$study_duration_value == "-"] <- ""
   res$study_duration_value <- as.numeric(res$study_duration_value)
-  #print(View(res))
   res["oppt_id"] <- c(1:length(res[,1]))
   res <- res[c("oppt_id",names(res[-32]))]
 
@@ -229,10 +234,6 @@ toxval.load.oppt <- function(toxval.db, source.db, log=F){
     browser()
   }
   print(dim(res))
-
-  # examples ...
-  # names(res)[names(res) == "source_url"] = "url"
-  # colnames(res)[which(names(res) == "phenotype")] = "critical_effect"
 
   #####################################################################
   cat("Generic steps \n")
@@ -404,6 +405,7 @@ toxval.load.oppt <- function(toxval.db, source.db, log=F){
   ####################################################################
   percent_rows <- grep(".*%", res$toxval_numeric, value = T)
   res$toxval_units[which(res$toxval_numeric %in% percent_rows)] <- "%"
+  browser()
   percent_num_values <- as.numeric(sub("%","", percent_rows))
   res$toxval_numeric[res$toxval_numeric %in% percent_rows] <- percent_num_values
 
@@ -476,8 +478,10 @@ toxval.load.oppt <- function(toxval.db, source.db, log=F){
   #####################################################################
   cat("convert data types for toxval_numeric and study duration value as numeric\n")
   ####################################################################
+  browser()
   res$toxval_numeric <- as.numeric(res$toxval_numeric)
   res$study_duration_value[res$study_duration_value == "-"] <- ""
+  browser()
   res$study_duration_value <- as.numeric(res$study_duration_value)
   #print(View(res))
   res["oppt_id"] <- c(1:length(res[,1]))
@@ -563,7 +567,9 @@ toxval.load.oppt <- function(toxval.db, source.db, log=F){
   new_res <- new_res[is.element(new_res[,"toxval_type"],c("LD50","LC50","LOAEC","LOAEL","NOAEC","NOAEL")),]
   new_res <- new_res[is.element(new_res[,"toxval_units"],c("mg/L","mg/kg-day","ppm")),]
   new_res <- new_res[!is.na(new_res[,"toxval_numeric"]),]
+  browser()
   new_res[,"toxval_numeric"] <- as.numeric(new_res[,"toxval_numeric"])
+  browser()
   new_res$study_duration_value <- as.numeric(new_res$study_duration_value)
 
   res <- new_res
