@@ -4,7 +4,7 @@
 #' @param infile The input file ./efsa2/efsa2_files/merge2/EFSA_combined_new.xlsx
 #--------------------------------------------------------------------------------------
 import_efsa2_source <- function(db,
-                                infile="../efsa2/efsa2_files/merge2/EFSA_combined_new.xlsx",
+                                infile="../efsa2/efsa2_files/merge2/EFSA_combined_new 2022-07-19.xlsx",
                                 chem.check.halt=F) {
   printCurrentFunction(db)
 
