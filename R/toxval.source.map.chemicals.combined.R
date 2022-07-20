@@ -41,7 +41,7 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
   }) %>% dplyr::bind_rows()
 
   # Get curated chemical lists to map - takes 3 file sets per source table
-  #Repo/chemical_mapping/DSSTOX_879/
+  # Repo/chemical_mapping/DSSTOX_879/
   c_dirs = list.dirs(curated.path, recursive = FALSE)
   curated_list = lapply(c_dirs, function(d){
     tmp = list.files(d)
@@ -195,7 +195,8 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
       message("Error: mapped chemical rows have more than input chemical table data")
       next
     }
-
+    out = out %>%
+      filter(!is.na(dtxrid))
     # Push mappings
     for(c_id in out$chemical_id){
       map = out %>%
@@ -237,7 +238,7 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
     #        #toString(out$chemical_id),
     #        ") ",
     #        "AS t2 USING (chemical_id) ",
-    #        "SET ", varSet,#paste0(varSet[c(1:9,11:15)], collapse=","),
+    #        "SET ", varSet,
     #        " WHERE t1.chemical_id in (",
     #        #toString(out$chemical_id),
     #        ") "
@@ -245,4 +246,14 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
   }
 }
 
-#toxval.source.map.chemicals.combined(source.db, input.path, curated.path, match.raw=FALSE)
+# # First round where chemical_id changed, so match by raw
+# toxval.source.map.chemicals.combined(source.db="res_toxval_source_v5",
+#                                      input.path="Repo/chemical_mapping/renamed_source_chemical_files/",
+#                                      curated.path="Repo/chemical_mapping/DSSTOX_879/",
+#                                      match.raw=TRUE)
+# # Second round where chemical_id was hashed, so don't match by raw
+# toxval.source.map.chemicals.combined(source.db="res_toxval_source_v5",
+#                                      input.path="Repo/chemical_mapping/renamed_source_chemical_files/",
+#                                      curated.path="Repo/chemical_mapping/DSSTOX_934/",
+#                                      match.raw=FALSE)
+
