@@ -24,7 +24,7 @@ toxval.set.mw <- function(toxval.db, source){
     mw = runQuery(query,toxval.db)[1,1]
     if(!is.na(mw)) {
       query = paste0("update toxval set mw=",mw," where dtxsid='",dtxsid,"' and source='",source,"'")
-      runQuery(query,toxval.db)
+      if(source!='ECHA eChemPortal') runQuery(query,toxval.db)
     }
   }
 }
