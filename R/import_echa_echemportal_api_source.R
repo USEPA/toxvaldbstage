@@ -9,7 +9,7 @@ import_echa_echemportal_api_source <- function(db,
   printCurrentFunction(db)
 
   #####################################################################
-  cat("Build echa_echemportal_api_original table\n")
+  cat("Build source_echa_echemportal_api table\n")
   #####################################################################
   files.list <- list.files(path = filepath, pattern = "*.xlsx")
   any_temp_files <- grep("^\\~\\$.*", files.list, value = T)
@@ -42,21 +42,11 @@ import_echa_echemportal_api_source <- function(db,
   #####################################################################
   cat("Do the chemical checking\n")
   #####################################################################
-  source = "ECHA echemportal API"
+  source = "ECHA eChemPortal"
   res = as.data.frame(res1)
   res = res[!is.element(res$number,c("134895-42-8","61-76-3")),]
+  names(res)[is.element(names(res),"number")] = "casrn"
+  print(dim(res))
 
-  res$clowder_id = "-"
-  res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="number",name.col="name")
-  #####################################################################
-  cat("Build the hash key and load the data \n")
-  #####################################################################
-  res = subset(res,select=-c(chemical_index))
-  toxval_source.hash.and.load(db,source,"original_echa_echemportal_api",F,F,res)
-  browser()
-  return(1)
-
-  #runInsertTable(res1,"original_echa_echemportal_api",db,do.halt=T,verbose=F)
-
+  source_prep_and_load(db,source=source,table="source_echa_echemportal_api",res=res,F,T,T)
 }
