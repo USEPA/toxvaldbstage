@@ -41,7 +41,7 @@ import_wignall_source <- function(db,
             "reference")
   names(res1) = nlist
 
-  browser()
+  #browser()
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
