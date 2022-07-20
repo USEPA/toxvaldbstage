@@ -23,7 +23,7 @@ chem.check <- function(res0,
   name.OK = T
   casrn.OK = T
   checksum.OK = T
-  # Deal with name
+  cat(">>>Deal with name\n")
   for(i in 1:nrow(res0)) {
     n0 = res0[i,name.col]
     n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
@@ -80,9 +80,9 @@ chem.check <- function(res0,
       res0[i,name.col] = n2
       name.OK = F
     }
-    if(i%%1000==0) cat(" finished ",i," out of ",nrow(res0),"\n")
+    if(i%%1000==0) cat(" chemcheck name: finished ",i," out of ",nrow(res0),"\n")
   }
-  # Deal with CASRN
+  cat("\n>>> Deal with CASRN\n")
   for(i in 1:nrow(res0)) {
     n0 = res0[i,casrn.col]
     if(!is.na(n0)) {
@@ -107,11 +107,11 @@ chem.check <- function(res0,
         row[1,3] = NA
         row[1,4] = cs
         ccheck = rbind(ccheck,row)
-
         checksum.OK = F
         cat("bad checksum:",n0,n1,"\n")
       }
     }
+    if(i%%1000==0) cat(" chemcheck casrn: finished ",i," out of ",nrow(res0),"\n")
   }
   ccheck = unique(ccheck)
   indir = "../chemcheck/"
