@@ -40,7 +40,7 @@ toxval.load.generic <- function(toxvaldb,source.db,log=F) {
   print(dim(res))
 
   #####################################################################
-  cat("Add the code from the original version from Aswani\n")
+  cat("Add code to deal with specific issues for this source\n")
   #####################################################################
   browser()
   cremove = c("","","","")
