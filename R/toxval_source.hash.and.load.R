@@ -38,7 +38,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     sample = sample0[,nlist]
     sh1 = digest(paste0(sample,collapse=""), serialize = FALSE)
     cat("test that the columns are right for the hash key: ",sh0,sh1,"\n")
-    if(sh0!=sh1) browser()
+    #if(sh0!=sh1) browser()
   }
   else {
     nlist = runQuery(paste0("desc ",table),db)[,1]
