@@ -48,6 +48,7 @@ fix.all.param.by.source <- function(toxval.db, source=NULL, fill.toxval_fix=T) {
     cat("\n-----------------------------------------------------\n")
     cat(source,"\n")
     cat("-----------------------------------------------------\n")
+
     cat(" deal with quotes in strings\n")
     cat("   exposure_method\n")
     runQuery(paste0("update toxval SET exposure_method"," = ", "REPLACE", "( exposure_method",  ",\'\"\',", " \"'\" ) WHERE exposure_method"," LIKE \'%\"%\' and source = '",source,"'"),toxval.db)
@@ -83,6 +84,31 @@ fix.all.param.by.source <- function(toxval.db, source=NULL, fill.toxval_fix=T) {
     }
 
     query <- paste0("update toxval set ",field,"='-' where ",field,"_original is NULL and source = '",source,"'")
+    runInsert(query,toxval.db,T,F,T)
+
+    cat("perform extra processes that require matching between fields\n")
+    fix.exposure_method.and.form.by.source(toxval.db, source)
+    fix.generation.by.source(toxval.db, source)
+
+    cat("  expoure route\n")
+    query <- paste0("update toxval
+    set exposure_route = 'inhalation'
+    where toxval_type in ('RFCi', 'Inhalation Unit Risk', 'IUR', 'Inhalation UR', 'Inhalation TC', 'Inhalation SF') and source = '",source,"'")
+    runInsert(query,toxval.db,T,F,T)
+
+    query = paste0("update toxval
+    set exposure_route = 'oral'
+    where toxval_type in ('RFDo', 'Oral Slope Factor', 'oral TDI', 'oral SF', 'oral ADI', 'LDD50 (Lethal Dietary Dose)') and source = '",source,"'")
+    runInsert(query,toxval.db,T,F,T)
+
+    cat("  study_duration_class\n")
+    query = paste0("update toxval
+    set study_duration_class = 'acute'
+    where toxval_type in ('ARFD', 'ARFD (group)', 'AAOEL') and source = '",source,"'")
+
+    query = paste0("update toxval
+    set study_duration_class = 'chronic'
+    where toxval_type like 'Chronic%' and source = '",source,"'")
     runInsert(query,toxval.db,T,F,T)
   }
 }
