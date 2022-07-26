@@ -12,10 +12,10 @@ fill.toxval.defaults.global.by.source <- function(toxval.db, source){
   col.list <- col.list[!is.na(col.list)]
 
   for(col in col.list){
-    n <- runQuery(paste0("select count(*) from toxval where ",col," ='' and source like '",source,"'") ,toxval.db)[1,1]
+    n <- runQuery(paste0("select count(*) from toxval where ",col," ='' and source = '",source,"'") ,toxval.db)[1,1]
     if(n>0) {
       cat(col,n,"\n")
-      query <- paste0("update toxval set ",col,"='-' where ",col," ='' and source like '",source,"'")
+      query <- paste0("update toxval set ",col,"='-' where ",col," ='' and source = '",source,"'")
       runQuery(query,toxval.db)
     }
   }
