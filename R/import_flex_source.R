@@ -3,14 +3,17 @@
 #' Excel file in the folder ACToR replacements/
 #' @param db The version of toxval into which the tables are loaded.
 #' @param filepath The path for all the input xlsx files ./ACToR replacements
+#' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
 #' @param verbose Whether the loaded rows should be printed to the console.
 #' @export
 #--------------------------------------------------------------------------------------
 import_flex_source <- function(db,
-                               filepath="../ACToR replacements",
+                               filepath="ACToR replacements",
                                verbose=F,
-                               chem.check.halt=F) {
+                               chem.check.halt=F,
+                               do.clean = F) {
   printCurrentFunction(db)
+  filepath = paste0(toxval.config()$datapath,filepath)
   #####################################################################
   cat("Build all old ACToR tables \n")
   #####################################################################
@@ -18,6 +21,8 @@ import_flex_source <- function(db,
   any_temp_files <- grep("^\\~\\$.*", files.list, value = T)
   files.list <- files.list[! files.list %in% any_temp_files]
   files.list <- paste0( filepath, '/',files.list)
+  print(files.list)
+  browser()
   res <- lapply(files.list,openxlsx::read.xlsx)
 
   names.list <- gsub("(.*)(\\/)(.*)(for.*)","\\3",files.list)
@@ -33,6 +38,11 @@ import_flex_source <- function(db,
     res0 = res0[!is.element(res0$casrn,"NOCAS"),]
     source = res0[1,"source"]
     table = paste0("source_",nres)
+    if(do.clean) {
+      query = paste0("delete from ",table)
+      cat(query,"\n")
+      runQuery(query,db)
+    }
     cat("-------------------------------\n",nres,":",source,":",table,"\n-------------------------------\n")
     #####################################################################
     cat("Prep and load the data\n")
