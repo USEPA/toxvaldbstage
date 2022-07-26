@@ -14,20 +14,40 @@ import_heast_source <- function(db,
   #####################################################################
   res0 <- openxlsx::read.xlsx(infile,1,colNames = T)
   res0 = res0[order(res0$row_id),]
+  res0$keep = 0
+  start = 0
+  pointer = -1
   for(i in 1:nrow(res0)) {
-    if(is.na(res0[i,"name"])) res0[i,"name"] = res0[(i-1),"name"]
+    if(!is.na(res0[i,"name"])) {
+      if(i>1) res0[pointer,"critical_effect"] = ce
+      pointer = i
+      start = 1
+      ce = res0[pointer,"critical_effect"]
+      res0[i,"keep"] = 1
+    }
+    else {
+      ce = paste0(ce,"|",res0[i,"critical_effect"])
+    }
   }
-  clist = unique(res0$name)
-  res = NULL
-  for(chem in clist) {
-    temp = res0[is.element(res0$name,chem),]
-    temp1 = temp[1,]
-    ce = NULL
-    for(i in 1:nrow(temp)) ce = c(ce,paste0(temp[i,"target"],":",temp[i,"critical_effect"]))
-    temp1[1,"critical_effect"] = paste(ce,collapse="|")
-    res = rbind(res,temp1)
-  }
+  #browser()
+  res0 = res0[res0$keep==1,]
+  cremove = c("keep")
+  res0 = res0[ , !(names(res0) %in% cremove)]
 
+  # for(i in 1:nrow(res0)) {
+  #   if(is.na(res0[i,"name"])) res0[i,"name"] = res0[(i-1),"name"]
+  # }
+  # clist = unique(res0$name)
+  # res = NULL
+  # for(chem in clist) {
+  #   temp = res0[is.element(res0$name,chem),]
+  #   temp1 = temp[1,]
+  #   ce = NULL
+  #   for(i in 1:nrow(temp)) ce = c(ce,paste0(temp[i,"target"],":",temp[i,"critical_effect"]))
+  #   temp1[1,"critical_effect"] = paste(ce,collapse="|")
+  #   res = rbind(res,temp1)
+  # }
+  res = res0
   nlist1 = c(
   "row_id","name","casrn",
   "species","exposure_route","exposure_method","study_duration_value","study_duration_units","study_duration_class",
@@ -111,6 +131,7 @@ import_heast_source <- function(db,
   res5$uf = res5$rfd_chronic_uf
   res5 = res5[,nlist]
 
+  #browser()
   res = rbind(res1,res2,res3,res4,res5)
   #####################################################################
   cat("Prep and load the data\n")
