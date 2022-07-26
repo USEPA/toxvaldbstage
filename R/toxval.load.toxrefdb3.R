@@ -37,7 +37,7 @@ toxval.load.toxrefdb3 <- function(toxval.db,source.db,log=F,do.init=F) {
   if(!exists("TOXREFDB")) do.init=T
   if(do.init) {
     query <- "SELECT DISTINCT
-    chemical.dsstox_substance_id AS dsstox_substance_id,
+    chemical.dsstox_substance_id AS dtxsid,
     chemical.casrn AS casrn,
     chemical.preferred_name AS name,
     chemical.chemical_id AS chemical_id,
@@ -88,6 +88,7 @@ toxval.load.toxrefdb3 <- function(toxval.db,source.db,log=F,do.init=F) {
     mat.in <- runQuery(query,db)
 
     name.list <- c(
+      "dtxsid",
       "casrn",
       "name",
       "study_type",
@@ -125,7 +126,8 @@ toxval.load.toxrefdb3 <- function(toxval.db,source.db,log=F,do.init=F) {
     n <- nrow(res2)
     for(i in 1:n) {
       row <- res2[i,]
-      res3 <- res[which(res$casrn==res2[i,"casrn"] &
+      res3 <- res[which(res$dtxsid==res2[i,"dtxsid"] &
+                          res$casrn==res2[i,"casrn"] &
                           res$name==res2[i,"name"] &
                           res$study_type==res2[i,"study_type"] &
                           res$toxval_type==res2[i,"toxval_type"] &
@@ -149,8 +151,13 @@ toxval.load.toxrefdb3 <- function(toxval.db,source.db,log=F,do.init=F) {
   }
   res = TOXREFDB
   res$source = source
+
   res = source_chemical.toxrefdb(toxval.db,source.db,res,source,chem.check.halt=FALSE,
                                        casrn.col="casrn",name.col="name",verbose=F)
+  #browser()
+  nlist = names(res)
+  nlist = nlist[!is.element(nlist,"dtxsid")]
+  res = res[,nlist]
   res <- res[!is.na(res[,"toxval_units"]),]
   res[,"toxval_type"] <- toupper(res[,"toxval_type"])
   x <- res[,"toxval_numeric_qualifier"]
