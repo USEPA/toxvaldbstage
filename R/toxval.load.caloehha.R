@@ -3,7 +3,7 @@
 #' Load new_caloehha from toxval_source to toxval
 #' @param toxval.db The version of toxval into which the tables are loaded.
 #' @param source.db The source database to use.
-#' @param verbose If TRUE, print out extra diagnostic messages
+#' @param log If TRUE, send output to a log file
 #' @export
 #--------------------------------------------------------------------------------------
 toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
@@ -58,266 +58,566 @@ toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
   row <- as.data.frame(matrix(nrow=1,ncol=length(name.list)))
   names(row) <- name.list
   res <- NULL
-  for(i in 1:nrow(mat)) {
-    casrn <- fix.casrn(mat[i,"casrn"])
-    name <- mat[i,"name"]
-    source_hash <- mat[i,"source_hash"]
-    cname <- tolower(name)
-    cname <- str_replace_all(cname," ","-")
-    if(!is.na(mat[i,"inhalation_unit_risk"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"inhalation_unit_risk"]
-      row[1,"toxval_units"] <- "(ug/m3)-1"
-      row[1,"toxval_type"] <- "inhalation unit risk"
-      row[1,"exposure_route"] <- "inhalation"
-      row[1,"risk_assessment_class"] <- "chronic"
-      row[1,"study_type"] <- "cancer"
-      row[1,"year"] <- mat[i,"cancer_potency_year"]
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      row[1,"chemical_id"] <- mat[i,"chemical_id"]
-      res <- rbind(res,row)
-    }
 
-    if(!is.na(mat[i,"inhalation_slope_factor"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"inhalation_slope_factor"]
-      row[1,"toxval_units"] <- "(mg/kg-day)-1"
-      row[1,"toxval_type"] <- "inhalation slope factor"
-      row[1,"exposure_route"] <- "inhalation"
-      row[1,"risk_assessment_class"] <- "chronic"
-      row[1,"study_type"] <- "cancer"
-      row[1,"year"] <- mat[i,"cancer_potency_year"]
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      row[1,"chemical_id"] <- mat[i,"chemical_id"]
-      res <- rbind(res,row)
-    }
 
-    if(!is.na(mat[i,"oral_slope_factor"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"oral_slope_factor"]
-      row[1,"toxval_units"] <- "(mg/kg-day)-1"
-      row[1,"toxval_type"] <- "oral unit risk"
-      row[1,"exposure_route"] <- "oral"
-      row[1,"risk_assessment_class"] <- "chronic"
-      row[1,"study_type"] <- "cancer"
-      row[1,"year"] <- mat[i,"cancer_potency_year"]
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      row[1,"chemical_id"] <- mat[i,"chemical_id"]
-      res <- rbind(res,row)
-    }
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "inhalation_unit_risk","inhalation_unit_risk_units",
+            "inhalation_slope_factor","inhalation_slope_factor_units",
+            "oral_slope_factor","oral_slope_factor_units",
+            "acute_rel","acute_rel_units","acute_rel_species","acute_rel_critical_effect","acute_rel_target_organ","acute_rel_severity","acute_rel_year",
+            "rel_8_hour_inhalation","rel_8_hour_inhalation_units",
+            "chronic_inhalation_rel","chronic_inhalation_rel_units",
+            "chronic_oral_rel","chronic_oral_rel_units","chronic_rel_critical_effect","chronic_rel_target_organ",
+            "mcl","mcl_units",
+            "phg","phg_units","phg_year",
+            "nsrl_inhalation","nsrl_inhalation_units",
+            "nsrl_oral","nsrl_oral_units",
+            "madl_inhlation_reprotox","madl_inhlation_reprotox_units",
+            "madl_oral_reprotox","madl_oral_reprotox_units","madl_nsrl_year",
+            "chrfd","chrfd_units","chrd_year")
 
-    if(!is.na(mat[i,"acute_rel"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"acute_rel"]
-      row[1,"toxval_units"] <- "ug/m3"
-      row[1,"toxval_type"] <- "REL"
-      row[1,"exposure_route"] <- "oral"
-      row[1,"risk_assessment_class"] <- "acute"
-      row[1,"study_type"] <- "acute"
-      row[1,"year"] <- mat[i,"acute_rel_year"]
-      row[1,"species_original"] <- tolower(mat[i,"acute_rel_species"])
-      row[1,"critical_effect"] <- paste(mat[i,"acute_rel_critical_effect"],"|",mat[i,"acute_rel_target_organ"],"|",mat[i,"acute_rel_severity"])
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      row[1,"chemical_id"] <- mat[i,"chemical_id"]
-      res <- rbind(res,row)
-    }
+  #-------------------------------------------------------------------------------------------------------------
+  # Inhalation unit risk
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "inhalation_unit_risk","inhalation_unit_risk_units")
+  res1 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units")
+  names(res1) = nlist
+  res1$year = "2022"
+  res1 = res1[!is.na(res1$toxval_numeric),]
+  res1$toxval_type = "cancer unit risk"
+  res1$toxval_subtype = "inhalation unit rosk"
+  res1$study_type = "carcinogenicity"
+  res1$study_duration_class = "chronic"
+  res1$exposure_route = "inhalation"
+  res1$critical_effect = "-"
+  res1$species_original = "Human (RA)"
 
-    if(!is.na(mat[i,"inhalation_rel_8_hour"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"inhalation_rel_8_hour"]
-      row[1,"toxval_units"] <- "ug/m3"
-      row[1,"toxval_type"] <- "REL"
-      row[1,"exposure_route"] <- "inhalation"
-      row[1,"risk_assessment_class"] <- "acute"
-      row[1,"study_type"] <- "acute"
-      row[1,"year"] <- mat[i,"inhalation_rel_year"]
-      row[1,"study_duration_value"] <- 8
-      row[1,"study_duration_units"] <- "hour"
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      row[1,"chemical_id"] <- mat[i,"chemical_id"]
-      res <- rbind(res,row)
-    }
+  #-------------------------------------------------------------------------------------------------------------
+  # Inhalation slope factor
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "inhalation_slope_factor","inhalation_slope_factor_units")
+  res2 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units")
+  names(res2) = nlist
+  res2$year = "2022"
+  res2 = res2[!is.na(res2$toxval_numeric),]
+  res2$toxval_type = "cancer slope factor"
+  res2$toxval_subtype = "inhalaiton slope factor"
+  res2$study_type = "carcinogenicity"
+  res2$study_duration_class = "chronic"
+  res2$exposure_route = "inhalation"
+  res2$critical_effect = "-"
+  res2$species_original = "Human (RA)"
 
-    if(!is.na(mat[i,"chronic_inhalation_rel"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"chronic_inhalation_rel"]
-      row[1,"toxval_units"] <- "ug/m3"
-      row[1,"toxval_type"] <- "REL"
-      row[1,"exposure_route"] <- "inhalation"
-      row[1,"risk_assessment_class"] <- "chronic"
-      row[1,"study_type"] <- "chronic"
-      row[1,"year"] <- mat[i,"inhalation_rel_year"]
-      row[1,"critical_effect"] <- paste( mat[i,"chronic_inhalation_critical_effect"],"|", mat[i,"chronic_inhalation_target_organ"])
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      row[1,"chemical_id"] <- mat[i,"chemical_id"]
-      res <- rbind(res,row)
-    }
+  #-------------------------------------------------------------------------------------------------------------
+  # oral slope factor
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "oral_slope_factor","oral_slope_factor_units")
+  res3 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units")
+  names(res3) = nlist
+  res3$year = "2022"
+  res3 = res3[!is.na(res3$toxval_numeric),]
+  res3$toxval_type = "cancer slope factor"
+  res3$toxval_subtype = "oral slope factor"
+  res3$study_type = "carcinogenicity"
+  res3$study_duration_class = "chronic"
+  res3$exposure_route = "oral"
+  res3$critical_effect = "-"
+  res3$species_original = "Human (RA)"
 
-    if(!is.na(mat[i,"mcl"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"mcl"]
-      row[1,"toxval_units"] <- "mg/L"
-      row[1,"toxval_type"] <- "MCL"
-      row[1,"exposure_route"] <- "oral"
-      row[1,"risk_assessment_class"] <- "chronic"
-      row[1,"study_type"] <- "chronic"
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      row[1,"chemical_id"] <- mat[i,"chemical_id"]
-      res <- rbind(res,row)
-    }
-  }
-  res <- generate.originals(toxval.db,res)
+  #-------------------------------------------------------------------------------------------------------------
+  # acute REL
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "acute_rel","acute_rel_units","acute_rel_species","acute_rel_critical_effect","acute_rel_target_organ","acute_rel_severity","acute_rel_year")
+  res4 = mat[,nlist]
+  res4$critical_effect = paste0(res4$acute_rel_critical_effect,"|",res4$acute_rel_target_organ,"|",res4$acute_rel_severity)
+  res4 = res4[,c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+                 "acute_rel","acute_rel_units","acute_rel_species","critical_effect","acute_rel_year")]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units","species_original","critical_effect","year")
+  names(res4) = nlist
+  res4 = res4[!is.na(res4$toxval_numeric),]
+  res4$toxval_type = "REL"
+  res4$toxval_subtype = "acute REL"
+  res4$study_type = "acute"
+  res4$study_duration_class = "acute"
+  res4$exposure_route = "oral"
+
+  #-------------------------------------------------------------------------------------------------------------
+  # Inhalation 8 hour REL
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "rel_8_hour_inhalation","rel_8_hour_inhalation_units")
+  res5 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units")
+  names(res5) = nlist
+  res5$year = "2022"
+  res5 = res5[!is.na(res5$toxval_numeric),]
+  res5$toxval_type = "REL"
+  res5$toxval_subtype = "8 hour inhalation REL"
+  res5$study_type = "acute"
+  res5$study_duration_class = "acute"
+  res5$exposure_route = "inhalation"
+  res5$critical_effect = "-"
+  res5$species_original = "Human (RA)"
+
+  #-------------------------------------------------------------------------------------------------------------
+  # Chronic inhalation REL
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "chronic_inhalation_rel","chronic_inhalation_rel_units")
+  res6 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units")
+  names(res6) = nlist
+  res6$year = "2022"
+  res6 = res6[!is.na(res6$toxval_numeric),]
+  res6$toxval_type = "REL"
+  res6$toxval_subtype = "chronic inhalation REL"
+  res6$study_type = "chronic"
+  res6$study_duration_class = "chronic"
+  res6$exposure_route = "inhalation"
+  res6$critical_effect = "-"
+  res6$species_original = "Human (RA)"
+
+  #-------------------------------------------------------------------------------------------------------------
+  # Chronic Oral REL
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "chronic_oral_rel","chronic_oral_rel_units","chronic_rel_critical_effect","chronic_rel_target_organ")
+  res7 = mat[,nlist]
+  res7$critical_effect = paste0(res7$chronic_rel_critical_effect,"|",res7$chronic_rel_target_organ)
+  res7 = res7[,c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+                 "chronic_oral_rel","chronic_oral_rel_units","critical_effect")]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units","critical_effect")
+  names(res7) = nlist
+  res7$year = "2022"
+  res7 = res7[!is.na(res7$toxval_numeric),]
+  res7$toxval_type = "REL"
+  res7$toxval_subtype = "chronic oral REL"
+  res7$study_type = "chronic"
+  res7$study_duration_class = "chronic"
+  res7$exposure_route = "oral"
+  res7$species_original = "Human (RA)"
+
+  #-------------------------------------------------------------------------------------------------------------
+  # MCL
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "mcl","mcl_units")
+  res8 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units")
+  names(res8) = nlist
+  res8$year = "2022"
+  res8 = res8[!is.na(res8$toxval_numeric),]
+  res8$toxval_type = "MCL"
+  res8$toxval_subtype = "-"
+  res8$study_type = "chronic"
+  res8$study_duration_class = "chronic"
+  res8$exposure_route = "oral"
+  res8$critical_effect = "-"
+  res8$species_original = "Human (RA)"
+
+  #-------------------------------------------------------------------------------------------------------------
+  # PHG
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "phg","phg_units","phg_year")
+  res9 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units","year")
+  names(res9) = nlist
+  res9 = res9[!is.na(res9$toxval_numeric),]
+  res9 = res9[res9$toxval_numeric!="-",]
+  res9$toxval_numeric = as.numeric(res9$toxval_numeric)
+  res9$toxval_type = "OEHHA PHG"
+  res9$toxval_subtype = "-"
+  res9$study_type = "chronic"
+  res9$study_duration_class = "chronic"
+  res9$exposure_route = "oral"
+  res9$critical_effect = "-"
+  res9$species_original = "Human (RA)"
+  #-------------------------------------------------------------------------------------------------------------
+  # Inhalation NSRL
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "nsrl_inhalation","nsrl_inhalation_units")
+  res10 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units")
+  names(res10) = nlist
+  res10$year = "2022"
+  res10 = res10[!is.na(res10$toxval_numeric),]
+  res10$toxval_type = "OEHHA NSRL"
+  res10$toxval_subtype = "-"
+  res10$study_type = "chronic"
+  res10$study_duration_class = "chronic"
+  res10$exposure_route = "inhalation"
+  res10$critical_effect = "-"
+  res10$species_original = "Human (RA)"
+
+  #-------------------------------------------------------------------------------------------------------------
+  # Oral NSRL
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+             "nsrl_oral","nsrl_oral_units")
+  res11 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units")
+  names(res11) = nlist
+  res11$year = "2022"
+  res11 = res11[!is.na(res11$toxval_numeric),]
+  res11$toxval_type = "OEHHA NSRL"
+  res11$toxval_subtype = "-"
+  res11$study_type = "chronic"
+  res11$study_duration_class = "chronic"
+  res11$exposure_route = "oral"
+  res11$critical_effect = "-"
+  res11$species_original = "Human (RA)"
+
+  #-------------------------------------------------------------------------------------------------------------
+  # MADL Inhalation
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+             "madl_inhlation_reprotox","madl_inhlation_reprotox_units")
+  res12 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units")
+  names(res12) = nlist
+  res12$year = "2022"
+  res12 = res12[!is.na(res12$toxval_numeric),]
+  res12$toxval_type = "OEHHA MADL"
+  res12$toxval_subtype = "-"
+  res12$study_type = "chronic"
+  res12$study_duration_class = "chronic"
+  res12$exposure_route = "inhalation"
+  res12$critical_effect = "-"
+  res12$species_original = "Human (RA)"
+
+  #-------------------------------------------------------------------------------------------------------------
+  # MADL oral
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+             "madl_oral_reprotox","madl_oral_reprotox_units","madl_nsrl_year")
+  res13 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units","year")
+  names(res13) = nlist
+  res13 = res13[!is.na(res13$toxval_numeric),]
+  res13$toxval_type = "OEHHA MADL"
+  res13$toxval_subtype = "-"
+  res13$study_type = "chronic"
+  res13$study_duration_class = "chronic"
+  res13$exposure_route = "oral"
+  res13$critical_effect = "-"
+  res13$species_original = "Human (RA)"
+
+  #-------------------------------------------------------------------------------------------------------------
+  # ChRfD
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "chrfd","chrfd_units","chrd_year")
+  res14 = mat[,nlist]
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_numeric","toxval_units","year")
+  names(res14) = nlist
+  res14 = res14[!is.na(res14$toxval_numeric),]
+  res14$toxval_type = "RfD"
+  res14$toxval_subtype = "Child RfD"
+  res14$study_type = "chronic"
+  res14$study_duration_class = "chronic"
+  res14$exposure_route = "oral"
+  res14$critical_effect = "-"
+  res14$species_original = "Human (RA)"
+
+  #-------------------------------------------------------------------------------------------------------------
+
+
+  nlist = c("casrn","name","chemical_id","document_name","source", "source_hash","qc_status","details_text",
+            "toxval_type","toxval_subtype","toxval_numeric","toxval_units",
+            "study_type","study_duration_class","exposure_route","critical_effect","species_original","year")
+
+  res1 = res1[,nlist]
+  res2 = res2[,nlist]
+  res3 = res3[,nlist]
+  res4 = res4[,nlist]
+  res5 = res5[,nlist]
+  res6 = res6[,nlist]
+  res7 = res7[,nlist]
+  res8 = res8[,nlist]
+  res9 = res9[,nlist]
+  res10 = res10[,nlist]
+  res11 = res11[,nlist]
+  res12 = res12[,nlist]
+  res13 = res13[,nlist]
+  res14 = res14[,nlist]
+
+  res = rbind(res1,res2,res3,res4,res5,res6,res7,res8,res9,res10,res11,res12,res13,res14)
+  res$toxval_numeric_qualifier = "="
+
+  res[res$toxval_units==" (fibers/L water)-1","toxval_units"] = "(fibers/L water)-1"
+  res[res$toxval_units==" pCi/L","toxval_units"] = "pCi/L"
+  res[res$toxval_units==" million fibers/L","toxval_units"] = "million fibers/L"
+  res[res$toxval_units=="mg.L (total chromium)","toxval_units"] = "mg/L (total chromium)"
+  res[res$toxval_units==" ug/dL blood","toxval_units"] = "ug/dL blood"
+
+  # for(i in 1:nrow(mat)) {
+  #   casrn = fix.casrn(mat[i,"casrn"])
+  #   name = mat[i,"name"]
+  #   source_hash = mat[i,"source_hash"]
+  #   cname = tolower(name)
+  #   cname = str_replace_all(cname," ","-")
+  #   if(!is.na(mat[i,"inhalation_unit_risk"])) {
+  #     row[] = NA
+  #     row[1,"source_hash"] = source_hash
+  #     row[1,"casrn"] = casrn
+  #     row[1,"name"] = name
+  #     row[1,"toxval_numeric"] = mat[i,"inhalation_unit_risk"]
+  #     row[1,"toxval_units"] = "(ug/m3)-1"
+  #     row[1,"toxval_type"] = "inhalation unit risk"
+  #     row[1,"exposure_route"] = "inhalation"
+  #     row[1,"risk_assessment_class"] = "chronic"
+  #     row[1,"study_type"] = "cancer"
+  #     row[1,"year"] = mat[i,"cancer_potency_year"]
+  #     row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+  #     row[1,"chemical_id"] = mat[i,"chemical_id"]
+  #     res = rbind(res,row)
+  #   }
+  #
+  #   if(!is.na(mat[i,"inhalation_slope_factor"])) {
+  #     row[] = NA
+  #     row[1,"source_hash"] = source_hash
+  #     row[1,"casrn"] = casrn
+  #     row[1,"name"] = name
+  #     row[1,"toxval_numeric"] = mat[i,"inhalation_slope_factor"]
+  #     row[1,"toxval_units"] = "(mg/kg-day)-1"
+  #     row[1,"toxval_type"] = "inhalation slope factor"
+  #     row[1,"exposure_route"] = "inhalation"
+  #     row[1,"risk_assessment_class"] = "chronic"
+  #     row[1,"study_type"] = "cancer"
+  #     row[1,"year"] = mat[i,"cancer_potency_year"]
+  #     row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+  #     row[1,"chemical_id"] = mat[i,"chemical_id"]
+  #     res = rbind(res,row)
+  #   }
+  #
+  #   if(!is.na(mat[i,"oral_slope_factor"])) {
+  #     row[] = NA
+  #     row[1,"source_hash"] = source_hash
+  #     row[1,"casrn"] = casrn
+  #     row[1,"name"] = name
+  #     row[1,"toxval_numeric"] = mat[i,"oral_slope_factor"]
+  #     row[1,"toxval_units"] = "(mg/kg-day)-1"
+  #     row[1,"toxval_type"] = "oral unit risk"
+  #     row[1,"exposure_route"] = "oral"
+  #     row[1,"risk_assessment_class"] = "chronic"
+  #     row[1,"study_type"] = "cancer"
+  #     row[1,"year"] = mat[i,"cancer_potency_year"]
+  #     row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+  #     row[1,"chemical_id"] = mat[i,"chemical_id"]
+  #     res = rbind(res,row)
+  #   }
+  #
+  #   if(!is.na(mat[i,"acute_rel"])) {
+  #     row[] = NA
+  #     row[1,"source_hash"] = source_hash
+  #     row[1,"casrn"] = casrn
+  #     row[1,"name"] = name
+  #     row[1,"toxval_numeric"] = mat[i,"acute_rel"]
+  #     row[1,"toxval_units"] = "ug/m3"
+  #     row[1,"toxval_type"] = "REL"
+  #     row[1,"exposure_route"] = "oral"
+  #     row[1,"risk_assessment_class"] = "acute"
+  #     row[1,"study_type"] = "acute"
+  #     row[1,"year"] = mat[i,"acute_rel_year"]
+  #     row[1,"species_original"] = tolower(mat[i,"acute_rel_species"])
+  #     row[1,"critical_effect"] = paste(mat[i,"acute_rel_critical_effect"],"|",mat[i,"acute_rel_target_organ"],"|",mat[i,"acute_rel_severity"])
+  #     row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+  #     row[1,"chemical_id"] = mat[i,"chemical_id"]
+  #     res = rbind(res,row)
+  #   }
+  #
+  #   if(!is.na(mat[i,"inhalation_rel_8_hour"])) {
+  #     row[] = NA
+  #     row[1,"source_hash"] = source_hash
+  #     row[1,"casrn"] = casrn
+  #     row[1,"name"] = name
+  #     row[1,"toxval_numeric"] = mat[i,"inhalation_rel_8_hour"]
+  #     row[1,"toxval_units"] = "ug/m3"
+  #     row[1,"toxval_type"] = "REL"
+  #     row[1,"exposure_route"] = "inhalation"
+  #     row[1,"risk_assessment_class"] = "acute"
+  #     row[1,"study_type"] = "acute"
+  #     row[1,"year"] = mat[i,"inhalation_rel_year"]
+  #     row[1,"study_duration_value"] = 8
+  #     row[1,"study_duration_units"] = "hour"
+  #     row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+  #     row[1,"chemical_id"] = mat[i,"chemical_id"]
+  #     res = rbind(res,row)
+  #   }
+  #
+  #   if(!is.na(mat[i,"chronic_inhalation_rel"])) {
+  #     row[] = NA
+  #     row[1,"source_hash"] = source_hash
+  #     row[1,"casrn"] = casrn
+  #     row[1,"name"] = name
+  #     row[1,"toxval_numeric"] = mat[i,"chronic_inhalation_rel"]
+  #     row[1,"toxval_units"] = "ug/m3"
+  #     row[1,"toxval_type"] = "REL"
+  #     row[1,"exposure_route"] = "inhalation"
+  #     row[1,"risk_assessment_class"] = "chronic"
+  #     row[1,"study_type"] = "chronic"
+  #     row[1,"year"] = mat[i,"inhalation_rel_year"]
+  #     row[1,"critical_effect"] = paste( mat[i,"chronic_inhalation_critical_effect"],"|", mat[i,"chronic_inhalation_target_organ"])
+  #     row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+  #     row[1,"chemical_id"] = mat[i,"chemical_id"]
+  #     res = rbind(res,row)
+  #   }
+  #
+  #   if(!is.na(mat[i,"mcl"])) {
+  #     row[] = NA
+  #     row[1,"source_hash"] = source_hash
+  #     row[1,"casrn"] = casrn
+  #     row[1,"name"] = name
+  #     row[1,"toxval_numeric"] = mat[i,"mcl"]
+  #     row[1,"toxval_units"] = "mg/L"
+  #     row[1,"toxval_type"] = "MCL"
+  #     row[1,"exposure_route"] = "oral"
+  #     row[1,"risk_assessment_class"] = "chronic"
+  #     row[1,"study_type"] = "chronic"
+  #     row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+  #     row[1,"chemical_id"] = mat[i,"chemical_id"]
+  #     res = rbind(res,row)
+  #   }
+  # }
+  res = generate.originals(toxval.db,res)
 
   ##########################################################
   cat("Convert multiple date formats present in year field to the corresponding year value,
       then change the data type from character to integer \n ")
   ###########################################################
-  res1 <- res
-  date_fix <- excel_numeric_to_date(as.numeric(as.character(res1[grep("[0-9]{5}", res1$year),'year'])), date_system = "modern")
-  date_fix <- format(date_fix, format = "%Y")
+  res1 = res
+  date_fix = excel_numeric_to_date(as.numeric(as.character(res1[grep("[0-9]{5}", res1$year),'year'])), date_system = "modern")
+  date_fix = format(date_fix, format = "%Y")
 
-  res1[grep("[0-9]{5}", res1$year),'year'] <- date_fix
-  res1[grep("[a-zA-Z]+", res1$year),'year'] <- gsub(".*\\,\\s+(\\d{4})", "\\1", grep("[a-zA-Z]+", res1$year,value= T))
-  res1[which(res1$year == "-"), "year"] <- NA
-  res1$year <- as.integer(res1$year)
+  res1[grep("[0-9]{5}", res1$year),'year'] = date_fix
+  res1[grep("[a-zA-Z]+", res1$year),'year'] = gsub(".*\\,\\s+(\\d{4})", "\\1", grep("[a-zA-Z]+", res1$year,value= T))
+  res1[which(res1$year == "-"), "year"] = NA
+  res1$year = as.integer(res1$year)
 
   ###########################################################
   cat("seperate multiple casrns \n")
   ###########################################################
-  res1 <- separate_rows(res1, casrn, sep = ";")
-  res1$casrn <- gsub("^\\s+","", res1$casrn)
+  # res1 = separate_rows(res1, casrn, sep = ";")
+  # res1$casrn = gsub("^\\s+","", res1$casrn)
 
   ###########################################################
   cat("seperate multiple toxval_numeric entries
       , convert character data type of toxval_numeric to numeric data type \n")
   ###########################################################
   # convert values expressed with E to numeric
-  tox_num <- grep("E",res1$toxval_numeric)
-
-  for (i in 1:length(tox_num)){
-    res1[tox_num[i], "toxval_numeric"] <- tolower(res1[tox_num[i], "toxval_numeric"])
-    res1[tox_num[i], "toxval_numeric"] <- gsub("(^\\d+\\.*\\d*)(\\s*)(e.*)","\\1\\3",res1[tox_num[i], "toxval_numeric"])
-  }
-
-  # seperate rows with multiple numeric values seperated by ;
-  res1 <- separate_rows(res1, toxval_numeric, sep = ";")
-  res1$toxval_numeric <- gsub("^\\s+","", res1$toxval_numeric)
+  # tox_num = grep("E",res1$toxval_numeric)
+  #
+  # for (i in 1:length(tox_num)){
+  #   res1[tox_num[i], "toxval_numeric"] = tolower(res1[tox_num[i], "toxval_numeric"])
+  #   res1[tox_num[i], "toxval_numeric"] = gsub("(^\\d+\\.*\\d*)(\\s*)(e.*)","\\1\\3",res1[tox_num[i], "toxval_numeric"])
+  # }
+  #
+  # # seperate rows with multiple numeric values seperated by ;
+  # res1 = separate_rows(res1, toxval_numeric, sep = ";")
+  # res1$toxval_numeric = gsub("^\\s+","", res1$toxval_numeric)
 
   # extract numeric and unit values from 1.4e-13 (fibers/l water)^-1
-  res1[grep("\\(.*\\/.*\\)", res1$toxval_numeric),'toxval_units']<- gsub(".*\\((.*\\/.*)\\)", "\\1",grep("\\(.*\\/.*\\)", res1$toxval_numeric, value= T))
-  res1[grep("\\(.*\\/.*\\)", res1$toxval_numeric),'toxval_numeric'] <- gsub("\\((.*\\/.*)\\).*", "", grep("\\(.*\\/.*\\)", res1$toxval_numeric, value= T))
+  # res1[grep("\\(.*\\/.*\\)", res1$toxval_numeric),'toxval_units']= gsub(".*\\((.*\\/.*)\\)", "\\1",grep("\\(.*\\/.*\\)", res1$toxval_numeric, value= T))
+  # res1[grep("\\(.*\\/.*\\)", res1$toxval_numeric),'toxval_numeric'] = gsub("\\((.*\\/.*)\\).*", "", grep("\\(.*\\/.*\\)", res1$toxval_numeric, value= T))
+  #
+  # # oral route values in toxval numeric with unit values attached
+  # oral_route = grep("oral", res1$toxval_numeric)
+  # for (i in 1:length(oral_route)){
+  #   res1[oral_route[i],"exposure_route_original"] = res1[oral_route[i], "toxval_numeric"]
+  # }
+  #
+  # for (i in 1:length(oral_route)){
+  #   res1[oral_route[i], "toxval_units"] = gsub("(.*\\d+\\s+)(.*)(\\s+\\(.*\\))","\\2",res1[oral_route[i], "toxval_numeric"])
+  # }
 
-  # oral route values in toxval numeric with unit values attached
-  oral_route <- grep("oral", res1$toxval_numeric)
-  for (i in 1:length(oral_route)){
-    res1[oral_route[i],"exposure_route_original"] <- res1[oral_route[i], "toxval_numeric"]
-  }
+  # # extract unit, exposure route values from toxval numeric
+  # route_val = grep("\\(.*\\)", res1$toxval_numeric)
+  #
+  # for ( i in 1:length(route_val)){
+  #   res1[route_val[i],"exposure_route_original"] = res1[route_val[i], "toxval_numeric"]
+  # }
+  #
+  # for ( i in 1:length(route_val)){
+  #   res1[route_val[i],'exposure_route']  = gsub(".*\\((.*)\\)", "\\1",res1[route_val[i],'toxval_numeric'])
+  #   res1[route_val[i],'toxval_numeric'] = gsub("(.*\\d+)(\\s+.*)(\\(.*\\))", "\\1",res1[route_val[i],'toxval_numeric'])
+  # }
+  #
+  # # print(View(res1))
+  # # unit values with numeric values pCi/L and million fibers/L
+  # tox_units = grep("[A-Z]+", res1$toxval_numeric)
+  #
+  # for (i in 1:length(tox_units)){
+  #   res1[tox_units[i], "toxval_units"] = gsub("(.*\\d+\\s+)(.*)","\\2",res1[tox_units[i], "toxval_numeric"])
+  #   res1[tox_units[i], "toxval_numeric"] = gsub("(.*\\d+)(\\s+.*)","\\1",res1[tox_units[i], "toxval_numeric"])
+  # }
+  #
+  # # comma value
+  # res1[grep("\\,", res1$toxval_numeric), "toxval_numeric"] = gsub("\\,", "", res1[grep("\\,", res1$toxval_numeric), "toxval_numeric"])
+  # # values with none, --
+  # none_val = grep("[0-9]+",res1$toxval_numeric, invert = T)
+  #
+  # for (i in 1:length(none_val)){
+  #   res1[none_val[i],"toxval_numeric"] = gsub(paste0(unique(res1[none_val[i],"toxval_numeric"]), "|", collapse = "" ), "", res1[none_val[i],"toxval_numeric"])
+  # }
+  #
+  # # values with 10 as nitrogen, 0.05 for total chromium
+  # char_vals = grep("[a-z]+\\s+[a-z]+",res1$toxval_numeric)
 
-  for (i in 1:length(oral_route)){
-    res1[oral_route[i], "toxval_units"] <- gsub("(.*\\d+\\s+)(.*)(\\s+\\(.*\\))","\\2",res1[oral_route[i], "toxval_numeric"])
-  }
-
-  # extract unit, exposure route values from toxval numeric
-  route_val <- grep("\\(.*\\)", res1$toxval_numeric)
-
-  for ( i in 1:length(route_val)){
-    res1[route_val[i],"exposure_route_original"] <- res1[route_val[i], "toxval_numeric"]
-  }
-
-  for ( i in 1:length(route_val)){
-    res1[route_val[i],'exposure_route']  <- gsub(".*\\((.*)\\)", "\\1",res1[route_val[i],'toxval_numeric'])
-    res1[route_val[i],'toxval_numeric'] <- gsub("(.*\\d+)(\\s+.*)(\\(.*\\))", "\\1",res1[route_val[i],'toxval_numeric'])
-  }
-
-  # print(View(res1))
-  # unit values with numeric values pCi/L and million fibers/L
-  tox_units <- grep("[A-Z]+", res1$toxval_numeric)
-
-  for (i in 1:length(tox_units)){
-    res1[tox_units[i], "toxval_units"] <- gsub("(.*\\d+\\s+)(.*)","\\2",res1[tox_units[i], "toxval_numeric"])
-    res1[tox_units[i], "toxval_numeric"] <- gsub("(.*\\d+)(\\s+.*)","\\1",res1[tox_units[i], "toxval_numeric"])
-  }
-
-  # comma value
-  res1[grep("\\,", res1$toxval_numeric), "toxval_numeric"] <- gsub("\\,", "", res1[grep("\\,", res1$toxval_numeric), "toxval_numeric"])
-  # values with none, --
-  none_val <- grep("[0-9]+",res1$toxval_numeric, invert = T)
-
-  for (i in 1:length(none_val)){
-    res1[none_val[i],"toxval_numeric"] <- gsub(paste0(unique(res1[none_val[i],"toxval_numeric"]), "|", collapse = "" ), "", res1[none_val[i],"toxval_numeric"])
-  }
-
-  # values with 10 as nitrogen, 0.05 for total chromium
-  char_vals <- grep("[a-z]+\\s+[a-z]+",res1$toxval_numeric)
-
-  #print(data.frame(res1[char_vals, "toxval_numeric"]))
-  for (i in 1:length(char_vals)){
-    res1[char_vals[i], "toxval_units_original"] <- res1[char_vals[i], "toxval_numeric"]
-    res1[char_vals[i], "toxval_numeric"] <- ""
-    res1[char_vals[i], "toxval_units"] <- "-"
-  }
-  res1$toxval_numeric <-  gsub("^\\s+|\\s+$", "", res1$toxval_numeric)
-  res1$toxval_numeric <- as.numeric(res1$toxval_numeric)
-  print(names(res1))
-  res <- res1[,(names(res1) %in% c("source_hash","casrn","name","toxval_type","toxval_numeric","toxval_units","species_original","critical_effect",
+  # #print(data.frame(res1[char_vals, "toxval_numeric"]))
+  # for (i in 1:length(char_vals)){
+  #   res1[char_vals[i], "toxval_units_original"] = res1[char_vals[i], "toxval_numeric"]
+  #   res1[char_vals[i], "toxval_numeric"] = ""
+  #   res1[char_vals[i], "toxval_units"] = "-"
+  # }
+  # res1$toxval_numeric =  gsub("^\\s+|\\s+$", "", res1$toxval_numeric)
+  # res1$toxval_numeric = as.numeric(res1$toxval_numeric)
+  # print(names(res1))
+  res = res[,(names(res1) %in% c("source_hash","casrn","name","toxval_type","toxval_numeric","toxval_units","species_original","critical_effect",
                                    "risk_assessment_class","year","exposure_route","study_type","study_duration_value", "study_duration_units",
                                    "record_url","toxval_type_original","toxval_numeric_original","toxval_units_original","critical_effect_original",
                                    "year_original","exposure_route_original","study_type_original","study_duration_value_original",
                                    "study_duration_units_original","document_name","chemical_id"))]
 
   # clean critical values with -| and |- patterns formed by pasting critical effect with organs for certain study types
-  clean_effect <- grep("^\\-\\s+\\|\\s+", res$critical_effect)
-  for (i in 1:length(clean_effect)){
-    res[clean_effect[i],"critical_effect"] <- gsub("(\\-\\s+\\|)+","",res[clean_effect[i],"critical_effect"])
-  }
-  clean_effect_reverse <- grep("\\s+\\|\\s+\\-", res$critical_effect)
-  for (i in 1:length(clean_effect_reverse)){
-    res[clean_effect_reverse[i],"critical_effect"] <- gsub("(\\s+\\|\\s+\\-)+","",res[clean_effect_reverse[i],"critical_effect"])
-  }
-  res$critical_effect <- gsub("^\\s+|\\s+$","", res$critical_effect)
-  print(dim(res))
+  # clean_effect = grep("^\\-\\s+\\|\\s+", res$critical_effect)
+  # for (i in 1:length(clean_effect)){
+  #   res[clean_effect[i],"critical_effect"] = gsub("(\\-\\s+\\|)+","",res[clean_effect[i],"critical_effect"])
+  # }
+  # clean_effect_reverse = grep("\\s+\\|\\s+\\-", res$critical_effect)
+  # for (i in 1:length(clean_effect_reverse)){
+  #   res[clean_effect_reverse[i],"critical_effect"] = gsub("(\\s+\\|\\s+\\-)+","",res[clean_effect_reverse[i],"critical_effect"])
+  # }
+  # res$critical_effect = gsub("^\\s+|\\s+$","", res$critical_effect)
+  # print(dim(res))
   # trims leading and trailing whitespaces from the dataframe
-  res <- data.frame(lapply(res, function(x) if(class(x)=="character") trimws(x) else(x)), stringsAsFactors=F, check.names=F)
+  res = data.frame(lapply(res, function(x) if(class(x)=="character") trimws(x) else(x)), stringsAsFactors=F, check.names=F)
 
-  res <- res[!is.na(res[,"casrn"]),]
-  #print(View(res))
+  res = res[!is.na(res[,"casrn"]),]
   #####################################################################
   cat("add other columns to res\n")
   #####################################################################
-  res$source <- source
-  res$human_eco <- "human health"
-  res$subsource <- "California DPH"
+  res$source = source
+  res$human_eco = "human health"
+  res$subsource = "California DPH"
   res$details_text = "Cal OEHHA Details"
   res$source_url = "https://oehha.ca.gov/chemicals"
   res$toxval_numeric_qualifier = "="
-  res <- res[!is.na(res[,"casrn"]),]
-  res <- fill.toxval.defaults(toxval.db,res)
+  res = res[!is.na(res[,"casrn"]),]
+  res = fill.toxval.defaults(toxval.db,res)
 
-  res <- unique(res)
-  res <- res[res$toxval_numeric != "-999",]
-  res <- unique(res)
-  res$toxval_numeric_original <- res$toxval_numeric
+  res = unique(res)
+  #res = res[res$toxval_numeric != "-999",]
+  res = unique(res)
+  res$toxval_numeric_original = res$toxval_numeric
   ####################################################################################
   ####################################################################################
   ####################################################################################
@@ -326,7 +626,6 @@ toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
   ####################################################################################
   ####################################################################################
   ####################################################################################
-  res = res[!is.na(res$casrn),]
 
   #####################################################################
   cat("find columns in res that do not map to toxval or record_source\n")
@@ -443,10 +742,10 @@ toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################
 
-  con1 <- file.path(toxval.config()$datapath,paste0(source,"_",Sys.Date(),".log"))
-  con1 <- log_open(con1)
+  con1 = file.path(toxval.config()$datapath,paste0(source,"_",Sys.Date(),".log"))
+  con1 = log_open(con1)
 
-  con <- file(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"))
+  con = file(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"))
   sink(con, append=TRUE)
   sink(con, append=TRUE, type="message")
 
@@ -464,173 +763,173 @@ toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
   cat("load data to res\n")
   #####################################################################
 
-  query <- "select * from original_caloehha_table"
+  query = "select * from original_caloehha_table"
 
-  mat <- runQuery(query,source.db,T,F)
-  mat <- mat[ , !(names(mat) %in% c("source_id","clowder_id"))]
+  mat = runQuery(query,source.db,T,F)
+  mat = mat[ , !(names(mat) %in% c("source_id","clowder_id"))]
   #####################################################################
   cat("checks, finds and replaces non ascii characters in mat with XXX\n")
   #####################################################################
-  mat <- fix.non_ascii(mat)
+  mat = fix.non_ascii(mat)
 
 
-  mat[is.null(mat)] <- NA
-  name.list <- c("source_hash","casrn","name","toxval_type","toxval_numeric","toxval_units",
+  mat[is.null(mat)] = NA
+  name.list = c("source_hash","casrn","name","toxval_type","toxval_numeric","toxval_units",
                  "species_original","critical_effect",
                  "risk_assessment_class","year","exposure_route",
                  "study_type","study_duration_value","study_duration_units","record_url","document_name")
 
 
-  row <- as.data.frame(matrix(nrow=1,ncol=length(name.list)))
-  names(row) <- name.list
-  res <- NULL
+  row = as.data.frame(matrix(nrow=1,ncol=length(name.list)))
+  names(row) = name.list
+  res = NULL
   for(i in 1:nrow(mat)) {
 
-    casrn <- fix.casrn(mat[i,"casrn"])
-    name <- mat[i,"name"]
-    source_hash <- mat[i,"source_hash"]
-    cname <- tolower(name)
-    cname <- str_replace_all(cname," ","-")
+    casrn = fix.casrn(mat[i,"casrn"])
+    name = mat[i,"name"]
+    source_hash = mat[i,"source_hash"]
+    cname = tolower(name)
+    cname = str_replace_all(cname," ","-")
     if(!is.na(mat[i,"inhalation_unit_risk_(ug/m3)-1"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"inhalation_unit_risk_(ug/m3)-1"]
-      row[1,"toxval_units"] <- "(ug/m3)-1"
-      row[1,"toxval_type"] <- "inhalation unit risk"
-      row[1,"exposure_route"] <- "inhalation"
-      row[1,"risk_assessment_class"] <- "chronic"
-      row[1,"study_type"] <- "cancer"
-      row[1,"year"] <- mat[i,"cancer_potency_year"]
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      res <- rbind(res,row)
+      row[] = NA
+      row[1,"source_hash"] = source_hash
+      row[1,"casrn"] = casrn
+      row[1,"name"] = name
+      row[1,"toxval_numeric"] = mat[i,"inhalation_unit_risk_(ug/m3)-1"]
+      row[1,"toxval_units"] = "(ug/m3)-1"
+      row[1,"toxval_type"] = "inhalation unit risk"
+      row[1,"exposure_route"] = "inhalation"
+      row[1,"risk_assessment_class"] = "chronic"
+      row[1,"study_type"] = "cancer"
+      row[1,"year"] = mat[i,"cancer_potency_year"]
+      row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+      res = rbind(res,row)
     }
 
     if(!is.na(mat[i,"inhalation_slope_factor_(mg/kg-day)-1"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"inhalation_slope_factor_(mg/kg-day)-1"]
-      row[1,"toxval_units"] <- "(mg/kg-day)-1"
-      row[1,"toxval_type"] <- "inhalation slope factor"
-      row[1,"exposure_route"] <- "inhalation"
-      row[1,"risk_assessment_class"] <- "chronic"
-      row[1,"study_type"] <- "cancer"
-      row[1,"year"] <- mat[i,"cancer_potency_year"]
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      res <- rbind(res,row)
+      row[] = NA
+      row[1,"source_hash"] = source_hash
+      row[1,"casrn"] = casrn
+      row[1,"name"] = name
+      row[1,"toxval_numeric"] = mat[i,"inhalation_slope_factor_(mg/kg-day)-1"]
+      row[1,"toxval_units"] = "(mg/kg-day)-1"
+      row[1,"toxval_type"] = "inhalation slope factor"
+      row[1,"exposure_route"] = "inhalation"
+      row[1,"risk_assessment_class"] = "chronic"
+      row[1,"study_type"] = "cancer"
+      row[1,"year"] = mat[i,"cancer_potency_year"]
+      row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+      res = rbind(res,row)
     }
 
     if(!is.na(mat[i,"oral_slope_factor_(mg/kg-day)-1"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"oral_slope_factor_(mg/kg-day)-1"]
-      row[1,"toxval_units"] <- "(mg/kg-day)-1"
-      row[1,"toxval_type"] <- "oral unit risk"
-      row[1,"exposure_route"] <- "oral"
-      row[1,"risk_assessment_class"] <- "chronic"
-      row[1,"study_type"] <- "cancer"
-      row[1,"year"] <- mat[i,"cancer_potency_year"]
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      res <- rbind(res,row)
+      row[] = NA
+      row[1,"source_hash"] = source_hash
+      row[1,"casrn"] = casrn
+      row[1,"name"] = name
+      row[1,"toxval_numeric"] = mat[i,"oral_slope_factor_(mg/kg-day)-1"]
+      row[1,"toxval_units"] = "(mg/kg-day)-1"
+      row[1,"toxval_type"] = "oral unit risk"
+      row[1,"exposure_route"] = "oral"
+      row[1,"risk_assessment_class"] = "chronic"
+      row[1,"study_type"] = "cancer"
+      row[1,"year"] = mat[i,"cancer_potency_year"]
+      row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+      res = rbind(res,row)
     }
 
     if(!is.na(mat[i,"acute_rel_ug/m3"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"acute_rel_ug/m3"]
-      row[1,"toxval_units"] <- "ug/m3"
-      row[1,"toxval_type"] <- "REL"
-      row[1,"exposure_route"] <- "oral"
-      row[1,"risk_assessment_class"] <- "acute"
-      row[1,"study_type"] <- "acute"
-      row[1,"year"] <- mat[i,"acute_rel_year"]
-      row[1,"species_original"] <- tolower(mat[i,"acute_rel_species"])
-      row[1,"critical_effect"] <- paste(mat[i,"acute_rel_critical_effect"],"|",mat[i,"acute_rel_target_organ"],"|",mat[i,"acute_rel_severity"])
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      res <- rbind(res,row)
+      row[] = NA
+      row[1,"source_hash"] = source_hash
+      row[1,"casrn"] = casrn
+      row[1,"name"] = name
+      row[1,"toxval_numeric"] = mat[i,"acute_rel_ug/m3"]
+      row[1,"toxval_units"] = "ug/m3"
+      row[1,"toxval_type"] = "REL"
+      row[1,"exposure_route"] = "oral"
+      row[1,"risk_assessment_class"] = "acute"
+      row[1,"study_type"] = "acute"
+      row[1,"year"] = mat[i,"acute_rel_year"]
+      row[1,"species_original"] = tolower(mat[i,"acute_rel_species"])
+      row[1,"critical_effect"] = paste(mat[i,"acute_rel_critical_effect"],"|",mat[i,"acute_rel_target_organ"],"|",mat[i,"acute_rel_severity"])
+      row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+      res = rbind(res,row)
     }
 
     if(!is.na(mat[i,"inhalation_rel_8_hour_ug/m3"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"inhalation_rel_8_hour_ug/m3"]
-      row[1,"toxval_units"] <- "ug/m3"
-      row[1,"toxval_type"] <- "REL"
-      row[1,"exposure_route"] <- "inhalation"
-      row[1,"risk_assessment_class"] <- "acute"
-      row[1,"study_type"] <- "acute"
-      row[1,"year"] <- mat[i,"inhalation_rel_year"]
-      row[1,"study_duration_value"] <- 8
-      row[1,"study_duration_units"] <- "hour"
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      res <- rbind(res,row)
+      row[] = NA
+      row[1,"source_hash"] = source_hash
+      row[1,"casrn"] = casrn
+      row[1,"name"] = name
+      row[1,"toxval_numeric"] = mat[i,"inhalation_rel_8_hour_ug/m3"]
+      row[1,"toxval_units"] = "ug/m3"
+      row[1,"toxval_type"] = "REL"
+      row[1,"exposure_route"] = "inhalation"
+      row[1,"risk_assessment_class"] = "acute"
+      row[1,"study_type"] = "acute"
+      row[1,"year"] = mat[i,"inhalation_rel_year"]
+      row[1,"study_duration_value"] = 8
+      row[1,"study_duration_units"] = "hour"
+      row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+      res = rbind(res,row)
     }
 
     if(!is.na(mat[i,"chronic_inhalation_rel_ug/m3"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"chronic_inhalation_rel_ug/m3"]
-      row[1,"toxval_units"] <- "ug/m3"
-      row[1,"toxval_type"] <- "REL"
-      row[1,"exposure_route"] <- "inhalation"
-      row[1,"risk_assessment_class"] <- "chronic"
-      row[1,"study_type"] <- "chronic"
-      row[1,"year"] <- mat[i,"inhalation_rel_year"]
-      row[1,"critical_effect"] <- paste( mat[i,"chronic_inhalation_critical_effect"],"|", mat[i,"chronic_inhalation_target_organ"])
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      res <- rbind(res,row)
+      row[] = NA
+      row[1,"source_hash"] = source_hash
+      row[1,"casrn"] = casrn
+      row[1,"name"] = name
+      row[1,"toxval_numeric"] = mat[i,"chronic_inhalation_rel_ug/m3"]
+      row[1,"toxval_units"] = "ug/m3"
+      row[1,"toxval_type"] = "REL"
+      row[1,"exposure_route"] = "inhalation"
+      row[1,"risk_assessment_class"] = "chronic"
+      row[1,"study_type"] = "chronic"
+      row[1,"year"] = mat[i,"inhalation_rel_year"]
+      row[1,"critical_effect"] = paste( mat[i,"chronic_inhalation_critical_effect"],"|", mat[i,"chronic_inhalation_target_organ"])
+      row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+      res = rbind(res,row)
     }
 
     if(!is.na(mat[i,"mcl_mg/L"])) {
-      row[] <- NA
-      row[1,"source_hash"] <- source_hash
-      row[1,"casrn"] <- casrn
-      row[1,"name"] <- name
-      row[1,"toxval_numeric"] <- mat[i,"mcl_mg/L"]
-      row[1,"toxval_units"] <- "mg/L"
-      row[1,"toxval_type"] <- "MCL"
-      row[1,"exposure_route"] <- "oral"
-      row[1,"risk_assessment_class"] <- "chronic"
-      row[1,"study_type"] <- "chronic"
-      row[1,"record_url"] <- paste0("https://oehha.ca.gov/chemicals/",cname)
-      res <- rbind(res,row)
+      row[] = NA
+      row[1,"source_hash"] = source_hash
+      row[1,"casrn"] = casrn
+      row[1,"name"] = name
+      row[1,"toxval_numeric"] = mat[i,"mcl_mg/L"]
+      row[1,"toxval_units"] = "mg/L"
+      row[1,"toxval_type"] = "MCL"
+      row[1,"exposure_route"] = "oral"
+      row[1,"risk_assessment_class"] = "chronic"
+      row[1,"study_type"] = "chronic"
+      row[1,"record_url"] = paste0("https://oehha.ca.gov/chemicals/",cname)
+      res = rbind(res,row)
     }
 
   }
 
 
-  res <- generate.originals(toxval.db,res)
+  res = generate.originals(toxval.db,res)
 
   ##########################################################
   cat("Convert multiple date formats present in year field to the corresponding year value,
       then change the data type from character to integer \n ")
   ###########################################################
-  res1 <- res
-  date_fix <- excel_numeric_to_date(as.numeric(as.character(res1[grep("[0-9]{5}", res1$year),'year'])), date_system = "modern")
-  date_fix <- format(date_fix, format = "%Y")
+  res1 = res
+  date_fix = excel_numeric_to_date(as.numeric(as.character(res1[grep("[0-9]{5}", res1$year),'year'])), date_system = "modern")
+  date_fix = format(date_fix, format = "%Y")
 
-  res1[grep("[0-9]{5}", res1$year),'year'] <- date_fix
-  res1[grep("[a-zA-Z]+", res1$year),'year'] <- gsub(".*\\,\\s+(\\d{4})", "\\1", grep("[a-zA-Z]+", res1$year,value= T))
-  res1[which(res1$year == "-"), "year"] <- NA
-  res1$year <- as.integer(res1$year)
+  res1[grep("[0-9]{5}", res1$year),'year'] = date_fix
+  res1[grep("[a-zA-Z]+", res1$year),'year'] = gsub(".*\\,\\s+(\\d{4})", "\\1", grep("[a-zA-Z]+", res1$year,value= T))
+  res1[which(res1$year == "-"), "year"] = NA
+  res1$year = as.integer(res1$year)
 
   ###########################################################
   cat("seperate multiple casrns \n")
   ###########################################################
 
-  res1 <- separate_rows(res1, casrn, sep = ";")
-  res1$casrn <- gsub("^\\s+","", res1$casrn)
+  res1 = separate_rows(res1, casrn, sep = ";")
+  res1$casrn = gsub("^\\s+","", res1$casrn)
 
   ###########################################################
   cat("seperate multiple toxval_numeric entries
@@ -639,92 +938,92 @@ toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
 
 
   # convert values expressed with E to numeric
-  tox_num <- grep("E",res1$toxval_numeric)
+  tox_num = grep("E",res1$toxval_numeric)
 
   for (i in 1:length(tox_num)){
-    res1[tox_num[i], "toxval_numeric"] <- tolower(res1[tox_num[i], "toxval_numeric"])
-    res1[tox_num[i], "toxval_numeric"] <- gsub("(^\\d+\\.*\\d*)(\\s*)(e.*)","\\1\\3",res1[tox_num[i], "toxval_numeric"])
+    res1[tox_num[i], "toxval_numeric"] = tolower(res1[tox_num[i], "toxval_numeric"])
+    res1[tox_num[i], "toxval_numeric"] = gsub("(^\\d+\\.*\\d*)(\\s*)(e.*)","\\1\\3",res1[tox_num[i], "toxval_numeric"])
   }
 
   # seperate rows with multiple numeric values seperated by ;
-  res1 <- separate_rows(res1, toxval_numeric, sep = ";")
-  res1$toxval_numeric <- gsub("^\\s+","", res1$toxval_numeric)
+  res1 = separate_rows(res1, toxval_numeric, sep = ";")
+  res1$toxval_numeric = gsub("^\\s+","", res1$toxval_numeric)
 
   # extract numeric and unit values from 1.4e-13 (fibers/l water)^-1
-  res1[grep("\\(.*\\/.*\\)", res1$toxval_numeric),'toxval_units']<- gsub(".*\\((.*\\/.*)\\)", "\\1",grep("\\(.*\\/.*\\)", res1$toxval_numeric, value= T))
-  res1[grep("\\(.*\\/.*\\)", res1$toxval_numeric),'toxval_numeric'] <- gsub("\\((.*\\/.*)\\).*", "", grep("\\(.*\\/.*\\)", res1$toxval_numeric, value= T))
+  res1[grep("\\(.*\\/.*\\)", res1$toxval_numeric),'toxval_units']= gsub(".*\\((.*\\/.*)\\)", "\\1",grep("\\(.*\\/.*\\)", res1$toxval_numeric, value= T))
+  res1[grep("\\(.*\\/.*\\)", res1$toxval_numeric),'toxval_numeric'] = gsub("\\((.*\\/.*)\\).*", "", grep("\\(.*\\/.*\\)", res1$toxval_numeric, value= T))
 
 
   # oral route values in toxval numeric with unit values attached
-  oral_route <- grep("oral", res1$toxval_numeric)
+  oral_route = grep("oral", res1$toxval_numeric)
   for (i in 1:length(oral_route)){
-    res1[oral_route[i],"exposure_route_original"] <- res1[oral_route[i], "toxval_numeric"]
+    res1[oral_route[i],"exposure_route_original"] = res1[oral_route[i], "toxval_numeric"]
   }
 
   for (i in 1:length(oral_route)){
-    res1[oral_route[i], "toxval_units"] <- gsub("(.*\\d+\\s+)(.*)(\\s+\\(.*\\))","\\2",res1[oral_route[i], "toxval_numeric"])
+    res1[oral_route[i], "toxval_units"] = gsub("(.*\\d+\\s+)(.*)(\\s+\\(.*\\))","\\2",res1[oral_route[i], "toxval_numeric"])
   }
 
   # extract unit, exposure route values from toxval numeric
-  route_val <- grep("\\(.*\\)", res1$toxval_numeric)
+  route_val = grep("\\(.*\\)", res1$toxval_numeric)
 
   for ( i in 1:length(route_val)){
-    res1[route_val[i],"exposure_route_original"] <- res1[route_val[i], "toxval_numeric"]
+    res1[route_val[i],"exposure_route_original"] = res1[route_val[i], "toxval_numeric"]
   }
 
   for ( i in 1:length(route_val)){
-    res1[route_val[i],'exposure_route']  <- gsub(".*\\((.*)\\)", "\\1",res1[route_val[i],'toxval_numeric'])
+    res1[route_val[i],'exposure_route']  = gsub(".*\\((.*)\\)", "\\1",res1[route_val[i],'toxval_numeric'])
 
-    res1[route_val[i],'toxval_numeric'] <- gsub("(.*\\d+)(\\s+.*)(\\(.*\\))", "\\1",res1[route_val[i],'toxval_numeric'])
+    res1[route_val[i],'toxval_numeric'] = gsub("(.*\\d+)(\\s+.*)(\\(.*\\))", "\\1",res1[route_val[i],'toxval_numeric'])
 
 
   }
 
   # print(View(res1))
   # unit values with numeric values pCi/L and million fibers/L
-  tox_units <- grep("[A-Z]+", res1$toxval_numeric)
+  tox_units = grep("[A-Z]+", res1$toxval_numeric)
 
 
   for (i in 1:length(tox_units)){
-    res1[tox_units[i], "toxval_units"] <- gsub("(.*\\d+\\s+)(.*)","\\2",res1[tox_units[i], "toxval_numeric"])
-    res1[tox_units[i], "toxval_numeric"] <- gsub("(.*\\d+)(\\s+.*)","\\1",res1[tox_units[i], "toxval_numeric"])
+    res1[tox_units[i], "toxval_units"] = gsub("(.*\\d+\\s+)(.*)","\\2",res1[tox_units[i], "toxval_numeric"])
+    res1[tox_units[i], "toxval_numeric"] = gsub("(.*\\d+)(\\s+.*)","\\1",res1[tox_units[i], "toxval_numeric"])
   }
 
 
   # comma value
-  res1[grep("\\,", res1$toxval_numeric), "toxval_numeric"] <- gsub("\\,", "", res1[grep("\\,", res1$toxval_numeric), "toxval_numeric"])
+  res1[grep("\\,", res1$toxval_numeric), "toxval_numeric"] = gsub("\\,", "", res1[grep("\\,", res1$toxval_numeric), "toxval_numeric"])
 
   # values with none, --
-  none_val <- grep("[0-9]+",res1$toxval_numeric, invert = T)
+  none_val = grep("[0-9]+",res1$toxval_numeric, invert = T)
 
 
   for (i in 1:length(none_val)){
-    res1[none_val[i],"toxval_numeric"] <- gsub(paste0(unique(res1[none_val[i],"toxval_numeric"]), "|", collapse = "" ), "", res1[none_val[i],"toxval_numeric"])
+    res1[none_val[i],"toxval_numeric"] = gsub(paste0(unique(res1[none_val[i],"toxval_numeric"]), "|", collapse = "" ), "", res1[none_val[i],"toxval_numeric"])
 
   }
 
 
   # values with 10 as nitrogen, 0.05 for total chromium
-  char_vals <- grep("[a-z]+\\s+[a-z]+",res1$toxval_numeric)
+  char_vals = grep("[a-z]+\\s+[a-z]+",res1$toxval_numeric)
 
   #print(data.frame(res1[char_vals, "toxval_numeric"]))
 
   for (i in 1:length(char_vals)){
-    res1[char_vals[i], "toxval_units_original"] <- res1[char_vals[i], "toxval_numeric"]
-    res1[char_vals[i], "toxval_numeric"] <- ""
-    res1[char_vals[i], "toxval_units"] <- "-"
+    res1[char_vals[i], "toxval_units_original"] = res1[char_vals[i], "toxval_numeric"]
+    res1[char_vals[i], "toxval_numeric"] = ""
+    res1[char_vals[i], "toxval_units"] = "-"
 
   }
 
 
 
 
-  res1$toxval_numeric <-  gsub("^\\s+|\\s+$", "", res1$toxval_numeric)
-  res1$toxval_numeric <- as.numeric(res1$toxval_numeric)
+  res1$toxval_numeric =  gsub("^\\s+|\\s+$", "", res1$toxval_numeric)
+  res1$toxval_numeric = as.numeric(res1$toxval_numeric)
 
 
   print(names(res1))
-  res <- res1[,(names(res1) %in% c("source_hash","casrn","name","toxval_type","toxval_numeric","toxval_units","species_original","critical_effect",
+  res = res1[,(names(res1) %in% c("source_hash","casrn","name","toxval_type","toxval_numeric","toxval_units","species_original","critical_effect",
                                    "risk_assessment_class","year","exposure_route","study_type","study_duration_value", "study_duration_units",
                                    "record_url","toxval_type_original","toxval_numeric_original","toxval_units_original","critical_effect_original",
                                    "year_original","exposure_route_original","study_type_original","study_duration_value_original","study_duration_units_original","document_name"))]
@@ -733,92 +1032,92 @@ toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
 
   # clean critical values with -| and |- patterns formed by pasting critical effect with organs for certain study types
 
-  clean_effect <- grep("^\\-\\s+\\|\\s+", res$critical_effect)
+  clean_effect = grep("^\\-\\s+\\|\\s+", res$critical_effect)
 
   for (i in 1:length(clean_effect)){
-    res[clean_effect[i],"critical_effect"] <- gsub("(\\-\\s+\\|)+","",res[clean_effect[i],"critical_effect"])
+    res[clean_effect[i],"critical_effect"] = gsub("(\\-\\s+\\|)+","",res[clean_effect[i],"critical_effect"])
   }
 
-  clean_effect_reverse <- grep("\\s+\\|\\s+\\-", res$critical_effect)
+  clean_effect_reverse = grep("\\s+\\|\\s+\\-", res$critical_effect)
 
   for (i in 1:length(clean_effect_reverse)){
-    res[clean_effect_reverse[i],"critical_effect"] <- gsub("(\\s+\\|\\s+\\-)+","",res[clean_effect_reverse[i],"critical_effect"])
+    res[clean_effect_reverse[i],"critical_effect"] = gsub("(\\s+\\|\\s+\\-)+","",res[clean_effect_reverse[i],"critical_effect"])
   }
 
-  res$critical_effect <- gsub("^\\s+|\\s+$","", res$critical_effect)
+  res$critical_effect = gsub("^\\s+|\\s+$","", res$critical_effect)
 
 
 
   print(dim(res))
   # trims leading and trailing whitespaces from the dataframe
-  res <- data.frame(lapply(res, function(x) if(class(x)=="character") trimws(x) else(x)), stringsAsFactors=F, check.names=F)
+  res = data.frame(lapply(res, function(x) if(class(x)=="character") trimws(x) else(x)), stringsAsFactors=F, check.names=F)
 
-  res <- res[!is.na(res[,"casrn"]),]
+  res = res[!is.na(res[,"casrn"]),]
   #print(View(res))
   #####################################################################
   cat("add other columns to res\n")
   #####################################################################
-  res$source <- source
-  res$human_eco <- "human health"
-  res$subsource <- "California DPH"
+  res$source = source
+  res$human_eco = "human health"
+  res$subsource = "California DPH"
   res$details_text = "Cal OEHHA Details"
   res$source_url = "https://oehha.ca.gov/chemicals"
   res$toxval_numeric_qualifier = "="
-  res <- res[!is.na(res[,"casrn"]),]
-  res <- fill.toxval.defaults(toxval.db,res)
+  res = res[!is.na(res[,"casrn"]),]
+  res = fill.toxval.defaults(toxval.db,res)
 
-  res <- unique(res)
-  res <- res[res$toxval_numeric != "-999",]
-  res <- unique(res)
-  res$toxval_numeric_original <- res$toxval_numeric
-  res[is.na(res[,"document_name"]),"document_name"] <- "-"
+  res = unique(res)
+  res = res[res$toxval_numeric != "-999",]
+  res = unique(res)
+  res$toxval_numeric_original = res$toxval_numeric
+  res[is.na(res[,"document_name"]),"document_name"] = "-"
 
   #####################################################################
   cat("map chemicals\n")
   #####################################################################
-  name.list <- c("casrn","name",names(res)[!is.element(names(res),c("casrn","name"))])
-  res <- res[,name.list]
-  casrn.list <- res[,c("casrn","name")]
-  cid.list <- get.cid.list.toxval(toxval.db, casrn.list,source)
-  res$chemical_id <- cid.list$chemical_id
+  name.list = c("casrn","name",names(res)[!is.element(names(res),c("casrn","name"))])
+  res = res[,name.list]
+  casrn.list = res[,c("casrn","name")]
+  cid.list = get.cid.list.toxval(toxval.db, casrn.list,source)
+  res$chemical_id = cid.list$chemical_id
 
-  res <- res[,!is.element(names(res),c("casrn","name"))]
+  res = res[,!is.element(names(res),c("casrn","name"))]
   #####################################################################
   cat("add toxval_id to res\n")
   #####################################################################
-  count <- runQuery("select count(*) from toxval",toxval.db)[1,1]
-  if(count==0) tid0 <- 1
-  else tid0 <- runQuery("select max(toxval_id) from toxval",toxval.db)[1,1] + 1
-  tids <- seq(from=tid0,to=tid0+nrow(res)-1)
-  res$toxval_id <- tids
+  count = runQuery("select count(*) from toxval",toxval.db)[1,1]
+  if(count==0) tid0 = 1
+  else tid0 = runQuery("select max(toxval_id) from toxval",toxval.db)[1,1] + 1
+  tids = seq(from=tid0,to=tid0+nrow(res)-1)
+  res$toxval_id = tids
 
   #####################################################################
   cat("pull out record source to refs\n")
   #####################################################################
-  refs <- res[,c("toxval_id","record_url","source","year","document_name")]
-  names(refs) <- c("toxval_id","url","source","year","document_name")
+  refs = res[,c("toxval_id","record_url","source","year","document_name")]
+  names(refs) = c("toxval_id","url","source","year","document_name")
 
   #####################################################################
   cat("add extra columns to refs\n")
   #####################################################################
-  refs$record_source_type <- "url"
-  refs$record_source_note <- "Risk assessment values determined by Cal OEHHA"
-  refs$record_source_level <- "primary (risk assessment values)"
+  refs$record_source_type = "url"
+  refs$record_source_note = "Risk assessment values determined by Cal OEHHA"
+  refs$record_source_level = "primary (risk assessment values)"
 
 
   #####################################################################
   cat("delete unused columns from res\n")
   #####################################################################
-  res <- res[,!is.element(names(res),c("record_url","document_name"))]
+  res = res[,!is.element(names(res),c("record_url","document_name"))]
 
   #####################################################################
   cat("load res and refs to the database\n")
   #####################################################################
-  res <- unique(res)
-  refs <- unique(refs)
-  res$datestamp <- Sys.Date()
-  for(i in 1:nrow(res)) res[i,"toxval_uuid"] <- UUIDgenerate()
-  for(i in 1:nrow(refs)) refs[i,"record_source_uuid"] <- UUIDgenerate()
+  res = unique(res)
+  refs = unique(refs)
+  res$datestamp = Sys.Date()
+  for(i in 1:nrow(res)) res[i,"toxval_uuid"] = UUIDgenerate()
+  for(i in 1:nrow(refs)) refs[i,"record_source_uuid"] = UUIDgenerate()
 
   print(dim(res))
   print(dim(refs))
@@ -836,7 +1135,7 @@ toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
   cat("map chemicals to dsstox\n")
   #####################################################################
   map.chemical.to.dsstox.by.source(toxval.db, source)
-  table.list <- c("toxval","cancer_summary","genetox_summary","genetox_details","skin_eye","chemical_list","bcfbaf")
+  table.list = c("toxval","cancer_summary","genetox_summary","genetox_details","skin_eye","chemical_list","bcfbaf")
   for(table in table.list) set.dtxsid.by.source(toxval.db,table,source)
 
   # #####################################################################
@@ -957,14 +1256,14 @@ toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
   #####################################################################
   cat("perform extra steps if any\n")
   #####################################################################
-  res1 <- runQuery(paste0("select distinct(species_id) from toxval where source like '",source,"'"),toxval.db)
+  res1 = runQuery(paste0("select distinct(species_id) from toxval where source like '",source,"'"),toxval.db)
   cat("Number of species in toxval for the particular source:",nrow(res1),"\n")
 
-  res2 <- runQuery(paste0("select species_id from species where species_id in(select species_id from toxval where source like '",source,"')"),toxval.db)
+  res2 = runQuery(paste0("select species_id from species where species_id in(select species_id from toxval where source like '",source,"')"),toxval.db)
   cat("Number of species in species for the particular source:",nrow(res2),"\n")
 
 
-  res3 <- runQuery(paste0("select distinct species_original from toxval where species_id<0 and source like '",source,"'"),toxval.db)
+  res3 = runQuery(paste0("select distinct species_original from toxval where species_id<0 and source like '",source,"'"),toxval.db)
   cat("Number of missing species:",nrow(res3),"\n")
   #####################################################################
   cat("stop output log \n")
@@ -972,13 +1271,13 @@ toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
   closeAllConnections()
   log_close()
 
-  output_message <- read.delim(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"), stringsAsFactors = F, header = F)
-  names(output_message) <- "message"
+  output_message = read.delim(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"), stringsAsFactors = F, header = F)
+  names(output_message) = "message"
 
-  output_log <- read.delim(paste0(toxval.config()$datapath,"log/",source,"_",Sys.Date(),".log"), stringsAsFactors = F, header = F)
-  names(output_log) <- "log"
+  output_log = read.delim(paste0(toxval.config()$datapath,"log/",source,"_",Sys.Date(),".log"), stringsAsFactors = F, header = F)
+  names(output_log) = "log"
 
-  new_log <- log_message(output_log, output_message[,1])
+  new_log = log_message(output_log, output_message[,1])
   writeLines(new_log, paste0(toxval.config()$datapath,"output_log/",source,"_",Sys.Date(),".txt"))
 
 
