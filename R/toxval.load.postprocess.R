@@ -17,110 +17,7 @@ toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.unit
   #####################################################################
   cat("load chemical info to source_chemical\n")
   #####################################################################
-  if(!is.element(source,c("ECOTOX","ToxRefDB")) toxval.load.source_chemical(toxval.db,source.db,source,verbose=T)
-
-  #
-  # runQuery(paste0("delete from source_chemical where source='",source,"'"),toxval.db)
-  # chems = runQuery(paste0("select * from source_chemical where source='",source,"'"),source.db)
-  # chems$casrn = chems$cleaned_casrn
-  # chems$name = chems$cleaned_cname
-  # runInsertTable(chems, "source_chemical", toxval.db)
-  #
-  # #####################################################################
-  # cat("map chemicals to dsstox\n")
-  # #####################################################################
-  # map.chemical.to.dtxsid(toxval.db, source)
-
-  #####################################################################
-  cat("get MW\n")
-  #####################################################################
-  toxval.set.mw(toxval.db, source)
-
-  #####################################################################
-  cat("fix species by source\n")
-  #####################################################################
-  # species_original
-  # this is the more sophisticated species setting code
-  fix.species.v2(toxval.db, source)
-  #fix.species.ecotox.by.source(toxval.db, source)
-
-  #####################################################################
-  cat("fix human_eco by source\n")
-  #####################################################################
-  # human_eco
-  fix.human_eco.by.source(toxval.db, source, reset = T)
-
-  #####################################################################
-  cat("fix all.parameters(exposure_method, exposure_route, sex,strain,
-    study_duration_class, study_duration_units, study_type,toxval_type,
-    exposure_form, media, toxval_subtype) by source\n")
-  #####################################################################
-  # exposure_method
-  # strain
-  # exposure_route
-  # media
-  # study_type
-  # toxval_type
-  # iterate through the full_dict
-  # exposure_form
-  # exposure_method
-  # exposure_route
-  # generation
-  # media
-  # sex
-  # study_duration_class
-  # study_duration_units
-  # study_type
-  # toxval_subtype
-  # toxval_type
-  # toxval_units
-  if(source!="ECOTOX") fix.all.param.by.source(toxval.db, source)
-
-  #####################################################################
-  cat("fix strain by source\n")
-  #####################################################################
-  fix.strain.v2(toxval.db, source)
-
-  #####################################################################
-  cat("fix exposure_form by source\n")
-  #####################################################################
-  # exposure_form_original
-  if(source!="ECOTOX") fix.exposure_form.by.source(toxval.db, source)
-
-  #####################################################################
-  cat("fix exposure_route by type and source\n")
-  #####################################################################
-  if(source!="ECOTOX") fix.exposure_route.by.source(toxval.db, source)
-
-  #####################################################################
-  cat("fix toxval_numeric_qualifier by source\n")
-  #####################################################################
-  # toxval_numeric_qualifier_original
-  fix.toxval_numeric_qualifier.by.source(toxval.db, source)
-
-  #####################################################################
-  cat("fix priority_id by source\n")
-  #####################################################################
-  fix.priority_id.by.source(toxval.db, source)
-
-  #####################################################################
-  cat("fix generation by source\n")
-  #####################################################################
-  fix.generation.by.source(toxval.db, source)
-
-  #####################################################################
-  cat("fix critical_effect by source\n")
-  #####################################################################
-  # critical_effect_original
-  doit = T
-  if(is.element(source,c("ToxRefDB","ECOTOX"))) doit = F
-  if(doit) fix.critical_effect.icf.by.source(toxval.db, source)
-
-  #####################################################################
-  cat("fix units by source\n")
-  #####################################################################
-  # toxval_units_original
-  fix.units.by.source(toxval.db, source,do.convert.units)
+  toxval.load.source_chemical(toxval.db,source.db,source,verbose=T)
 
   #####################################################################
   cat("fill chemical by source\n")
@@ -128,15 +25,53 @@ toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.unit
   fill.chemical.by.source(toxval.db, source)
 
   #####################################################################
-  cat("fix risk assessment class by source\n")
+  cat("fix species by source\n")
   #####################################################################
-  # risk_assessment_class
-  fix.risk_assessment_class.by.source(toxval.db, source)
+  fix.species.v2(toxval.db, source)
 
   #####################################################################
-  cat("export missing rac by source\n")
+  cat("fix human_eco by source\n")
   #####################################################################
-  #export.missing.rac.by.source(toxval.db, source)
+  fix.human_eco.by.source(toxval.db, source, reset = T)
+
+  #####################################################################
+  cat("fix all.parameters(exposure_method, exposure_route, sex,strain,
+    study_duration_class, study_duration_units, study_type,toxval_type,
+    exposure_form, media, toxval_subtype) by source\n")
+  #####################################################################
+  if(source!="ECOTOX") fix.all.param.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("get MW if needed for unit conversion\n")
+  #####################################################################
+  if(do.convert.units) toxval.set.mw(toxval.db, source)
+
+  #####################################################################
+  cat("fix units by source\n")
+  #####################################################################
+  fix.units.by.source(toxval.db, source,do.convert.units)
+
+  #####################################################################
+  cat("fix strain by source\n")
+  #####################################################################
+  fix.strain.v2(toxval.db, source)
+
+  #####################################################################
+  cat("fix priority_id by source\n")
+  #####################################################################
+  fix.priority_id.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix critical_effect by source\n")
+  #####################################################################
+  doit = T
+  if(is.element(source,c("ToxRefDB","ECOTOX"))) doit = F
+  if(doit) fix.critical_effect.icf.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("fix risk assessment class by source\n")
+  #####################################################################
+  fix.risk_assessment_class.by.source(toxval.db, source)
 
   #####################################################################
   cat("fix empty cells to hyphen by source\n")
@@ -160,17 +95,10 @@ toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.unit
 
   #####################################################################
   #cat("set hash toxval by source\n")
+  # currently not set - may not be needed for future dashboard releases
   #####################################################################
   #set.hash.toxval.by.source(toxval.db, source)
-
-  #####################################################################
-  #cat("set hash record_source by source\n")
-  #####################################################################
   #set.hash.record_source.by.source(toxval.db, source)
-
-  #####################################################################
-  #cat("map hash record_source by source\n")
-  #####################################################################
   #map.hash.record_source.by.source(toxval.db, source )
 
   #####################################################################
