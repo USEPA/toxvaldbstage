@@ -3,7 +3,8 @@
 #' series of xlsx files
 #'
 #' @param toxval.db Database version
-#' @return for each source writes an Excel file with the name
+#' @param source The source to be updated
+#' #' @return for each source writes an Excel file with the name
 #'  ../export/export_by_source_{data}/toxval_all_{toxval.db}_{source}.xlsx
 #'
 #-----------------------------------------------------------------------------------
@@ -29,7 +30,7 @@ export.all.by.source <- function(toxval.db, source=NULL) {
   for(src in slist) {
     query = paste0("SELECT
                     b.toxval_id,b.source_hash,b.source_table,
-                    a.dtxsid,a.casrn,a.name,b.chemical_id,
+                    a.dtxsid,a.casrn,a.name,a.cleaned_casrn, a.cleaned_name,b.chemical_id,
                     b.source,b.subsource,
                     b.source_url,b.subsource_url,
                     b.qc_status,
@@ -72,7 +73,7 @@ export.all.by.source <- function(toxval.db, source=NULL) {
                     f.document_name
                     FROM
                     toxval b
-                    INNER JOIN chemical a on a.dtxsid=b.dtxsid
+                    INNER JOIN source_chemical a on a.chemical_id=b.chemical_id
                     LEFT JOIN species d on b.species_id=d.species_id
                     INNER JOIN toxval_type_dictionary e on b.toxval_type=e.toxval_type
                     INNER JOIN record_source f on b.toxval_id=f.toxval_id
@@ -80,6 +81,12 @@ export.all.by.source <- function(toxval.db, source=NULL) {
                     b.source='",src,"'")
     mat = runQuery(query,toxval.db,T,F)
     mat = unique(mat)
+    mat[mat$casrn=='-',"casrn"] = mat[mat$casrn=='-',"cleaned_casrn"]
+    mat[mat$name=='-',"name"] = mat[mat$name=='-',"cleaned_name"]
+
+    cremove = c("cleaned_name","cleaned_casrn")
+    mat = mat[ , !(names(mat) %in% cremove)]
+
     cat(src,nrow(mat),"\n")
     cat("missing data ...\n")
     n1 = runQuery("select count(*) from toxval where toxval_id not in (select toxval_id from record_source)",toxval.db)[,1]
