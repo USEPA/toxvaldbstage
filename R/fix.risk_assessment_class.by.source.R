@@ -4,6 +4,7 @@
 #' the last ones to be set are last
 #'
 #' @param toxval.db The version of toxval in which the data is altered.
+#' @param source The source to be updated
 #' @param restart If TRUE, delete all values and start from scratch
 #' @export
 #--------------------------------------------------------------------------------------
@@ -17,10 +18,7 @@ fix.risk_assessment_class.by.source <- function(toxval.db,source, restart=T) {
   conv = conv[order(conv$order),]
   conv = conv[conv$useme==1,]
   conv = conv[!is.na(conv$source),]
-  # file = paste0(toxval.config()$datapath,"dictionary/RAC_rules_by_source.xlsx")
-  # rac.src = read.xlsx(file)
-  # row = rac.src[1,]
-  # row[] = NA
+
   if(restart) {
     query = paste0("update toxval set risk_assessment_class = '-'  where source like '",source,"'")
     runInsert(query,toxval.db,T,F,T)
