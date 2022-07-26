@@ -132,8 +132,6 @@ fix.risk_assessment_class.by.source <- function(toxval.db,source, restart=T) {
                     WHERE
                     b.source='",source,"'
                    and risk_assessment_class='-'")
-
-
     temp = runQuery(query,toxval.db)
     if(!is.element(source,c("DOD ERED","EFSA","HAWC","HPVIS","IRIS"))) browser()
     file = paste0(toxval.config()$datapath,"missing_rac/missing_",source,".xlsx")
