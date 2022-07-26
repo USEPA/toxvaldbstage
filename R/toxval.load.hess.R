@@ -46,7 +46,8 @@ toxval.load.hess <- function(toxval.db,source.db, log=F){
   cat("Add the code from the original version from Aswani\n")
   #####################################################################
   #extract toxval_subtype info from study_type
-
+  res = res[res$toxval_numeric!='-',]
+  res = res[res$toxval_numeric!='',]
   res1 <- res
   res1[grep("^TG.*\\:",res1$toxval_subtype), "toxval_subtype"] <- gsub("(.*)(\\:.*)","\\1",res1[grep("^TG.*\\:",res1$toxval_subtype), "toxval_subtype"])
   res1[grep("\\:|\\;",res1$toxval_subtype), "toxval_subtype"] <- gsub("(.*)(\\:|\\;\\s+)(.*)(\\)$)","\\3",res1[grep("\\:|\\;",res1$toxval_subtype), "toxval_subtype"])
@@ -179,7 +180,7 @@ toxval.load.hess <- function(toxval.db,source.db, log=F){
               "bone_marrow_cellularity_counts","liver_biochemistry","reproductive_endpoint",
               "other_findings"    )
   res = res[ , !(names(res) %in% cremove)]
-
+  res = res[!is.na(res$toxval_numeric),]
   #####################################################################
   cat("find columns in res that do not map to toxval or record_source\n")
   #####################################################################
