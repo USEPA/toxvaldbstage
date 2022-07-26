@@ -47,8 +47,6 @@ toxval.load.healthcanada <- function(toxval.db,source.db,log=F) {
   #####################################################################
   names(res)[names(res)=="trv_source"] <- "long_ref"
 
-
-  #res1$duration <- enc2utf8(res1$duration)
   #####################################################################
   cat("checks, finds and replaces non ascii characters in res with XXX\n")
   #####################################################################
@@ -98,6 +96,7 @@ toxval.load.healthcanada <- function(toxval.db,source.db,log=F) {
   res1$study_duration_qualifier <- gsub("[a-zA-Z0-9.,\\+() ;:/-]", "",res1$study_duration_qualifier)
   names(res1) <- tolower(names(res1))
 
+  res1["exposure_method_original"] = '-'
   exp_val <- grep(".*\\:",res1$exposure_route)
   for (i in 1:length(exp_val)){
     res1[exp_val[i],"exposure_method_original"] <- res1[exp_val[i],"exposure_route"]
@@ -109,6 +108,17 @@ toxval.load.healthcanada <- function(toxval.db,source.db,log=F) {
     res1[exp_val[i],"exposure_route"] <- gsub("\\s+$","",res1[exp_val[i],"exposure_route"])
   }
 
+  for(i in 1:nrow(res1)) {
+    if(res1[i,"exposure_route"]=="nd" && res1[i,"toxval_type"]=="inhalation SF") res1[i,"exposure_route"] = "inhalation"
+    else if(res1[i,"exposure_route"]=="nd" && res1[i,"toxval_type"]=="inhalation UR") res1[i,"exposure_route"] = "inhalation"
+    else if(res1[i,"exposure_route"]=="nd" && res1[i,"toxval_type"]=="oral TDI") res1[i,"exposure_route"] = "oral"
+    if(res1[i,"exposure_route"]=="oal") res1[i,"exposure_route"] = "oral"
+    if(res1[i,"exposure_route"]=="Cr(IV) in drinking water") res1[i,"exposure_route"] = "oral"
+    if(res1[i,"exposure_route"]=="sub-cutaneous injection") res1[i,"exposure_route"] = "injection"
+    if(res1[i,"exposure_route"]=="various, primarily inhalation (cadmium oxide dusts and/or fumes)") res1[i,"exposure_route"] = "oral"
+    if(is.na(res1[i,"exposure_route_original"])) res1[i,"exposure_route_original"]=res1[i,"exposure_route"]
+    if(res1[i,"exposure_route_original"]=='-') res1[i,"exposure_route_original"]=res1[i,"exposure_route"]
+  }
   open_paranthesis_effect <- which(str_count(res1$critical_effect,"\\)") == 0 & str_count(res1$critical_effect,"\\(") == 1)
   open_paranthesis_effect2 <- grep("[^\\)]$",res1[which(str_count(res1$critical_effect,"\\)") == 0 & str_count(res1$critical_effect,"\\(") == 1),"critical_effect"])
   critical_effect_to_clean <- open_paranthesis_effect[open_paranthesis_effect2]
