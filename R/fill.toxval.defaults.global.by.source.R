@@ -1,7 +1,8 @@
 #--------------------------------------------------------------------------------------
-#' Set Toxval Defaults globally
+#' Set Toxval Defaults globally,  replacing blanks with -
 #'
 #' @param toxval.db The version of toxval from which to set defaults.
+#' @param source The source to be fixed
 #' @export
 #--------------------------------------------------------------------------------------
 fill.toxval.defaults.global.by.source <- function(toxval.db, source){

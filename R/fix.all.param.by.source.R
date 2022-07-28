@@ -3,6 +3,8 @@
 #' exposure_method, exposure_route, sex,strain, study_duration_class, study_duration_units, study_type,
 #' toxval_type, exposure_form, media, toxval_subtype
 #' @param toxval.db The version of toxval in which the data is altered.
+#' @param source The source to be fixed. If source=NULL, fix all sources
+#' @param fill.toxval_fix If TRUE (default) read the dictionaries into the toxval_fix table
 #' @return The database will be altered
 #' @export
 #-------------------------------------------------------------------------------------

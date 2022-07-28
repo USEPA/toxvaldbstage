@@ -3,6 +3,7 @@
 #' Fill the chemical table
 #'
 #' @param toxval.db The version of toxvaldb to use.
+#' @param source The source to be used
 #' @param verbose If TRUE, print out extra diagnostic messages
 #-------------------------------------------------------------------------------------
 fill.chemical.by.source <- function(toxval.db, source, verbose=T) {

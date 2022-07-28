@@ -11,22 +11,12 @@
 export.all.by.source <- function(toxval.db, source=NULL) {
   printCurrentFunction(toxval.db)
 
-  dir = paste0(toxval.config()$datapath,"export/export_by_source_",Sys.Date())
+  dir = paste0(toxval.config()$datapath,"export/export_by_source_",toxval.db,"_",Sys.Date())
   if(!dir.exists(dir)) dir.create(dir)
 
   slist = sort(runQuery("select distinct source from toxval",toxval.db)[,1])
   if(!is.null(source)) slist=source
-  # nlist = c("source","rows","dtxsid","toxval_type","toxval_units","rac","study_type",
-  #           "study_duration_class","study_duration_units","species","strain","sex",
-  #           "human_eco","exposure_route","exposure_method","exposure_form","media",
-  #           "critical_effect","long_ref")
-  # res = as.data.frame(matrix(nrow=length(slist),ncol=length(nlist)))
-  # names(res) = nlist
-  # res$source = slist
-  # rownames(res) = res$source
-  #file = paste0(dir,"/source_counts ",Sys.Date(),".xlsx")
-  #openxlsx::write.xlsx(res,file)
-  #browser()
+
   for(src in slist) {
     query = paste0("SELECT
                     b.toxval_id,b.source_hash,b.source_table,

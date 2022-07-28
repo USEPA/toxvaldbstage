@@ -1,7 +1,7 @@
 #--------------------------------------------------------------------------------------
 #' Clean unneeded characters from the end of a string
 #' @param x String to be cleaned
-#' @retrun The cleaned string
+#' @return The cleaned string
 #'
 #--------------------------------------------------------------------------------------
 clean.last.character <- function(x) {

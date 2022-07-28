@@ -3,6 +3,7 @@
 #' Export the rows with a missing risk_assessment_class
 #'
 #' @param toxval.db Database version
+#' @param source The source to be processed
 #'
 #' @return writes an Excel file with the name
 #'  ./qc_export/toxval_missing_risk_assessment_class_Sys.Date().xlsx"
@@ -69,7 +70,7 @@ export.missing.rac.by.source <- function(toxval.db, source) {
   mat <- unique(mat)
   print(dim(mat))
   nrow <- dim(mat)[1]
-  file <- paste0("../qc_export/toxvaldb_missing_risk_assessment_class_for_",source,"_",Sys.Date(),".xlsx")
+  file <- paste0(toxval.config()$datapath,"qc_export/toxvaldb_missing_risk_assessment_class_for_",source,"_",Sys.Date(),".xlsx")
   sty <- createStyle(halign="center",valign="center",textRotation=90,textDecoration = "bold")
   write.xlsx(mat,file,firstRow=T,headerStyle=sty)
 }

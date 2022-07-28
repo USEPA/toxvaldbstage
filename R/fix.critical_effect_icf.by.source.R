@@ -1,8 +1,8 @@
 #-------------------------------------------------------------------------------------
 #' standardize critical_effect in toxval table based on icf dictionary and toxval critical effects dictionary
 #'
-#'
 #' @param toxval.db The version of toxvaldb to use.
+#' @param source THe source to be fixed
 #' @export
 #-------------------------------------------------------------------------------------
 fix.critical_effect.icf.by.source <- function(toxval.db, source) {

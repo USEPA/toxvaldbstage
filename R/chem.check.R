@@ -6,9 +6,12 @@
 #' One option for using this is to edit the source file until no errors are found
 #'
 #' @param res0  The data frame in which chemicals names and CASRN will be replaced
-#' @param indir The directory where the output file will be placed
-#' @param name.col - The column name that contains the chemical names
-#' @param casrn.col - the column name that contains the CARN values
+#' @param name.col The column name that contains the chemical names
+#' @param casrn.col The column name that contains the CARN values
+#' @param source The source to be processed. If source=NULL, process all sources
+#' @param verbose If TRUE, print diagnostic messages
+#' @return Return a list with fixed CASRN and name and flags indicating if fixes were made:
+#' res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK
 #'
 #--------------------------------------------------------------------------------------
 chem.check <- function(res0,
@@ -114,7 +117,7 @@ chem.check <- function(res0,
     if(i%%1000==0) cat(" chemcheck casrn: finished ",i," out of ",nrow(res0),"\n")
   }
   ccheck = unique(ccheck)
-  indir = "../chemcheck/"
+  indir = paste0(toxval.config()$datapath,"chemcheck/")
   if(is.null(source)) file = paste0(indir,"chemcheck no source.xlsx")
   else file = paste0(indir,"chemcheck ",source,".xlsx")
   if(!is.null(ccheck)) if(nrow(ccheck)>0) openxlsx::write.xlsx(ccheck,file)

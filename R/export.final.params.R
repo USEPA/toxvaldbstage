@@ -22,6 +22,6 @@ export.final.params <- function(toxval.db) {
     res[is.element(res$value,vals),"infix"] = "Y"
     allres = rbind(allres,res)
   }
-  file = paste0("../dictionary/final_params ",Sys.Date(),".xlsx")
+  file = paste0(toxval.config()$datapath,"dictionary/final_params ",Sys.Date(),".xlsx")
   write.xlsx(allres,file)
 }

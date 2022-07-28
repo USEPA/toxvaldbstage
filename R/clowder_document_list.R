@@ -2,14 +2,11 @@
 #' Get a listing of all of the documents in clowder and link back to information in
 #' dev_toxval_v8
 #' @param db The version of toxval into which the source is loaded.
-#' @param dir The directory where the files live
-#'
-
 #--------------------------------------------------------------------------------------
-clowder_document_list <- function(db="dev_toxval_v8",
-                                indir="../clowder_v3/") {
+clowder_document_list <- function(db="dev_toxval_v8") {
   printCurrentFunction(db)
 
+  indir=paste0(toxval.config()$datapath,"clowder_v3/")
   cat("load the databases\n")
   if(!exists("TEMP8")) TEMP8 <<- unique(runQuery("select c.casrn,b.dtxsid,a.toxval_id,a.record_source_hash,a.source,a.long_ref
                                                  from record_source a, toxval b, source_chemical c
