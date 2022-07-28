@@ -72,7 +72,13 @@ toxval.load.rsl <- function(toxval.db, source.db,log=F){
   cat("Generic steps \n")
   #####################################################################
   res = unique(res)
+  res = res[!is.na(res$toxval_numeric),]
+  res = res[res$toxval_numeric>0,]
   res = fill.toxval.defaults(toxval.db,res)
+
+  res[res$toxval_type=="GIABS","toxval_units"] = "unitless"
+  res[res$toxval_type=="ABSd","toxval_units"] = "unitless"
+
   res = generate.originals(toxval.db,res)
   if(is.element("species_original",names(res))) res[,"species_original"] = tolower(res[,"species_original"])
   res$toxval_numeric = as.numeric(res$toxval_numeric)

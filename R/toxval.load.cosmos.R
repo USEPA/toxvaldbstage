@@ -137,14 +137,12 @@ toxval.load.cosmos <- function(toxval.db,source.db,log=F){
   }
   print(dim(res))
 
-  # examples ...
-  # names(res)[names(res) == "source_url"] = "url"
-  # colnames(res)[which(names(res) == "phenotype")] = "critical_effect"
-
-    #####################################################################
+  #####################################################################
   cat("Generic steps \n")
   #####################################################################
   res = unique(res)
+  res = res[!is.na(res$toxval_numeric),]
+  res = res[res$toxval_numeric>0,]
   res = fill.toxval.defaults(toxval.db,res)
   res = generate.originals(toxval.db,res)
   if(is.element("species_original",names(res))) res[,"species_original"] = tolower(res[,"species_original"])

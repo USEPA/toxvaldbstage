@@ -204,6 +204,8 @@ toxval.load.ecotox <- function(toxval.db,source.db,log=F,do.load=F) {
   #####################################################################
   res = unique(res)
   res = fill.toxval.defaults(toxval.db,res)
+  res = res[!is.na(res$toxval_numeric),]
+  res = res[res$toxval_numeric>0,]
   res = generate.originals(toxval.db,res)
   if(is.element("species_original",names(res))) res[,"species_original"] = tolower(res[,"species_original"])
   res$toxval_numeric = as.numeric(res$toxval_numeric)

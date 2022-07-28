@@ -198,6 +198,7 @@ toxval.load.doe.benchmarks <- function(toxval.db,source.db,log=F) {
   cat("Generic steps \n")
   #####################################################################
   res = unique(res)
+  res = res[!is.na(res$toxval_numeric),]
   res = fill.toxval.defaults(toxval.db,res)
   res = generate.originals(toxval.db,res)
   if(is.element("species_original",names(res))) res[,"species_original"] = tolower(res[,"species_original"])
