@@ -1,17 +1,18 @@
 #--------------------------------------------------------------------------------------
-#' Load cosmos Source files into dev_toxval_source_v4.
-#' @param db The version of toxval into which the source is loaded.
+#' Load cosmos Source files into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./cosmos/cosmos_files/COSMOS_DB_v1_export_2016_04_02_study_data.xlsx
 #' @param infile2 The input file ./cosmos/cosmos_files/COSMOS_DB_v1_export_2016_04_02_cosmetics_inventory.xlsx
-
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_cosmos_source <- function(db,
-                                 infile1="../cosmos/cosmos_files/COSMOS_DB_v1_export_2016_04_02_study_data.xlsx",
-                                 infile2="../cosmos/cosmos_files/COSMOS_DB_v1_export_2016_04_02_cosmetics_inventory.xlsx",
-                                 indir="../cosmos/cosmos_files/",
+                                 infile1="COSMOS_DB_v1_export_2016_04_02_study_data.xlsx",
+                                 infile2="COSMOS_DB_v1_export_2016_04_02_cosmetics_inventory.xlsx",
                                  chem.check.halt=F) {
   printCurrentFunction(db)
-
+  infile1 = paste0(toxval.config()$datapath,"cosmos/cosmos_files/",infile1)
+  infile2 = paste0(toxval.config()$datapath,"cosmos/cosmos_files/",infile2)
+  indir = paste0(toxval.config()$datapath,"cosmos/cosmos_files/")
   #####################################################################
   cat("Build cosmos source tables \n")
   #####################################################################
@@ -90,20 +91,6 @@ import_cosmos_source <- function(db,
                            "cosmos_neuro_fob","cosmos_organ_weight","cosmos_pathology_macro",
                            "cosmos_pathology_micro","cosmos_repro_dev_adults","cosmos_repro_dev_offspring","cosmos_repro_offspring",
                            "cosmos_systemic", "cosmos_tissue_chemistry","cosmos_urinalysis"))
-
-  # stop = FALSE
-  # for( i in 1:length(res)){
-  #   for (j in 1:length(table_names)){
-  #
-  #     runInsertTable(res[[i]],table_names[j],db,do.halt=T,verbose=F)
-  #     i <- i+1
-  #     if (i == length(res)+1){
-  #       stop = TRUE
-  #       break
-  #     }
-  #   }
-  #   if (stop){break}
-  # }
 
   #####################################################################
   cat("Build cosmos_study_information table \n")

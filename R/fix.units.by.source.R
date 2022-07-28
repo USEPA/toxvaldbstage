@@ -25,6 +25,7 @@
 #' }
 #'
 #' @param toxval.db The version of toxvaldb to use.
+#' @param source Source to be fixed
 #' @param do.convert.units If TRUE, so unit conversions, as opposed to just cleaning
 #' @export
 #-------------------------------------------------------------------------------------

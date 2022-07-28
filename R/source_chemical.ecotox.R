@@ -2,12 +2,14 @@
 #' special process to deal with source chemicals for ECOTOX
 #' @param toxval.db The version of toxval into which the source info is loaded.
 #' @param source.db The source database version
+#' @param source The xource to be processed (ECOTOX)
 #' @param chem.check.halt If TRUE, halt if there are errors in the chemical checking
 #' @param casrn.col  Name of the column containing the CASRN
 #' @param name.col Name of the column containing chemical names
 #' @param verbose If TRUE, output extra diagnostics information
 #--------------------------------------------------------------------------------------
-source_chemical.ecotox <- function(toxval.db,source.db,
+source_chemical.ecotox <- function(toxval.db,
+                                   source.db,
                                    res,
                                    source,
                                    chem.check.halt=FALSE,

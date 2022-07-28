@@ -1,13 +1,14 @@
 #--------------------------------------------------------------------------------------
-#' Load copper manufacturers Source into dev_toxval_source_v4.
-#' @param db The version of toxval into which the source is loaded.
+#' Load copper manufacturers Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./copper/copper_files/Copper Data Entry - Final.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_copper_source <- function(db,
-                                 infile="../copper/copper_files/Copper Data Entry - Final.xlsx",
+                                 infile="Copper Data Entry - Final.xlsx",
                                  chem.check.halt=F) {
   printCurrentFunction(db)
-
+  infile = paste0(toxval.config()$datapath,"copper/copper_files/",infile)
   #####################################################################
   cat("create original_copper_table from source file\n")
   #####################################################################

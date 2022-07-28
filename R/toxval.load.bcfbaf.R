@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------------
 #' Load the Arnot BAF / BCF data
 #'
-#' @param source.db The source database to use.
+#' @param toxval.db The database to use.
 #' @param verbose If TRUE, print out extra diagnostic messages
 #' @export
 #--------------------------------------------------------------------------------------

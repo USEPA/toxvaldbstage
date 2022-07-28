@@ -1,7 +1,8 @@
 #-------------------------------------------------------------------------------------
 #' Alter the contents of toxval according to an excel dictionary
 #' @param toxval.db The version of toxval in which the data is altered.
-#' @param param THe parameter value to be fixed
+#' @param param The parameter value to be fixed
+#' @param source The source to be fixed
 #' @param ignore If TRUE allow missing values to be ignored
 #' @return The database will be altered
 #' @export

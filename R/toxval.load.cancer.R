@@ -19,20 +19,21 @@ toxval.load.cancer <- function(toxval.db) {
 
   runQuery("delete from cancer_summary",toxval.db)
 
-  file <- "./niosh/niosh_files/NIOSH Carcinogens.xlsx"
+
+  file = paste0(toxval.config()$datapath,"niosh/niosh_files/NIOSH Carcinogens.xlsx")
   niosh <- read.xlsx(file)
   niosh$exposure_route <- "inhalation"
   niosh$source <- "NIOSH"
   niosh$cancer_call <- "potential occupational carcinogen"
   niosh <- niosh[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
-  file <- "./iris/iris_files/iris_scrape_woe 2018-10-31.xlsx"
+  file <- paste0(toxval.config()$datapath,"iris/iris_files/iris_scrape_woe 2018-10-31.xlsx")
   iris <- read.xlsx(file)
   iris$source <- "IRIS"
   iris$exposure_route <- "-"
   iris <- iris[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
-  file <- "./pprtv_ornl/pprtv_ornl_files/PPRTV_ORNL cancer calls 2018-10-25.xlsx"
+  file <- paste0(toxval.config()$datapath,"pprtv_ornl/pprtv_ornl_files/PPRTV_ORNL cancer calls 2018-10-25.xlsx")
   pprtv_ornl <- read.xlsx(file)
   name.list <- c("casrn","name","cancer_call")
   pprtv_ornl <- pprtv_ornl[,name.list]
@@ -41,14 +42,14 @@ toxval.load.cancer <- function(toxval.db) {
   pprtv_ornl$url <- "https://hhpprtv.ornl.gov/quickview/pprtv.php"
   pprtv_ornl <- pprtv_ornl[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
-  file <- "./cancer_summary/cancer/NTP/NTP cancer clean.xlsx"
+  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/NTP/NTP cancer clean.xlsx")
   ntp <- read.xlsx(file)
   ntp$exposure_route <- "-"
   ntp$source <- "NTP ROC"
   ntp$url <- "https://ntp.niehs.nih.gov/pubhealth/roc/index-1.html#toc1"
   ntp <- ntp[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
-  file <- "./cancer_summary/cancer/IARC/IARC cancer 2018-10-29.xlsx"
+  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/IARC/IARC cancer 2018-10-29.xlsx")
   iarc <- read.xlsx(file)
   name.list <- c("casrn","name","cancer_call")
   iarc <- iarc[,name.list]
@@ -57,13 +58,13 @@ toxval.load.cancer <- function(toxval.db) {
   iarc$url <- "https://monographs.iarc.fr/list-of-classifications-volumes/"
   iarc <- iarc[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
-  file <- "./cancer_summary/cancer/HealthCanada/HealthCanada_TRVs_2010_AppendixA v2.xlsx"
+  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/HealthCanada/HealthCanada_TRVs_2010_AppendixA v2.xlsx")
   hc <- read.xlsx(file)
   hc$source <- "Health Canada"
   hc$url <- "http://publications.gc.ca/collections/collection_2012/sc-hc/H128-1-11-638-eng.pdf"
   hc <- hc[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
-  file <- "./cancer_summary/cancer/EPA_OPP_CARC/EPA_CARC.xlsx"
+  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/EPA_OPP_CARC/EPA_CARC.xlsx")
   opp <- read.xlsx(file)
   name.list <- c("casrn","name","cancer_call")
   opp <- opp[,name.list]
@@ -72,7 +73,7 @@ toxval.load.cancer <- function(toxval.db) {
   opp$url <- "http://www.epa.gov/pesticides/carlist/"
   opp <- opp[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
-  file <- "./cancer_summary/cancer/CalEPA/calepa_p65_cancer_only.xlsx"
+  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/CalEPA/calepa_p65_cancer_only.xlsx")
   calepa <- read.xlsx(file)
   name.list <- c("casrn","name")
   calepa <- calepa[,name.list]

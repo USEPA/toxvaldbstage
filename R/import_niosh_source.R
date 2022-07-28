@@ -1,13 +1,15 @@
 #--------------------------------------------------------------------------------------
-#' Load niosh Source into dev_toxval_source_v4.
-#' @param db The version of toxval into which the source is loaded.
+#' Load NIOSH Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./niosh/niosh_files/niosh_IDLH_2020.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_niosh_source <- function(db,
-                                infile="../niosh/niosh_files/niosh_IDLH_2020.xlsx",
+                                infile="niosh_IDLH_2020.xlsx",
                                 chem.check.halt=T) {
   printCurrentFunction(db)
 
+  infile = paste0(toxval.config()$datapath,"niosh/niosh_files/",infile)
   #####################################################################
   cat("Build new_niosh table\n")
   #####################################################################
@@ -16,6 +18,7 @@ import_niosh_source <- function(db,
   res <- res[c('niosh_id', names(res[-8]))]
   res = res[res$casrn!="-",]
   res = res[res$casrn!="- ",]
+  res = res[!is.na(res$toxval_numeric),]
 
   #####################################################################
   cat("Prep and load the data\n")

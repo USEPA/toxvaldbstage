@@ -7,6 +7,7 @@
 #' This function precedes toxvaldb.load.species
 #'
 #' @param toxval.db The version of the database to use
+#' @param date_string The date of the dictionary versions
 #' @export
 #--------------------------------------------------------------------------------------
 species.mapper <- function(toxval.db,date_string="2022-02-23") {

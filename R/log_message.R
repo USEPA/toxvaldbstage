@@ -1,6 +1,8 @@
 #-------------------------------------------------------------------------------------
 #'
 #' Function to combine output log with output message
+#' @param log_df Dataframe to which the log information will be appended
+#' @param message_df_col New message to add
 #-------------------------------------------------------------------------------------
 log_message <- function(log_df,message_df_col){
   printCurrentFunction()

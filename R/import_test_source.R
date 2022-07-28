@@ -1,14 +1,19 @@
 #--------------------------------------------------------------------------------------
-#' Load test Source data into dev_toxval_source_v4.
-#' @param db The version of toxval into which the source info is loaded.
+#' Load TEST Source data into toxval_source
+#' @param db The version of toxval_source into which the source info is loaded.
 #' @param infile1 The input file ./test/test_files/TEST data.xlsx
 #' @param infile2 The input file ./test/test_files/test_chemicals_invitrodb.csv to map casrn to names from prod_internal_invitrodb_v3_2.chemical
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_test_source <- function(db,
-                               infile1="../test/test_files/TEST data.xlsx",
-                               infile2="../test/test_files/test_chemicals_invitrodb.csv",
+                               infile1="TEST data.xlsx",
+                               infile2="test_chemicals_invitrodb.csv",
                                chem.check.halt=T) {
   printCurrentFunction(db)
+
+  infile1 = paste0(toxval.config()$datapath,"test/test_files/",infile1)
+  infile2 = paste0(toxval.config()$datapath,"test/test_files/",infile2)
+
   #####################################################################
   cat("Build original_test_table and new_test_table \n")
   #####################################################################

@@ -3,6 +3,7 @@
 #' @param toxval.db The database version to use
 #' @param sourcedb The source database name
 #' @param source The source name
+#' @param do.convert.units If TRUE, convert uints, mainly from ppm to mg/kg-day. THis code is not debugged
 #--------------------------------------------------------------------------------------
 toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.units=F){
   printCurrentFunction(toxval.db)

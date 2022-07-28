@@ -1,15 +1,15 @@
-library(stringr)
-library(openxlsx)
 #--------------------------------------------------------------------------------------
-#' Load penn Source into dev_toxval_source_v2.
-#' @param db The version of toxval into which the source is loaded.
+#' Load Penn Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./penn/penn_files/Penn DEP Table 5a.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_penn_source <- function(db,
-                               infile="../penn/penn_files/Penn DEP Table 5a.xlsx",
+                               infile="..enn DEP Table 5a.xlsx",
                                chem.check.halt=T) {
   printCurrentFunction(db)
 
+  infile = paste0(toxval.config()$datapath,"penn/penn_files/",infile)
   #####################################################################
   cat("Build original_penn_table \n")
   #####################################################################

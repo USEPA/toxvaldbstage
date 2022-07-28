@@ -1,13 +1,15 @@
 #--------------------------------------------------------------------------------------
-#' Load pprtv_ornl Source into dev_toxval_source_v2.
+#' Load PPRTV ORNL Source into toxval_source
 #' @param db The version of toxval into which the source is loaded.
 #' @param infile The input file ./pprtv_ornl/pprtv_ornl_files/new_PPRTV_ORNL cancer noncancer.xlsx
+#' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
 #--------------------------------------------------------------------------------------
 import_pprtv_ornl_source <- function(db,
-                                     infile="../pprtv_ornl/pprtv_ornl_files/new_PPRTV_ORNL cancer noncancer.xlsx",
+                                     infile="new_PPRTV_ORNL cancer noncancer.xlsx",
                                      chem.check.halt=F) {
   printCurrentFunction(db)
 
+  infile = paste0(toxval.config()$datapath,"pprtv_ornl/pprtv_ornl_files/",infile)
   #####################################################################
   cat("Build new_pprtv_ornl table\n")
   #####################################################################

@@ -1,10 +1,11 @@
 #-------------------------------------------------------------------------------------
 #' Load the FLEX data (old ACToR data) from files to toxval source. This will load all
 #' Excel file in the folder ACToR replacements/
-#' @param db The version of toxval into which the tables are loaded.
+#' @param db The version of toxval_source into which the tables are loaded.
 #' @param filepath The path for all the input xlsx files ./ACToR replacements
-#' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
 #' @param verbose Whether the loaded rows should be printed to the console.
+#' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
+#' @param do.clean If true, remove data for these sources before reloading
 #' @export
 #--------------------------------------------------------------------------------------
 import_flex_source <- function(db,

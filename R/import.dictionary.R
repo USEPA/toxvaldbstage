@@ -8,7 +8,7 @@ import.dictionary <- function(toxval.db) {
   printCurrentFunction(toxval.db)
   runInsert("delete from toxval_type_dictionary",toxval.db)
 
-  file <- "../dictionary/toxval_type_dictionary_5.xlsx"
+  file <- paste0(toxval.config()$datapath,"dictionary/toxval_type_dictionary_5.xlsx")
   mat <- read.xlsx(file)
   mat[is.na(mat)] <- "-"
   # the following is stupid code the deal with invisible utf8 code
@@ -22,7 +22,7 @@ import.dictionary <- function(toxval.db) {
 
   runInsert("delete from toxval_dictionary",toxval.db)
 
-  file <- "../dictionary/toxval_dictionary 2021.xlsx"
+  file <- paste0(toxval.config()$datapath,"dictionary/toxval_dictionary 2021.xlsx")
   mat <- read.xlsx(file)
   runInsertTable(mat,"toxval_dictionary",toxval.db,do.halt=T,verbose=T)
 }

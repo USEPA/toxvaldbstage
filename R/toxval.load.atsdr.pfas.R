@@ -1,9 +1,9 @@
 #--------------------------------------------------------------------------------------
-#' Load new_atsdr_pfas from toxval_source to toxval
+#' Load the original ATSDR PFAS from toxval_source to toxval
 #'
 #' @param toxval.db The version of toxval into which the tables are loaded.
 #' @param source.db The source database to use.
-#' @param verbose If TRUE, print out extra diagnostic messages
+#' @param log If TRUE, send output to a log file
 #' @export
 #--------------------------------------------------------------------------------------
 toxval.load.atsdr.pfas <- function(toxval.db,source.db, log=F){
@@ -40,7 +40,7 @@ toxval.load.atsdr.pfas <- function(toxval.db,source.db, log=F){
   names(res)[names(res) == "source_url"] = "url"
   res$source = source
   res$details_text = paste(source,"Details")
-
+  res = res[!is.na(res$toxval_numeric),]
   #####################################################################
   cat("find columns in res that do not map to toxval or record_source\n")
   #####################################################################

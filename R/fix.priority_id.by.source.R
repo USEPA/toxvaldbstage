@@ -1,33 +1,24 @@
 #-------------------------------------------------------------------------------------
 #' Fix the priority_id in the toxval table based on source
-#'
-#'
 #' @param toxval.db The version of toxvaldb to use.
+#' @param source The source to be fixed, If NULL, set for all sources
 #' @export
 #-------------------------------------------------------------------------------------
-fix.priority_id.by.source <- function(toxval.db, source) {
+fix.priority_id.by.source <- function(toxval.db, source=NULL) {
   printCurrentFunction(paste(toxval.db,":", source))
 
-  file <- "../dictionary/source_priority.xlsx"
-  dict <- read.xlsx(file)
-  dict1 <- dict[which(dict$source %in% source),]
+  slist = source
+  if(is.null(source)) slist = runQuery("select distinct source from toxval",toxval.db)[,1]
 
-  query <- paste0("update toxval set priority_id=-1 where source like '",source,"'")
-  runQuery(query,toxval.db)
-
-  for(i in 1:nrow(dict1)) {
-    source <- dict1[i,1]
-    pid <- dict1[i,2]
-    query <- paste0("update toxval set priority_id=",pid," where source='",source,"'")
+  for(source in slist) {
+    cast(source,"\n")
+    query =- paste0("update toxval set priority_id=-1 where source like '",source,"'")
+    runQuery(query,toxval.db)
+    pid = runQuery(paste0("select priority_id from source_info where source='",source,"'"),toxval.db)[1,1]
+    query = paste0("update toxval set priority_id=",pid," where source='",source,"'")
     runQuery(query,toxval.db)
   }
-  x <- runQuery("select distinct source from toxval where priority_id=-1",toxval.db)
-  if(nrow(x)>0) {
-    print(x)
-    #browser()
-  }
+  x = runQuery("select distinct source from toxval where priority_id=-1",toxval.db)
+  if(nrow(x)>0) print(x)
   cat("Number of sources with missing priority_id:",nrow(x),"\n")
-  # file <- paste0(toxval.config()$datapath,"dictionary/sources_with_missing_priority_id_",source,"_",Sys.Date(),".xlsx")
-  # write.xlsx(x,file)
-
 }

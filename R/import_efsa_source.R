@@ -8,9 +8,8 @@
 #' it was unsuccessful to convert enconding to UTF-8, also tried converting using stringi. Only workaround was
 #' by converting the downloaded files to csv and using the csv files as input source.
 #'
-#' modify the field names at the beginning of this script
-#' @param db The version of toxval into which the source is loaded.
-#' @return Merged tidy excel file that details the data in EFSA
+#' @param db The version of toxval_source into which the source is loaded.
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #' @export
 #--------------------------------------------------------------------------------------
 import_efsa_source <- function(db,
@@ -25,10 +24,15 @@ import_efsa_source <- function(db,
   #values <- openxlsx::read.xlsx("../efsa/efsa_files/ReferenceValues_KJ_2020.xlsx")
   #details <- openxlsx::read.xlsx("../efsa/efsa_files/EFSAOutputs_KJ_2020.xlsx")
 
-  points <- read.csv("../efsa/efsa_files/ReferencePoints_KJ_2020.csv",stringsAsFactors=F)
-  chems <- read.csv("../efsa/efsa_files/SubstanceCharacterisation_KJ_2020.csv",stringsAsFactors=F)
-  values <- read.csv("../efsa/efsa_files/ReferenceValues_KJ_2020.csv",stringsAsFactors=F)
-  details <- read.csv("../efsa/efsa_files/EFSAOutputs_KJ_2020.csv",stringsAsFactors=F)
+  file1 = paste0(toxval.config()$datapath,"efsa/efsa_files/ReferencePoints_KJ_2020.csv")
+  file2 = paste0(toxval.config()$datapath,"efsa/efsa_files/SubstanceCharacterisation_KJ_2020.csv")
+  file3 = paste0(toxval.config()$datapath,"efsa/efsa_files/ReferenceValues_KJ_2020.csv")
+  file4 = paste0(toxval.config()$datapath,"efsa/efsa_files/EFSAOutputs_KJ_2020.csv")
+
+  points <- read.csv(file1,stringsAsFactors=F)
+  chems <- read.csv(file2,stringsAsFactors=F)
+  values <- read.csv(file3,stringsAsFactors=F)
+  details <- read.csv(file4,stringsAsFactors=F)
 
   names(values) <- c("name","subsource","year","output_id","toxval_type","toxval_numeric_qualifier","toxval_numeric","toxval_units","population")
   names(points) <- c("name","subsource","year","output_id","human_eco","study_type","species_original",

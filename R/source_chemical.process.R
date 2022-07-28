@@ -1,8 +1,15 @@
 #--------------------------------------------------------------------------------------
 #' Deal with the process of making the source_chemical information
 #' @param db The version of toxval into which the source info is loaded.
-#' @param infile1 The input file ./test/test_files/TEST data.xlsx
-#' @param infile2 The input file ./test/test_files/test_chemicals_invitrodb.csv to map casrn to names from prod_internal_invitrodb_v3_2.chemical
+#' @param res The input dataframe to which chemical information will be added
+#' @param source The source to process
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @param casrn.col The name of the column containing the CASRN
+#' @param name.col The name ofhte column containing hte chemical name
+#' @param verbose If TRUE, write out diagnostic messages
+#'
+#' @return Returns the original dataframe with a chemical_id appended
+#' @export
 #--------------------------------------------------------------------------------------
 source_chemical.process <- function(db,
                                     res,

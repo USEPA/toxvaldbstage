@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' Load new_atsdr_pfas_2021 from toxval_source to toxval
+#' Load data ATSDR PFAS 2021 data from toxval_source to toxval
 #'
 #' @param toxval.db The version of toxval into which the tables are loaded.
 #' @param source.db The source database to use.

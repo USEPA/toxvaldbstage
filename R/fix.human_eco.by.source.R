@@ -1,6 +1,8 @@
 #-------------------------------------------------------------------------------------
 #' Fix the human_eco flag
 #' @param toxval.db The version of toxval in which the data is altered.
+#' @param source The source to be fixed
+#' @param reset If TRUE, reset all values to 'not specified' before processing all records in the source
 #' @return The database will be altered
 #' @export
 #--------------------------------------------------------------------------------------

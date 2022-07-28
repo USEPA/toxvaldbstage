@@ -1,14 +1,14 @@
-library("openxlsx")
 #--------------------------------------------------------------------------------------
-#' Load doe_benchmarks Source into dev_toxval_source_v2.
-#' @param db The version of toxval into which the source is loaded.
+#' Load doe_benchmarks Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./doe_benchmarks/doe_benchmarks_files/DOE_Wildlife_Benchmarks_1996.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_doe_benchmarks_source <- function(db,
-                                         infile="../doe_benchmarks/doe_benchmarks_files/DOE_Wildlife_Benchmarks_1996.xlsx",
+                                         infile="DOE_Wildlife_Benchmarks_1996.xlsx",
                                          chem.check.halt=F) {
   printCurrentFunction(db)
-
+  infile = paste0(toxval.config()$datapath,"doe_benchmarks/doe_benchmarks_files/",infile)
   #####################################################################
   cat("Build original_doe_benchmarks_table \n")
   #####################################################################

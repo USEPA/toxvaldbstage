@@ -1,13 +1,14 @@
 #--------------------------------------------------------------------------------------
-#' Load doe Source into dev_toxval_source_v4.
-#' @param db The version of toxval into which the source is loaded.
+#' Load DOE Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./doe/doe_files/Revision_29.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_doe_source <- function(db,
-                              infile="../doe/doe_files/Revision_29.xlsx",
+                              infile="Revision_29.xlsx",
                               chem.check.halt=F) {
   printCurrentFunction(db)
-
+  infile = paste0(toxval.config()$datapath,"doe/doe_files/",infile)
   #####################################################################
   cat("Build new_doe_table by combining data from all four sheets from input file \n")
   #####################################################################

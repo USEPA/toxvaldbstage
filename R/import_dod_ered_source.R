@@ -1,14 +1,14 @@
 #--------------------------------------------------------------------------------------
-#' Load dod Source into dev_toxval_source_v2.
-#' @param db The version of toxval into which the source is loaded.
+#' Load dod Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./dod/dod_files/USACE_ERDC_ERED_database_12_07_2018.xlsx
-
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_dod_ered_source <- function(db,
-                                   infile="../dod/dod_files/USACE_ERDC_ERED_database_12_07_2018.xlsx",
+                                   infile="USACE_ERDC_ERED_database_12_07_2018.xlsx",
                                    chem.check.halt=F) {
   printCurrentFunction(db)
-
+  infile = paste0(toxval.config()$datapath,"dod/dod_files/",infile)
   #####################################################################
   cat("Build original_dod_ered_table and create dataframe res1 \n")
   #####################################################################

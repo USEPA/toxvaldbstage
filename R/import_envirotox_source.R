@@ -1,12 +1,14 @@
 #--------------------------------------------------------------------------------------
-#' Load EnviroTox.V2 Source data into dev_toxval_source_v4.
-#' @param db The version of toxval into which the source info is loaded.
+#' Load EnviroTox.V2 Source data into toxval_source
+#' @param db The version of toxval_source into which the source info is loaded.
 #' @param infile The input file ./envirotox/envirotox_files/envirotox_taxonomy.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_envirotox_source <- function(db,
-                                    infile="../envirotox/envirotox_files/envirotox_taxonomy clean casrn.xlsx",
+                                    infile="envirotox_taxonomy clean casrn.xlsx",
                                     chem.check.halt=F) {
   printCurrentFunction(db)
+  infile = paste0(toxval.config()$datapath,"envirotox/envirotox_files/",infile)
   #####################################################################
   cat("Read envirotox file sheet1(test) as res \n")
   #####################################################################

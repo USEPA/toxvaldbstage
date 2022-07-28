@@ -1,13 +1,14 @@
 #--------------------------------------------------------------------------------------
-#' Load opp Source into dev_toxval_source_v2.
-#' @param db The version of toxval into which the source is loaded.
+#' Load OPP Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./opp/opp_files/OPP RfD.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_opp_source <- function(db,
-                              infile="../opp/opp_files/OPP RfD.xlsx",
+                              infile="OPP RfD.xlsx",
                               chem.check.halt=T) {
   printCurrentFunction(db)
-
+  infile = paste0(toxval.config()$datapath,"opp/opp_files/",infile)
   #####################################################################
   cat("Build original_opp_table \n")
   #####################################################################

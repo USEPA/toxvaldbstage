@@ -6,6 +6,8 @@
 #' This function precedes toxvaldb.load.species
 #'
 #' @param toxval.db The version of the database to use
+#' @param source The source to be fixed
+#' @param date_string The date version of the dictionary
 #' @export
 #--------------------------------------------------------------------------------------
 fix.species.v2 <- function(toxval.db,source,date_string="2022-05-25") { #2022-02-23

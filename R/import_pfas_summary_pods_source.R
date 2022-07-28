@@ -1,18 +1,18 @@
-library(openxlsx)
-#library(readxl)
 #--------------------------------------------------------------------------------------
-#' Load PFAS Summary PODs into dev_toxval_source_v2.
-#' @param db The version of toxval into which the source is loaded.
+#' Load PFAS Summary PODs into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./PFAS Summary PODs/PFAS Summary PODs_files/PFAS 150 Study Level PODs_061920.xlsx
 #' @param infile2 The input file ./PFAS Summary PODs/PFAS Summary PODs_files/CompToxChemicalsDashboard-Batch-Search_2020-07-20_17_18_42.xls
-
+#' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
 #--------------------------------------------------------------------------------------
 import_pfas_summary_pods_source <- function(db,
-                                            infile1="../PFAS Summary PODs/PFAS Summary PODs_files/PFAS 150 Study Level PODs_061920.xlsx",
-                                            infile2="../PFAS Summary PODs/PFAS Summary PODs_files/CompToxChemicalsDashboard-Batch-Search_2020-07-20_17_18_42.xlsx",
+                                            infile1="PFAS 150 Study Level PODs_061920.xlsx",
+                                            infile2="CompToxChemicalsDashboard-Batch-Search_2020-07-20_17_18_42.xlsx",
                                             chem.check.halt=T) {
   printCurrentFunction(db)
 
+  infile1 = paste0(toxval.config()$datapath,"PFAS Summary PODs/PFAS Summary PODs_files/",infile1)
+  infile2 = paste0(toxval.config()$datapath,"PFAS Summary PODs/PFAS Summary PODs_files/",infile2)
   #####################################################################
   cat("Build whole_pfas_summary_pods from infile1 sheet 2\n")
   #####################################################################

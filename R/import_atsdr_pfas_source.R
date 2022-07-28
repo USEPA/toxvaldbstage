@@ -1,23 +1,28 @@
-library("openxlsx")
 #--------------------------------------------------------------------------------------
-#' Load atsdr pfas Source files into dev_toxval_source_v3.
-#' @param db The version of toxval into which the source is loaded.
+#' Load ATSDR PFAS Source files into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_Perfluoroalkyls_Inhalation.xlsx
 #' @param infile2 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_Perfluoroalkyls_Oral.xlsx
 #' @param infile3 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_PFOA_Inhalation.xlsx
 #' @param infile4 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_PFOA_Oral.xlsx
 #' @param infile5 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_PFOS_Oral.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_atsdr_pfas_source <- function(db,
-                                     infile1="../atsdr_pfas/atsdr_pfas_files/ATSDR_Perfluoroalkyls_Inhalation.xlsx",
-                                     infile2="../atsdr_pfas/atsdr_pfas_files/ATSDR_Perfluoroalkyls_Oral.xlsx",
-                                     infile3="../atsdr_pfas/atsdr_pfas_files/ATSDR_PFOA_Inhalation.xlsx",
-                                     infile4="../atsdr_pfas/atsdr_pfas_files/ATSDR_PFOA_Oral.xlsx",
-                                     infile5="../atsdr_pfas/atsdr_pfas_files/ATSDR_PFOS_Oral.xlsx",
-                                     indir="../atsdr_pfas/atsdr_pfas_files",
+                                     infile1="ATSDR_Perfluoroalkyls_Inhalation.xlsx",
+                                     infile2="ATSDR_Perfluoroalkyls_Oral.xlsx",
+                                     infile3="ATSDR_PFOA_Inhalation.xlsx",
+                                     infile4=".ATSDR_PFOA_Oral.xlsx",
+                                     infile5="ATSDR_PFOS_Oral.xlsx",
                                      chem.check.halt=F) {
   printCurrentFunction(db)
 
+  indir = paste0(toxval.config()$datapath,"atsdr_pfas/atsdr_pfas_files/")
+  infile1 = paste0(indir,infile1)
+  infile2 = paste0(indir,infile2)
+  infile3 = paste0(indir,infile3)
+  infile4 = paste0(indir,infile4)
+  infile5 = paste0(indir,infile5)
   #####################################################################
   cat("ATSDR_Perfluoroalkyls_Inhalation\n")
   #####################################################################

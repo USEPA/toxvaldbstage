@@ -6,12 +6,13 @@
 #' @param res The dataframe to which the chemical_id sill be added
 #' @param source The name of the source
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#' @param casrncol The name of the column containing the CASRN
+#' @param casrn.col The name of the column containing the CASRN
 #' @param name.col The name ofhte column containing hte chemical name
 #' @param verbose If TRUE, write out diagnostic messages
 #' @return Returns the input dataframe with the chemical_id added
 #--------------------------------------------------------------------------------------
-source_chemical.toxrefdb <- function(toxval.db,source.db,
+source_chemical.toxrefdb <- function(toxval.db,
+                                     source.db,
                                      res,
                                      source="ToxRefDB",
                                      chem.check.halt=FALSE,

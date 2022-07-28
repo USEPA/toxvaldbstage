@@ -1,6 +1,7 @@
 #-------------------------------------------------------------------------------------
-#' Initialize the database
+#' Initialize the database. THis sill load the species, info and dictionary tables
 #' @param toxval.db The version of toxval into which the tables are loaded.
+#' @param reset If TRUE, delete all content from the database
 #' @export
 #--------------------------------------------------------------------------------------
 toxval.init.db <- function(toxval.db,reset=F) {

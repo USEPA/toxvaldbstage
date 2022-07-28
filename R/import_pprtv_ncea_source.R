@@ -1,16 +1,20 @@
 #--------------------------------------------------------------------------------------
-#' Load pprtv_ncea Source Info into dev_toxval_source_v2.
-#' @param db The version of toxval into which the source info is loaded.
-#' @param filepath The path for all the input xlsx files ./pprtv_ncea/pprtv_ncea_files
+#' Load PPRTV NCEA Source Info into toxval_source
+#' @param db The version of toxval_source into which the source info is loaded.
 #' @param csvfile The input csv file ./pprtv_ncea/pprtv_ncea_files/dose_reg2.csv
 #' @param scrapepath The path for new_pprtv_ncea_scrape_table file ./pprtv_ncea/PPRTV_scrape2020-04-08.xlsx
+#' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
 #--------------------------------------------------------------------------------------
 import_pprtv_ncea_source <- function(db,
-                                     filepath="../pprtv_ncea/pprtv_ncea_files",
                                      csvfile="../pprtv_ncea/pprtv_ncea_files/dose_reg2.csv",
                                      scrapepath="../pprtv_ncea/PPRTV_scrape2020-04-08.xlsx",
                                      chem.check.halt=F) {
   printCurrentFunction(db)
+
+  filepath = paste0(toxval.config()$datapath,"pprtv_ncea/pprtv_ncea_files")
+  csvfile = paste0(toxval.config()$datapath,"pprtv_ncea/pprtv_ncea_files/",csvfile)
+  scrapepath = paste0(toxval.config()$datapath,"pprtv_ncea/pprtv_ncea_files/",scrapepath)
+
   #####################################################################
   cat("Build all input pprtv_ncea tables \n")
   #####################################################################

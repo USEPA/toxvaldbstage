@@ -1,19 +1,24 @@
 #--------------------------------------------------------------------------------------
-#' Load rsl Source Info into dev_toxval_source_v2.
+#' Load RSL Source Info into toxval source database
 #' @param db The version of toxval into which the source info is loaded.
 #' @param infile1a The input file ./rsl/rsl_files/final_rsl_thq_combined_nov21.xlsx
 #' @param infile1b The input file ./rsl/rsl_files/final_rsl_subchronic_nov21.xlsx
 #' @param infile2 The input file ./rsl/rsl_files/general_info_nov_21.xlsx
 #' @param infile3 The input file ./rsl/rsl_files/key_description_nov_21.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_rsl_source <- function(db,
-                              infile1a="../rsl/rsl_files/final_rsl_thq_combined_nov21.xlsx",
-                              infile1b="../rsl/rsl_files/final_rsl_subchronic_nov21.xlsx",
-                              infile2="../rsl/rsl_files/general_info_nov_21.xlsx",
-                              infile3="../rsl/rsl_files/key_description_nov_21.xlsx",
+                              infile1a="final_rsl_thq_combined_nov21.xlsx",
+                              infile1b="final_rsl_subchronic_nov21.xlsx",
+                              infile2="general_info_nov_21.xlsx",
+                              infile3="key_description_nov_21.xlsx",
                               chem.check.halt=T) {
   printCurrentFunction(db)
 
+  infile1a = paste0(toxval.config()$datapath,"rsl/rsl_files/",infile1a)
+  infile1b = paste0(toxval.config()$datapath,"rsl/rsl_files/",infile1b)
+  infile2 = paste0(toxval.config()$datapath,"rsl/rsl_files/",infile2)
+  infile3 = paste0(toxval.config()$datapath,"rsl/rsl_files/",infile3)
   #####################################################################
   cat("create rsl_combined_thq_table \n")
   #####################################################################

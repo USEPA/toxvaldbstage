@@ -6,10 +6,10 @@
 #--------------------------------------------------------------------------------------
 set_clowder_id <- function(res,source) {
   printCurrentFunction(source)
-  file = "../clowder_v3/toxval_document_map_icf.xlsx"
+  file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx")
   map.icf = openxlsx::read.xlsx(file)
 
-  file = "../clowder_v3/toxval_document_map_ccte.xlsx"
+  file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_ccte.xlsx")
   map.ccte = openxlsx::read.xlsx(file)
 
   map.icf = fix.non_ascii.v2(map.icf,"map.icf")

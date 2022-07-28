@@ -1,14 +1,15 @@
-library("openxlsx")
 #--------------------------------------------------------------------------------------
-#' Load lanl Source into dev_toxval_source_v2.
-#' @param db The version of toxval into which the source is loaded.
+#' Load LANL Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./lanl/lanl_files/ESLs_R3.3.xlsx
+
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_lanl_source <- function(db,
-                               infile="../lanl/lanl_files/ESLs_R3.3.xlsx",
+                               infile="ESLs_R3.3.xlsx",
                                chem.check.halt=T)  {
   printCurrentFunction(db)
-
+  infile = paste0(toxval.config()$datapath,"lanl/lanl_files/",infile)
   #####################################################################
   cat("Build original_lanl_table \n")
   #####################################################################

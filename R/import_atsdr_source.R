@@ -1,17 +1,16 @@
-library("openxlsx")
-library("tibble")
-library("janitor")
 #--------------------------------------------------------------------------------------
-#' Load atsdr Source into dev_toxval_source_v3.
-#' @param db The version of toxval into which the source is loaded.
+#' Load atsdr Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./atsdr/atsdr_files/ATSDR_MRLs_2020_Sept2020_Temp.xls
-#'
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_atsdr_source <- function(db,
                                 infile="ATSDR_MRLs_2020_Sept2020_Temp.xlsx",
-                                indir="../atsdr/atsdr_files/",
                                 chem.check.halt=F) {
   printCurrentFunction(db)
+  indir = "atsdr/atsdr_files/"
+  indir = paste0(toxval.config()$datapath,indir)
+
   source="ATSDR MRLs 2020"
   #####################################################################
   cat("Build original_atsdr_table from new source file and fix date conversions \n")

@@ -1,5 +1,4 @@
 options(java.parameters = "-Xmx1000m")
-
 library(DBI)
 library(RCurl)
 library(RMySQL)
@@ -20,7 +19,6 @@ library(janitor)
 library(textclean)
 library(logr)
 
-
 #--------------------------------------------------------------------------------------
 #'
 #' Define a set of global variables. These include the source path (datapath)
@@ -31,12 +29,10 @@ library(logr)
 #' @export
 #--------------------------------------------------------------------------------------
 toxval.config <- function() {
-  toxval.db <- "dev_toxval_v9"
+  toxval.db <- "res_toxval_v92"
   dsstox.db <- "ro_prod_dsstox"
-  source.db <- "dev_toxval_source_v4"
+  source.db <- "res_toxval_source_v5"
 
-  datapath <- "./"
-  datapath <- "../"
   datapath = "/ccte/ACToR1/ToxValDB9/Repo/"
   actorws.prod <- "https://actorws.epa.gov/actorws/toxval/v01/toxval_source"
   actorws.dev <- "http://ag.epa.gov:8528/actorws/toxval/v01/toxval_source"

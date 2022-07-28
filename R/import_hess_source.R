@@ -1,17 +1,18 @@
-library(tidyr)
-library(stringr)
-library(openxlsx)
 #--------------------------------------------------------------------------------------
-#' Load hess Source into dev_toxval_source_v3.
-#' @param db The version of toxval into which the source is loaded.
+#' Load HESS Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./hess/hess_files/hess_6_16_21.csv, extracted by Risa Sayre(SCDCD)
 #' @param infile2 The input file ./hess/hess_files/hess_record_urls_from_clowder.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_hess_source <- function(db,
-                               infile1="../hess/hess_files/hess_6_16_21.xlsx",
-                               infile2="../hess/hess_files/hess_record_urls_from_clowder.xlsx",
+                               infile1="hess_6_16_21.xlsx",
+                               infile2="hess_record_urls_from_clowder.xlsx",
                                chem.check.halt=T) {
   printCurrentFunction(db)
+
+  infile1 = paste0(toxval.config()$datapath,"hess/hess_files/",infile1)
+  infile2 = paste0(toxval.config()$datapath,"hess/hess_files/",infile2)
   #####################################################################
   cat("Build whole_hess_table from source file \n")
   #####################################################################

@@ -1,11 +1,10 @@
 #--------------------------------------------------------------------------------------
 #' Get the sources with PFAS data
 #' @param db The version of toxval into which the source is loaded.
-#' @param infile The input file ./pprtv_ornl/pprtv_ornl_files/new_PPRTV_ORNL cancer noncancer.xlsx
 #-----------------------------------------------------------------------------------
 pfas.by.source <- function(db) {
   printCurrentFunction(db)
-  file = "../pfas/PFAS Universe fixed columns.xlsx"
+  file = paste0(toxval.config()$datapath,"pfas/PFAS Universe fixed columns.xlsx")
   mat = read.xlsx(file)
 
   slist = runQuery("select distinct source from source_chemical",db)
@@ -23,7 +22,6 @@ pfas.by.source <- function(db) {
     slist[i,"percent"] = 100 * slist[i,"pfas_chemicals"]/slist[i,"chemicals"]
   }
   slist = slist[order(slist$percent,decreasing=T),]
-  browser()
-  file = "../pfas/PFAS x source.xlsx"
+  file = paste0(toxval.config()$datapath,"pfas/PFAS x source.xlsx")
   write.xlsx(slist,file)
 }

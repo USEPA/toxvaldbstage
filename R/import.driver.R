@@ -1,12 +1,9 @@
 #--------------------------------------------------------------------------------------
-#' Fnction to run all import scripts
-#'
-#'
+#' Function to run all import scripts to fill toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
-#' @param indir The directory where the output file will be placed
-#' @param infile The input file ./chiu/chiu_files/Full_RfD_databaseQAed-FINAL.xlsx
 #' @param chem.chek.halt If TRUE and there are bad chemical names or casrn,
 #' stop to look at the results in indir/chemcheck.xlsx
+#' @param do.clean If TRUE, delte data from all tables before reloading
 #--------------------------------------------------------------------------------------
 import.driver <- function(db="res_toxval_source_v5",
                           chem.check.halt=FALSE,

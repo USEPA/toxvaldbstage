@@ -1,21 +1,24 @@
 #--------------------------------------------------------------------------------------
-#' Load HAWC Source into dev_toxval_source_v3.
+#' Load HAWC Source into toxval_source
 #'
 #' Note that the different tabs in the input sheet have different names, so these need
-#' to be adjusted manually for the code to work. THis is a problem wit how the data
+#' to be adjusted manually for the code to work. This is a problem wit how the data
 #' is stored in HAWC
 #'
-#' @param db The version of toxval into which the source is loaded.
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./hawc/hawc_files/hawc_original_12_06_21.xlsx
 #' @param infile2 The input file ./hawc/hawc_files/dose_dict.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_hawc_source <- function(db,
-                               infile1="../hawc/hawc_files/hawc_original_12_06_21.xlsx",
-                               infile2="../hawc/hawc_files/dose_dict.xlsx",
+                               infile1="hawc_original_12_06_21.xlsx",
+                               infile2="dose_dict.xlsx",
                                chem.check.halt=T) {
   printCurrentFunction(db)
   source = "HAWC"
 
+  infile1 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile1)
+  infile2 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile2)
   #####################################################################
   cat("Build original_hawc table \n")
   #####################################################################
@@ -36,10 +39,8 @@ import_hawc_source <- function(db,
 
   new_hawc <- lapply(hawc_dfs, "[", hawc_cols)
   new_hawc_df <- do.call("rbind", new_hawc)
-  #dim(new_hawc_df)
-  # original with only a subset of variables
-  #runInsertTable(new_hawc_df,"hawc_original",db,do.halt=T,verbose=F)
-  #print(str(new_hawc_df))
+
+  browser()
 
   #####################################################################
   cat("read in the dose dictionary \n")

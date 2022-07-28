@@ -1,13 +1,14 @@
 #--------------------------------------------------------------------------------------
-#' Load efsa2 Source into dev_toxval_source_v2.
-#' @param db The version of toxval into which the source is loaded.
+#' Load efsa2 Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./efsa2/efsa2_files/merge2/EFSA_combined_new.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_efsa2_source <- function(db,
-                                infile="../efsa2/efsa2_files/merge2/EFSA_combined_new 2022-07-19.xlsx",
+                                infile="EFSA_combined_new 2022-07-19.xlsx",
                                 chem.check.halt=F) {
   printCurrentFunction(db)
-
+  infile = paste0(toxval.config()$datapath,"efsa2/efsa2_files/merge2/",infile)
   #####################################################################
   cat("Build new_efsa2 table\n")
   #####################################################################

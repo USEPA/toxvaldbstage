@@ -1,6 +1,8 @@
 #-------------------------------------------------------------------------------------
-#' Flag non ascii characters in the database
-#' @return The dataframe with non ascii characters replaced with XXX
+#' Flag and fix non-ascii characters in the database
+#' @param df The dataframe to be processed
+#' @param The source to be fixed
+#' @return The dataframe with non ascii characters replaced with cleaned versions
 #' @export
 #-------------------------------------------------------------------------------------
 fix.non_ascii.v2 <- function(df,source){
@@ -14,7 +16,7 @@ fix.non_ascii.v2 <- function(df,source){
   }
   clist = names(df)[non_ascii_check==T]
   if(length(clist)>0) {
-    file = "../dictionary/2021_dictionaries/unicode map.xlsx"
+    file = paste0(toxval.config()$datapath,"dictionary/2021_dictionaries/unicode map.xlsx")
     map = openxlsx::read.xlsx(file)
     map$unicode = toupper(map$unicode)
     x = map$unicode
@@ -47,7 +49,7 @@ fix.non_ascii.v2 <- function(df,source){
     missing = sort(unique(missing))
     if(length(missing)>0) {
       print(missing)
-      file = paste0("../chemcheck/non_ascii ",source,".xlsx")
+      file = paste0(toxval.config()$datapath,"/chemcheck/non_ascii ",source,".xlsx")
       openxlsx::write.xlsx(missing,file)
     }
   }

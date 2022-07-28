@@ -1,13 +1,16 @@
 #--------------------------------------------------------------------------------------
-#' Load ECHA echemportal api Source into dev_toxval_source_v4.
-#' @param db The version of toxval into which the source is loaded.
+#' Load ECHA echemportal api Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param filepath The path for all the input xlsx files ./echa_echemportal_api/echa_echemportal_api_files
+
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_echa_echemportal_api_source <- function(db,
-                                               filepath="../echa_echemportal_api/echa_echemportal_api_files",
+                                               filepath="echa_echemportal_api/echa_echemportal_api_files",
                                                chem.check.halt=T) {
   printCurrentFunction(db)
 
+  filepath = paste0(toxval.config()$datapath,"",filepath)
   #####################################################################
   cat("Build source_echa_echemportal_api table\n")
   #####################################################################

@@ -1,15 +1,18 @@
-library(openxlsx)
 #--------------------------------------------------------------------------------------
-#' Load IRIS Source into dev_toxval_source_v4.
-#' @param db The version of toxval into which the source is loaded.
+#' Load IRIS Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./iris/iris_files/IRIS_non_cancer_clean 2020-05-27.xlsx
 #' @param infile2 The input file ./iris/iris_files/IRIS_cancer_clean 2020-05-27.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_iris_source <- function(db,
-                               infile1="../iris/iris_files/IRIS_non_cancer_clean 2020-05-27.xlsx",
-                               infile2="../iris/iris_files/IRIS_cancer_clean 2020-05-27.xlsx",
+                               infile1="IRIS_non_cancer_clean 2020-05-27.xlsx",
+                               infile2="IRIS_cancer_clean 2020-05-27.xlsx",
                                chem.check.halt=T) {
   printCurrentFunction(db)
+
+  infile1 = paste0(toxval.config()$datapath,"iris/iris_files/",infile1)
+  infile2 = paste0(toxval.config()$datapath,"iris/iris_files/",infile2)
   #####################################################################
   cat("Build new_iris_noncancer table from infile1 \n")
   #####################################################################

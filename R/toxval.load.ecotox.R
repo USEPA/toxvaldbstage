@@ -1,7 +1,9 @@
 #-------------------------------------------------------------------------------------
-#' Load ECOTOX from toxval_source to toxval
+#' Load ECOTOX from the web services output to toxval
 #' @param toxval.db The version of toxval into which the tables are loaded.
+#' @param source.db The version of toxval source - used to manage chemicals
 #' @param verbose Whether the loaded rows should be printed to the console.
+#' @param log If TRUE, send output to a log file
 #' @param do.load If TRUE, load the data from the input file and put into a global variable
 #' @export
 #--------------------------------------------------------------------------------------
@@ -280,5 +282,4 @@ toxval.load.ecotox <- function(toxval.db,source.db,log=F,do.load=F) {
   #####################################################################
   cat("finish\n")
   #####################################################################
-  return(0)
 }

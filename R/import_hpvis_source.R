@@ -1,15 +1,14 @@
-library(openxlsx)
-library(dplyr)
 #--------------------------------------------------------------------------------------
-#' Load hpvis Source Info into dev_toxval_source_v2.
-#' @param db The version of toxval into which the source info is loaded.
+#' Load HPVIS Source Info into toxval_source
+#' @param db The version of toxval_source into which the source info is loaded.
 #' @param filepath The path for all the input xlsx files ./hpvis/hpvis_files
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_hpvis_source <- function(db,
-                                filepath="../hpvis/hpvis_files",
+                                filepath="hpvis/hpvis_files",
                                 chem.check.halt=T) {
   printCurrentFunction(db)
-
+  filepath = paste0(toxval.config()$datapath,filepath)
   #####################################################################
   cat("build original_hpvis list of dataframes called res incorporating all the input source files \n")
   #####################################################################

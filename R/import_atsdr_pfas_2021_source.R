@@ -1,13 +1,13 @@
 #--------------------------------------------------------------------------------------
-#' Load atsdr pfas 2021 Source into dev_toxval_source_v4.
-#' @param db The version of toxval into which the source is loaded.
+#' Load ATSDR PFAS 2021 Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param indir The path for all the input xlsx files ./atsdr_pfas_2021/atsdr_pfas_2021_files
-
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_atsdr_pfas_2021_source <- function(db,
-                                          indir="../atsdr_pfas_2021/atsdr_pfas_2021_files",
                                           chem.check.halt=F) {
   printCurrentFunction(db)
+  indir = paste0(toxval.config()$datapath,"atsdr_pfas_2021/atsdr_pfas_2021_files/")
   #####################################################################
   cat("Build list of dataframes with all 6 ATSDR_TP_2021 files\n")
   #####################################################################

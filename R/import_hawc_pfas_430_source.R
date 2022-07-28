@@ -1,19 +1,23 @@
 #--------------------------------------------------------------------------------------
-#' Load HAWC PFAS 430 Source into dev_toxval_source_v4.
-#' @param db The version of toxval into which the source is loaded.
+#' Load HAWC PFAS 430 Source into toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./hawc_pfas_430/hawc_pfas_430_files/hawc_pfas_430_raw3.xlsx , extracted
 #' from https://hawcprd.epa.gov , assessment name - PFAS 430 (2020) and assessment id - 100500256.
 #' Data extraction using HawcClient and extraction script hawc_pfas_430.py
 #' @param infile2 The input file ./hawc_pfas_430/hawc_pfas_430_files/hawc_pfas_430_doses3.xlsx
 #' @param infile3 The input file ./hawc_pfas_430/hawc_pfas_430_files/hawc_pfas_430_groups3.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_hawc_pfas_430_source <- function(db,
-                                        infile1="../hawc_pfas_430/hawc_pfas_430_files/hawc_pfas_430_raw3.xlsx",
-                                        infile2="../hawc_pfas_430/hawc_pfas_430_files/hawc_pfas_430_doses3.xlsx",
-                                        infile3="../hawc_pfas_430/hawc_pfas_430_files/hawc_pfas_430_groups3.xlsx",
+                                        infile1="hawc_pfas_430_raw3.xlsx",
+                                        infile2="hawc_pfas_430_doses3.xlsx",
+                                        infile3="hawc_pfas_430_groups3.xlsx",
                                         chem.check.halt=T) {
   printCurrentFunction(db)
 
+  infile1 = paste0(toxval.config()$datapath,"hawc_pfas_430/hawc_pfas_430_files/",infile1)
+  infile2 = paste0(toxval.config()$datapath,"hawc_pfas_430/hawc_pfas_430_files/",infile2)
+  infile3 = paste0(toxval.config()$datapath,"hawc_pfas_430/hawc_pfas_430_files/",infile3)
   #####################################################################
   cat("Build original_hawc_pfas_430 table from source file  \n")
   #####################################################################

@@ -1,8 +1,7 @@
 #--------------------------------------------------------------------------------------
-#' Set teh moleculr weight in the toxval table
+#' Set the molecular weight in the toxval table, for use in unit conversions
 #' @param toxval.db The database version to use
 #' @param source The source
-#' @param verbose If TRUE, output extra debug information
 #--------------------------------------------------------------------------------------
 toxval.set.mw <- function(toxval.db, source){
   printCurrentFunction(toxval.db)

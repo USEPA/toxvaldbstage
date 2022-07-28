@@ -2,12 +2,15 @@
 #' Load wignall Source data into dev_toxval_source_v2.
 #' @param db The version of toxval into which the source info is loaded.
 #' @param infile The input file ./wignall/wignall_files/BMD_Results_2014-06-17_reviewed Mar 2018.xlsx
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#'
 #--------------------------------------------------------------------------------------
 import_wignall_source <- function(db,
-                                  infile="../wignall/wignall_files/BMD_Results_2014-06-17_reviewed Mar 2018 parsed.xlsx",
+                                  infile="BMD_Results_2014-06-17_reviewed Mar 2018 parsed.xlsx",
                                   chem.check.halt=T) {
   printCurrentFunction(db)
 
+  infile = paste0(toxval.config()$datapath,"wignall/wignall_files/",infile)
   #####################################################################
   cat("Build original_wignall_table and new_wignall_table \n")
   #####################################################################

@@ -1,15 +1,14 @@
-library(openxlsx)
-library(dplyr)
 #--------------------------------------------------------------------------------------
-#' Load PFAS 150 SEM Source data into dev_toxval_source_v2.
-#' @param db The version of toxval into which the source info is loaded.
+#' Load PFAS 150 SEM Source data into toxval_source
+#' @param db The version of toxval_source into which the source info is loaded.
 #' @param infile The input file ./PFAS 150 SEM/PFAS 150 SEM_files/PFAS150 animal study template combined_clearance with DTXSID and CASRN.xlsx
+#' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
 #--------------------------------------------------------------------------------------
 import_pfas_150_sem_source <- function(db,
-                                       infile="../PFAS 150 SEM/PFAS 150 SEM_files/PFAS150 animal study template combined_clearance with DTXSID and CASRN.xlsx",
+                                       infile="PFAS150 animal study template combined_clearance with DTXSID and CASRN.xlsx",
                                        chem.check.halt=F) {
   printCurrentFunction(db)
-
+  infile = paste0(toxval.config()$datapath,"PFAS 150 SEM/PFAS 150 SEM_files/",infile)
   #####################################################################
   cat("Build original_pfas_150_sem\n")
   #####################################################################

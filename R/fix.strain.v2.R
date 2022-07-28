@@ -3,6 +3,8 @@
 #' Set the strain information in toxval
 #'
 #' @param toxval.db The version of the database to use
+#' @param source The source to be fixed
+#' @param date_string The date ofhte latest dictinary version
 #' @export
 #--------------------------------------------------------------------------------------
 fix.strain.v2 <- function(toxval.db,source,date_string="2022-05-25") {

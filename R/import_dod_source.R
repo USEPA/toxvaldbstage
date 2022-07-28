@@ -2,11 +2,13 @@
 #' Load DOD MEG to toxval_source. The file to be loaded are in ./dod/dod_files
 #'
 #' @param db The version of toxval_source into which the tables are loaded.
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #' @export
 #-------------------------------------------------------------------------------------
 import_dod_source = function(db,
                              chem.check.halt=F) {
   printCurrentFunction(db)
+
   #Air-long-term
   openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod/dod_files/DOD_Air-MEGs_Long-Term_2013.xlsx")) -> mat
   mat = mat[3:nrow(mat),c(2:3,7:10)]

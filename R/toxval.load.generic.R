@@ -3,7 +3,7 @@
 #' Generic structure for laoding to toxval from toxval_source
 #' @param toxval.db The database version to use
 #' @param source.db The source database
-#' @param verbose If TRUE, output extra debug information
+#' @param log If TRUE, send output to a log file
 #--------------------------------------------------------------------------------------
 toxval.load.generic <- function(toxvaldb,source.db,log=F) {
   source = SOURCE_NAME
