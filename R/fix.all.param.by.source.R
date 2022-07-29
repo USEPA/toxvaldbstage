@@ -46,6 +46,7 @@ fix.all.param.by.source <- function(toxval.db, source=NULL, fill.toxval_fix=T) {
   slist = runQuery("select distinct source from toxval",toxval.db)[,1]
   if(!is.null(source)) slist = source
 
+  slist = slist[!is.element(slist,"ECOTOX")]
   for(source in slist) {
     cat("\n-----------------------------------------------------\n")
     cat(source,"\n")
@@ -71,14 +72,14 @@ fix.all.param.by.source <- function(toxval.db, source=NULL, fill.toxval_fix=T) {
       sdict = full_dict[full_dict$field==field,]
       query = paste0("select distinct ",field,"_original from toxval where source='",source,"'")
       terms = runQuery(query,toxval.db)[,1]
-          if(length(terms)>0) {
+      if(length(terms)>0) {
         sdict = sdict[is.element(sdict$term_original,terms),]
         if(nrow(sdict)>0) {
           for(i in 1:nrow(sdict)) {
             original = sdict[i,"term_original"]
             final = sdict[i,"term_final"]
             #if(field=="toxval_units") cat(original,final,"\n")
-            query <- paste0("update toxval set ",field,"=\"",final,"\" where ",field,"_original=\"",original,"\" and source = '",source,"'")
+            query = paste0("update toxval set ",field,"=\"",final,"\" where ",field,"_original=\"",original,"\" and source = '",source,"'")
             runInsert(query,toxval.db,T,F,T)
           }
         }
