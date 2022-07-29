@@ -132,6 +132,34 @@ import_hawc_pfas_430_source <- function(db,
   names(res)[is.element(names(res),"FEL_original")] = "fel_original"
 
   #####################################################################
+  cat("Collapse duplicated that just differ by critical effect \n")
+  #####################################################################
+  res2 = res[,!names(res)%in%c("critical_effect","endpoint_url_original","record_url","target")]
+
+  res2$hashkey = NA
+  for(i in 1:nrow(res2)) {
+    hashkey = digest(paste0(res2[i,],collapse=""), serialize = FALSE)
+    res2[i,"hashkey"] = hashkey
+    res[i,"hashkey"] = hashkey
+  }
+  res2 = unique(res2)
+  res2$critical_effect = NA
+  for(i in 1:nrow(res2)) {
+    hashkey = res2[i,"hashkey"]
+    res3 = res[res$hashkey==hashkey,]
+    x = res3$target
+    y = res3$critical_effect
+    ce = ""
+    for(j in 1:length(x)) ce=paste0(ce,x[j],":",y[j],"|")
+    ce = substr(ce,1,(nchar(ce)-1))
+    res2[i,"critical_effect"] = ce
+  }
+  res2$endpoint_url_original = NA
+  res2$record_url = NA
+  res2$target = NA
+  res2 = res2[,!names(res2)%in%c("hashkey")]
+  res = res2
+  #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
   source_prep_and_load(db,source="HAWC PFAS 430",table="source_hawc_pfas_430",res=res,F,T,T)

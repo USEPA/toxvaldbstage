@@ -64,6 +64,10 @@ toxval.load.wignall <- function(toxval.db,source.db, log=F){
                 "toxval_type","bmd","pod_units")]
   res4 = res[,c("chemical_id","document_name","source_hash","source","qc_status","subsource","uf","critical_effect","long_ref",
                 "toxval_type","bmdl","pod_units")]
+
+  res3$pod_units = "mg/kg-day"
+  res4$pod_units = "mg/kg-day"
+
   res3$toxval_type = "BMD"
   res4$toxval_type = "BMDL"
   names(res2) = names(res1)

@@ -136,107 +136,36 @@ import_hawc_pfas_150_source <- function(db,
   print(dim(hawc_pfas_150_final))
 
   #####################################################################
+  cat("Collapse duplicated that just differ by critical effect \n")
+  #####################################################################
+  res = hawc_pfas_150_final
+  res2 = res[,!names(res)%in%c("critical_effect","endpoint_url_original","record_url","target")]
+
+  res2$hashkey = NA
+  for(i in 1:nrow(res2)) {
+    hashkey = digest(paste0(res2[i,],collapse=""), serialize = FALSE)
+    res2[i,"hashkey"] = hashkey
+    res[i,"hashkey"] = hashkey
+  }
+  res2 = unique(res2)
+  res2$critical_effect = NA
+  for(i in 1:nrow(res2)) {
+    hashkey = res2[i,"hashkey"]
+    res3 = res[res$hashkey==hashkey,]
+    x = res3$target
+    y = res3$critical_effect
+    ce = ""
+    for(j in 1:length(x)) ce=paste0(ce,x[j],":",y[j],"|")
+    ce = substr(ce,1,(nchar(ce)-1))
+    res2[i,"critical_effect"] = ce
+  }
+  res2$endpoint_url_original = NA
+  res2$record_url = NA
+  res2$target = NA
+  res2 = res2[,!names(res2)%in%c("hashkey")]
+  res = res2
+  #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="HAWC PFAS 150",table="source_hawc_pfas_150",res=hawc_pfas_150_final,F,T,T)
+  source_prep_and_load(db,source="HAWC PFAS 150",table="source_hawc_pfas_150",res=res,F,T,T)
 }
-#   #####################################################################
-#   cat("Do the chemical checking\n")
-#   #####################################################################
-#   source = "HAWC PFAS 150"
-#   res = as.data.frame(hawc_pfas_150_final)
-#   res = fix.non_ascii.v2(res,source)
-#   res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name",verbose=F)
-#
-#   #####################################################################
-#   cat("Set the default values for missing data\n")
-#   #####################################################################
-#   res = source_set_defaults(res,source)
-#
-#   #####################################################################
-#   cat("Set the clowder_id and document name\n")
-#   #####################################################################
-#   res = set_clowder_id(res,source)
-#
-#   #####################################################################
-#   cat("Build the hash key and load the data \n")
-#   #####################################################################
-#   toxval_source.hash.and.load(db,source,"original_hawc_pfas_150",F,F,res)
-#   browser()
-#   return(1)
-#
-#
-#
-#   runInsertTable(hawc_pfas_150_final,"original_hawc_pfas_150",db,do.halt=T,verbose=F)
-#
-#   #####################################################################
-#   cat("Build new_hawc_pfas table \n")
-#   #####################################################################
-#   hawc_pfas_150_final$casrn <-  gsub("([a-zA-Z]+\\s+[a-zA-Z]*\\:*\\s*)(.*)","\\2",hawc_pfas_150_final$casrn)
-#
-#   hawc_pfas_150_final$exposure_route <- gsub("(^[a-zA-Z]+)(\\s*.*)","\\1", hawc_pfas_150_final$route_of_exposure)
-#   hawc_pfas_150_final$exposure_method <- gsub("(^[a-zA-Z]+\\s*)(.*)","\\2", hawc_pfas_150_final$route_of_exposure)
-#
-#   hawc_pfas_150_final$exposure_method <- gsub("^\\-\\s+","", hawc_pfas_150_final$exposure_method)
-#
-#   hawc_pfas_150_final$study_duration_value <- gsub("(^\\d+)(\\s+.*)","\\1",hawc_pfas_150_final$exposure_duration_text)
-#   hawc_pfas_150_final$study_duration_value <- gsub("(^\\d+)(.*)","\\1",hawc_pfas_150_final$study_duration_value)
-#   range_vals <- grep("\\-", hawc_pfas_150_final$study_duration_value)
-#
-#   hawc_pfas_150_final[range_vals,"study_duration_value"] <- hawc_pfas_150_final[range_vals,"exposure_duration_value_original"]
-#
-#   hawc_pfas_150_final$study_duration_units <- gsub("(^GD)(\\s+.*)","\\1",hawc_pfas_150_final$exposure_duration_text)
-#   hawc_pfas_150_final$study_duration_units <- gsub("(^\\d+\\s+)(\\w+)(\\s*.*)","\\2",hawc_pfas_150_final$study_duration_units)
-#   hawc_pfas_150_final$study_duration_units <- gsub("(.*)(\\d+\\s+)(\\w+)(\\s*.*)","\\3",hawc_pfas_150_final$study_duration_units)
-#   hawc_pfas_150_final$study_duration_units <- gsub("(\\d+\\s*)(\\w+)(\\s*.*)","\\2",hawc_pfas_150_final$study_duration_units)
-#
-#   hawc_pfas_150_final[is.element(hawc_pfas_150_final$study_duration_units,"d"),"study_duration_units"] <- "day"
-#   hawc_pfas_150_final[is.element(hawc_pfas_150_final$study_duration_units,"GD"),"study_duration_units"] <- "day"
-#   hawc_pfas_150_final[is.element(hawc_pfas_150_final$study_duration_units,"wk"),"study_duration_units"] <- "week"
-#   hawc_pfas_150_final[is.element(hawc_pfas_150_final$study_duration_units,"yr"),"study_duration_units"] <- "year"
-#
-#   hawc_pfas_150_final$study_type <- gsub("(^\\w+\\-*\\w*)(\\s*.*)","\\1",hawc_pfas_150_final$study_type_original)
-#
-#   hawc_pfas_150_final$study_duration_value <- as.numeric(hawc_pfas_150_final$study_duration_value)
-#
-#
-#   new_res2 <- hawc_pfas_150_final
-#
-#   # assign appropriate data types
-#   new_res2 <- lapply(new_res2, function(x) type.convert(as.character(x), as.is = T))
-#   new_res2 <- data.frame(new_res2, stringsAsFactors = F)
-#
-#
-#
-#
-#   # convert na and empty values in character columns into hyphens
-#   for (i in 1:ncol(new_res2)) {
-#     if (class(new_res2[,i]) == "character") {
-#       new_res2[which(is.na(new_res2[i])), names(new_res2)[i]] <- "-"
-#     }
-#   }
-#
-#   new_res2$bmd <- NA
-#
-#   new_res2[,which(sapply(new_res2, function(x)all(is.na(x)))) ] <- as.character(new_res2[,which(sapply(new_res2, function(x)all(is.na(x)))) ])
-#
-#
-#   #print(str(new_res2))
-#
-#   #runInsertTable(new_res2,"new_hawc_pfas_150",db,do.halt=T,verbose=F)
-#
-#
-#   #####################################################################
-#   cat("Build hawc_pfas_150_chemical_information table from new_res2\n")
-#   #####################################################################
-#
-#   chemical_information <- new_res2[,c("name","casrn")]
-#   chemical_information <- unique(chemical_information[,1:2])
-#   chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))
-#   chemical_information <- chemical_information[c('chemical_id','name','casrn')]
-#
-#   #runInsertTable(chemical_information,"hawc_pfas_150_chemical_information",db,do.halt=T,verbose=F)
-#
-#
-# }
-#
