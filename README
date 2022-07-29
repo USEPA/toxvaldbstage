@@ -41,11 +41,13 @@ cd existing-project
 git init
 git add --all
 git commit -m "Initial Commit"
-git remote add origin ssh://git@ccte-bitbucket.epa.gov:7999/toxval/toxvaldb09.git
+git remote add origin ssh://git@ccte-bitbucket.epa.gov:7999/toxval/toxvaldb092.git
+
+
 git push -u origin HEAD:main
 
 cd existing-project
-git remote set-url origin ssh://git@ccte-bitbucket.epa.gov:7999/toxval/toxvaldb09.git
+git remote set-url origin ssh://git@ccte-bitbucket.epa.gov:7999/toxval/toxvaldb092.git
 git push -u origin --all
 git push origin --tagsr
 
