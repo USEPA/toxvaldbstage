@@ -9,10 +9,9 @@ fix.priority_id.by.source <- function(toxval.db, source=NULL) {
 
   slist = source
   if(is.null(source)) slist = runQuery("select distinct source from toxval",toxval.db)[,1]
-
   for(source in slist) {
-    cast(source,"\n")
-    query =- paste0("update toxval set priority_id=-1 where source like '",source,"'")
+    cat(source,"\n")
+    query = paste0("update toxval set priority_id=-1 where source like '",source,"'")
     runQuery(query,toxval.db)
     pid = runQuery(paste0("select priority_id from source_info where source='",source,"'"),toxval.db)[1,1]
     query = paste0("update toxval set priority_id=",pid," where source='",source,"'")
