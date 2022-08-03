@@ -10,6 +10,9 @@ import.source.info.by.source <- function(toxval.db, source=NULL) {
   file = paste0(toxval.config()$datapath,"dictionary/source_info 2022-07-27.xlsx")
   print(file)
   mat =openxlsx::read.xlsx(file)
+  cols = runQuery("desc source_info",toxval.db)[,1]
+  mat = mat[,is.element(names(mat),cols)]
+
   slist = source
   if(is.null(source)) slist = runQuery("select distinct source from toxval",db)[,1]
   for(source in slist) {
