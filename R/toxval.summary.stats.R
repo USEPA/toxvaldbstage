@@ -8,13 +8,16 @@ toxval.summary.stats <- function(toxval.db) {
   printCurrentFunction(toxval.db)
   slist = runQuery("select distinct source from toxval",toxval.db)[,1]
   qlist = runQuery("select distinct qc_status from toxval",toxval.db)[,1]
-  nlist = c("source","total","pass_percent",qlist)
+  nlist = c("source","chemicals","total","pass_percent",qlist)
   res = as.data.frame(matrix(nrow=length(slist),ncol=length(nlist)))
   names(res) = nlist
   for(i in 1:length(slist)) {
     source = slist[i]
-    query = paste0("select count(*) from toxval where source='",source,"'")
     res[i,"source"] = source
+    query = paste0("select count(distinct dtxsid) from source_chemical where source='",source,"'")
+    res[i,"chemicals"] = runQuery(query,toxval.db)[1,1]
+
+    query = paste0("select count(*) from toxval where source='",source,"'")
     res[i,"total"] = runQuery(query,toxval.db)[1,1]
     for(qc in qlist) {
       query = paste0("select count(*) from toxval where source='",source,"' and qc_status='",qc,"'")
