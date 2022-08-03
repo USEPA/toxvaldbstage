@@ -65,7 +65,6 @@ import_atsdr_pfas_source <- function(db,
   names(h3)[names(h3) == "LOAEL_serious_comment"] <- "toxval_detail"
   h3$toxval_type <- "LOAEL_serious"
   h3$toxval_units <- "mg/m3"
-
   res3_new1 <- rbind(h1,h2,h3)
   res3_new1[res3_new1$system == "Resp","system"] <- "Respiratory"
   res3_new1[res3_new1$system == "Bd Wt","system"] <- "Body weight"
@@ -87,7 +86,6 @@ import_atsdr_pfas_source <- function(db,
   res4_new <- res4[8:129,]
   names(res4_new) <- name.list
   ####runInsertTable(res4_new,"atsdr_perfluoroalkyls_oral",db,do.halt=T,verbose=F)
-
   #str(res4_new)
   res4_new$exposure_route <- "oral"
   res4_key <- res4_new[118:122,]
@@ -110,6 +108,7 @@ import_atsdr_pfas_source <- function(db,
   res4_new[grep("^\\d+\\-\\d+",res4_new$exposure_duration_frequency_route),"study_duration_units"] <- gsub("(^\\d+\\-\\d+)\\s+(\\w+)(\\s+.*)(\\s+\\(+.*\\)+)","\\2\\3",res4_new[grep("^\\d+\\-\\d+",res4_new$exposure_duration_frequency_route),"exposure_duration_frequency_route"])
   res4_new[grep("^\\d+\\s+",res4_new$exposure_duration_frequency_route),"study_duration_value"] <- gsub("(^\\d+)(\\s+.*)","\\1",res4_new[grep("^\\d+\\s+",res4_new$exposure_duration_frequency_route),"exposure_duration_frequency_route"])
   res4_new[grep("^\\d+\\s+",res4_new$exposure_duration_frequency_route),"study_duration_units"] <- gsub("(^\\d+)\\s+(\\w+)(\\s*.*)(\\s+\\(+.*\\)+)","\\2\\3",res4_new[grep("^\\d+\\s+",res4_new$exposure_duration_frequency_route),"exposure_duration_frequency_route"])
+
   res4_new[grep("^Gd\\s+",res4_new$exposure_duration_frequency_route),"study_duration_units"] <- "gestational day 1 x/d"
   res4_new[grep("^Gd\\s+",res4_new$exposure_duration_frequency_route),"study_duration_value"] <- gsub("(^Gd)\\s+(\\d+\\-)(\\d+)(\\s+.*)","\\3",res4_new[grep("^Gd\\s+",res4_new$exposure_duration_frequency_route),"exposure_duration_frequency_route"])
   res4_new[grep("^PND\\s+",res4_new$exposure_duration_frequency_route),"study_duration_units"] <- "post-natal day"
@@ -118,12 +117,14 @@ import_atsdr_pfas_source <- function(db,
   res4_new[grep("PND",res4_new$study_duration_units),"study_duration_units"] <- "Post-natal day 1 x/d"
   res4_new[grep("Gd",res4_new$study_duration_units),"study_duration_value"] <- "18"
   res4_new[grep("Gd",res4_new$study_duration_units),"study_duration_units"] <- "day 1 x/d"
+
   res4_new[grep("^P0",res4_new$exposure_duration_frequency_route),"study_duration_value"] <- gsub("(.*\\s+)(\\d+)(\\s+.*)","\\2",res4_new[grep("^P0",res4_new$exposure_duration_frequency_route),"exposure_duration_frequency_route"])
   res4_new[grep("^P0",res4_new$exposure_duration_frequency_route),"study_duration_units"] <- gsub("(.*\\s+)(\\d+)\\s+(\\w+)(\\s+.*)","\\3",res4_new[grep("^P0",res4_new$exposure_duration_frequency_route),"exposure_duration_frequency_route"])
   res4_new[grep("\\bd\\b",res4_new$study_duration_units) , "study_duration_units"] <- "day"
   res4_new[grep("\\bwk\\b",res4_new$study_duration_units), "study_duration_units"] <- "week"
   res4_new[grep("\\bdays\\b",res4_new$study_duration_units), "study_duration_units"] <- "day"
   res4_new[grep("\\bad lib\\b",res4_new$study_duration_units), "study_duration_units"] <- "ad libitum"
+
   res4_new$NOAEL_comment <- res4_new$comments
   res4_new[grep("(\\;)",res4_new$short_ref),"year"] <- gsub("(.*)(\\d{4})(\\w+\\;.*)\\s+(\\d{4})\\w*","\\2,\\4",res4_new[grep("(\\;)",res4_new$short_ref),"short_ref"])
   res4_new[grep("\\;",res4_new$short_ref, invert = T),"year"] <- gsub("(.*)(\\d{4})(.*)","\\2",res4_new[grep("\\;",res4_new$short_ref, invert = T),"short_ref"])
@@ -134,11 +135,13 @@ import_atsdr_pfas_source <- function(db,
   h1$toxval_type <- "NOAEL"
   h1$toxval_units <- "mg/kg/day"
   h2 <- res4_new[,c(2,3,4,5,7,12,14,15,18,28,29,30,31,32,33,35)]
+
   names(h2)[names(h2) == "LOAEL"] <- "toxval_numeric"
   names(h2)[names(h2) == "LOAEL_less_serious_comment"] <- "toxval_detail"
   h2$toxval_type <- "LOAEL_less_serious"
   h2$toxval_units <- "mg/kg/day"
   h3 <- res4_new[,c(2,3,4,5,7,12,16,17,18,28,29,30,31,32,33,35)]
+
   names(h3)[names(h3) == "LOAEL_serious"] <- "toxval_numeric"
   names(h3)[names(h3) == "LOAEL_serious_comment"] <- "toxval_detail"
   h3$toxval_type <- "LOAEL_serious"
@@ -156,6 +159,7 @@ import_atsdr_pfas_source <- function(db,
   res4_new1$critical_effect <- paste0(res4_new1$system,"-",res4_new1$toxval_detail)
   res4_new1$critical_effect <- gsub("\\-NA$","-", res4_new1$critical_effect)
   res4_new1$critical_effect <- gsub("\\-$","", res4_new1$critical_effect)
+
   res4_new1$sex <- gsub("(\\d+\\.*\\d*\\s*)(\\w*)","\\2",res4_new1$toxval_numeric)
   res4_new1[grep("\\bM\\b",res4_new1$sex), "sex"] <- "Male"
   res4_new1[grep("\\bF\\b",res4_new1$sex), "sex"] <- "Female"
@@ -186,11 +190,13 @@ import_atsdr_pfas_source <- function(db,
   res5_new$study_type <- tolower(gsub("(.*)\\s+(.*)","\\1",res5_new$study_type))
   res5_new$species <- tolower(gsub("(.*)\\s+\\(+(.*)\\)+","\\1",res5_new$species_strain))
   res5_new$strain <- gsub("(.*)\\s+\\(+(.*)\\)+","\\2",res5_new$species_strain)
+
  res5_new$study_duration_value <- gsub("(\\d+)\\s+(.*)", "\\1", res5_new$exposure_duration_frequency_route)
   res5_new[grep("^Gd\\s+",res5_new$exposure_duration_frequency_route),"study_duration_value"] <- gsub("(^Gd)\\s+(\\d+\\-)(\\d+)(\\s+.*)","\\3",res5_new[grep("^Gd\\s+",res5_new$exposure_duration_frequency_route),"exposure_duration_frequency_route"])
   res5_new$study_duration_units <- gsub("(\\d+)\\s+(.*)", "\\2", res5_new$exposure_duration_frequency_route)
   res5_new[grep("^Gd\\s+",res5_new$exposure_duration_frequency_route),"study_duration_units"] <- gsub("(.*\\s+)\\d\\-(.*)","gestational day \\2",res5_new[grep("^Gd\\s+",res5_new$exposure_duration_frequency_route),"study_duration_units"])
   res5_new$year <- gsub("(.*)\\s+(\\d{4}$)", "\\2", res5_new$short_ref)
+
   res5_new[grep("\\(",res5_new$exposure_duration_frequency_route),"study_duration_units"] <- gsub("NS","not specified",res5_new[grep("\\(",res5_new$exposure_duration_frequency_route),"study_duration_units"])
 
   h1 <- res5_new[,c(2,3,4,5,7,12,13,23,18,21,22,24,25,26,27,28)]
@@ -199,11 +205,13 @@ import_atsdr_pfas_source <- function(db,
   h1$toxval_type <- "NOAEL"
   h1$toxval_units <- "mg/m3"
   h2 <-res5_new[,c(2,3,4,5,7,12,14,15,18,21,22,24,25,26,27,28)]
+
   names(h2)[names(h2) == "LOAEL"] <- "toxval_numeric"
   names(h2)[names(h2) == "LOAEL_less_serious_comment"] <- "toxval_detail"
   h2$toxval_type <- "LOAEL_less_serious"
   h2$toxval_units <- "mg/m3"
   h3 <- res5_new[,c(2,3,4,5,7,12,16,17,18,21,22,24,25,26,27,28)]
+
   names(h3)[names(h3) == "LOAEL_serious"] <- "toxval_numeric"
   names(h3)[names(h3) == "LOAEL_serious_comment"] <- "toxval_detail"
   h3$toxval_type <- "LOAEL_serious"
@@ -243,7 +251,6 @@ import_atsdr_pfas_source <- function(db,
   res6_new[grep("\\bDW\\b",res6_new$exposure_method),"exposure_method"] <- "drinking water"
   res6_new[grep("\\bW\\b",res6_new$exposure_method),"exposure_method"] <- "water"
   res6_new[grep("\\bC\\b",res6_new$exposure_method),"exposure_method"] <- "capsule"
-
   names(res6_new)[names(res6_new) == "data_collection"] <- "subsource"
   names(res6_new)[names(res6_new) == "exposure"] <- "study_type"
   res6_new[is.na(res6_new$system),"system"] <- res6_new[is.na(res6_new$system),"effects"]
@@ -263,16 +270,19 @@ import_atsdr_pfas_source <- function(db,
   res6_new[grep("^Gd\\s+",res6_new$exposure_duration_frequency_route),"study_duration_value"] <- gsub("(^Gd)\\s+(\\d+\\-)(\\d+)(\\s+.*)","\\3",res6_new[grep("^Gd\\s+",res6_new$exposure_duration_frequency_route),"exposure_duration_frequency_route"])
   res6_new[grep("^PND\\s+",res6_new$exposure_duration_frequency_route),"study_duration_units"] <- "post-natal day"
   res6_new[grep("^PND\\s+",res6_new$exposure_duration_frequency_route),"study_duration_value"] <- gsub("(^PND)\\s+(\\d+)\\s+(.*)","\\2",res6_new[grep("^PND\\s+",res6_new$exposure_duration_frequency_route),"exposure_duration_frequency_route"])
+
   res6_new[grep("\\bd\\b",res6_new$study_duration_units) , "study_duration_units"] <- "day"
   res6_new[grep("\\bwk\\b",res6_new$study_duration_units), "study_duration_units"] <- "week"
   res6_new[grep("\\bdays\\b",res6_new$study_duration_units), "study_duration_units"] <- "day"
   res6_new[grep("\\byr\\b",res6_new$study_duration_units), "study_duration_units"] <- "year"
   res6_new[grep("\\bad lib\\b",res6_new$study_duration_units), "study_duration_units"] <- "ad libitum"
+
   res6_new$NOAEL_comment <- res6_new$comments
   res6_new$year <- gsub("(.*)\\s+(\\d{4})(.*)", "\\2", res6_new$short_ref)
 
   h1 <- res6_new[,c(2,3,4,5,7,12,13,28,18,22:27,29)]
   names(h1)[names(h1) == "NOAEL"] <- "toxval_numeric"
+
   names(h1)[names(h1) == "NOAEL_comment"] <- "toxval_detail"
   h1$toxval_type <- "NOAEL"
   h1$toxval_units <- "mg/kg/day"
@@ -282,6 +292,7 @@ import_atsdr_pfas_source <- function(db,
   h2$toxval_type <- "LOAEL_less_serious"
   h2$toxval_units <- "mg/kg/day"
   h3 <- res6_new[,c(2,3,4,5,7,12,16,17,18,22:27,29)]
+
   names(h3)[names(h3) == "LOAEL_serious"] <- "toxval_numeric"
   names(h3)[names(h3) == "LOAEL_serious_comment"] <- "toxval_detail"
   h3$toxval_type <- "LOAEL_serious"
@@ -296,6 +307,7 @@ import_atsdr_pfas_source <- function(db,
   res6_new1[grep("Immuno/ Lymphoret",res6_new1$system),"system"] <- "immunological/lymphoreticular"
   res6_new1[grep("Hemato",res6_new1$system),"system"] <- "hematological"
   res6_new1[grep("Musc/skel",res6_new1$system),"system"] <- "musculoskeletal"
+
   res6_new1$critical_effect <- paste0(res6_new1$system,"-",res6_new1$toxval_detail)
   res6_new1$critical_effect <- gsub("\\-NA$","-", res6_new1$critical_effect)
   res6_new1$critical_effect <- gsub("\\-$","", res6_new1$critical_effect)
@@ -307,6 +319,7 @@ import_atsdr_pfas_source <- function(db,
   res6_new1[grep("\\bM\\b",res6_new1$sex), "sex"] <- "Male"
   res6_new1[grep("\\bF\\b",res6_new1$sex), "sex"] <- "Female"
   res6_new1$sex <- gsub("\\s+$","",res6_new1$sex)
+
   res6_new1$toxval_numeric <- as.numeric(gsub("(\\d+\\.*\\d*)(\\s*\\w*)","\\1",res6_new1$toxval_numeric))
   res6_new1$study_duration_value <- as.numeric(res6_new1$study_duration_value)
   res6_new1[is.na(res6_new1$toxval_numeric),"toxval_units"] <- "-"
@@ -327,6 +340,7 @@ import_atsdr_pfas_source <- function(db,
   res7_new$exposure_route <- "oral"
   res7_key <- res7_new[150:155,]
   res7_new <- res7_new[1:149,]
+
   res7_new[grep("\\(.*\\)",res7_new$exposure_duration_frequency_route),"exposure_method"] <- gsub("(.*)\\s+\\((.*)\\)$","\\2",res7_new[grep("\\(.*\\)",res7_new$exposure_duration_frequency_route),"exposure_duration_frequency_route"])
   res7_new[grep("\\bGO\\b",res7_new$exposure_method),"exposure_method"] <- "gavage with oil"
   res7_new[grep("\\bF\\b",res7_new$exposure_method),"exposure_method"] <- "feed"
@@ -368,6 +382,7 @@ import_atsdr_pfas_source <- function(db,
   res7_new[grep("\\bdays\\b",res7_new$study_duration_units), "study_duration_units"] <- "day"
   res7_new[grep("\\byr\\b",res7_new$study_duration_units), "study_duration_units"] <- "year"
   res7_new[grep("\\bad lib\\b",res7_new$study_duration_units), "study_duration_units"] <- "ad libitum"
+
   res7_new$NOAEL_comment <- res7_new$comments
   res7_new$year <- gsub("(.*)\\s+(\\d{4})(.*)", "\\2", res7_new$short_ref)
 
@@ -419,7 +434,6 @@ import_atsdr_pfas_source <- function(db,
   #####################################################################
   cat("Build combined dataframe of all atsdr pfas sources \n")
   #####################################################################
-
   comb_res <- list(res3_new1,res4_new1,res5_new1,res6_new1,res7_new1)
   common_cols <- Reduce(intersect, lapply(comb_res, colnames))
   reqd_cols <- c(names(res3_new1),"record_url")
@@ -453,3 +467,4 @@ import_atsdr_pfas_source <- function(db,
   #####################################################################
   source_prep_and_load(db,source="ATSDR PFAS",table="source_atsdr_pfas",res=all_res,F,T,T)
 }
+

@@ -36,7 +36,6 @@ toxval.config <- function() {
   datapath = "/ccte/ACToR1/ToxValDB9/Repo/"
   actorws.prod <- "https://actorws.epa.gov/actorws/toxval/v01/toxval_source"
   actorws.dev <- "http://ag.epa.gov:8528/actorws/toxval/v01/toxval_source"
-
   retval <- list(dsstox.db=dsstox.db,
               toxval.db=toxval.db,
               source.db=source.db,

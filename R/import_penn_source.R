@@ -25,12 +25,10 @@ import_penn_source <- function(db,
   h3 <- paste(res_header[c(19:20)], collapse = " ")
   h4 <- paste(res_header[c(21:23)], collapse = " ")
   h5 <- paste(res_header[c(24:26)], collapse = " ")
-
   k1 <- "RFDo_key"
   k2 <- "CSFo_key"
   k3 <- "RfCi_key"
   k4 <- "IUR_key"
-
   header_val_1 <- c(k1,k2,k3,k4,h3,h4,h5)
   header_val_2 <- c(h1,h2)
   no_header_res <- which(is.na(res[3,]))
@@ -42,7 +40,6 @@ import_penn_source <- function(db,
   new_header <- gsub("\\s+", " ", str_trim(new_header))
   names(res) <- new_header
   rm(h1,h2,h3,h4,h5,k1,k2,k3,k4)
-
   #####################################################################
   cat("Build penn_key_descriptions \n")
   #####################################################################
@@ -73,13 +70,11 @@ import_penn_source <- function(db,
                       "Aqueous Solubility Reference1","TF Vol from Surface Soil",
                       "TF Vol from SubSurface Soil","Organic Liquid",
                       "Boiling Point (degrees C)","Degradation Coefficient (K)(yr-1)")
-
   toxval_types_units <- grep("\\(.*", names(res1), value = T)
   toxval_types <- gsub("\\(.*?\\)|\\-\\d+$", "", toxval_types_units)
   toxval_types <- gsub("\\s+$","", toxval_types)
   toxval_units <- gsub(".*\\s+\\(", "", toxval_types_units)
   toxval_units <- gsub("\\)|\\(", "", toxval_units)
-
   voc_X <- grep('X', res1$VOC)
   org_liq_X <- grep('X', res1$`Organic Liquid`)
   res1$VOC[1:nrow(res1) %in% voc_X] <- rep('Y', length(voc_X))
@@ -92,7 +87,6 @@ import_penn_source <- function(db,
       }
     }
   }
-
   res1 <- lapply(res1, function(x) type.convert(as.character(x), as.is = T))
   res1 <- data.frame(res1, stringsAsFactors = F)
   colnames(res1) <- c("penn_id","name","casrn","RfDo (mg/kg-d)",
@@ -112,25 +106,21 @@ import_penn_source <- function(db,
   colnames(t1)[3] <- c("toxval_source")
   t1["toxval_type"] <- c(rep(toxval_types[1], nrow(t1)))
   t1["toxval_units"] <- c(rep(toxval_units[1], nrow(t1)))
-
   t2 <- res1[,c(2,6,7,3)]
   colnames(t2)[2] <- c("toxval_numeric")
   colnames(t2)[3] <- c("toxval_source")
   t2["toxval_type"] <- c(rep(toxval_types[2], nrow(t2)))
   t2["toxval_units"] <- c(rep(toxval_units[2], nrow(t2)))
-
   t3 <- res1[,c(2,8,9,3)]
   colnames(t3)[2] <- c("toxval_numeric")
   colnames(t3)[3] <- c("toxval_source")
   t3["toxval_type"] <- c(rep(toxval_types[3], nrow(t3)))
   t3["toxval_units"] <- c(rep(toxval_units[3], nrow(t3)))
-
   t4 <- res1[,c(2,10,11,3)]
   colnames(t4)[2] <- c("toxval_numeric")
   colnames(t4)[3] <- c("toxval_source")
   t4["toxval_type"] <- c(rep(toxval_types[4], nrow(t4)))
   t4["toxval_units"] <- c(rep(toxval_units[4], nrow(t4)))
-
   penn_types <- rbind(t1,t2,t3,t4)
   penn_types <- subset(penn_types,penn_types[,2]!="")
   penn_types <- subset(penn_types,penn_types[,2]!="0")

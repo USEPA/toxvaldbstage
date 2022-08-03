@@ -31,7 +31,3 @@ import_chiu_source <- function(db,
   #####################################################################
   source_prep_and_load(db,source="Chiu",table="source_chiu",res=res,F,T,T)
 }
-
-
-
-

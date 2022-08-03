@@ -23,7 +23,6 @@ toxval.load.alaska_dec <- function(toxval.db, source.db,log=F){
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################
@@ -36,7 +35,6 @@ toxval.load.alaska_dec <- function(toxval.db, source.db,log=F){
   res <- runQuery(query,source.db,T,F)
   res <- res[ , !(names(res) %in% c("source_id","clowder_id","parent_hash","create_time","modify_time","created_by"))]
   print(dim(res))
-
   #####################################################################
   cat("add other columns to res\n")
   #####################################################################

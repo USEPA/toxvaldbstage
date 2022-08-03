@@ -19,7 +19,6 @@ toxval.load.cancer <- function(toxval.db) {
 
   runQuery("delete from cancer_summary",toxval.db)
 
-
   file = paste0(toxval.config()$datapath,"niosh/niosh_files/NIOSH Carcinogens.xlsx")
   niosh <- read.xlsx(file)
   niosh$exposure_route <- "inhalation"

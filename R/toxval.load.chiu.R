@@ -28,7 +28,6 @@ toxval.load.chiu <- function(toxval.db, source.db, log=F){
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################
@@ -43,6 +42,7 @@ toxval.load.chiu <- function(toxval.db, source.db, log=F){
   res$source = source
   res$details_text = paste(source,"Details")
   print(dim(res))
+
   res[,"toxval_units"] <- "mg/kg-day"
   res$study_type <- "chronic"
   res$risk_assessment_class <- "chronic"
@@ -67,6 +67,7 @@ toxval.load.chiu <- function(toxval.db, source.db, log=F){
     else if(res[i,"exposure_route"]=="Other") {res[i,"exposure_route"] <- "other"; res[i,"exposure_method"] <- "other"}
     res[i,"casrn"] <- fix.casrn(res[i,"casrn"])
   }
+
   #multiple year formats and year values with 5 digit number are flagged as -1
   res[grep("^.*\\/\\s*[0-9]{4}$", res$year),"year"] <- gsub("(^.*\\/\\s*)([0-9]{4}$)","\\2",res[grep("^.*\\/\\s*[0-9]{4}$", res$year),"year"])
   res[grep("^.*\\s+[0-9]{4}$", res$year),"year"] <- gsub("(^.*\\s+)([0-9]{4}$)","\\2",res[grep("^.*\\s+[0-9]{4}$", res$year),"year"])

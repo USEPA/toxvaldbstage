@@ -85,6 +85,7 @@ import_efsa_source <- function(db,
     y <- x[is.element(x[,"output_id"],opid),]
     k <- sapply(y, is.factor)
     y[k] <- lapply(y[k], as.character)
+
     total[i,"title"] <- x[1,"title"]
     total[i,"long_ref"] <- x[1,"title"]
     total[i,"record_url"] <- x[1,"record_url"]
@@ -93,6 +94,7 @@ import_efsa_source <- function(db,
     total[i,"subsource"] <- x[1,"subsource"]
     if(i%%1000==0) cat("processed",i,"out of",nrow(total),"\n")
   }
+
   x <- total[,"study_type"]
   x[is.element(x,"acute toxicity")] <- "acute"
   x[is.element(x,"reproduction toxicity")] <- "reproductive"
@@ -124,7 +126,6 @@ import_efsa_source <- function(db,
   name.list <- c("casrn","name","source","subsource","source_url","record_url","toxval_type","toxval_numeric","toxval_numeric_qualifier","toxval_units",
                  "critical_effect","population","exposure_route","exposure_method","study_type","study_duration_value","study_duration_units",
                  "species_original","human_eco","year","long_ref","title","output_id", "record_source_type")
-
   total <- total[,name.list]
   total$study_duration_value <- gsub("-","", total$study_duration_value)
   total <- lapply(total, function(x) type.convert(as.character(x), as.is = T))

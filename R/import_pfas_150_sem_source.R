@@ -53,7 +53,6 @@ import_pfas_150_sem_source <- function(db,
   # non duplicated records having numeric values
   s_num_non_dup <- setdiff(s_num,s_num_dup)
   #18
-
   # extracting records that have the numeric value represented in the doses
   s_num_dup_1 <- s_num_dup[mapply(grepl, s_num_dup$toxval_numeric, s_num_dup$toxval_units),]
   #1415
@@ -94,7 +93,6 @@ import_pfas_150_sem_source <- function(db,
   # non duplicated records having decimal values
   s_dec_non_dup <- setdiff(s_dec,s_dec_dup)
   #3
-
   # extracting records that have the decimal value represented in the doses
   s_dec_dup_1 <- s_dec_dup[mapply(grepl, s_dec_dup$toxval_numeric, s_dec_dup$toxval_units),]
   #298
@@ -134,7 +132,6 @@ import_pfas_150_sem_source <- function(db,
   res2 <- rbind(s_num_new, s_dec_new)
   names(res2)[names(res2) == "toxval_units"] <- "dose"
   names(res2)[names(res2) == "toxval_units_1"] <- "toxval_units"
-
   res3 <- res2[,-c(4,5,6,9)]
   # values having ppm as units when the correct units were mg/m3 as represented in the data(10064, 30596)
   res3_fix_units <- res3[grep("\\:", res3$toxval_units),"toxval_numeric"]

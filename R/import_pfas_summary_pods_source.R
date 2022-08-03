@@ -79,7 +79,6 @@ import_pfas_summary_pods_source <- function(db,
                    "AdminData_Endpoint","Results_Sex_or_Species","Results_DoseDescriptor","Results_EffectLevel",
                    "Units","Results_Remarks","ToxVal.ECHA.Source.Match","exposure_route","study_duration_value",
                    "study_duration_units","species", "sex","study_type")
-
   names(res2) <- c("HEROID","long_ref","DSSTox_Substance_ID","ToxCategory","EndpointCategory",
                    "AdminData_Endpoint","Results_Sex_or_Species","Results_DoseDescriptor","Results_EffectLevel",
                    "Units","Results_Remarks","ToxVal.ECHA.Source.Match","exposure_route","study_duration_value",
@@ -87,7 +86,6 @@ import_pfas_summary_pods_source <- function(db,
   res <- rbind(res1, res2)
   res$name <- casrn_dict[match(res$DSSTox_Substance_ID,casrn_dict$INPUT),"PREFERRED_NAME"]
   res$casrn <- casrn_dict[match(res$DSSTox_Substance_ID,casrn_dict$INPUT),"CASRN"]
-
   res$Results_EffectLevel <- gsub("\\,","",res$Results_EffectLevel)
   qual <- grep("^[^[:alnum:]]",res$Results_EffectLevel)
   res[qual ,"toxval_numeric_qualifier"] <- gsub("(^[^[:alnum:]]+)(\\s*\\d*\\.*\\d*)","\\1",res[qual,"Results_EffectLevel"])
@@ -99,7 +97,6 @@ import_pfas_summary_pods_source <- function(db,
   #assign NA exposure route values having NOAEC & LOAEC toxval types as inhalation and ones having other types as oral
   res[grep(".*C$",res$toxval_type),"exposure_route"] <- "inhalation"
   res[grep(".*L$",res$toxval_type),"exposure_route"] <- "oral"
-
   names.list <- c("long_ref","exposure_route","study_duration_value","study_duration_units","species","sex","study_type",
                   "name","casrn","toxval_numeric_qualifier","toxval_numeric","toxval_units","toxval_type")
   res <- res[,names.list]

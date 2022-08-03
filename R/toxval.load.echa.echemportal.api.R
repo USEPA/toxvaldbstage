@@ -24,7 +24,6 @@ toxval.load.echa.echemportal.api <- function(toxval.db,source.db,log=F) {
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################
@@ -74,7 +73,6 @@ toxval.load.echa.echemportal.api <- function(toxval.db,source.db,log=F) {
     str_extract_all(res1$year, "[0-9]+"),
     function(x) min(as.integer(x))
   )
-
   # extract qualifier values
   res1[grep("^[^0-9]+", res1$experimental_value),"toxval_numeric_qualifier"] <-  gsub("(^[^0-9]+)(\\s+\\d+.*)","\\1", res1[grep("^[^0-9]+", res1$experimental_value),"experimental_value"])
   res1[grep("\\:", res1$toxval_numeric_qualifier),"toxval_numeric_qualifier"] <- gsub("(.*\\:)(.*)","\\2",res1[grep("\\:", res1$toxval_numeric_qualifier),"toxval_numeric_qualifier"])

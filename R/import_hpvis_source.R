@@ -141,11 +141,13 @@ import_hpvis_source <- function(db,
   hpvis_source_keys_table <- data.frame(source_name = res_names[-19], source_name_key = gsub("[a-z ]+","",res_names[-19]), stringsAsFactors = F)
   hpvis_source_keys_table$source_name_key[c(10,11)] <- c("GIVT","GIVV")
   hpvis_source_keys_table$new_source_names <- names(res1)
+
   for (i in 1:length(res1)){
     if (names(res1)[i] %in% hpvis_source_keys_table$new_source_names[i]){
       res1[[i]]$hpvis_source_key <- rep(hpvis_source_keys_table$source_name_key[i], nrow(res1[[i]]))
     }
   }
+
   #runInsertTable(hpvis_source_keys_table, "hpvis_source_name_key_table",db,do.halt=T,verbose=F )
 
   #####################################################################
@@ -155,6 +157,7 @@ import_hpvis_source <- function(db,
   res1[[10]][,c(37:38)] <- gsub("",NA,res1[[10]][,c(37:38)])
   res1[[11]][,c(43:44)] <- gsub("",NA,res1[[11]][,c(43:44)])
   res1[[18]][,c(50:51)] <- gsub("",NA,res1[[18]][,c(50:51)])
+
   for (i in 1:length(res1)){
     res1[[i]][,grep("(^X$)|(^X\\d+$)", colnames(res1[[i]]))] <- res1[[i]][,grep("(^X$)|(^X\\d+$)", colnames(res1[[i]]))][!sapply(res1[[i]][,grep("(^X$)|(^X\\d+$)", colnames(res1[[i]]))], function(x) all(is.na(x)| x == ""))]
   }
@@ -181,10 +184,12 @@ import_hpvis_source <- function(db,
   for (i in 1:length(res1)){
     subset_expo_dur[i]<- lapply(res1[i], "[", expo_dur_cols[[i]])
   }
+
   subset_expo_dur_units <-""
   for (i in 1:length(res1)){
     subset_expo_dur_units[i]<- lapply(res1[i], "[", expo_dur_units_cols[[i]])
   }
+
   for (i in 1:length(subset_expo_dur)){
     if ( ncol(subset_expo_dur[[i]]) == 3 ) {
       subset_expo_dur[[i]]$combined_exposure_duration <-as.numeric(apply(subset_expo_dur[[i]],1,max))
@@ -195,16 +200,19 @@ import_hpvis_source <- function(db,
       subset_expo_dur[[i]]$combined_exposure_duration_index_name <- gsub("^1$","Exposure_Duration", (subset_expo_dur[[i]]$combined_exposure_duration_index_name))
     }
   }
+
   for (i in 1:length(subset_expo_dur_units)){
     if ( ncol(subset_expo_dur_units[[i]]) == 3 ) {
       subset_expo_dur_units[[i]] <- subset_expo_dur_units[[i]][c("Exposure_Units.1","Exposure_Units","Exposure_Period_Units")]
     }
   }
+
   for (i in 1:length(subset_expo_dur_units)){
     if (ncol(subset_expo_dur_units[[i]]) == 3) {
       subset_expo_dur_units[[i]]$combined_exposure_duration_units <- subset_expo_dur_units[[i]][cbind(seq_along(as.numeric(subset_expo_dur[[i]]$combined_exposure_duration_index)), as.numeric(subset_expo_dur[[i]]$combined_exposure_duration_index))]
     }
   }
+
   hpvis_expo_duration <- mapply(cbind, subset_expo_dur, subset_expo_dur_units, SIMPLIFY = F)
 
   for (i in 1:length(res1)) {
@@ -254,7 +262,6 @@ import_hpvis_source <- function(db,
     tox_type2["toxval_exposure_duration_name"] <- c(rep("LOELR_Exposure_Duration", nrow(tox_type2)))
     colnames(tox_type2)[which(colnames(tox_type2) == "LOELR_Exposure_Units")] <- c("toxval_Exposure_Units")
     colnames(tox_type2)[which(colnames(tox_type2) == "LOELR_Upper_Mean_Value")] <- c("toxval_Upper_Range")
-
     cols_2_rm <- grep(paste(c(tox_cols[c(-4,-5)]), collapse = "|"), names(res3[[i]]), value = T )
     tox_type3 <- res3[[i]][ , !(names(res3[[i]]) %in% cols_2_rm)]
     colnames(tox_type3)[which(colnames(tox_type3) == "NOEC")] <- c("toxval_numeric")
@@ -267,7 +274,6 @@ import_hpvis_source <- function(db,
     tox_type3["toxval_exposure_duration_name"] <- c(rep("-", nrow(tox_type3)))
     tox_type3["toxval_Exposure_Units"] <- c(rep("-", nrow(tox_type3)))
     tox_type3["toxval_Upper_Range"] <- c(rep("", nrow(tox_type3)))
-
     cols_2_rm <- grep(paste(c(tox_cols[-6]), collapse = "|"), names(res3[[i]]), value = T )
     tox_type4 <- res3[[i]][ , !(names(res3[[i]]) %in% cols_2_rm)]
     colnames(tox_type4)[which(colnames(tox_type4) == "NOELR")] <- c("toxval_numeric")
@@ -304,7 +310,6 @@ import_hpvis_source <- function(db,
     tox_type1["toxval_exposure_duration_name"] <- c(rep("-", nrow(tox_type1)))
     tox_type1["toxval_Exposure_Units"] <- c(rep("-", nrow(tox_type1)))
     colnames(tox_type1)[which(colnames(tox_type1) == "Concentration_Upper_Value")] <- c("toxval_Upper_Range")
-
     cols_2_rm <- grep("^Concentration|new_toxval_type", names(res3[[i]]), value = T )
     cols_2_rm <- c(cols_2_rm, "Basis_for_Concentration")
     tox_type2 <- res3[[i]][ , !(names(res3[[i]]) %in% cols_2_rm)]
@@ -350,7 +355,6 @@ import_hpvis_source <- function(db,
   for (i in 1:length(res3)){
     subset_expo_dur_units2[i]<- lapply(res3[i], "[", expo_dur_units_cols2[[i]])
   }
-
   for (i in 1:length(subset_expo_dur_units2)){
     if (ncol(subset_expo_dur_units2[[i]]) == 2) {
       subset_expo_dur_units2[[i]]$duration_units <- subset_expo_dur_units2[[i]][cbind(seq_along(as.numeric(subset_expo_dur2[[i]]$duration_index)), as.numeric(subset_expo_dur2[[i]]$duration_index))]
@@ -380,6 +384,7 @@ import_hpvis_source <- function(db,
 
   #####################################################################
   cat("combine concentration percentage and concentration  result type to form toxval type in mammalian dataframes having fields represented in conc_cols.
+
   for dataframes which lack these conc_cols fields assign them.\n")
   #####################################################################
   res2 <- new_res[mammalian]
@@ -408,7 +413,6 @@ import_hpvis_source <- function(db,
   #####################################################################
   cat("incorporate updated mammalian data frames to new res and call the combined list of dataframes as res_new\n")
   #####################################################################
-
   res_new <- c(new_res[1:11], res2, new_res[19:20])
   #####################################################################
   cat("rename columns which represent the same field but are named differently in different dataframes\n")
@@ -469,12 +473,10 @@ import_hpvis_source <- function(db,
   #####################################################################
   res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "_+", replacement = "_")))
   res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "_$", replacement = "")))
-
   #####################################################################
   cat("order column names alphabetically\n")
   #####################################################################
   res_new <- lapply(res_new, function(x) x[,order(names(x))])
-
   #####################################################################
   cat("assign appropriate data types\n")
   #####################################################################
@@ -507,7 +509,6 @@ import_hpvis_source <- function(db,
   #   }
   #   if (stop){break}
   # }
-
   #####################################################################
   cat("required columns contain the major columns represented in the existing toxval source\n")
   #####################################################################
@@ -569,7 +570,6 @@ import_hpvis_source <- function(db,
   hpvis_all_data[grep("^G.*T$", hpvis_all_data$hpvis_source_key), "new_study_type"] <- "genetic toxicity - in vitro"
   hpvis_all_data[grep("SI", hpvis_all_data$hpvis_source_key), "new_study_type"] <- "skin irritation"
   hpvis_all_data[grep("SS", hpvis_all_data$hpvis_source_key), "new_study_type"] <- "skin sensitization"
-
   res = hpvis_all_data
   nlist = c(
     "hpvis_id","casrn","cas_key",
