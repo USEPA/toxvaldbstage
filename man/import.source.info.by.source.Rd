@@ -5,12 +5,12 @@
 \title{Load Source Info for each source into toxval
 The information is in the file ~/dictionary/source_in_2020_aug_17.xlsx}
 \usage{
-import.source.info.by.source(toxval.db, source)
+import.source.info.by.source(toxval.db, source = NULL)
 }
 \arguments{
 \item{toxval.db}{The version of toxval into which the source info is loaded.}
 
-\item{source}{The specific source to be loaded}
+\item{source}{The specific source to be loaded, If NULL, load for all sources}
 }
 \description{
 Load Source Info for each source into toxval

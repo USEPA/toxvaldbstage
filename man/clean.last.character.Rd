@@ -9,6 +9,9 @@ clean.last.character(x)
 \arguments{
 \item{x}{String to be cleaned}
 }
+\value{
+The cleaned string
+}
 \description{
 Clean unneeded characters from the end of a string
 }
