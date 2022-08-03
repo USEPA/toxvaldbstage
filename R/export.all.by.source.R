@@ -19,23 +19,16 @@ export.all.by.source <- function(toxval.db, source=NULL) {
 
   for(src in slist) {
     query = paste0("SELECT
-                    b.toxval_id,b.source_hash,b.source_table,
-                    a.dtxsid,a.casrn,a.name,a.cleaned_casrn, a.cleaned_name,b.chemical_id,
+                    a.dtxsid,a.casrn,a.name,a.cleaned_casrn, a.cleaned_name,
                     b.source,b.subsource,
-                    b.source_url,b.subsource_url,
                     b.qc_status,
-                    b.details_text,
-                    b.priority_id,
                     b.risk_assessment_class,
                     b.human_eco,
                     b.toxval_type,b.toxval_type_original,
                     b.toxval_subtype,
                     e.toxval_type_supercategory,
-                    e.toxval_type_category,
                     b.toxval_numeric,b.toxval_units,
                     b.toxval_numeric_original,b.toxval_units_original,
-                    b.toxval_numeric_standard,b.toxval_units_standard,
-                    b.toxval_numeric_human,b.toxval_units_human,
                     b.study_type,b.study_type_original,
                     b.study_duration_class,b.study_duration_class_original,
                     b.study_duration_value,b.study_duration_value_original,
@@ -60,8 +53,14 @@ export.all.by.source <- function(toxval.db, source=NULL) {
                     f.year,
                     f.issue,
                     f.url,
-                    f.document_name
-                    FROM
+                    f.document_name,
+                    e.toxval_type_category,
+                    b.source_url,b.subsource_url,
+                    b.toxval_id,b.source_hash,b.source_table,
+                    b.details_text,
+                    b.chemical_id,
+                    b.priority_id
+                   FROM
                     toxval b
                     INNER JOIN source_chemical a on a.chemical_id=b.chemical_id
                     LEFT JOIN species d on b.species_id=d.species_id
@@ -70,31 +69,12 @@ export.all.by.source <- function(toxval.db, source=NULL) {
                     WHERE
                     b.source='",src,"'")
     mat = runQuery(query,toxval.db,T,F)
-    mat = unique(mat)
     mat[mat$casrn=='-',"casrn"] = mat[mat$casrn=='-',"cleaned_casrn"]
     mat[mat$name=='-',"name"] = mat[mat$name=='-',"cleaned_name"]
-
     cremove = c("cleaned_name","cleaned_casrn")
     mat = mat[ , !(names(mat) %in% cremove)]
-
+    mat = unique(mat)
     cat(src,nrow(mat),"\n")
-    cat("missing data ...\n")
-    n1 = runQuery("select count(*) from toxval where toxval_id not in (select toxval_id from record_source)",toxval.db)[,1]
-    cat("missing from record_source:",n1,"\n")
-    n2 = runQuery("select count(*) from toxval where toxval_type not in (select toxval_type from toxval_dictionary)",toxval.db)[1,]
-    cat("missing from toxval_type_dictionary:",n2,"\n")
-    n3 = runQuery("select count(*) from toxval where dtxsid not in (select dtxsid from chemical)",toxval.db)[1,]
-    cat("missing from chemical:",n2,"\n")
-
-    col.list = names(mat)
-    exclude.list = c("toxval_id","toxval_numeric","toxval_numeric_original","toxval_numeric_converted",
-                      "study_duration_value","species_id","priority_id","study_id",
-                     "qc_status","toxval_numeric_standard","toxval_numeric_human")
-    col.list = col.list[!is.element(col.list,exclude.list)]
-
-    col.list = col.list[is.element(col.list,names(mat))]
-        cat(src,nrow(mat),"\n")
-    #res[src,"rows"] = nrow(mat)
     file = paste0(dir,"/toxval_all_",toxval.db,"_",src,".xlsx")
     sty = createStyle(halign="center",valign="center",textRotation=90,textDecoration = "bold")
     openxlsx::write.xlsx(mat,file,firstRow=T,headerStyle=sty)
