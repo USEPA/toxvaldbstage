@@ -25,6 +25,7 @@ import_echa_echemportal_api_source <- function(db,
     res[[i]] <- lapply(res[[i]], function(x) type.convert(as.character(x), as.is = T))
     res[[i]] <- data.frame(res[[i]], stringsAsFactors = F)
   }
+
   # res[[16]] and res[[18]] has no data in excel files in latest data retrieval on 9-14-21, cause identified as echa portal changes
 
   for (i in c(1:15,17,19:26)) {

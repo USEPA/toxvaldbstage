@@ -284,6 +284,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
     }
   }
+
   # extract year info from short_ref
   res2$year <- gsub("(.*)([0-9]{4})(.*)","\\2",res2$short_ref)
 
@@ -421,6 +422,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
     }
   }
+
   # extract year info from short_ref
   res3$year <- gsub("(.*)([0-9]{4})(.*)","\\2",res3$short_ref)
 
@@ -563,16 +565,19 @@ import_atsdr_pfas_2021_source <- function(db,
   }
 
   res4[which(is.na(res4$parameters_monitored)),"parameters_monitored"] <- "-"
+
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res4)){
       res4$sex[j] <- str_replace_all(res4$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
+
   res4[which(is.na(res4$sex)),"sex"] <- "-"
 
   # extract year info from short_ref
   res4$year <- gsub("(.*)([0-9]{4})(.*)","\\2",res4$short_ref)
+
   # assign toxval_units
   res4$toxval_units <- "mg/m3"
 
@@ -650,7 +655,6 @@ import_atsdr_pfas_2021_source <- function(db,
   res5[grep("^5 days.*0\\, 5 4 weeks \\(GW\\)", res5$duration),"doses"] <- "0, 5"
 
   res5[grep("^5 days.*0\\, 5 4 weeks \\(GW\\)", res5$duration),"duration"] <- "5 days/week 4 weeks (GW)"
-
   res5[grep("^5 days\\/week 4 weeks.*", res5$duration),"study_duration_value"] <- 4
   res5[grep("^5 days\\/week 4 weeks.*", res5$duration),"study_duration_units"] <- "week"
 
@@ -719,6 +723,7 @@ import_atsdr_pfas_2021_source <- function(db,
     valnew <- key_desc[i,2]
     res5[is.element(res5$endpoint,valold),"endpoint"] <- valnew
   }
+
   res5$parameters_monitored <- gsub("^\\s+|\\s+$","",res5$parameters_monitored)
 
   for (i in 1:nrow(key_desc)){
@@ -741,6 +746,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
     }
   }
+
   res5$exposure_method[grep("^\\(+.*\\)+$", res5$exposure_method)] <- gsub("(^\\(+)(.*)(\\)+)","\\2",res5$exposure_method[grep("^\\(+.*\\)+$", res5$exposure_method)])
 
   # extract year info from short_ref
@@ -896,6 +902,7 @@ import_atsdr_pfas_2021_source <- function(db,
     valnew <- key_desc[i,2]
     res6[is.element(res6$endpoint,valold),"endpoint"] <- valnew
   }
+
   res6$parameters_monitored <- gsub("^\\s+|\\s+$","",res6$parameters_monitored)
 
   for (i in 1:nrow(key_desc)){
@@ -916,6 +923,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
     }
   }
+
   res6$exposure_method[grep("^\\(+.*\\)+$", res6$exposure_method)] <- gsub("(^\\(+)(.*)(\\)+)","\\2",res6$exposure_method[grep("^\\(+.*\\)+$", res6$exposure_method)])
 
   # extract year info from short_ref

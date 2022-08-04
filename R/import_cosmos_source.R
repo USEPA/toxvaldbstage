@@ -81,7 +81,6 @@ import_cosmos_source <- function(db,
 
   new_res <- res[[10]]
   res <- res[-10]
-
   res <- lapply(res, function(x) {colnames(x) <- tolower(colnames(x));x})
   res <- lapply(res, function(x) setNames(x, gsub("test_substance_name", "name", names(x))))
   res <- lapply(res, function(x) setNames(x, gsub("registry_number", "casrn", names(x))))
@@ -91,7 +90,6 @@ import_cosmos_source <- function(db,
                            "cosmos_neuro_fob","cosmos_organ_weight","cosmos_pathology_macro",
                            "cosmos_pathology_micro","cosmos_repro_dev_adults","cosmos_repro_dev_offspring","cosmos_repro_offspring",
                            "cosmos_systemic", "cosmos_tissue_chemistry","cosmos_urinalysis"))
-
   #####################################################################
   cat("Build cosmos_study_information table \n")
   #####################################################################
@@ -106,3 +104,4 @@ import_cosmos_source <- function(db,
   #####################################################################
   source_prep_and_load(db,source="COSMOS",table="source_cosmos",res=new_res,F,T,T)
 }
+

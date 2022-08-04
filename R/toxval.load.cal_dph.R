@@ -26,7 +26,6 @@ toxval.load.cal_dph <- function(toxval.db, source.db,log=F){
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################
@@ -143,6 +142,7 @@ toxval.load.cal_dph <- function(toxval.db, source.db,log=F){
     new_log = log_message(output_log, output_message[,1])
     writeLines(new_log, paste0(toxval.config()$datapath,"output_log/",source,"_",Sys.Date(),".txt"))
   }
+
   #####################################################################
   cat("finish\n")
   #####################################################################

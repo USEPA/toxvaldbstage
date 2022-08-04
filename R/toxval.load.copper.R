@@ -25,7 +25,6 @@ toxval.load.copper <- function(toxval.db,source.db, log=F){
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################
@@ -40,7 +39,6 @@ toxval.load.copper <- function(toxval.db,source.db, log=F){
   res$source = source
   res$details_text = paste(source,"Details")
   print(dim(res))
-
 
   res[which(!is.na(res[,"toxval_subtype1"])),"toxval_subtype"] <- res[which(!is.na(res[,"toxval_subtype1"])),"toxval_subtype1"]
   res <- res[ , !(names(res) %in% c("toxval_id","toxval_subtype1","year1"))]

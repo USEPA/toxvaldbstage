@@ -28,7 +28,6 @@ toxval.load.dod.ered <- function(toxval.db,source.db,log=F) {
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################
@@ -89,13 +88,11 @@ toxval.load.dod.ered <- function(toxval.db,source.db,log=F) {
   #####################################################################
   new_dod[,"subsource"] <- "USACE_ERDC_ERED_database_12_07_2018"
   new_dod[,"source_url"] <- "https://ered.el.erdc.dren.mil/"
-
   #####################################################################
   cat("Get unique risk values\n")
   #####################################################################
   risk_names <- gsub('[0-9]+','',as.character(new_dod$risk))
   dod_risk <- unique(gsub('\\s+',"",unique((risk_names))))
-
   #####################################################################
   cat("create a copy of study_duration and assign duration units for long term studies (NOEC,LOEC) as d (days)\n")
   #####################################################################
@@ -106,7 +103,6 @@ toxval.load.dod.ered <- function(toxval.db,source.db,log=F) {
   dod_noec_loec <- dod_noec_loec[!(is.na(dod_noec_loec$new_study_duration)| dod_noec_loec$new_study_duration==""),]
   noec_loec_days <- paste(dod_noec_loec$new_study_duration, "d", sep = " ")
   new_dod[,"new_study_duration"][rownames(new_dod) %in% rownames(dod_noec_loec)] <- noec_loec_days
-
   #####################################################################
   cat("Assign duration units for short term studies (ED,LC) as d (days) if duration value > 4 and as h (hours) if <= 4\n")
   #####################################################################
@@ -123,7 +119,6 @@ toxval.load.dod.ered <- function(toxval.db,source.db,log=F) {
   dod_ED_LC[,2][rownames(dod_ED_LC) %in% rownames(ed_lc_hours)] <- ed_lc_h
   dod_ED_LC[,2][rownames(dod_ED_LC) %in% rownames(ed_lc_days)] <- ed_lc_d
   new_dod[,"new_study_duration"][rownames(new_dod) %in% rownames(dod_ED_LC)] <- dod_ED_LC$new_study_duration
-
   #####################################################################
   cat("Assign duration units for the rest of the short term studies as h (hours)\n")
   #####################################################################
@@ -135,7 +130,6 @@ toxval.load.dod.ered <- function(toxval.db,source.db,log=F) {
   dod_short_term <- dod_short_term[!(is.na(dod_short_term$new_study_duration)| dod_short_term$new_study_duration==""),]
   all_short_term <- paste(dod_short_term$new_study_duration, "h", sep = " ")
   new_dod[,"new_study_duration"][rownames(new_dod) %in% rownames(dod_short_term)] <- all_short_term
-
   #####################################################################
   cat("create fields study_duration_values and study_duration_units\n")
   #####################################################################

@@ -80,7 +80,6 @@ import_hawc_pfas_150_source <- function(db,
   hawc_pfas_150$NOEL_units <-  dose_dict[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$NOEL),paste(dose_dict$dose_regime,dose_dict$dose_group_id)),"dose_units.name"]
   hawc_pfas_150$LOEL_values <- dose_dict[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$LOEL),paste(dose_dict$dose_regime,dose_dict$dose_group_id)),"dose"]
   hawc_pfas_150$LOEL_units <-  dose_dict[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$LOEL),paste(dose_dict$dose_regime,dose_dict$dose_group_id)),"dose_units.name"]
-
   dose_dict2 <- unique(dose_dict[,c("dose_regime","dose")])
   doses<- aggregate(dose ~ dose_regime, data = dose_dict2, toString)
   hawc_pfas_150$doses <-  doses[match(hawc_pfas_150$animal_group.dosing_regime.id,doses$dose_regime),"dose"]

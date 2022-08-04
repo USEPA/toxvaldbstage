@@ -25,7 +25,6 @@ toxval.load.wignall <- function(toxval.db,source.db, log=F){
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################
@@ -264,7 +263,6 @@ toxval.load.wignall <- function(toxval.db,source.db, log=F){
   refs$record_source_note = "-"
   refs$record_source_level = "-"
   print(dim(res))
-
   #####################################################################
   cat("load res and refs to the database\n")
   #####################################################################

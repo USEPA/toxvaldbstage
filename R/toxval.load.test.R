@@ -1,4 +1,3 @@
-library(uuid)
 #-------------------------------------------------------------------------------------
 #' Load TEST data from toxval_source to toxval
 #'
@@ -26,7 +25,6 @@ toxval.load.test <- function(toxval.db, source.db, log=F) {
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################
