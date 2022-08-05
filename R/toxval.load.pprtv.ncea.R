@@ -66,9 +66,17 @@ toxval.load.pprtv.ncea <- function(toxval.db, source.db, log=F){
   res$toxval_numeric_original <- res$toxval_numeric
   res[is.na(res[,"document_name"]),"document_name"] <- "-"
   res <- unique(res)
+
+  res[is.element(res$toxval_type,c("Chronic Reference Concentration (c-RfC)",
+                                   "Chronic Reference Dose (c-RfD)",
+                                   "Sub-chronic Reference Dose (s-RfD)",
+                                   "Sub-chronic Reference Concentration (s-RfC)")),
+      "species_original"] = "Human (RA)"
+
+  res[is.element(res$study_type,c("Human")),"species_original"] = "Human"
+
   cremove = c("rfv_id","","","")
   res = res[ , !(names(res) %in% cremove)]
-
   #####################################################################
   cat("find columns in res that do not map to toxval or record_source\n")
   #####################################################################
