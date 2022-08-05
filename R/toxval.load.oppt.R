@@ -53,7 +53,9 @@ toxval.load.oppt <- function(toxval.db, source.db, log=F){
                                              "Developmental Toxicity",
                                              "Repeated-Dose Toxicity",
                                              "Reproductive Toxicity",
-                                             "Reproductive/Developmental Toxicity")),]
+                                             "Reproductive/Developmental Toxicity",
+                                             "acute","chronic","reproduction","repeat dose","subacute","subchronic",
+                                             "reproduction developmental")),]
 
   res[is.element(res,"#N/A")] <- "-"
   res$document_name = res$srcf
