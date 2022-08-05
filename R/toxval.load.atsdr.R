@@ -114,7 +114,7 @@ toxval.load.atsdr <- function(toxval.db,source.db, log=F){
   res$human_eco <- "human health"
   res$media <- "-"
   res$sex <- "-"
-  res[,"species_original"] <- "human"
+  res[,"species_original"] <- "Human (RA)"
   res$subsource <- "CDC"
   res$details_text <- "ATSDR Details"
   res$toxval_numeric_original <- res$toxval_numeric
