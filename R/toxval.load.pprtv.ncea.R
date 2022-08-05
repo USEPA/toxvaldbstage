@@ -23,7 +23,6 @@ toxval.load.pprtv.ncea <- function(toxval.db, source.db, log=F){
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################
@@ -142,7 +141,6 @@ toxval.load.pprtv.ncea <- function(toxval.db, source.db, log=F){
   remove = nlist[!is.element(nlist,cols)]
   res = res[ , !(names(res) %in% c(remove))]
   print(dim(res))
-
 
   #####################################################################
   cat("add extra columns to refs\n")

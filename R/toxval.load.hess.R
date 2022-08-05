@@ -25,7 +25,6 @@ toxval.load.hess <- function(toxval.db,source.db, log=F){
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################
@@ -119,7 +118,6 @@ toxval.load.hess <- function(toxval.db,source.db, log=F){
   res1[grep("^[^[:alnum:]]+",res1$toxval_numeric_qualifier),"toxval_numeric_qualifier"] <- gsub("(^[^[:alnum:]])(\\s*\\d+\\.*\\d*)(\\s*.*)","\\1",res1[grep("^[^[:alnum:]]+",res1$toxval_numeric_qualifier),"toxval_numeric_qualifier"])
   res1[grep("^(\\-)",res1$toxval_numeric),"toxval_numeric"] <- NA
   res1[grep("^(\\-)",res1$toxval_numeric_qualifier),"toxval_numeric_qualifier"] <- "-"
-
   min_val <- function(x) if(all(is.na(x))) NA else min(x,na.rm = T)
   getmin_val <- function(col) str_extract_all(col, pattern = "[0-9\\.]+") %>%
     lapply(.,function(x)min_val(as.numeric(x)) ) %>%

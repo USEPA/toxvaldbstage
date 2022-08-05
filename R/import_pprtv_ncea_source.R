@@ -130,7 +130,6 @@ import_pprtv_ncea_source <- function(db,
   res$pprtv_ncea_new_scrape_table$Target <- iconv(res$pprtv_ncea_new_scrape_table$Target,"UTF-8","ASCII"," ")
   res$pprtv_ncea_new_scrape_table$Critical_Effect <- iconv(res$pprtv_ncea_new_scrape_table$Critical_Effect,"UTF-8","ASCII"," ")
   res$pprtv_ncea_new_scrape_table$UF <- iconv(res$pprtv_ncea_new_scrape_table$UF,"UTF-8","ASCII"," ")
-
   #####################################################################
   cat("convert character UF to numeric in pprtv_ncea_new_scrape_table  \n")
   #####################################################################

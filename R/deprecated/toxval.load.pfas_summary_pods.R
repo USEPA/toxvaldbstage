@@ -24,7 +24,6 @@ toxval.load.pfas_summary_pods <- function(toxval.db, source.db,log=F){
   cat("clean source_info by source\n")
   #####################################################################
   import.source.info.by.source(toxval.db, source)
-
   #####################################################################
   cat("clean by source\n")
   #####################################################################

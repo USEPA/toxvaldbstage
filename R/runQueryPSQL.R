@@ -10,7 +10,6 @@ library(DBI)
 #' @export
 #--------------------------------------------------------------------------------------
 runQuery_psql <- function(query,db,do.halt=T,verbose=T) {
-
   if(!exists("DB.PSQLSERVER")) {
     cat("DB.PSQLSERVER not defined\n")
     return(NULL)
@@ -35,9 +34,7 @@ runQuery_psql <- function(query,db,do.halt=T,verbose=T) {
   tryCatch({
     con <- dbConnect(drv=RPostgreSQL::PostgreSQL(),user=DB.PSQLUSER,port=DB.PSQLPORT,password=DB.PSQLPASSWORD,host=DB.PSQLSERVER,dbname=db)
     d1 <- dbGetQuery(con,query)
-
     dbDisconnect(con)
-
     return(d1)
   })
 }

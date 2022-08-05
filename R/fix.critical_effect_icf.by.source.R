@@ -11,6 +11,7 @@ fix.critical_effect.icf.by.source <- function(toxval.db, source) {
   #####################################################################
   cat("extract dictionary info \n")
   #####################################################################
+
   file <- paste0(toxval.config()$datapath,"dictionary/icf_critical_effect.xlsx")
   dict <- read.xlsx(file)
   print(dim(dict))
@@ -24,6 +25,7 @@ fix.critical_effect.icf.by.source <- function(toxval.db, source) {
   #####################################################################
   cat("find critical effect values from toxval that are missing from icf dict \n")
   #####################################################################
+
   x <- unique(res$critical_effect_original)
   x <- x[!is.element(x,dict[,2])]
   cat("   missing values in dictionary:",length(x),"\n")
