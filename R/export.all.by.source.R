@@ -15,6 +15,20 @@ export.all.by.source <- function(toxval.db, source=NULL) {
   if(!dir.exists(dir)) dir.create(dir)
 
   slist = sort(runQuery("select distinct source from toxval",toxval.db)[,1])
+
+  if(is.null(source)) {
+    nlist = c("source","notes","dtxsid","casrn","name","risk_assessment_class","human_eco","toxval_type",
+      "b.toxval_numeric","toxval_units","study_type","common_name","strain","sex",
+      "generation","exposure_route","exposure_method","critical_effect"
+    )
+    qc = as.data.frame(matrix(nrow=length(slist),ncol=length(nlist)))
+    names(qc) = nlist
+    qc$source = slist
+    file = paste0(dir,"/ToxValDB release QA ",toxval.db," ",Sys.Date(),".xlsx")
+    sty = createStyle(halign="center",valign="center",textRotation=90,textDecoration = "bold")
+    openxlsx::write.xlsx(qc,file,firstRow=T,headerStyle=sty)
+  }
+
   if(!is.null(source)) slist=source
 
   for(src in slist) {
