@@ -107,7 +107,7 @@ toxval.load.hess <- function(toxval.db,source.db, log=F){
   res1[grep("\\(", res1$exposure_method),"exposure_method"] <- gsub("(.*\\s*\\()(.*)(\\))","\\2",res1[grep("\\(", res1$exposure_method),"exposure_method"])
   res1$source_url <- "https://www.nite.go.jp/en/chem/qsar/hess_update-e.html"
   res1[grep("^\\d+\\-day",res1$study_type),"study_type"] <- gsub("(^\\d+\\-day\\s+)(.*)","\\2",res1[grep("^\\d+\\-day",res1$study_type),"study_type"])
-  res1[grep("^Repeated\\s*\\-*dose",res1$study_type, ignore.case = T),"study_type"] <- "repeat dose"
+  res1[grep("^Repeated\\s*\\-*dose",res1$study_type, ignore.case = T),"study_type"] <- "subchronic"
   res1[grep("^Combined",res1$study_type, ignore.case = T),"study_type"] <- gsub("([^\\(])(\\s*\\(+.*)","\\1",res1[grep("^Combined",res1$study_type, ignore.case = T),"study_type"])
   res1[grep("\\:",res1$study_type),"study_type"] <- gsub("(.*\\:)(.*)","\\2",res1[grep("\\:",res1$study_type),"study_type"])
   res1[grep("\\(",res1$study_type),"study_type"] <- gsub("(\\(.*\\))","",res1[grep("\\(",res1$study_type),"study_type"])
@@ -180,6 +180,46 @@ toxval.load.hess <- function(toxval.db,source.db, log=F){
               "other_findings"    )
   res = res[ , !(names(res) %in% cremove)]
   res = res[!is.na(res$toxval_numeric),]
+
+  # #####################################################################
+  # cat("fix repeat dose study type\n")
+  # #####################################################################
+  # x = res[res$study_type=="repeat dose",]
+  # y = res[res$study_type!="repeat dose",]
+  #
+  #
+  # browser()
+  #
+  # x[is.element(x$study_duration_units,"Years"),"study_type"] = "chronic"
+  # x[is.element(x$study_duration_units,"Hours"),"study_type"] = "acute"
+  # x[is.element(x$study_duration_units,"Minutes"),"study_type"] = "acute"
+  # x = x[is.element(x$study_type,"repeat-dose"),]
+  # x1 = x[is.element(x$study_duration_units,"Weeks"),]
+  # x2 = x[is.element(x$study_duration_units,"Days"),]
+  # x3 = x[is.element(x$study_duration_units,"Months"),]
+  # x4 = x[is.element(x$study_duration_units,""),]
+  # x5 = x[is.element(x$study_duration_units,"Other"),]
+  #
+  # x1a = x1[!is.na(x1$study_duration_value),]
+  # x1b = x1[is.na(x1$study_duration_value),]
+  # x1a$study_type = "chronic"
+  # x1a[x1a$study_duration_value<14,"study_type"] = "subchronic"
+  # x1a[x1a$study_duration_value<4,"study_type"] = "subacute"
+  #
+  # x2a = x2[!is.na(x2$study_duration_value),]
+  # x2b = x2[is.na(x2$study_duration_value),]
+  # x2a$study_type = "chronic"
+  # x2a[x2a$study_duration_value<100,"study_type"] = "subchronic"
+  # x2a[x2a$study_duration_value<28,"study_type"] = "subacute"
+  #
+  # x3a = x3[!is.na(x3$study_duration_value),]
+  # x3b = x3[is.na(x3$study_duration_value),]
+  # x3a$study_type = "chronic"
+  # x3a[x3a$study_duration_value<14,"study_type"] = "subchronic"
+  # x3a[x3a$study_duration_value<4,"study_type"] = "subacute"
+  #
+  # res = rbind(x1a,x1b,x2a,x2b,x3a,x3b,x4,x5,y)
+
   #####################################################################
   cat("find columns in res that do not map to toxval or record_source\n")
   #####################################################################
