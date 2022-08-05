@@ -89,4 +89,6 @@ fix.critical_effect.icf.by.source <- function(toxval.db, source) {
   }
   query <- paste0("update toxval set critical_effect ='-' where critical_effect_original is NULL and source like '",source,"'")
   runInsert(query,toxval.db,T,F,T)
+  query <- paste0("update toxval set critical_effect ='-' where critical_effect_original ='NA' and source like '",source,"'")
+  runInsert(query,toxval.db,T,F,T)
 }
