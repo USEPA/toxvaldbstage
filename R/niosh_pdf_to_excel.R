@@ -1,8 +1,8 @@
-library('openxlsx')
-library('tidyverse')
-library('tabulizer')
-library('shiny')
-library('miniUI')
+# library('openxlsx')
+# library('tidyverse')
+# library('tabulizer')
+# library('shiny')
+# library('miniUI')
 
 #--------------------------------------------------------------------------------------
 # code to create niosh_IDLH_2020.xlsx from CDC - Index of Chemicals - NIOSH Publications and Products.pdf produced

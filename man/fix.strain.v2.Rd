@@ -4,14 +4,14 @@
 \alias{fix.strain.v2}
 \title{Set the strain information in toxval}
 \usage{
-fix.strain.v2(toxval.db, source, date_string = "2022-05-25")
+fix.strain.v2(toxval.db, source = NULL, date_string = "2022-08-04")
 }
 \arguments{
 \item{toxval.db}{The version of the database to use}
 
-\item{source}{The source to be fixed}
+\item{source}{The source to be fixed. If NULL, fix for all sources}
 
-\item{date_string}{The date ofhte latest dictinary version}
+\item{date_string}{The date of the latest dictionary version}
 }
 \description{
 Set the strain information in toxval

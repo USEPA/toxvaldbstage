@@ -4,12 +4,12 @@
 \alias{fix.human_eco.by.source}
 \title{Fix the human_eco flag}
 \usage{
-fix.human_eco.by.source(toxval.db, source, reset = T)
+fix.human_eco.by.source(toxval.db, source = NULL, reset = T)
 }
 \arguments{
 \item{toxval.db}{The version of toxval in which the data is altered.}
 
-\item{source}{The source to be fixed}
+\item{source}{The source to be fixed. If NULL, fix all sources}
 
 \item{reset}{If TRUE, reset all values to 'not specified' before processing all records in the source}
 }
