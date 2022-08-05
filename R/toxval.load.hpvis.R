@@ -46,27 +46,7 @@ toxval.load.hpvis <- function(toxval.db,source.db,log=F) {
   #####################################################################
   res$long_ref = res$study_reference
   res$quality = res$reliability
- #  res[!is.na(res$toxval_numeric),] -> res
- #  res <- res[!is.na(res[,"casrn"]),]
- #  lr.list <- unique(res$long_ref)
- # browser()
- #   for(i in 1:nrow(res)) {
- #    long_ref <- res[i,"long_ref"]
- #    temp <- res[is.element(res[,"long_ref"],long_ref),]
- #    if(nrow(temp)>1) {
- #      if(is.element("Yes",temp[i,"glp"])) res[i,"glp"] <- "Yes"
- #      else if(is.element("No",temp[i,"glp"])) res[i,"glp"] <- "No"
- #      else res[i,"glp"] <- "No Data"
- #
- #      if(is.element(1,temp[i,"quality"])) res[i,"quality"] <- 1
- #      else if(is.element(2,temp[i,"quality"])) res[i,"quality"] <- 2
- #      else if(is.element(3,temp[i,"quality"])) res[i,"quality"] <- 3
- #      else if(is.element(4,temp[i,"quality"])) res[i,"quality"] <- 4
- #      else res[i,"quality"] <- -1
- #    }
- #  }
- #  res <- unique(res)
-  #browser()
+
   cremove = c("toxval_basis_for_concentration","toxval_upper_range","duration_index_name","program_flag",
               "consortium_name","reliability","study_reference","hpvis_source_key",
               "dose_remarks","key_study_sponsor_indicator","method_guideline_followed","reliability_remarks",
@@ -74,6 +54,40 @@ toxval.load.hpvis <- function(toxval.db,source.db,log=F) {
               "submitter_s_name","test_conditions_remarks","test_substance_purity","hpvis_id")
   res = res[ , !(names(res) %in% cremove)]
 
+  #####################################################################
+  cat("fix repeat dose study type\n")
+  #####################################################################
+  x = res[res$study_type=="repeat-dose",]
+  y = res[res$study_type!="repeat-dose",]
+  x[is.element(x$study_duration_units,"Years"),"study_type"] = "chronic"
+  x[is.element(x$study_duration_units,"Hours"),"study_type"] = "acute"
+  x[is.element(x$study_duration_units,"Minutes"),"study_type"] = "acute"
+  x = x[is.element(x$study_type,"repeat-dose"),]
+  x1 = x[is.element(x$study_duration_units,"Weeks"),]
+  x2 = x[is.element(x$study_duration_units,"Days"),]
+  x3 = x[is.element(x$study_duration_units,"Months"),]
+  x4 = x[is.element(x$study_duration_units,""),]
+  x5 = x[is.element(x$study_duration_units,"Other"),]
+
+  x1a = x1[!is.na(x1$study_duration_value),]
+  x1b = x1[is.na(x1$study_duration_value),]
+  x1a$study_type = "chronic"
+  x1a[x1a$study_duration_value<14,"study_type"] = "subchronic"
+  x1a[x1a$study_duration_value<4,"study_type"] = "subacute"
+
+  x2a = x2[!is.na(x2$study_duration_value),]
+  x2b = x2[is.na(x2$study_duration_value),]
+  x2a$study_type = "chronic"
+  x2a[x2a$study_duration_value<100,"study_type"] = "subchronic"
+  x2a[x2a$study_duration_value<28,"study_type"] = "subacute"
+
+  x3a = x3[!is.na(x3$study_duration_value),]
+  x3b = x3[is.na(x3$study_duration_value),]
+  x3a$study_type = "chronic"
+  x3a[x3a$study_duration_value<14,"study_type"] = "subchronic"
+  x3a[x3a$study_duration_value<4,"study_type"] = "subacute"
+
+  res = rbind(x1a,x1b,x2a,x2b,x3a,x3b,x4,x5,y)
   #####################################################################
   cat("find columns in res that do not map to toxval or record_source\n")
   #####################################################################
