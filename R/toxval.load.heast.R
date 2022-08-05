@@ -39,6 +39,7 @@ toxval.load.heast <- function(toxval.db,source.db,log=F) {
   res$source = source
   res$details_text = paste(source,"Details")
   print(dim(res))
+  res[is.element(res$toxval_type,c("RfD","RfC")),"species"] = "Human (RA)"
 
   #####################################################################
   cat("Add the code from the original version from Aswani\n")

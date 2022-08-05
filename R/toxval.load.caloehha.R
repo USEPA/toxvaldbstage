@@ -377,6 +377,7 @@ toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
                                    "study_duration_units_original","document_name","chemical_id"))]
   res = data.frame(lapply(res, function(x) if(class(x)=="character") trimws(x) else(x)), stringsAsFactors=F, check.names=F)
   res = res[!is.na(res[,"casrn"]),]
+  res[is.element(res$species_original,"Human"),"species_original"] = "Human (RA)"
   #####################################################################
   cat("add other columns to res\n")
   #####################################################################

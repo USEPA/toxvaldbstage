@@ -49,6 +49,7 @@ toxval.load.alaska_dec <- function(toxval.db, source.db,log=F){
   res <- fill.toxval.defaults(toxval.db,res)
   res <- generate.originals(toxval.db,res)
   if(is.element("species_original",names(res))) res[,"species_original"] <- tolower(res[,"species_original"])
+  res$species_original = "Human (RA)"
   res$toxval_numeric <- as.numeric(res$toxval_numeric)
   print(dim(res))
 
