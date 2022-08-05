@@ -65,7 +65,7 @@ toxval.load.pprtv.ornl <- function(toxval.db,source.db,log=F) {
     browser()
   }
   print(dim(res))
-
+  res[is.element(res$toxval_type,c("RfD","RfC")),"species_original"] = "Human (RA)"
   # examples ...
   # names(res)[names(res) == "source_url"] = "url"
   # colnames(res)[which(names(res) == "phenotype")] = "critical_effect"
