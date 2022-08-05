@@ -6,7 +6,7 @@ Author: Aswani Unikrishnan
 Maintainer: Richard Judson <judson.richard@epa.gov>
 Description: ToxValDB is a database containing quantitative records form in vivo toxicologye studies from 
   many sources (46 for this release). The database has 2 main parts - toxval_source containing 
-  source data in separate tables, and the main toxval schema which combines data from multiple sources 
+  source data in separate tables, and the main toxval schema which combines data from multiple sources
   into a single format. Data is read from files or other databses into toxval_sources and then 
   pulled into toxval where terms are converted to standard values. The ToxValDB SOPs describe in more 
   detail how to run the code.

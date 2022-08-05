@@ -51,6 +51,8 @@ git remote set-url origin ssh://git@ccte-bitbucket.epa.gov:7999/toxval/toxvaldb0
 git push -u origin --all
 git push origin --tagsr
 
+git push -u origin master
+
 https://ccte-bitbucket.epa.gov/projects/TOXVAL/repos/toxvaldb09/browse
 
 ---------------------------------------------------------------------------------------------
