@@ -2,9 +2,10 @@
 #' Set the clowder_id and document_name in res
 #' @param res The input dataframe
 #' @param source The data source name
+#' @param map_file A dataframe of Clowder document mapping info \code{see update.source.clowder.id.R}
 #' @return Returns the input dataframe with defaults set
 #--------------------------------------------------------------------------------------
-set_clowder_id <- function(res,source) {
+set_clowder_id <- function(res,source, map_file=NULL) {
   printCurrentFunction(source)
   file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx")
   map.icf = openxlsx::read.xlsx(file)
