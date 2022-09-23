@@ -9,7 +9,11 @@ library(DBI)
 #' @param verbose if TRUE, print diagnostic information
 #' @export
 #--------------------------------------------------------------------------------------
-runQuery <- function(query,db,do.halt=T,verbose=F) {
+runQuery <- function(query=NULL,db,do.halt=T,verbose=F) {
+  if(is.null(query)){
+    cat("No query provided...\n")
+    return(NULL)
+  }
 
   if(!exists("DB.SERVER")) {
     cat("DB.SERVER not defined\n")
@@ -46,7 +50,8 @@ runQuery <- function(query,db,do.halt=T,verbose=F) {
     if(do.halt) browser()
     return(NULL)
   }, error = function(e) {
-    cat("ERROR:",query,"\n")
+    #cat("ERROR:",query,"\n")
+    cat("Error messge: ",paste0(e, collapse=" | "), "\n")
     dbDisconnect(con)
     if(do.halt) browser()
     return(NULL)
