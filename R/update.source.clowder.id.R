@@ -37,13 +37,24 @@ update.source.clowder.id <- function(src_tbl, map_file = NULL, db,
                                 source=src_tbl,
                                 map_file=map_file)
 
+    cat("\nNeed to update code to use a better write table call approach")
+    # Push temp table of updates
+    con <- dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
+    res = dbWriteTable(con,
+                       name="temp_table2",
+                       value=mapped_res,
+                       row.names=FALSE,
+                       overwrite=TRUE)
+    dbDisconnect(con)
+    # Query to join and make updates
+    update_query = paste0("UPDATE ", src_tbl," a INNER JOIN temp_table2 b ",
+    "ON (a.source_hash = b.source_hash) SET a.clowder_id = b.clowder_id, ",
+    "a.document_name = b.document_name"
+    )
     # Push updates
-    # write_table(name = 'temp_table2', data = merged, db)
-    update_query = paste0("UPDATE ", src_tbl, " temp_table2 SET ",
-                          src_tbl, ".clowder_id=temp_table2.clowder_id",
-                          " WHERE ", src_tbl, ".source_hash=temp_table2.source_hash")
-    # runStatement(query=update_query)
-    # runStatement(query="DROP temp_table2 IF EXISTS)
+    runStatement(query=update_query, db=db)
+    # Drop temp table
+    runStatement(query="DROP TABLE IF EXISTS temp_table2", db=db)
   } else {
     cat("\nNo new records to update. Set 'reset' to TRUE if a full reset is desired.")
   }
