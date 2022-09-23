@@ -46,7 +46,7 @@ fix.all.param.by.source <- function(toxval.db, source=NULL, fill.toxval_fix=T) {
   slist = runQuery("select distinct source from toxval",toxval.db)[,1]
   if(!is.null(source)) slist = source
 
-  slist = slist[!is.element(slist,"ECOTOX")]
+  #slist = slist[!is.element(slist,"ECOTOX")]
   for(source in slist) {
     cat("\n-----------------------------------------------------\n")
     cat(source,"\n")

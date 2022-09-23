@@ -49,6 +49,7 @@ toxval.load.test <- function(toxval.db, source.db, log=F) {
   cremove = c("toxval_numeric_original","","","")
   res = res[ , !(names(res) %in% cremove)]
   res$study_type = "acute"
+  res$species_original = "Rat"
   #####################################################################
   cat("find columns in res that do not map to toxval or record_source\n")
   #####################################################################

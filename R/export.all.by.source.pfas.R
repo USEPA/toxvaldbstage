@@ -30,6 +30,12 @@ export.all.by.source.pfas <- function(toxval.db) {
   dlist = unique(dlist)
   cat("n(dtxsid)[3]:",length(dlist),"\n")
 
+  file = paste0(dir,"/PFAS chemicals.xlsx")
+  temp = read.xlsx(file)
+  dlist = c(dlist,temp$dtxsid)
+  dlist = unique(dlist)
+  cat("n(dtxsid)[3]:",length(dlist),"\n")
+
   dlist2 = c(dlist,runQuery("select dtxsid from source_chemical where source in ('HAWC PFAS 150','HAWC PFAS 430','PFAS 150 SEM v2','ATSDR PFAS','ATSDR PFAS 2021')",toxval.db)[,1])
   dlist2 = unique(dlist2)
   dlist = c(dlist,dlist2)

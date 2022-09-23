@@ -33,7 +33,8 @@ toxval.load.echa.echemportal.api <- function(toxval.db,source.db,log=F) {
   cat("load data to res\n")
   #####################################################################
   query = paste0("select * from ",source_table)
- # query = paste0("select * from ",source_table," limit 1000")
+  #query = paste0("select * from ",source_table," where casrn='111-14-8'")
+  # query = paste0("select * from ",source_table," limit 1000")
   res = runQuery(query,source.db,T,F)
   res = res[ , !(names(res) %in% c("source_id","clowder_id","parent_hash","create_time","modify_time","created_by"))]
   res$source = source
@@ -55,6 +56,8 @@ toxval.load.echa.echemportal.api <- function(toxval.db,source.db,log=F) {
   res1 <- res
   res1$sex <- "-"
 
+  #res1 = res1[is.element(res1$source_table,"RepeatedDoseToxicityOral"),]
+  #browser()
   # change encoding to utf8
   res1$experimental_value <- enc2utf8(res1$experimental_value)
 
@@ -80,13 +83,14 @@ toxval.load.echa.echemportal.api <- function(toxval.db,source.db,log=F) {
   # extract minimum numeric value
   res1[grep("\\d+\\s+.*\\s+\\d+", res1$experimental_value), "toxval_numeric"] <- sapply( str_extract_all(res1[grep("\\d+\\s+.*\\s+\\d+", res1$experimental_value), "experimental_value"], "\\d+\\.*\\d*"),function(x) min(as.numeric(x)))
   res1$toxval_units <- res1$experimental_value
+
   #####################################################################
   cat("checks, finds and replaces non ascii characters in res1 columns with XXX\n")
   #####################################################################
   res1[,c("experimental_value","toxval_numeric_qualifier","toxval_units")] <- fix.non_ascii.v2(res1[,c("experimental_value","toxval_numeric_qualifier","toxval_units")],source)
 
   #####################################################################
-  cat("substituting simultaneous appearance of non ascii flag to one occurance to prevent the trucation of values\n")
+  cat("substituting simultaneous appearance of non ascii flag to one occurance to prevent the truncation of values\n")
   #####################################################################
   res1[grep(".*(<c.*\\?)\\s*\\d+\\.*\\d*\\s*(<c.*\\?).*",res1$experimental_value),"experimental_value"] <- gsub("(<c[0-9b]>\\?)+","XXX",res1[grep(".*(<c.*\\?)\\s*\\d+\\.*\\d*\\s*(<c.*\\?).*",res1$experimental_value),"experimental_value"])
   res1$experimental_value[grep("XXX", res1$experimental_value)]<- gsub("(XXX)+","XXX",res1$experimental_value[grep("XXX", res1$experimental_value)])
@@ -133,7 +137,6 @@ toxval.load.echa.echemportal.api <- function(toxval.db,source.db,log=F) {
     res1[res1$experimental_value==valold,"generation"] = valnew4
     if(i%%5000==0) cat("(A) finished",i,"out of ",nrow(dict_effect_levels_2),"\n")
   }
-
   #####################################################################
   cat("assign toxval_numeric_qualifier values from dictionary\n")
   #####################################################################
@@ -221,6 +224,7 @@ toxval.load.echa.echemportal.api <- function(toxval.db,source.db,log=F) {
   res1[grep("reproduction",res1$study_type, ignore.case = T),"study_type"] <- "reproductive"
   #res1[grep("^tox|^activ|^other|^avoid",res1$study_type, ignore.case = T),"study_type"] <- "-"
   res1[which(res1$study_type == ""),"study_type"] <- "-"
+  #browser()
 
   #####################################################################
   cat("fix exposure_route, exposure_method and exposure_form\n")

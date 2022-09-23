@@ -3,10 +3,12 @@
 #' @param toxval.db The database version to use
 #' @param sourcedb The source database name
 #' @param source The source name
-#' @param do.convert.units If TRUE, convert uints, mainly from ppm to mg/kg-day. THis code is not debugged
+#' @param do.convert.units If TRUE, convert units, mainly from ppm to mg/kg-day. This code is not debugged
 #--------------------------------------------------------------------------------------
-toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.units=F){
+toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.units=T){
   printCurrentFunction(toxval.db)
+
+  do.convert.units = T # override defaul becasue it is not specified in all toxval load functions
 
   #####################################################################
   cat("check that the dictionaries are loaded\n")
@@ -40,7 +42,7 @@ toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.unit
     study_duration_class, study_duration_units, study_type,toxval_type,
     exposure_form, media, toxval_subtype) by source\n")
   #####################################################################
-  if(source!="ECOTOX") fix.all.param.by.source(toxval.db, source)
+  fix.all.param.by.source(toxval.db, source)
 
   #####################################################################
   cat("get MW if needed for unit conversion\n")
@@ -70,6 +72,11 @@ toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.unit
   if(doit) fix.critical_effect.icf.by.source(toxval.db, source)
 
   #####################################################################
+  cat("add the manual study_type fixes\n")
+  #####################################################################
+  fix.study_type.manual(toxval.db, source)
+
+  #####################################################################
   cat("fix risk assessment class by source\n")
   #####################################################################
   fix.risk_assessment_class.by.source(toxval.db, source)
@@ -88,6 +95,11 @@ toxval.load.postprocess <- function(toxval.db, source.db,source, do.convert.unit
   cat("set toxval defaults globally by source\n")
   #####################################################################
   fill.toxval.defaults.global.by.source(toxval.db, source)
+
+  #####################################################################
+  cat("special case for toxvaL-numeric_qualifier\n")
+  #####################################################################
+  runQuery(paste0("update toxval set toxval_numeric_qualifier='' where toxval_numeric_qualifier='-' and source='",source,"'"),toxval.db)
 
   #####################################################################
   cat("fix qa status by source\n")

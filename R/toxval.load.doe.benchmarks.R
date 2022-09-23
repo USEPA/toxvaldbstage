@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------------
-#' Load DOE Wildlife Benchmarksdata from toxval_source to toxval
+#' Load DOE Wildlife Benchmarks data from toxval_source to toxval
 #' @param toxval.db The version of toxval into which the tables are loaded.
 #' @param source.db The source database to use.
 #' @param log If TRUE, send output to a log file
@@ -69,104 +69,105 @@ toxval.load.doe.benchmarks <- function(toxval.db,source.db,log=F) {
   names(t2)[is.element(names(t2),"test_species_loael")] = "toxval_numeric"
   names(t2)[is.element(names(t2),"test_species")] = "species_original"
 
-  nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
-            "endpoint_species",
-            "wildlife_noael")
-  t3 = res[,nlist]
-  t3$toxval_type = "NOAEL"
-  t3$toxval_subtype = "wildlife_noael"
-  t3$toxval_units = "mg/kg-day"
-  t3$media = "food"
-  t3$exposure_route = "oral"
-  names(t3)[is.element(names(t3),"wildlife_noael")] = "toxval_numeric"
-  names(t3)[is.element(names(t3),"endpoint_species")] = "species_original"
+  # nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
+  #           "endpoint_species",
+  #           "wildlife_noael")
+  # t3 = res[,nlist]
+  # t3$toxval_type = "NOAEL"
+  # t3$toxval_subtype = "wildlife_noael"
+  # t3$toxval_units = "mg/kg-day"
+  # t3$media = "food"
+  # t3$exposure_route = "oral"
+  # names(t3)[is.element(names(t3),"wildlife_noael")] = "toxval_numeric"
+  # names(t3)[is.element(names(t3),"endpoint_species")] = "species_original"
 
-  nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
-            "endpoint_species",
-            "wildlife_noael")
-  t4 = res[,nlist]
-  t4$toxval_type = "NOAEL"
-  t4$toxval_subtype = "wildlife_noael"
-  t4$toxval_units = "mg/kg-day"
-  t4$media = "food"
-  t4$exposure_route = "oral"
-  names(t4)[is.element(names(t4),"wildlife_noael")] = "toxval_numeric"
-  names(t4)[is.element(names(t4),"endpoint_species")] = "species_original"
+  # nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
+  #           "endpoint_species",
+  #           "wildlife_noael")
+  # t4 = res[,nlist]
+  # t4$toxval_type = "NOAEL"
+  # t4$toxval_subtype = "wildlife_noael"
+  # t4$toxval_units = "mg/kg-day"
+  # t4$media = "food"
+  # t4$exposure_route = "oral"
+  # names(t4)[is.element(names(t4),"wildlife_noael")] = "toxval_numeric"
+  # names(t4)[is.element(names(t4),"endpoint_species")] = "species_original"
 
-  nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
-            "endpoint_species",
-            "noael_food")
-  t5 = res[,nlist]
-  t5$toxval_type = "NOAEL"
-  t5$toxval_subtype = "noael_food"
-  t5$toxval_units = "mg/kg-day"
-  t5$media = "food"
-  t5$exposure_route = "oral"
-  names(t5)[is.element(names(t5),"noael_food")] = "toxval_numeric"
-  names(t5)[is.element(names(t5),"endpoint_species")] = "species_original"
+  # nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
+  #           "endpoint_species",
+  #           "noael_food")
+  # t5 = res[,nlist]
+  # t5$toxval_type = "NOAEL"
+  # t5$toxval_subtype = "noael_food"
+  # t5$toxval_units = "mg/kg-day"
+  # t5$media = "food"
+  # t5$exposure_route = "oral"
+  # names(t5)[is.element(names(t5),"noael_food")] = "toxval_numeric"
+  # names(t5)[is.element(names(t5),"endpoint_species")] = "species_original"
 
-  nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
-            "endpoint_species",
-            "loael_food")
-  t6 = res[,nlist]
-  t6$toxval_type = "LOAEL"
-  t6$toxval_subtype = "loael_food"
-  t6$toxval_units = "mg/kg-day"
-  t6$media = "food"
-  t6$exposure_route = "oral"
-  names(t6)[is.element(names(t6),"loael_food")] = "toxval_numeric"
-  names(t6)[is.element(names(t6),"endpoint_species")] = "species_original"
+  # nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
+  #           "endpoint_species",
+  #           "loael_food")
+  # t6 = res[,nlist]
+  # t6$toxval_type = "LOAEL"
+  # t6$toxval_subtype = "loael_food"
+  # t6$toxval_units = "mg/kg-day"
+  # t6$media = "food"
+  # t6$exposure_route = "oral"
+  # names(t6)[is.element(names(t6),"loael_food")] = "toxval_numeric"
+  # names(t6)[is.element(names(t6),"endpoint_species")] = "species_original"
 
-  nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
-            "endpoint_species",
-            "noael_water")
-  t7 = res[,nlist]
-  t7$toxval_type = "NOAEL"
-  t7$toxval_subtype = "noael_water"
-  t7$toxval_units = "mg/kg-day"
-  t7$media = "water"
-  t7$exposure_route = "oral"
-  names(t7)[is.element(names(t7),"noael_water")] = "toxval_numeric"
-  names(t7)[is.element(names(t7),"endpoint_species")] = "species_original"
+  # nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
+  #           "endpoint_species",
+  #           "noael_water")
+  # t7 = res[,nlist]
+  # t7$toxval_type = "NOAEL"
+  # t7$toxval_subtype = "noael_water"
+  # t7$toxval_units = "mg/kg-day"
+  # t7$media = "water"
+  # t7$exposure_route = "oral"
+  # names(t7)[is.element(names(t7),"noael_water")] = "toxval_numeric"
+  # names(t7)[is.element(names(t7),"endpoint_species")] = "species_original"
 
-  nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
-            "endpoint_species",
-            "loael_water")
-  t8 = res[,nlist]
-  t8$toxval_type = "LOAEL"
-  t8$toxval_subtype = "loael_water"
-  t8$toxval_units = "mg/kg-day"
-  t8$media = "water"
-  t8$exposure_route = "oral"
-  names(t8)[is.element(names(t8),"loael_water")] = "toxval_numeric"
-  names(t8)[is.element(names(t8),"endpoint_species")] = "species_original"
+  # nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
+  #           "endpoint_species",
+  #           "loael_water")
+  # t8 = res[,nlist]
+  # t8$toxval_type = "LOAEL"
+  # t8$toxval_subtype = "loael_water"
+  # t8$toxval_units = "mg/kg-day"
+  # t8$media = "water"
+  # t8$exposure_route = "oral"
+  # names(t8)[is.element(names(t8),"loael_water")] = "toxval_numeric"
+  # names(t8)[is.element(names(t8),"endpoint_species")] = "species_original"
 
-  nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
-            "endpoint_species",
-            "noael_piscivore")
-  t9 = res[,nlist]
-  t9$toxval_type = "NOAEL"
-  t9$toxval_subtype = "noael_piscivore"
-  t9$toxval_units = "mg/l"
-  t9$media = "piscivore"
-  t9$exposure_route = "oral"
-  names(t9)[is.element(names(t9),"noael_piscivore")] = "toxval_numeric"
-  names(t9)[is.element(names(t9),"endpoint_species")] = "species_original"
+  # nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
+  #           "endpoint_species",
+  #           "noael_piscivore")
+  # t9 = res[,nlist]
+  # t9$toxval_type = "NOAEL"
+  # t9$toxval_subtype = "noael_piscivore"
+  # t9$toxval_units = "mg/l"
+  # t9$media = "piscivore"
+  # t9$exposure_route = "oral"
+  # names(t9)[is.element(names(t9),"noael_piscivore")] = "toxval_numeric"
+  # names(t9)[is.element(names(t9),"endpoint_species")] = "species_original"
 
-  nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
-            "endpoint_species",
-            "loael_piscivore")
-  t10 = res[,nlist]
-  t10$toxval_type = "LOAEL"
-  t10$toxval_subtype = "loael_piscivore"
-  t10$toxval_units = "mg/l"
-  t10$media = "piscivore"
-  t10$exposure_route = "oral"
-  names(t10)[is.element(names(t10),"loael_piscivore")] = "toxval_numeric"
-  names(t10)[is.element(names(t10),"endpoint_species")] = "species_original"
+  # nlist = c("chemical_id","casrn","name","document_name","source","source_hash","qc_status","source_url",
+  #           "endpoint_species",
+  #           "loael_piscivore")
+  # t10 = res[,nlist]
+  # t10$toxval_type = "LOAEL"
+  # t10$toxval_subtype = "loael_piscivore"
+  # t10$toxval_units = "mg/l"
+  # t10$media = "piscivore"
+  # t10$exposure_route = "oral"
+  # names(t10)[is.element(names(t10),"loael_piscivore")] = "toxval_numeric"
+  # names(t10)[is.element(names(t10),"endpoint_species")] = "species_original"
 
 
-  res1 = rbind(t1,t2,t3,t4,t5,t6,t7,t8,t9,t10)
+  #res1 = rbind(t1,t2,t3,t4,t5,t6,t7,t8,t9,t10)
+  res1 = rbind(t1,t2)
 
   res1 = res1[!is.element(res1$toxval_numeric,c("day-old white","-","0")),]
   res1$toxval_numeric = as.numeric(res1$toxval_numeric )

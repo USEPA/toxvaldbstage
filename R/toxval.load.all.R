@@ -5,7 +5,7 @@
 #' listed here. If any earlier step is run, all of the subsequent steps need to be rerun.
 #'
 #' @param toxval.db The version of toxval into which the tables are loaded.
-#' @param source.db The version of toxvalsource database from which information is pulled.
+#' @param source.db The version of toxval_source database from which information is pulled.
 #' @param log If TRUE write the output from each load script to a log file
 #' @param do.init If True, clean out all of the database tables
 #' @param do.reset If TRUE, empty the database to restart
@@ -18,7 +18,8 @@ toxval.load.all <- function(toxval.db,
                             log=F,
                             do.init=F,
                             do.reset=F,
-                            do.load=F) {
+                            do.load=F,
+                            do.post=F) {
   printCurrentFunction(toxval.db)
 
   if(do.init)  {
@@ -26,7 +27,7 @@ toxval.load.all <- function(toxval.db,
   }
 
   if(do.load)  {
-    # flex / actor
+    #flex / actor
     toxval.load.alaska_dec(toxval.db,source.db,log)
     toxval.load.cal_dph(toxval.db,source.db,log)
     toxval.load.epa_aegl(toxval.db,source.db,log)
@@ -72,11 +73,17 @@ toxval.load.all <- function(toxval.db,
       toxval.load.pprtv.ornl(toxval.db,source.db,log)
       toxval.load.rsl(toxval.db,source.db,log)
       toxval.load.wignall(toxval.db,source.db,log)
-      toxval.load.toxrefdb3(toxval.db,source.db,log)
-      #toxval.load.echa.echemportal.api(toxval.db,source.db,log)
-      toxval.load.ecotox(toxval.db,source.db,log)
       toxval.load.test(toxval.db,source.db,log)
+      toxval.load.toxrefdb2.1(toxval.db,source.db,log)
+      toxval.load.echa.echemportal.api(toxval.db,source.db,log)
+      toxval.load.ecotox(toxval.db,source.db,log)
     }
+  }
+  if(do.post) {
+    # fix.study_type.manual(toxval.db,source=NULL)
+    # fix.risk_assessment_class.all.source(toxval.db,restart=T)
+    # load.dsstox()
+    # fix.source_chemical.name(toxval.db,source=NULL)
   }
 }
 

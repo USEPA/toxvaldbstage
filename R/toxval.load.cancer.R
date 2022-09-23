@@ -14,7 +14,7 @@
 #'
 #' @param toxval.db The version of the database to use
 #-----------------------------------------------------------------------------------
-toxval.load.cancer <- function(toxval.db) {
+toxval.load.cancer <- function(toxval.db,source.db) {
   printCurrentFunction(toxval.db)
 
   runQuery("delete from cancer_summary",toxval.db)
@@ -85,16 +85,12 @@ toxval.load.cancer <- function(toxval.db) {
   mat <- rbind(niosh,iris,pprtv_ornl,ntp,iarc,hc,opp,calepa)
   mat <- mat[!is.na(mat[,"casrn"]),]
   for(i in 1:nrow(mat)) mat[i,"casrn"] <- fix.casrn(mat[i,"casrn"])
-  file <- paste0("./cancer_summary/cancer_summary_",Sys.Date(),".xlsx")
+  file <- paste0(toxval.config()$datapath,"/cancer_summary/cancer_summary_",Sys.Date(),".xlsx")
   sty <- createStyle(halign="center",valign="center",textRotation=90,textDecoration = "bold")
   write.xlsx(mat,file,firstRow=T,headerStyle=sty)
 
-  cas.list <- mat[,c(1,2)]
-  cid.list <- get.cid.list.toxval(toxval.db, cas.list,"cancer")
-  mat$chemical_id <- cid.list$chemical_id
-  #mat <- merge(cid.list,mat)
+  mat2 = source_chemical.extra(toxval.db,source.db,mat,"Cancer Summary")
+  mat2 = subset(mat2,select=-c(casrn,name,chemical_index))
 
-  mat <- mat[,3:dim(mat)[2]]
-  mat <- unique(mat)
-  runInsertTable(mat, "cancer_summary", toxval.db)
+  runInsertTable(mat2, "cancer_summary", toxval.db)
 }

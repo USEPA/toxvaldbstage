@@ -35,7 +35,7 @@ fix.human_eco.by.source <- function(toxval.db,source=NULL, reset=T){
       query = paste0("update toxval set species_id=5000000 where species_id=1000000 and source='",source,"'")
       runQuery(query,toxval.db)
     }
-    if(is.element(source,c("TEST","WHO IPCS","EPA OPPT","HAWC","HESS","HPVIS","NIOSH","PFAS 150 SEM","Alaska DEC"))) {
+    if(is.element(source,c("TEST","WHO IPCS","EPA OPPT","HESS","NIOSH","PFAS 150 SEM","Alaska DEC"))) {
       query = paste0("update toxval set human_eco='human health' where source='",source,"'")
       runQuery(query,toxval.db)
     }

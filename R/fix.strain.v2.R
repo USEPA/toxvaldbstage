@@ -7,7 +7,7 @@
 #' @param date_string The date of the latest dictionary version
 #' @export
 #--------------------------------------------------------------------------------------
-fix.strain.v2 <- function(toxval.db,source=NULL,date_string="2022-08-04") {
+fix.strain.v2 <- function(toxval.db,source=NULL,date_string="2022-08-15") {
   printCurrentFunction()
   file = paste0(toxval.config()$datapath,"species/strain_dictionary_",date_string,".xlsx")
   dict = read.xlsx(file)

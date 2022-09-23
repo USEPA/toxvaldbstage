@@ -40,64 +40,72 @@ fix.species.v2 <- function(toxval.db,source,date_string="2022-05-25") { #2022-02
   extra$common_name = tolower(extra$common_name)
   extra$latin_name = tolower(extra$latin_name)
   extra$species_original = tolower(extra$species_original)
-  so = runQuery(paste0("select distinct species_original from toxval where source='",source,"' and species_id= -1"),toxval.db)[,1]
-  count.good = 0
-  cat("Start setting species_id\n")
-  if(length(so)>0) {
-    for(i in 1:length(so)) {
-      tag = so[i]
-      tag = tolower(tag)
-      #tag = str_replace_all(tag,"\'","\\\\'")
-      tag0 = tag
-      nc = nchar(tag)
-      tagend = substr(tag,nc-2,nc)
-      if(tagend==" sp") {
-        tag = paste0(tag,".")
+
+  slist = runQuery("select distinct source from toxval",toxval.db)[,1]
+  if(!is.null(source)) slist = source
+
+  for(source in slist) {
+    cat(">>> fix.species.v2: ",source,"\n")
+
+    so = runQuery(paste0("select distinct species_original from toxval where source='",source,"' and species_id= -1"),toxval.db)[,1]
+    count.good = 0
+    cat("Start setting species_id\n")
+    if(length(so)>0) {
+      for(i in 1:length(so)) {
+        tag = so[i]
+        tag = tolower(tag)
+        #tag = str_replace_all(tag,"\'","\\\\'")
+        tag0 = tag
+        nc = nchar(tag)
+        tagend = substr(tag,nc-2,nc)
+        if(tagend==" sp") {
+          tag = paste0(tag,".")
+        }
+        slist = c("other aquatic arthropod ","other aquatic crustacea: ","other aquatic mollusc: ",
+                  "other aquatic worm: ","other,","other,other algae: ","other: ")
+        for(x in slist) {
+          if(contains(tag,x)) tag = str_replace(tag,x,"")
+        }
+        sid = -1
+        if(is.element(tag,dict$common_name)) {
+          sid = dict[is.element(dict$common_name,tag),"species_id"][1]
+        }
+        else if(is.element(tag,dict$latin_name)) {
+          sid = dict[is.element(dict$latin_name,tag),"species_id"][1]
+        }
+        else if(is.element(tag,synonyms$latin_name)) {
+          sid = dict[is.element(synonyms$latin_name,tag),"species_id"][1]
+        }
+        else if(is.element(tag,extra$species_original)) {
+          sid = extra[is.element(extra$species_original,tag),"species_id"][1]
+        }
+        else if(is.element(tag0,dict$common_name)) {
+          sid = dict[is.element(dict$common_name,tag0),"species_id"][1]
+        }
+        else if(is.element(tag0,dict$latin_name)) {
+          sid = dict[is.element(dict$latin_name,tag0),"species_id"][1]
+        }
+        else if(is.element(tag0,synonyms$latin_name)) {
+          sid = dict[is.element(synonyms$latin_name,tag0),"species_id"][1]
+        }
+        else if(is.element(tag0,extra$species_original)) {
+          sid = extra[is.element(extra$species_original,tag0),"species_id"][1]
+        }
+        else if(is.element(tag,extra$species_original)) {
+          sid = extra[is.element(extra$species_original,tag),"species_id"][1]
+        }
+        if(sid>=0) {
+          count.good = count.good+1
+          query = paste0("update toxval set species_id=",sid," where source='",source,"' and species_original='",str_replace_all(tag0,"\\\'","\\\\'"),"'")
+          runQuery(query,toxval.db)
+        }
+        else {
+          cat(tag,"\n")
+          #browser()
+        }
+        if(i%%100==0) cat("finished",i,"out of",length(so),":",count.good,"\n")
       }
-      slist = c("other aquatic arthropod ","other aquatic crustacea: ","other aquatic mollusc: ",
-                "other aquatic worm: ","other,","other,other algae: ","other: ")
-      for(x in slist) {
-        if(contains(tag,x)) tag = str_replace(tag,x,"")
-      }
-      sid = -1
-      if(is.element(tag,dict$common_name)) {
-        sid = dict[is.element(dict$common_name,tag),"species_id"][1]
-      }
-      else if(is.element(tag,dict$latin_name)) {
-        sid = dict[is.element(dict$latin_name,tag),"species_id"][1]
-      }
-      else if(is.element(tag,synonyms$latin_name)) {
-        sid = dict[is.element(synonyms$latin_name,tag),"species_id"][1]
-      }
-      else if(is.element(tag,extra$species_original)) {
-        sid = extra[is.element(extra$species_original,tag),"species_id"][1]
-      }
-      else if(is.element(tag0,dict$common_name)) {
-        sid = dict[is.element(dict$common_name,tag0),"species_id"][1]
-      }
-      else if(is.element(tag0,dict$latin_name)) {
-        sid = dict[is.element(dict$latin_name,tag0),"species_id"][1]
-      }
-      else if(is.element(tag0,synonyms$latin_name)) {
-        sid = dict[is.element(synonyms$latin_name,tag0),"species_id"][1]
-      }
-      else if(is.element(tag0,extra$species_original)) {
-        sid = extra[is.element(extra$species_original,tag0),"species_id"][1]
-      }
-      else if(is.element(tag,extra$species_original)) {
-        sid = extra[is.element(extra$species_original,tag),"species_id"][1]
-      }
-      if(sid>=0) {
-        count.good = count.good+1
-        query = paste0("update toxval set species_id=",sid," where source='",source,"' and species_original='",str_replace_all(tag0,"\\\'","\\\\'"),"'")
-        runQuery(query,toxval.db)
-      }
-      else {
-        cat(tag,"\n")
-        #browser()
-      }
-      if(i%%100==0) cat("finished",i,"out of",length(so),":",count.good,"\n")
     }
+    runQuery("update toxval set species_id=4510 where species_id=23410",toxval.db)
   }
-  runQuery("update toxval set species_id=4510 where species_id=23410",toxval.db)
 }
