@@ -11,7 +11,7 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   id_list = c("source_id", "source_hash", "parent_hash", "version", "qc_status",
               "create_time", "created_by", "modify_time")
   # Load SQL file with audit table and trigger creation queries
-  audit_sql = parse_sql_file() %T>%
+  audit_sql = parse_sql_file("Repo/audit_sql/toxval_source_audit_init.sql") %T>%
     { names(.) <- c("create_audit", "bu_audit_trigger", "drop_bu_audit_trigger",
                     "bu_source_trigger", "drop_bu_source_trigger") }
 
@@ -72,39 +72,6 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
     runQuery(query=src_bu_audit_trigger, db=db)
     runQuery(query=src_bu_source_trigger, db=db)
   }
-}
-
-#--------------------------------------------------------------------------------------
-#'@description Function to parse SQL file into SQL query strings
-#'@param filepath Input SQL filepath
-#'@import stringr dplyr
-#--------------------------------------------------------------------------------------
-parse_sql_file <- function(filepath = "Repo/audit_sql/toxval_source_audit_init.sql"){
-  # Read in SQL file lines
-  raw_query = readr::read_lines(filepath)
-  # Replace -- comments with /**/ contained comments
-  raw_query = lapply(raw_query, function(line){
-    if(grepl("--",line) == TRUE){
-      line <- paste(sub("--","/*",line),"*/")
-    }
-    return(line)
-  }) %>% unlist()
-
-  # Empty list to append collapsed query lines
-  clean_query = list()
-  # Empty string to append query lines to for ";" checks
-  tmp_query = ""
-  for(i in seq_len(length(raw_query))){
-    tmp_query = paste(tmp_query, raw_query[i], sep=" ")
-    # Check if has termination ; AND next line is not an IF statement
-    if(grepl(";", raw_query[i]) & !grepl("IF |IF;|SET ", raw_query[i+1])){
-      clean_query = append(clean_query, tmp_query %>%
-                             stringr::str_squish())
-      tmp_query = ""
-    }
-  }
-  # Return cleaned list of queries to run
-  return(clean_query)
 }
 
 #--------------------------------------------------------------------------------------
