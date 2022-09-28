@@ -32,8 +32,13 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
     gsub("source_custom_fields", src_fields, .) %T>%
     # Export a copy
     writeLines(.,
-               paste0(toxval.config()$datapath,source,"/",
-                      source,"_MySQL/",source,".sql"))
+               paste0(toxval.config()$datapath,
+                      gsub("source_", "", source),
+                      "/",
+                      gsub("source_", "", source),
+                      "_MySQL/",
+                      source,
+                      ".sql"))
 
   # Push the new table to database
   # runQuery(query = src_sql$snew_source, db=db)
@@ -51,9 +56,15 @@ set_field_SQL_type <- function(src_f = NULL){
     # Get type
     type = typeof(src_f[[f]])
     # Get max character length
-    t_len = max(nchar(src_f[[f]]), na.rm = TRUE)
+    t_len = max(nchar(src_f[[f]]), na.rm = TRUE) %>%
+      suppressWarnings() %>%
+    # Handle case of empty column, set size to 100 or 10 default guess
+    ifelse(is.infinite(.),
+           ifelse(type %in% c("character", "logical"), 100, 10),
+           .)
+
     switch(type,
-           "character"=ifelse(t_len >= 100,
+           "character"=ifelse(t_len >= 100 | is.infinite(t_len),
                               "TEXT",
                               paste0("VARCHAR(",t_len,")")),
            "integer"=paste0("INT(",t_len,")"),

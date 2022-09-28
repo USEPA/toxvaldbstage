@@ -18,7 +18,7 @@ source_prep_and_load <- function(db,source,table,res,
 
   #####################################################################
   cat("Generating source table in database\n")
-  # create_source_table_SQL(source=source, res=res, db=db)
+  # create_source_table_SQL(source=table, res=res, db=db)
   #####################################################################
 
   #####################################################################
