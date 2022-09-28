@@ -19,9 +19,15 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
   src_sql = parse_sql_file(filepath = "Repo/generic_toxval_source_table.sql") %T>% {
     names(.) <- "snew_source"
   }
+  # Split by "`" and select even indexes which are the default fields
+  default_fields = src_sql$snew_source %>%
+    strsplit(split="`") %>%
+    unlist() %>%
+    .[seq_along(.) %% 2 == 0] %>%
+    .[!. %in% c("snew_source")]
 
   # Parse input data fields
-  src_fields = set_field_SQL_type(src_f = res) %>%
+  src_fields = set_field_SQL_type(src_f = res, default_fields=default_fields) %>%
     paste0(., ",\n")
 
   # Customize the source table SQL
@@ -49,10 +55,11 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
 #--------------------------------------------------------------------------------------
 #'@description Helper function to generate SQL field types based on dataframe field types
 #'@param src_f Dataframe to generate field types from
+#'@param default_fields Default fields already handled by input generic SQL
 #'@return SQL string for the input dataframe's fields
 #--------------------------------------------------------------------------------------
-set_field_SQL_type <- function(src_f = NULL){
-  lapply(names(src_f), function(f){
+set_field_SQL_type <- function(src_f = NULL, default_fields = NULL){
+  lapply(names(src_f)[!names(src_f) %in% default_fields], function(f){
     # Get type
     type = typeof(src_f[[f]])
     # Get max character length
