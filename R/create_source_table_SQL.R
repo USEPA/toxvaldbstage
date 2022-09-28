@@ -64,7 +64,7 @@ set_field_SQL_type <- function(src_f = NULL){
            .)
 
     switch(type,
-           "character"=ifelse(t_len >= 100 | is.infinite(t_len),
+           "character"=ifelse(t_len >= 100,
                               "TEXT",
                               paste0("VARCHAR(",t_len,")")),
            "integer"=paste0("INT(",t_len,")"),
