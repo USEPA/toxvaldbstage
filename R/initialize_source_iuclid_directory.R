@@ -1,17 +1,31 @@
-# Don't run the script unless you're in the right directory
-if(getwd() != "/ccte/ACToR1/ToxValDB9/Repo/iuclid"){return(cat("Wrong working directory"))}
-
-# Create subdirectories and move files
-files <- list.files()
-for(f in files){
-  # Don't move the script itself
-  if(f == "initialize_source_iuclid_directory.R"){next}
-  # Get source name
-  source <- substring(f, 1, nchar(f)-16)
-  # Create source directory
-  dir.create(source)
-  # Create source subdirectories
-  for(s in c("_files", "_MySQL", "_R")){dir.create(paste0(source, "/", source, s))}
-  # Move file into /[source]_files subdirectory
-  file.rename(f, paste0(source, "/", source, "_files/", source, ".csv"))
+#--------------------------------------------------------------------------------------
+#' Initialize Source IUCLID Directory into subdirectory based on input files
+#' @return None, file directory structure generated
+#
+#--------------------------------------------------------------------------------------
+initialize_source_iuclid_directory <- function() {
+  # Don't run the script unless you're in the right directory
+  # Eventually change to using an input parameter directory
+  if(getwd() != "/ccte/ACToR1/ToxValDB9/Repo/iuclid") { 
+    stop("Working directory must be '/ccte/ACToR1/ToxValDB9/Repo/iuclid'")
+  }
+  
+  # Create subdirectories and move files - only IUCLID files
+  files <- list.files(pattern="*-dossRegInfo.csv")
+  for(f in files){
+    # Get source name
+    #source <- substring(f, 1, nchar(f)-16)
+    source = gsub("-dossRegInfo.csv", "", f)
+    # Create source directory if not already present
+    if(!dir.exists(source)){
+      dir.create(source)  
+    }
+    # Create source subdirectories if not already present
+    for(s in c("_files", "_MySQL", "_R")){
+      n_dir = paste0(source, "/", source, s)
+      if(!dir.exists(n_dir)) dir.create(n_dir)
+    }
+    # Move file into /[source]_files subdirectory
+    file.rename(f, paste0(source, "/", source, "_files/", source, ".csv"))
+  }  
 }
