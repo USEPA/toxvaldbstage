@@ -21,8 +21,9 @@ import_hawc_pfas_150_source <- function(db,
   cat("Build original_hawc_pfas_150 table from source file  \n")
   #####################################################################
   res_pfas3 <- openxlsx::read.xlsx(infile1)
-  res_pfas3 <- lapply(res_pfas3, function(x) type.convert(as.character(x), as.is = T))
-  res_pfas3 <- data.frame(res_pfas3, stringsAsFactors = F)
+  res_pfas3[] = lapply(res_pfas3, as.character)
+  #res_pfas3 <- lapply(res_pfas3, function(x) type.convert(as.character(x), as.is = T))
+  #res_pfas3 <- data.frame(res_pfas3, stringsAsFactors = F)
   dim(res_pfas3)
 
   #####################################################################
@@ -33,34 +34,37 @@ import_hawc_pfas_150_source <- function(db,
   #####################################################################
   cat("Strip square brackets from beginning and end\n")
   #####################################################################
-  res_pfas3$animal_group.experiment.study.searches <- gsub("(^\\[)(\\d+)(\\]$)","\\2",res_pfas3$animal_group.experiment.study.searches)
-  res_pfas3$animal_group.experiment.study.identifiers <- gsub("(^\\[)(.*)(\\]$)","\\2",res_pfas3$animal_group.experiment.study.identifiers)
+  res_pfas3$animal_group.experiment.study.searches <- gsub("\\]|\\[", "", res_pfas3$animal_group.experiment.study.searches)
+  res_pfas3$animal_group.experiment.study.identifiers <- gsub("\\]|\\[", "", res_pfas3$animal_group.experiment.study.identifiers)
 
   #####################################################################
-  cat("All na columns to character type\n")
-  #####################################################################
-  for (i in 1:ncol(res_pfas3[, colSums(is.na(res_pfas3)) == nrow(res_pfas3)])){
-    res_pfas3[,names(res_pfas3[, colSums(is.na(res_pfas3)) == nrow(res_pfas3)][i])] <- as.character(res_pfas3[,names(res_pfas3[, colSums(is.na(res_pfas3)) == nrow(res_pfas3)][i])])
-  }
+  # cat("All na columns to character type\n")
+  # #####################################################################
+  # for (i in 1:ncol(res_pfas3[, colSums(is.na(res_pfas3)) == nrow(res_pfas3)])){
+  #   res_pfas3[,names(res_pfas3[, colSums(is.na(res_pfas3)) == nrow(res_pfas3)][i])] <- as.character(res_pfas3[,names(res_pfas3[, colSums(is.na(res_pfas3)) == nrow(res_pfas3)][i])])
+  # }
   #variations in NA to NA
   res_pfas3$bmd_notes <- gsub("[NA\\,\\\n]+",NA,res_pfas3$bmd_notes)
   res_pfas3$confidence_interval <- gsub("[NA\\,\\\n]+",NA,res_pfas3$confidence_interval)
   res_pfas3$animal_group.experiment.study.block_id <- gsub("[NA\\,\\\n]+",NA,res_pfas3$animal_group.experiment.study.block_id)
   # strip begining and ending quotation marks
   res_pfas3 <- as.data.frame(sapply(res_pfas3, function(x) gsub("\"", "", x)))
+##################################################################################
   #res_dose3 <- openxlsx::read.xlsx(infile2,sheetIndex = 1, encoding="UTF-8")
   res_dose3 <- openxlsx::read.xlsx(infile2)
-  res_dose3 <- lapply(res_dose3, function(x) type.convert(as.character(x), as.is = T))
-  res_dose3 <- data.frame(res_dose3, stringsAsFactors = F)
+  res_dose3[] = lapply(res_dose3, as.character)
+  #res_dose3 <- lapply(res_dose3, function(x) type.convert(as.character(x), as.is = T))
+  #res_dose3 <- data.frame(res_dose3, stringsAsFactors = F)
   print(dim(res_dose3))
   #res_groups3 <- openxlsx::read.xlsx(infile3,sheetIndex = 1, encoding="UTF-8")
   res_groups3 <- openxlsx::read.xlsx(infile3)
-  res_groups3 <- lapply(res_groups3, function(x) type.convert(as.character(x), as.is = T))
-  res_groups3 <- data.frame(res_groups3, stringsAsFactors = F)
+  res_groups3[] = lapply(res_groups3, as.character)
+  #res_groups3 <- lapply(res_groups3, function(x) type.convert(as.character(x), as.is = T))
+  #res_groups3 <- data.frame(res_groups3, stringsAsFactors = F)
   print(dim(res_groups3))
 
   names.list <- c("assessment","name" ,"organ","NOEL","LOEL",
-                  "FEL","url","bmd","animal_group.experiment.study.id","animal_group.experiment.study.title" ,"animal_group.experiment.study.authors_short",
+                  "FEL","url", "data_location", "bmd","animal_group.experiment.study.id","animal_group.experiment.study.title" ,"animal_group.experiment.study.authors_short",
                   "animal_group.experiment.study.authors","animal_group.experiment.study.year","animal_group.experiment.study.journal",
                   "animal_group.experiment.study.full_text_url","animal_group.experiment.study.short_citation","animal_group.experiment.study.full_citation",
                   "animal_group.experiment.study.url","animal_group.experiment.name","animal_group.experiment.type",
@@ -75,14 +79,17 @@ import_hawc_pfas_150_source <- function(db,
   #####################################################################
   cat("map noel,loel, fel values and units from dose dictionary\n")
   #####################################################################
-  dose_dict <- res_dose3[,c("dose_regime","dose_group_id","dose","dose_units.name")]
+  dose_dict <- unique(res_dose3[,c("dose_regime","dose_group_id","dose","dose_units.name")])
   hawc_pfas_150$NOEL_values <- dose_dict[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$NOEL),paste(dose_dict$dose_regime,dose_dict$dose_group_id)),"dose"]
   hawc_pfas_150$NOEL_units <-  dose_dict[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$NOEL),paste(dose_dict$dose_regime,dose_dict$dose_group_id)),"dose_units.name"]
   hawc_pfas_150$LOEL_values <- dose_dict[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$LOEL),paste(dose_dict$dose_regime,dose_dict$dose_group_id)),"dose"]
   hawc_pfas_150$LOEL_units <-  dose_dict[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$LOEL),paste(dose_dict$dose_regime,dose_dict$dose_group_id)),"dose_units.name"]
-  dose_dict2 <- unique(dose_dict[,c("dose_regime","dose")])
-  doses<- aggregate(dose ~ dose_regime, data = dose_dict2, toString)
-  hawc_pfas_150$doses <-  doses[match(hawc_pfas_150$animal_group.dosing_regime.id,doses$dose_regime),"dose"]
+  stop("NEED TO UPDATE HOW doses are split, some regimes have different unit groups")
+  dose_dict2 <- unique(dose_dict[,c("dose_regime","dose", "dose_units.name")])
+  doses <- aggregate(dose ~ dose_regime,# + dose_units.name,
+                     data = dose_dict2, toString)
+
+  hawc_pfas_150$doses <- doses[match(hawc_pfas_150$animal_group.dosing_regime.id,doses$dose_regime),"dose"]
 
   #hawc_pfas_150$study_url <-  paste("https://hawcprd.epa.gov",hawc_pfas_150$animal_group.experiment.study.url, sep = "")
   hawc_pfas_150$endpoint_url <-  paste("https://hawcprd.epa.gov",hawc_pfas_150$url, sep = "")
@@ -92,7 +99,7 @@ import_hawc_pfas_150_source <- function(db,
   fac_cols <- sapply(hawc_pfas_150, is.factor)                          # Identify all factor columns
   hawc_pfas_150[fac_cols] <- lapply(hawc_pfas_150[fac_cols], as.character)  # Convert all factors to characters
   names.list <- c("assessment","critical_effect","target","NOEL_original","LOEL_original",
-                  "FEL_original","endpoint_url_original","bmd","study_id","title","authors_short","author","year","journal",
+                  "FEL_original","endpoint_url_original", "data_location", "bmd","study_id","title","authors_short","author","year","journal",
                   "full_text_url","short_ref","long_ref","study_url_original","experiment_name","experiment_type",
                   "name","casrn","chemical_source","media","guideline_compliance",
                   "dosing_regime_id","route_of_exposure","exposure_duration_value",
