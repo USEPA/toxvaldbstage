@@ -17,6 +17,11 @@ source_prep_and_load <- function(db,source,table,res,
   chem.check.halt = F
 
   #####################################################################
+  cat("Generating source table in database\n")
+  # create_source_table_SQL(source=table, res=res, db=db)
+  #####################################################################
+
+  #####################################################################
   cat("Do the chemical checking\n")
   #####################################################################
   res = as.data.frame(res)
