@@ -22,7 +22,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   res$source_hash = "-"
   res$parent_hash = "-"
   res$create_time = Sys.time()
-  res$modify_time = NA
+  # res$modify_time = NA
   res$created_by = "toxval source script"
   cat("dimension of res:",dim(res),"\n")
   #####################################################################
@@ -39,8 +39,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     sh1 = digest(paste0(sample,collapse=""), serialize = FALSE)
     cat("test that the columns are right for the hash key: ",sh0,sh1,"\n")
     #if(sh0!=sh1) browser()
-  }
-  else {
+  } else {
     nlist = runQuery(paste0("desc ",table),db)[,1]
     nlist = nlist[!is.element(nlist,c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
                                       "parent_hash","create_time","modify_time","created_by"))]
@@ -74,8 +73,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     names(temp) = to.add
     temp[] = "-"
     res = cbind(res,temp)
-  }
-  else cat("no columns need to be added\n")
+  } else cat("no columns need to be added\n")
   res.temp = res[,nlist]
 
   for (i in 1:nrow(res)){
@@ -103,8 +101,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     browser()
     #####################################################################
     runQuery(paste("delete from ",table),db)
-  }
-  else res = res[!is.element(res$source_hash,shlist0),]
+  } else res = res[!is.element(res$source_hash,shlist0),]
 
   #####################################################################
   cat("Add to the database \n")
@@ -112,7 +109,6 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   if(nrow(res)>0) {
     cat("entering new rows:",nrow(res),"\n")
     if(do.insert) runInsertTable(res,table,db,do.halt=T,verbose=F)
-  }
-  else cat("no new rows to add\n")
+  } else cat("no new rows to add\n")
 }
 

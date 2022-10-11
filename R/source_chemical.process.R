@@ -34,6 +34,9 @@ source_chemical.process <- function(db,
   chems = unique(chems)
   chems$source = source
   prefix = runQuery(paste0("select chemprefix from chemical_source_index where source='",source,"'"),db)[1,1]
+  if(is.na(prefix)){
+    stop("No entry in chemical_source_index for source: ", source, "'")
+  }
   ilist = seq(from=1,to=nrow(chems))
   chems$chemical_id = "-"
   for(i in 1:nrow(chems)) {
