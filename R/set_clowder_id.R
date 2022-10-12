@@ -140,8 +140,34 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       res = res[,nlist]
       return(res)
     }
-  }
-  else {
+  } else if (source == "IRIS") {
+    # cut the map down to just the webpage PDF documents, not screenshots or supplements
+    map_file <- map_file[which(map_file$parentPath == "IRIS"),]
+    for(i in 1:nrow(res)){
+      cas <- res$casrn[i]
+      # catch any incorrect or missing CAS numbers
+      # 85-00-7 hardcoded for now due to potential extraction error upstream
+      if(is.element(cas, c("-", "Various", "85-00-7"))){
+        # map by name instead
+        pattern <- res$name[i]
+        map_index <- which(grepl(pattern, map_file$subDir1, fixed = TRUE))
+        res$clowder_id[i] <- map_file$clowder_id[map_index]
+        res$document_name[i] <- map_file$document_name[map_index]
+        next
+      }
+      # map by CAS
+      map_index <- which(map_file$casrn == cas)
+      tryCatch(
+        expr = {
+          res$clowder_id[i] <- map_file$clowder_id[map_index]
+          res$document_name[i] <- map_file$document_name[map_index]
+        },
+        error = function(e){
+          cat("Error at CAS", cas, "\n")
+        }
+      )
+    }
+  } else {
     cat("try the v8 records\n")
     #browser()
     return(res)
