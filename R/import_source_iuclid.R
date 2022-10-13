@@ -11,7 +11,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
   source_table = paste0("source_", subf)
   dir = paste0(toxval.config()$datapath,"iuclid/",subf,"/",subf,"_files/")
   file = list.files(dir, pattern=".csv", full.names = TRUE)
-  if(length(file) > 1) stop("Most than 1 IUCLID file stored in '", dir, "'")
+  if(length(file) > 1) stop("More than 1 IUCLID file stored in '", dir, "'")
   res = read.csv(file) %>%
   # Rename chemical identifier columns to fit ToxVal chemical cleaning
   dplyr::rename(name = DossSubstanceName, casrn = SubstanceCAS)
@@ -32,9 +32,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
 #' @return None, subsources loaded
 #--------------------------------------------------------------------------------------
 
-orchestrate_import_source_iuclid <- function(dir) {
+orchestrate_import_source_iuclid <- function(dir="Repo/iuclid") {
   # Loop through all subdirectories of current wd and load the source files within into ToxVal
-  subdirs <- list.files("Repo/iuclid")
+  subdirs <- list.files(dir)
   for (subf in subdirs) {
     import_source_iuclid(db, subf, chem.check.halt = FALSE)
   }
