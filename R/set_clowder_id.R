@@ -91,7 +91,6 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     return(res)
   } else if(source %in% c("DOD ERED",
                           "HEAST",
-                          "IRIS",
                           "PFAS 150 SEM",
                           "Mass. Drinking Water Standards",
                           "California DPH",
@@ -140,8 +139,35 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       res = res[,nlist]
       return(res)
     }
-  }
-  else {
+  } else if (source == "IRIS") {
+    # cut the map down to just the webpage PDF documents, not screenshots or supplements
+    map_file <- map_file[which(map_file$parentPath == "IRIS"),]
+    # Clear any old mappings
+    res$clowder_id = NULL
+    res$document_name = NULL
+    # Match by chemical name first
+    res = res %>%
+      left_join(map_file %>%
+                  select(chemical_name, clowder_id, document_name),
+                by=c("name" = "chemical_name"))
+    # Filter to those without a match
+    res2 = res %>%
+      filter(is.na(clowder_id))
+    res = res %>%
+      filter(!is.na(clowder_id))
+    # Match by casrn
+    res2 = res2 %>%
+      select(-clowder_id, -document_name) %>%
+      left_join(map_file %>%
+                  select(casrn, clowder_id, document_name),
+                by="casrn")
+    # Recombine all matches
+    res = rbind(res, res2)
+    # Report any that did not match
+    if(any(is.na(res$clowder_id))){
+      cat("IRIS records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
+    }
+  } else {
     cat("try the v8 records\n")
     #browser()
     return(res)
