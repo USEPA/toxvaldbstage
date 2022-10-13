@@ -46,7 +46,10 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
   }
 
   # Remove columns
-  rm_list = c("source_id", "chemical_id", "source", "subsource")
+  rm_list = c("source_id", "chemical_id", "source",
+              "subsource", "created_by", "create_time",
+              "modify_time", "qc_status", "parent_hash"
+  )
   src_data[, rm_list] <- NULL
   # Set ID column for pivot
   id_cols = c("record_id")
@@ -64,6 +67,10 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
   in_dat[template_cols[!template_cols %in% names(in_dat)]] <- ""
   # Replace missing value entries with empty string
   in_dat$value[is.na(in_dat$value)] = ""
+  # Reorder columns to fit template order
+  in_dat = in_dat %>%
+    select(dataset_name, domain_name, source_name, document_id,
+           document_name, document_path, record_id, field_name, value)
   # Prep export location (check and create if not present)
   if(!dir.exists("Repo/DAT Input")) dir.create("Repo/DAT Input")
   # Export transformation in groups based on limit input
