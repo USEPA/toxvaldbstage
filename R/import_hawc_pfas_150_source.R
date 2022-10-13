@@ -105,25 +105,38 @@ import_hawc_pfas_150_source <- function(db,
                        values_from = "dose") %>%
     tidyr::unite("dose", -dose_regime, -dose_units.name, -dose_units.name_n, sep=", ") %>%
     mutate(dose = gsub(", NA", "", dose))
-  # Join all units
-  units = dose_dict %>%
-    #select(dose_regime, dose_units.name = dose_units.name_n) %>%
-    select(dose_regime, dose_units.name) %>%
-    tidyr::pivot_wider(id_cols = dose_regime,
-                       names_from = "dose_units.name",
-                       values_from = "dose_units.name") %>%
-    tidyr::unite("dose_units.name", -dose_regime, sep="; ") %>%
-    mutate(dose_units.name = gsub("; NA|NA; ", "", dose_units.name))
-  # Join all doses
+
+  # Helper function to manage the multiple dosing weirdness but maintain value-unit pairs
+  split_dose_dose_units <- function(r, before_r = TRUE){
+    # Split the input strings
+    r = r %>%
+      strsplit(split = ";") %>%
+      unlist() %>%
+      stringr::str_squish()
+    # Value vs. units are separated by "||", select which is needed, before/after "||"
+    if(before_r){
+      lapply(r, function(x){ sub('\\|\\|.*', '', x) }) %>%
+        paste(collapse = "; ") %>%
+        return()
+    } else {
+      lapply(r, function(x){ sub('.*\\|\\|', '', x) }) %>%
+        paste(collapse = "; ") %>%
+        return()
+    }
+  }
+
+  # Sort out dose value - unit pairs for regimes with multiples
   doses = dose_dict %>%
-    select(dose_regime, dose) %>%
+    select(dose_regime, dose, dose_units.name) %>%
+    tidyr::unite("dose_dose_units", -dose_regime, sep = "||") %>%
     tidyr::pivot_wider(id_cols = dose_regime,
-                       names_from = "dose",
-                       values_from = "dose") %>%
-    tidyr::unite("dose", -dose_regime, sep="; ") %>%
-    mutate(dose = gsub("; NA|NA; ", "", dose)) %>%
-    # Join back the units for doses
-    left_join(units, by = "dose_regime")
+                       names_from = "dose_dose_units",
+                       values_from = "dose_dose_units") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, sep="; ") %>%
+    mutate(dose_dose_units = gsub("; NA|NA; ", "", dose_dose_units)) %>%
+    mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
+           dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
+    select(-dose_dose_units)
 
   # Join/fill in dose and dose_units
   hawc_pfas_150$doses <- doses$dose[match(hawc_pfas_150$animal_group.dosing_regime.id,doses$dose_regime)]
@@ -138,26 +151,17 @@ import_hawc_pfas_150_source <- function(db,
     select(-dose_group_id) %>%
     distinct() %>%
     arrange(dose_regime, dose_units.name, dose)
-
-  noel_units = noel_dict %>%
-    #select(dose_regime, dose_units.name = dose_units.name_n) %>%
-    select(dose_regime, NOEL, dose_units.name) %>%
-    tidyr::pivot_wider(id_cols = c("dose_regime", "NOEL"),
-                       names_from = "dose_units.name",
-                       values_from = "dose_units.name") %>%
-    tidyr::unite("dose_units.name", -dose_regime, -NOEL, sep="; ") %>%
-    mutate(dose_units.name = gsub("; NA|NA; ", "", dose_units.name))
-
+  # Sort out the NOEL values and units by combining and splitting
   noel_values = noel_dict %>%
-    select(dose_regime, NOEL, dose) %>%
-    distinct() %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -NOEL, sep = "||") %>%
     tidyr::pivot_wider(id_cols = c("dose_regime", "NOEL"),
-                       names_from = "dose",
-                       values_from = "dose") %>%
-    tidyr::unite("dose", -dose_regime, -NOEL, sep="; ") %>%
-    mutate(dose = gsub("; NA|NA; ", "", dose)) %>%
-    # Join back the units for doses
-    left_join(units, by = "dose_regime")
+                       names_from = "dose_dose_units",
+                       values_from = "dose_dose_units") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -NOEL, sep="; ") %>%
+    mutate(dose_dose_units = gsub("; NA|NA; ", "", dose_dose_units)) %>%
+    mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
+           dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
+    select(-dose_dose_units)
 
   # Fix LOEL dict
   loel_dict = dose_dict_orig %>%
@@ -168,26 +172,38 @@ import_hawc_pfas_150_source <- function(db,
     select(-dose_group_id) %>%
     distinct() %>%
     arrange(dose_regime, dose_units.name, dose)
-
-  loel_units = loel_dict %>%
-    #select(dose_regime, dose_units.name = dose_units.name_n) %>%
-    select(dose_regime, LOEL, dose_units.name) %>%
-    tidyr::pivot_wider(id_cols = c("dose_regime", "LOEL"),
-                       names_from = "dose_units.name",
-                       values_from = "dose_units.name") %>%
-    tidyr::unite("dose_units.name", -dose_regime, -LOEL, sep="; ") %>%
-    mutate(dose_units.name = gsub("; NA|NA; ", "", dose_units.name))
-
+  # Sort out the LOEL values and units by combining and splitting
   loel_values = loel_dict %>%
-    select(dose_regime, LOEL, dose) %>%
-    distinct() %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -LOEL, sep = "||") %>%
     tidyr::pivot_wider(id_cols = c("dose_regime", "LOEL"),
-                       names_from = "dose",
-                       values_from = "dose") %>%
-    tidyr::unite("dose", -dose_regime, -LOEL, sep="; ") %>%
-    mutate(dose = gsub("; NA|NA; ", "", dose)) %>%
-    # Join back the units for doses
-    left_join(units, by = "dose_regime")
+                       names_from = "dose_dose_units",
+                       values_from = "dose_dose_units") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -LOEL, sep="; ") %>%
+    mutate(dose_dose_units = gsub("; NA|NA; ", "", dose_dose_units)) %>%
+    mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
+           dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
+    select(-dose_dose_units)
+
+  # Fix FEL dict
+  fel_dict = dose_dict_orig %>%
+    left_join(hawc_pfas_150 %>%
+                select(animal_group.dosing_regime.id, FEL),
+              by = c("dose_regime"="animal_group.dosing_regime.id")) %>%
+    filter(FEL == dose_group_id) %>%
+    select(-dose_group_id) %>%
+    distinct() %>%
+    arrange(dose_regime, dose_units.name, dose)
+  # Sort out the FEL values and units by combining and splitting
+  fel_values = fel_dict %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -FEL, sep = "||") %>%
+    tidyr::pivot_wider(id_cols = c("dose_regime", "FEL"),
+                       names_from = "dose_dose_units",
+                       values_from = "dose_dose_units") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -FEL, sep="; ") %>%
+    mutate(dose_dose_units = gsub("; NA|NA; ", "", dose_dose_units)) %>%
+    mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
+           dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
+    select(-dose_dose_units)
 
   # Match NOEL and LOEL values
   hawc_pfas_150$NOEL_values <- noel_values$dose[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$NOEL),
@@ -198,15 +214,16 @@ import_hawc_pfas_150_source <- function(db,
                                                     paste(loel_values$dose_regime,loel_values$LOEL))]
   hawc_pfas_150$LOEL_units <-  loel_values$dose_units.name[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$LOEL),
                                                     paste(loel_values$dose_regime,loel_values$LOEL))]
+  hawc_pfas_150$FEL_values <- fel_values$dose[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$FEL),
+                                                      paste(fel_values$dose_regime,fel_values$FEL))]
+  hawc_pfas_150$FEL_units <-  fel_values$dose_units.name[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$FEL),
+                                                                 paste(fel_values$dose_regime,fel_values$FEL))]
 
   # hawc_pfas_150 %>% filter(animal_group.dosing_regime.id == 100500837) %>% View()
-  stop("Need to handle FEL")# ALSO HANDLE FEL?
 
   #hawc_pfas_150$study_url <-  paste("https://hawcprd.epa.gov",hawc_pfas_150$animal_group.experiment.study.url, sep = "")
   hawc_pfas_150$endpoint_url <-  paste("https://hawcprd.epa.gov",hawc_pfas_150$url, sep = "")
   hawc_pfas_150$assessment_url <-  paste("https://hawcprd.epa.gov/assessment/",hawc_pfas_150$assessment,"/", sep = "")
-  # hawc_pfas_150$FEL_values <- dose_dict[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$FEL),paste(dose_dict$dose_regime,dose_dict$dose_group_id)),"dose"]
-  # hawc_pfas_150$FEL_units <- dose_dict[match(paste(hawc_pfas_150$animal_group.dosing_regime.id,hawc_pfas_150$FEL),paste(dose_dict$dose_regime,dose_dict$dose_group_id)),"dose_units.name"]
   fac_cols <- sapply(hawc_pfas_150, is.factor)                          # Identify all factor columns
   hawc_pfas_150[fac_cols] <- lapply(hawc_pfas_150[fac_cols], as.character)  # Convert all factors to characters
   names.list <- c("assessment","critical_effect","target","NOEL_original","LOEL_original",
@@ -216,9 +233,9 @@ import_hawc_pfas_150_source <- function(db,
                   "name","casrn","chemical_source","media","guideline_compliance",
                   "dosing_regime_id","route_of_exposure","exposure_duration_value",
                   "exposure_duration_text","species","strain","sex","population","generation","noel_names","loel_names",
-                  "NOEL_values","NOEL_units","LOEL_values",
-                  "LOEL_units","doses", "doses_units",
-                  "record_url","source_url","FEL_values","FEL_units")
+                  "doses", "doses_units", "NOEL_values","NOEL_units","LOEL_values",
+                  "LOEL_units","FEL_values","FEL_units",
+                  "record_url","source_url")
 
   names(hawc_pfas_150) <- names.list
   # Prep final
@@ -226,8 +243,8 @@ import_hawc_pfas_150_source <- function(db,
   hawc_pfas_150_final <-  hawc_pfas_150_final[ , !(names(hawc_pfas_150_final) %in% "assessment")]
   hawc_pfas_150_final$exposure_route <- hawc_pfas_150_final$route_of_exposure
   hawc_pfas_150_final$exposure_method <- hawc_pfas_150_final$route_of_exposure
-  # hawc_pfas_150_final$study_duration_value <- hawc_pfas_150_final$exposure_duration_text
-  # hawc_pfas_150_final$study_duration_units <- hawc_pfas_150_final$exposure_duration_text
+  hawc_pfas_150_final$study_duration_value <- hawc_pfas_150_final$exposure_duration_value
+  hawc_pfas_150_final$study_duration_units <- hawc_pfas_150_final$exposure_duration_text
   names(hawc_pfas_150_final)[match("exposure_duration_value",names(hawc_pfas_150_final))] <- "exposure_duration_value_original"
   names(hawc_pfas_150_final)[match("experiment_type",names(hawc_pfas_150_final))] <- "study_type_original"
   hawc_pfas_150_final$study_type <- hawc_pfas_150_final$study_type_original
