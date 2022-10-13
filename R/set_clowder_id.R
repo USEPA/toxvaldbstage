@@ -91,7 +91,6 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     return(res)
   } else if(source %in% c("DOD ERED",
                           "HEAST",
-                          "IRIS",
                           "PFAS 150 SEM",
                           "Mass. Drinking Water Standards",
                           "California DPH",
@@ -143,29 +142,30 @@ set_clowder_id <- function(res,source, map_file=NULL) {
   } else if (source == "IRIS") {
     # cut the map down to just the webpage PDF documents, not screenshots or supplements
     map_file <- map_file[which(map_file$parentPath == "IRIS"),]
-    for(i in 1:nrow(res)){
-      cas <- res$casrn[i]
-      # catch any incorrect or missing CAS numbers
-      # 85-00-7 hardcoded for now due to potential extraction error upstream
-      if(is.element(cas, c("-", "Various", "85-00-7"))){
-        # map by name instead
-        pattern <- res$name[i]
-        map_index <- which(grepl(pattern, map_file$subDir1, fixed = TRUE))
-        res$clowder_id[i] <- map_file$clowder_id[map_index]
-        res$document_name[i] <- map_file$document_name[map_index]
-        next
-      }
-      # map by CAS
-      map_index <- which(map_file$casrn == cas)
-      tryCatch(
-        expr = {
-          res$clowder_id[i] <- map_file$clowder_id[map_index]
-          res$document_name[i] <- map_file$document_name[map_index]
-        },
-        error = function(e){
-          cat("Error at CAS", cas, "\n")
-        }
-      )
+    # Clear any old mappings
+    res$clowder_id = NULL
+    res$document_name = NULL
+    # Match by chemical name first
+    res = res %>%
+      left_join(map_file %>%
+                  select(chemical_name, clowder_id, document_name),
+                by=c("name" = "chemical_name"))
+    # Filter to those without a match
+    res2 = res %>%
+      filter(is.na(clowder_id))
+    res = res %>%
+      filter(!is.na(clowder_id))
+    # Match by casrn
+    res2 = res2 %>%
+      select(-clowder_id, -document_name) %>%
+      left_join(map_file %>%
+                  select(casrn, clowder_id, document_name),
+                by="casrn")
+    # Recombine all matches
+    res = rbind(res, res2)
+    # Report any that did not match
+    if(any(is.na(res$clowder_id))){
+      cat("IRIS records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
     }
   } else {
     cat("try the v8 records\n")
