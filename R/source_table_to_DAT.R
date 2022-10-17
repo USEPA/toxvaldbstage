@@ -69,8 +69,9 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
   in_dat$value[is.na(in_dat$value)] = ""
   # Reorder columns to fit template order
   in_dat = in_dat %>%
-    select(dataset_name, domain_name, source_name, document_id,
-           document_name, document_path, record_id, field_name, value)
+    select(dataset_name, domain_name, source_name,
+           record_id, field_name, value,
+           document_id, document_name, document_path)
   # Prep export location (check and create if not present)
   if(!dir.exists("Repo/DAT Input")) dir.create("Repo/DAT Input")
   # Export transformation in groups based on limit input
