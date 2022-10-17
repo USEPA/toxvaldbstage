@@ -7,8 +7,8 @@
 #' @export
 #--------------------------------------------------------------------------------------
 toxval.load.chiu <- function(toxval.db, source.db, log=F){
+  verbose = log
   printCurrentFunction(toxval.db)
-  verbose = F
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

@@ -9,7 +9,7 @@ toxval.load.echa.echemportal.api <- function(toxval.db,source.db,log=F) {
   printCurrentFunction(toxval.db)
   source <- "ECHA eChemPortal"
   source_table = "source_echa_echemportal_api"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

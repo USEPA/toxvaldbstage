@@ -5,7 +5,7 @@
 #' @param do.read If TRUE, read in the DSSTox file
 #' @export
 #--------------------------------------------------------------------------------------
-toxval.load.genetox.all <- function(toxval.db, source.db,sys.date="2021-09-10") {
+toxval.load.genetox.all <- function(toxval.db, source.db,sys.date="2021-09-10", verbose=FALSE) {
   printCurrentFunction(toxval.db)
 
   runQuery("delete from genetox_details",db)

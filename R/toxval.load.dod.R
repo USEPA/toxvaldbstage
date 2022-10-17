@@ -13,7 +13,7 @@ toxval.load.dod <- function(toxval.db,source.db,log=F) {
   #####################################################################
   source <- "DOD"
   source_table = "source_dod_meg"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################
