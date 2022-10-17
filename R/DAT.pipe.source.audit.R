@@ -3,25 +3,25 @@
 #'
 #' @param source name of ToxVal source table audit information is associated with
 #' @param db the name of the database
+#' @param live_df a filepath to the DAT live data to push to the 'source' table
+#' @param audit_df a filepath to the DAT audit data to push to source_audit
 #'
 #' @import dplyr DBI magrittr
 #'
 #' @export
 #--------------------------------------------------------------------------------------
-DAT.pipe.source.audit <- function(source, db) {
+DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
 
-  stop("Draft script, not ready to use")
-  # Insert logic to pull associated audit files for an input source table
-
+  # Pull associated DAT files for an input source table
   DAT_data = list(
-    live_dat = "Repo/DAT reports/dataset_detail_QC_2022-10-17_test.xlsx" %>%
+    live_dat = live_df %>%
       readxl::read_xlsx(),
-  audit_dat = "Repo/DAT reports/dataset_detail_audit_QC_2022-10-17_test.xlsx" %>%
+  audit_dat = audit_df %>%
     readxl::read_xlsx() %>%
     dplyr::rename(src_tbl_name=dataset_name) %>%
     mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name))
   )
-
+  # List of ID columns for audit table (JSON conversion ignore)
   id_list = c("source_hash", "parent_hash", "version", "data_record_annotation",
               "failure_reason", "src_tbl_name", "qc_status",
               "status_name", "create_by", "create_time", "end_time")
@@ -102,6 +102,7 @@ DAT.pipe.source.audit <- function(source, db) {
   # runUpdate(updateQuery=updateQuery, updated_df=live, db)
 }
 
+# Combine non-ID columns from audit table into JSON format for audit storage
 convert.audit.to.json <- function(in_dat){
   lapply(seq_len(nrow(in_dat)), function(row){
     in_dat[row, ] %>%
@@ -114,6 +115,7 @@ convert.audit.to.json <- function(in_dat){
     return()
 }
 
+# Select and rename DAT audit columns for toxval_source, calculate new source_hash
 prep.DAT.conversion <- function(in_dat){
   in_dat %>%
     dplyr::rename(parent_hash = src_record_id) %>%
