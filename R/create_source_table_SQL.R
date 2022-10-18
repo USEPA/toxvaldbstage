@@ -41,9 +41,9 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
       writeLines(src_sql$snew_source,
                  paste0(toxval.config()$datapath,
                         "iuclid/",
-                        gsub("source_", "", source),
+                        gsub("source_iuclid_", "", source),
                         "/",
-                        gsub("source_", "", source),
+                        gsub("source_iuclid_", "", source),
                         "_MySQL/",
                         source,
                         ".sql"))
