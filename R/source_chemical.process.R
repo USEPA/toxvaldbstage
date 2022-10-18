@@ -34,6 +34,26 @@ source_chemical.process <- function(db,
   chems = unique(chems)
   chems$source = source
   prefix = runQuery(paste0("select chemprefix from chemical_source_index where source='",source,"'"),db)[1,1]
+  if(is.na(prefix)){
+    # Grab last entry to add a new prefix
+    prefix = runQuery("SELECT chemprefix FROM chemical_source_index", db) %>%
+      tail(1) %>%
+      .[1,] %>%
+      gsub("ToxVal", "", .) %>%
+      as.numeric() %>%
+      # Add 1
+      {. <- . + 1} %>%
+      # Add 0 padding
+      formatC(width = 5, format = "d", flag = "0") %>%
+      paste0("ToxVal", .)
+    # Insert to chemical_source_index table
+    data.frame(`source`= source, chemprefix = prefix) %>%
+      runInsertTable(., "chemical_source_index", db, get.id = FALSE)
+    # Pull prefix
+    prefix = runQuery(paste0("select chemprefix from chemical_source_index where source='",source,"'"),db)[1,1]
+    # Final error handling just in case
+    if(is.na(prefix)) stop("No entry in chemical_source_index for source: ", source, "'")
+  }
   ilist = seq(from=1,to=nrow(chems))
   chems$chemical_id = "-"
   for(i in 1:nrow(chems)) {
