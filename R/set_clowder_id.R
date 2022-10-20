@@ -139,7 +139,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       res = res[,nlist]
       return(res)
     }
-  } # Match IRIS Clower ID's
+  }
+  # Match IRIS Clower ID's
   if (source == "IRIS") {
     # cut the map down to just the webpage PDF documents, not screenshots or supplements
     map_file <- map_file[which(map_file$parentPath == "IRIS"),]
