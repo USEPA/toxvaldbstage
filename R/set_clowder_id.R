@@ -142,6 +142,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       return(res)
     }
   }
+
   # Match IRIS Clower ID's
   if (source == "IRIS") {
     # cut the map down to just the webpage PDF documents, not screenshots or supplements
@@ -171,6 +172,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     if(any(is.na(res$clowder_id))){
       cat("IRIS records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
     }
+    return(res)
   }
 
   # Clowder id and document name matching for source_pprtv_ornl
@@ -214,11 +216,11 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     return(res)
   }
 
-  if (source == "CAL_OEHHA"){
+  if (source == "Cal OEHHA"){
     # cut the map down to just the webpage PDF documents, no screenshots
     map_file <- map_file %>%
       filter(subDir1 == "pdf") %>%
-      rename(clowder_id = "uuid", document_name = "File Name")
+      dplyr::rename(clowder_id = uuid, document_name = `File Name`)
     # clear old names
     res$clowder_id = NULL
     res$document_name = NULL
@@ -236,14 +238,15 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     res2 = res2 %>%
       select(-clowder_id, -document_name) %>%
       left_join(map_file %>%
-                  select(casrn, clowder_id, document_name),
+                  select(casrn=CASRN, clowder_id, document_name),
                 by="casrn")
     # Recombine all matches
     res = rbind(res, res2)
     # Report any that did not match
     if(any(is.na(res$clowder_id))){
-      cat("IRIS records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
+      cat("CAL OEHHA records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
     }
+    return(res)
   }
 
   cat("try the v8 records\n")
