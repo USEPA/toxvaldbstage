@@ -89,7 +89,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     res[res$toxval_subtype=="Thq =  0.1","document_name"] = "ToxValQA33100390_EPA_2021_RegionalScreeningLevels-(TR=1E-06,THQ=0.1).pdf"
     cat("clowder_id and document_name set for ",source,"\n")
     return(res)
-  } else if(source %in% c("DOD ERED",
+  }
+
+  if(source %in% c("DOD ERED",
                           "HEAST",
                           "PFAS 150 SEM",
                           "Mass. Drinking Water Standards",
@@ -169,8 +171,10 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     if(any(is.na(res$clowder_id))){
       cat("IRIS records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
     }
-  } else if (source == "PPRTV (ORNL)"){
-    #Clowder id and document name matching for source_pprtv_ornl
+  }
+
+  # Clowder id and document name matching for source_pprtv_ornl
+  if (source == "PPRTV (ORNL)"){
     # Clear any old mappings
     res$clowder_id = NA
     res$document_name = NA
@@ -208,9 +212,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       res[i,'document_name'] = doc_name
     }
     return(res)
-  } else {
-    cat("try the v8 records\n")
-    #browser()
-    return(res)
   }
+
+  cat("try the v8 records\n")
+  #browser()
+  return(res)
 }
