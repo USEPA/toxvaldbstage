@@ -9,7 +9,7 @@ toxval.load.hawc_pfas_150 <- function(toxval.db, source.db,log=F){
   printCurrentFunction(toxval.db)
   source <- "HAWC PFAS 150"
   source_table = "source_hawc_pfas_150"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

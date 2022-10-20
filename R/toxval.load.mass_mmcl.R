@@ -8,7 +8,7 @@ toxval.load.mass_mmcl <- function(toxval.db, source.db,log=F){
   printCurrentFunction(toxval.db)
   source <- "Mass. Drinking Water Standards"
   source_table = "source_mass_mmcl"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

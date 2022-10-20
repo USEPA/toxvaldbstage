@@ -10,7 +10,7 @@ toxval.load.copper <- function(toxval.db,source.db, log=F){
   printCurrentFunction(toxval.db)
   source <- "Copper Manufacturers"
   source_table = "source_copper"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################
