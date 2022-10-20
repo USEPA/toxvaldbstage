@@ -13,7 +13,7 @@ toxval.load.efsa2 <- function(toxval.db,source.db, log=F) {
   #####################################################################
   source <- "EFSA2"
   source_table = "source_efsa2"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

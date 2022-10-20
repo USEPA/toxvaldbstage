@@ -9,7 +9,7 @@ toxval.load.heast <- function(toxval.db,source.db,log=F) {
   printCurrentFunction(toxval.db)
   source <- "HEAST"
   source_table = "source_heast"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

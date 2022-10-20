@@ -10,7 +10,7 @@ toxval.load.healthcanada <- function(toxval.db,source.db,log=F) {
   printCurrentFunction(toxval.db)
   source <- "Health Canada"
   source_table = "source_health_canada"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

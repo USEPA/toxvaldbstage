@@ -8,7 +8,7 @@
 toxval.load.pprtv.ncea <- function(toxval.db, source.db, log=F){
   source <- "PPRTV (NCEA)"
   source_table = "source_pprtv_ncea"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

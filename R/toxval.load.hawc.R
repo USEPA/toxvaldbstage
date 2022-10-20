@@ -9,7 +9,7 @@ toxval.load.hawc <- function(toxval.db, source.db,log=F){
   printCurrentFunction(toxval.db)
   source <- "HAWC"
   source_table = "source_hawc"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

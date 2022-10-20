@@ -8,7 +8,7 @@ toxval.load.fda_cedi <- function(toxval.db, source.db,log=F){
   printCurrentFunction(toxval.db)
   source <- "FDA CEDI"
   source_table = "source_fda_cedi"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

@@ -6,6 +6,7 @@
 #' @param log If TRUE, output log inoformation to a file
 #--------------------------------------------------------------------------------------
 toxval.load.alaska_dec <- function(toxval.db, source.db,log=F){
+  verbose = log
   printCurrentFunction(toxval.db)
   source <- "Alaska DEC"
   source_table = "source_alaska_dec"

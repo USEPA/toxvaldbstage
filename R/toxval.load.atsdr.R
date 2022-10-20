@@ -7,6 +7,7 @@
 #' @export
 #--------------------------------------------------------------------------------------
 toxval.load.atsdr <- function(toxval.db,source.db, log=F){
+  verbose = log
   printCurrentFunction(toxval.db)
   source <- "ATSDR MRLs 2020"
   source_table = "source_atsdr"

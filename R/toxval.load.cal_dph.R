@@ -5,6 +5,7 @@
 #' @param log If TRUE, send output to a log file
 #--------------------------------------------------------------------------------------
 toxval.load.cal_dph <- function(toxval.db, source.db,log=F){
+  verbose = log
   printCurrentFunction(toxval.db)
 
   #####################################################################

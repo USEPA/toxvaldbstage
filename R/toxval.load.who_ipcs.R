@@ -8,7 +8,7 @@ toxval.load.who_ipcs <- function(toxval.db, source.db,log=F){
   printCurrentFunction(toxval.db)
   source <- "WHO IPCS"
   source_table = "source_who_ipcs"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

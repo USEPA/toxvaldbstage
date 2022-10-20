@@ -13,7 +13,7 @@ toxval.load.doe.pac <- function(toxval.db,source.db,log=F) {
   #####################################################################
   source <- "DOE Protective Action Criteria"
   source_table = "source_doe_pac"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

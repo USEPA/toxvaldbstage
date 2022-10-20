@@ -10,7 +10,7 @@ toxval.load.pfas_150_sem_v2 <- function(toxval.db, source.db, log=F) {
   printCurrentFunction(toxval.db)
   source <- "PFAS 150 SEM v2"
   source_table = "source_pfas_150_sem_v2"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################
