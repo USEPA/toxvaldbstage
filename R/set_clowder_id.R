@@ -91,7 +91,6 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     return(res)
   } else if(source %in% c("DOD ERED",
                           "HEAST",
-                          "IRIS",
                           "PFAS 150 SEM",
                           "Mass. Drinking Water Standards",
                           "California DPH",
@@ -141,44 +140,77 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       return(res)
     }
   }
-  else {
+  # Match IRIS Clower ID's
+  if (source == "IRIS") {
+    # cut the map down to just the webpage PDF documents, not screenshots or supplements
+    map_file <- map_file[which(map_file$parentPath == "IRIS"),]
+    # Clear any old mappings
+    res$clowder_id = NULL
+    res$document_name = NULL
+    # Match by chemical name first
+    res = res %>%
+      left_join(map_file %>%
+                  select(chemical_name, clowder_id, document_name),
+                by=c("name" = "chemical_name"))
+    # Filter to those without a match
+    res2 = res %>%
+      filter(is.na(clowder_id))
+    res = res %>%
+      filter(!is.na(clowder_id))
+    # Match by casrn
+    res2 = res2 %>%
+      select(-clowder_id, -document_name) %>%
+      left_join(map_file %>%
+                  select(casrn, clowder_id, document_name),
+                by="casrn")
+    # Recombine all matches
+    res = rbind(res, res2)
+    # Report any that did not match
+    if(any(is.na(res$clowder_id))){
+      cat("IRIS records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
+    }
+  } else if (source == "PPRTV (ORNL)"){
+    #Clowder id and document name matching for source_pprtv_ornl
+    # Clear any old mappings
+    res$clowder_id = NA
+    res$document_name = NA
+    # Filter to the "_webpage_" PDF Clowder document
+    map_file = map_file[grepl("_webpage_", map_file$document_name) &
+                          grepl(".pdf", map_file$document_name), ]
+    for (i in 1:nrow(res)){
+      #Will perform matching based on casrn and chemical name fields
+      res_cas_num = res[i,'casrn']
+      res_chem_name = res[i,'name']
+      #Get rid of the leading zeros added by excel
+      res_cas_num <- sub("^0+","",res_cas_num)
+
+      #Match first based on exact chemical name (most consistently populated in key and res)
+      row = match(res_chem_name,map_file$chemical_name)
+      clowder_id = map_file[row,'clowder_id']
+      doc_name = map_file[row,'document_name']
+      #Some chemicals have additional abbreviations in the document map. Use grep to look for
+      #the chemical name from res is contained in the chemical name row (different than exact matching)
+      if (is.na(clowder_id)){
+        rows = grep(res_chem_name,map_file$chemical_name)
+        clowder_id = map_file$clowder_id[rows[1]]
+        document_name = map_file$document_name[rows[1]]
+      }
+      #Final match criteria is the casrn number. Res has all casrns but document map does not
+      #PPRTV ORNL source listed some casrn numbers as "various" instead of specific numbers
+      if(is.na(clowder_id)){
+        #If didn't match from chemical name, try to match by casrn
+        row = match(res_cas_num,map_file$casrn)
+        clowder_id = map_file[row,'clowder_id']
+        doc_name = map_file[row,'document_name']
+      }
+      #Populate clowder id and document name fields with matched info from key
+      res[i,'clowder_id'] = clowder_id
+      res[i,'document_name'] = doc_name
+    }
+    return(res)
+  } else {
     cat("try the v8 records\n")
     #browser()
     return(res)
   }
-}
-
-#Clowder id and document name matching for source_pprtv_ornl
-if (source == "pprtv_ornl"){
-  for (i in 1:nrow(res)){
-    #Will perform matching based on casrn and chemical name fields
-    res_cas_num = res[i,'casrn']
-    res_chem_name = res[i,'name']
-    #Get rid of the leading zeros added by excel
-    res_cas_num <- sub("^0+","",res_cas_num)
-
-    #Match first based on exact chemical name (most consistently populated in key and res)
-    row = match(res_chem_name,map_file$chemical_name)
-    clowder_id = map_file[row,'clowder_id']
-    doc_name = map_file[row,'document_name']
-    #Some chemicals have additional abbreviations in the document map. Use grep to look for
-    #the chemical name from res is contained in the chemical name row (different than exact matching)
-    if (is.na(clowder_id)){
-      rows = grep(res_chem_name,map_file$chemical_name)
-      clowder_id = map_file$clowder_id[rows[1]]
-      document_name = map_file$document_name[rows[1]]
-    }
-    #Final match criteria is the casrn number. Res has all casrns but document map does not
-    #PPRTV ORNL source listed some casrn numbers as "various" instead of specific numbers
-    if(is.na(clowder_id)){
-      #If didn't match from chemical name, try to match by casrn
-      row = match(res_cas_num,map_file$casrn)
-      clowder_id = map_file[row,'clowder_id']
-      doc_name = map_file[row,'document_name']
-    }
-    #Populate clowder id and document name fields with matched info from key
-    res[i,'clowder_id'] = clowder_id
-    res[i,'document_name'] = doc_name
-  }
-  return(res)
 }
