@@ -49,7 +49,7 @@ fix.non_ascii.v2 <- function(df,source){
     missing = sort(unique(missing))
     if(length(missing)>0) {
       print(missing)
-      file = paste0(toxval.config()$datapath,"/chemcheck/non_ascii ",source,".xlsx")
+      file = paste0(toxval.config()$datapath,"chemcheck/non_ascii ",source,".xlsx")
       openxlsx::write.xlsx(missing,file)
     }
   }
