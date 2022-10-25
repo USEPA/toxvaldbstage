@@ -132,7 +132,6 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       n1 = nrow(res)
       n2 = nrow(res[res$clowder_id!="-",])
       res2 = res[res$clowder_id=="-",]
-      # M
       n3 = length(unique(res2$title))
       cat("matching for source",source,":",n2," out of ",n1," missing unique documents:",n3,"\n")
       nlist = names(res)
