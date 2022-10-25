@@ -127,6 +127,10 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       res$title3 = gsub("\\s*\\([^\\)]+\\)", "", res$title2)
       for(i in 1:nrow(map)) {
         cid = map[i,"clowder_id"]
+      #   if(cid == "623a38d6e4b0b18cb57d1194"){
+      #     stop("Found i")
+      #   }
+      # }
         docname = map[i,"document_name"]
         title2 = str_trim(tolower(map[i,"study_name"])) %>%
           gsub('\\.$','',.)
@@ -134,7 +138,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
         title2b = sub('\\..*', '', title2)
         # Remove parenthetical information and trailing . information
         title3 = gsub("\\s*\\([^\\)]+\\)", "", title2) %>%
-          gsub('\\.$','',.)
+          gsub('\\.$','',.) %>%
+          # Escape any | symbols for regex purposes
+          gsub("\\|", "\\\\|", .)
 
         # Attempt various matching schemes
         if(any(is.element(res$title2,title2))){
