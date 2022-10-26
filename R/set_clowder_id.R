@@ -172,4 +172,105 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     #browser()
     return(res)
   }
+
+  # Clowder id and document name matching for source_pprtv_ornl
+  if (source == "PPRTV (ORNL)"){
+    # Clear any old mappings
+    res$clowder_id = NA
+    res$document_name = NA
+    # Filter to the "_webpage_" PDF Clowder document
+    map_file = map_file[grepl("_webpage_", map_file$document_name) &
+                          grepl(".pdf", map_file$document_name), ]
+    for (i in 1:nrow(res)){
+      #Will perform matching based on casrn and chemical name fields
+      res_cas_num = res[i,'casrn']
+      res_chem_name = res[i,'name']
+      #Get rid of the leading zeros added by excel
+      res_cas_num <- sub("^0+","",res_cas_num)
+
+      #Match first based on exact chemical name (most consistently populated in key and res)
+      row = match(res_chem_name,map_file$chemical_name)
+      clowder_id = map_file[row,'clowder_id']
+      doc_name = map_file[row,'document_name']
+      #Some chemicals have additional abbreviations in the document map. Use grep to look for
+      #the chemical name from res is contained in the chemical name row (different than exact matching)
+      if (is.na(clowder_id)){
+        rows = grep(res_chem_name,map_file$chemical_name)
+        clowder_id = map_file$clowder_id[rows[1]]
+        document_name = map_file$document_name[rows[1]]
+      }
+      #Final match criteria is the casrn number. Res has all casrns but document map does not
+      #PPRTV ORNL source listed some casrn numbers as "various" instead of specific numbers
+      if(is.na(clowder_id)){
+        #If didn't match from chemical name, try to match by casrn
+        row = match(res_cas_num,map_file$casrn)
+        clowder_id = map_file[row,'clowder_id']
+        doc_name = map_file[row,'document_name']
+      }
+      #Populate clowder id and document name fields with matched info from key
+      res[i,'clowder_id'] = clowder_id
+      res[i,'document_name'] = doc_name
+    }
+    return(res)
+  }
+
+  if (source == "Cal OEHHA"){
+    # cut the map down to just the webpage PDF documents, no screenshots
+    map_file <- map_file %>%
+      filter(subDir1 == "pdf") %>%
+      dplyr::rename(clowder_id = uuid, document_name = `File Name`)
+    # clear old names
+    res$clowder_id = NULL
+    res$document_name = NULL
+    # Match by chemical name first
+    res = res %>%
+      left_join(map_file %>%
+                  select(Chemical, clowder_id, document_name),
+                by=c("name" = "Chemical"))
+    # Filter to those without a match
+    res2 = res %>%
+      filter(is.na(clowder_id))
+    res = res %>%
+      filter(!is.na(clowder_id))
+    # Match by casrn
+    res2 = res2 %>%
+      select(-clowder_id, -document_name) %>%
+      left_join(map_file %>%
+                  select(casrn=CASRN, clowder_id, document_name),
+                by="casrn")
+    # Recombine all matches
+    res = rbind(res, res2)
+    # Report any that did not match
+    if(any(is.na(res$clowder_id))){
+      cat("CAL OEHHA records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
+    }
+    return(res)
+  }
+
+  # Match EFSA2 records
+  if (source == "efsa2") {
+    # clear old names
+    res$clowder_id <- NULL
+    res$document_name <- NULL
+
+    # match by longref
+    res <- res %>%
+      left_join(select(map_file, long_ref, clowder_id, document_name),
+                     by = "long_ref") %>%
+      distinct()
+
+    # This introduces a few duplicates, which we then remove
+    count <- res %>% count(source_id)
+    duplicates <- count[which(count$n > 1),]
+    res <- filter(res, !(source_id %in% duplicates$source_id & is.na(clowder_id)))
+
+    # report any that did not match
+    if(any(is.na(res$clowder_id))){
+      cat("EFSA2 records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
+    }
+  }
+
+  cat("try the v8 records\n")
+  #browser()
+  return(res)
 }
