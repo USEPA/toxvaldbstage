@@ -16,15 +16,21 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
   DAT_data = list(
     live_dat = live_df %>%
       readxl::read_xlsx(),
-  audit_dat = audit_df %>%
-    readxl::read_xlsx() %>%
-    dplyr::rename(src_tbl_name=dataset_name) %>%
-    mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name))
+    audit_dat = audit_df %>%
+      readxl::read_xlsx() %>%
+      dplyr::rename(src_tbl_name=dataset_name) %>%
+      mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name))
   )
   # List of ID columns for audit table (JSON conversion ignore)
   id_list = c("source_hash", "parent_hash", "version", "data_record_annotation",
               "failure_reason", "src_tbl_name", "qc_status",
-              "status_name", "create_by", "create_time", "end_time")
+              "status_name", "create_by", "create_time", "end_time",
+              # DAT cols
+              "uuid", "description", "data_record_annotation", "total_fields_changed",
+              "failure_reason", "create_time", "version", "src_record_id", "dataset_name",
+              "dataset_description", "DAT_domain_name", "domain_description",
+              "DAT_source_name", "source_description", "status_name", "status_description",
+              "create_by", "source_name", "document_name")
   # Identifiers excluded from source_hash generation
   hash_id_list = append(id_list,
                         c("chemical_id","source_id","clowder_id","document_name",
@@ -32,24 +38,16 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
                           "modify_time","created_by")) %>%
     unique()
   # Removing version which is part of source_hash generation
-  hash_id_list = hash_id_list[!hash_id_list %in% c("version")]
+  # hash_id_list = hash_id_list[!hash_id_list %in% c("version")]
 
   # Prepare live values
   live = DAT_data$live_dat %>%
-    prep.DAT.conversion()
+    prep.DAT.conversion(., hash_id_list=hash_id_list)
 
   # Prepare audit values
   audit = DAT_data$audit_dat %>%
-    prep.DAT.conversion() %>%
-    # dplyr::rename(parent_hash = src_record_id) %>%
-    # # Remove extraneous DAT fields
-    # select(-uuid, -description, -total_fields_changed, -dataset_description, -DAT_domain_name,
-    #        -domain_description, -DAT_source_name, -source_description, -status_description) %>%
-    # tidyr::unite("pre_source_hash", any_of(names(.)[!names(.) %in% hash_id_list]),
-    #              sep="", remove = FALSE) %>%
-    # # Set source_hash
-    # mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
-    # select(-pre_source_hash) %>%
+    # Select and rename DAT audit columns for toxval_source, calculate new source_hash
+    prep.DAT.conversion(., hash_id_list=hash_id_list) %>%
     # Transform record columns into JSON
     mutate(record = convert.audit.to.json(select(., -any_of(id_list)))) %>%
     # Select only audit/ID columns and JSON record
@@ -69,9 +67,14 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
     mutate(audit_version = version + parent_version) %>%
     select(-parent_version, -version)
 
-  # Determine qc_status
-  live = live %>%
-    mutate(qc_status = "TBD in Code")
+  # Determine qc_status - default these to fail
+  live$qc_status = "fail"
+  # Audit always set to fail since it's been changed
+  audit$qc_status = "fail"
+  # Unchanged records = PASS outright
+  live$qc_status[live$source_hash %in% v_list$source_hash] = "pass"
+  # If record changed, but does not have a failure reason
+  live$qc_status[is.na(live$failure_reason)] = "pass"
 
   # Prep audit table push
   audit = audit %>%
@@ -82,10 +85,9 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
                   created_by = create_by) %>%
     select(-status_name)
 
-  # Filter out unchanged records from live table (unchanged = matching source_hash)
   # Rename columns as needed
   live = live %>%
-    filter(!source_hash %in% v_list$source_hash) %>%
+    #filter(!source_hash %in% v_list$source_hash) %>%
     dplyr::rename(version = audit_version,
                   qc_notes = data_record_annotation,
                   qc_flags = failure_reason,
@@ -98,7 +100,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
   updateQuery = paste0("UPDATE ", source," a INNER JOIN z_updated_df b ",
                        "ON (a.source_hash = b.parent_hash) SET ",
                        paste0("a.", names(live),  " = b.", names(live), collapse = ", ")
-                       )
+  )
   # runUpdate(updateQuery=updateQuery, updated_df=live, db)
 }
 
@@ -116,7 +118,7 @@ convert.audit.to.json <- function(in_dat){
 }
 
 # Select and rename DAT audit columns for toxval_source, calculate new source_hash
-prep.DAT.conversion <- function(in_dat){
+prep.DAT.conversion <- function(in_dat, hash_id_list){
   in_dat %>%
     dplyr::rename(parent_hash = src_record_id) %>%
     # Remove extraneous DAT fields
