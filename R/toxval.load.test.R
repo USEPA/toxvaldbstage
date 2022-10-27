@@ -10,7 +10,7 @@ toxval.load.test <- function(toxval.db, source.db, log=F) {
   printCurrentFunction(toxval.db)
   source <- "TEST"
   source_table = "source_test"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

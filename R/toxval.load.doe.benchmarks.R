@@ -9,7 +9,7 @@ toxval.load.doe.benchmarks <- function(toxval.db,source.db,log=F) {
   printCurrentFunction(toxval.db)
   source <- "DOE Wildlife Benchmarks"
   source_table = "source_doe_benchmarks"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

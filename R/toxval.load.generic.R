@@ -8,7 +8,7 @@
 toxval.load.generic <- function(toxvaldb,source.db,log=F) {
   source = SOURCE_NAME
   source_table = "source_"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

@@ -9,7 +9,7 @@ toxval.load.niosh <- function(toxval.db, source.db ,log=F){
   printCurrentFunction(toxval.db)
   source <- "NIOSH"
   source_table = "source_niosh"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

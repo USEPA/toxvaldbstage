@@ -13,7 +13,7 @@ toxval.load.dod.ered <- function(toxval.db,source.db,log=F) {
   #####################################################################
   source <- "DOD ERED"
   source_table = "source_dod_ered"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

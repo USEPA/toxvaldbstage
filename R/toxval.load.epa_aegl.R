@@ -8,7 +8,7 @@ toxval.load.epa_aegl <- function(toxval.db, source.db,log=F){
   printCurrentFunction(toxval.db)
   source <- "EPA AEGL"
   source_table = "source_epa_aegl"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

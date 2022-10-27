@@ -14,7 +14,7 @@ toxval.load.doe.ecorisk <- function(toxval.db,source.db,log=F) {
   #####################################################################
   source <- "DOE ECORISK"
   source_table = "source_lanl"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################
