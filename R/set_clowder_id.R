@@ -271,6 +271,11 @@ set_clowder_id <- function(res,source, map_file=NULL) {
 
   # Match EFSA2 records
   if (source == "efsa2") {
+    # Update map_file so it only contains mapped clowder_id values with long_refs
+    map_file = map_file %>%
+      select(clowder_id, document_name, long_ref) %>%
+      distinct() %>%
+      filter(!is.na(clowder_id))
     # clear old names
     res$clowder_id <- NULL
     res$document_name <- NULL
@@ -282,9 +287,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       distinct()
 
     # This introduces a few duplicates, which we then remove
-    count <- res %>% count(source_id)
-    duplicates <- count[which(count$n > 1),]
-    res <- filter(res, !(source_id %in% duplicates$source_id & is.na(clowder_id)))
+    # count <- res %>% dplyr::count(source_id)
+    # duplicates <- count[which(count$n > 1),]
+    # res <- filter(res, !(source_id %in% duplicates$source_id & is.na(clowder_id)))
 
     # report any that did not match
     if(any(is.na(res$clowder_id))){
