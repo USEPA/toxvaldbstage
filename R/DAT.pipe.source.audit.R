@@ -21,6 +21,21 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
       dplyr::rename(src_tbl_name=dataset_name) %>%
       mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name))
   )
+
+  # Add back columns removed from QC data
+  source_data = runQuery(paste0("SELECT * FROM ", source, " WHERE source_hash in ('",
+                                paste0(DAT_data$live_dat$src_record_id, collapse="', '"),"')"), db=db) %>%
+    # Only select columns (and source_hash) not already present in DAT QC data
+    .[, names(.)[!names(.) %in% names(DAT_data$live_dat)]] %>%
+    # Remove QC fields that will be repopulated in this workflow
+    select(-parent_hash, -qc_notes, -qc_flags, -created_by)
+
+  # Combine to add back missing columns (columns not QC'd)
+  DAT_data$live_dat = DAT_data$live_dat %>%
+    left_join(source_data, by = c("src_record_id" = "source_hash"))
+  DAT_data$audit_dat = DAT_data$audit_dat %>%
+    left_join(source_data, by = c("src_record_id" = "source_hash"))
+
   # List of ID columns for audit table (JSON conversion ignore)
   id_list = c("source_hash", "parent_hash", "version", "data_record_annotation",
               "failure_reason", "src_tbl_name", "qc_status",
@@ -30,7 +45,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
               "failure_reason", "create_time", "version", "src_record_id", "dataset_name",
               "dataset_description", "DAT_domain_name", "domain_description",
               "DAT_source_name", "source_description", "status_name", "status_description",
-              "create_by", "source_name", "document_name")
+              "create_by", "source_name")
   # Identifiers excluded from source_hash generation
   hash_id_list = append(id_list,
                         c("chemical_id","source_id","clowder_id","document_name",
@@ -83,7 +98,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
                   qc_notes = data_record_annotation,
                   qc_flags = failure_reason,
                   created_by = create_by) %>%
-    select(-status_name)
+    select(-status_name, -source_name)
 
   # Rename columns as needed
   live = live %>%
@@ -92,7 +107,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
                   qc_notes = data_record_annotation,
                   qc_flags = failure_reason,
                   created_by = create_by) %>%
-    select(-dataset_name, -status_name, -source_name, -create_time)
+    select(-dataset_name, -status_name, -source_name)
 
   # Push live and audit table changes
   # runInsertTable(mat=audit, table="source_audit", db=db, get.id = FALSE)
@@ -124,6 +139,8 @@ prep.DAT.conversion <- function(in_dat, hash_id_list){
     # Remove extraneous DAT fields
     select(-uuid, -description, -total_fields_changed, -dataset_description, -DAT_domain_name,
            -domain_description, -DAT_source_name, -source_description, -status_description) %>%
+    # Alphabetize the columns to ensure consistent hashing column order
+    .[, sort(colnames(.))] %>%
     tidyr::unite("pre_source_hash", any_of(names(.)[!names(.) %in% hash_id_list]),
                  sep="", remove = FALSE) %>%
     # Set source_hash
