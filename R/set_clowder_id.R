@@ -120,13 +120,14 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     map = map.ccte
     if(is.element(source,c("HAWC PFAS 150","HAWC PFAS 430"))) {
       title2 = res$title
-      title2 = str_replace(title2,"Registration dossier: ","")
+      title2 = gsub("Registration dossier: |RRegistration dossier: ","", title2)
       title2 = gsub('\\.$','',title2)
       res$title2 = title2
       res$title2 = tolower(str_trim(title2))
       res$title3 = gsub("\\s*\\([^\\)]+\\)", "", res$title2)
       for(i in 1:nrow(map)) {
         cid = map[i,"clowder_id"]
+
         docname = map[i,"document_name"]
         title2 = str_trim(tolower(map[i,"study_name"])) %>%
           gsub('\\.$','',.)
@@ -137,25 +138,32 @@ set_clowder_id <- function(res,source, map_file=NULL) {
           gsub('\\.$','',.)
 
         # Attempt various matching schemes
+        # Direct title match
         if(any(is.element(res$title2,title2))){
           res[is.element(res$title2,title2),"clowder_id"] = cid
           res[is.element(res$title2,title2),"document_name"] = docname
+        # Removal of CASRN or other parenthetic information
         } else if(any(is.element(res$title3,title2))){
           res[is.element(res$title3,title2),"clowder_id"] = cid
           res[is.element(res$title3,title2),"document_name"] = docname
+          # Title match after removing trailing "."
         } else if(any(is.element(res$title2,title2b))){
           res[is.element(res$title2,title2b),"clowder_id"] = cid
           res[is.element(res$title2,title2b),"document_name"] = docname
-        } else if(any(grepl(title3, res$title3))){
-          res[grepl(title3, res$title3),"clowder_id"] = cid
-          res[grepl(title3, res$title3),"document_name"] = docname
-        }
+          # Escape any regex symbols (test as substring)
+          # https://stackoverflow.com/questions/27721008/how-do-i-deal-with-special-characters-like-in-my-regex
+          # Check if the map title3 is a substring of the full title
+        }#} else if(any(grepl(paste("\\Q", title3 ,"\\E"), res$title3, fixed = TRUE))){
+        #   res[grepl(paste("\\Q", title3 ,"\\E"), res$title3, fixed = TRUE),"clowder_id"] = cid
+        #   res[grepl(paste("\\Q", title3 ,"\\E"), res$title3, fixed = TRUE),"document_name"] = docname
+        # }
       }
       n1 = nrow(res)
       n2 = nrow(res[res$clowder_id!="-",])
       res2 = res[res$clowder_id=="-",]
       n3 = length(unique(res2$title))
       cat("matching for source",source,":",n2," out of ",n1," missing unique documents:",n3,"\n")
+      # View(res2 %>% select(title, title2, title3) %>% distinct())
       # Remove title2
       res$title2 = NULL
       res$title3 = NULL
