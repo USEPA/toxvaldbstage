@@ -15,11 +15,15 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
   # Pull associated DAT files for an input source table
   DAT_data = list(
     live_dat = live_df %>%
-      readxl::read_xlsx(),
+      readxl::read_xlsx() %>%
+      # Remove QC fields that will be repopulated in this workflow
+      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))],
     audit_dat = audit_df %>%
       readxl::read_xlsx() %>%
       dplyr::rename(src_tbl_name=dataset_name) %>%
-      mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name))
+      mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name)) %>%
+      # Remove QC fields that will be repopulated in this workflow
+      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))]
   )
 
   # Add back columns removed from QC data
@@ -28,7 +32,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
     # Only select columns (and source_hash) not already present in DAT QC data
     .[, names(.)[!names(.) %in% names(DAT_data$live_dat)]] %>%
     # Remove QC fields that will be repopulated in this workflow
-    select(-parent_hash, -qc_notes, -qc_flags, -created_by)
+    .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))]
 
   # Combine to add back missing columns (columns not QC'd)
   DAT_data$live_dat = DAT_data$live_dat %>%
@@ -98,7 +102,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
                   qc_notes = data_record_annotation,
                   qc_flags = failure_reason,
                   created_by = create_by) %>%
-    select(-status_name, -source_name)
+    .[, !names(.) %in% c("status_name", "source_name")]
 
   # Rename columns as needed
   live = live %>%
@@ -107,7 +111,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
                   qc_notes = data_record_annotation,
                   qc_flags = failure_reason,
                   created_by = create_by) %>%
-    select(-dataset_name, -status_name, -source_name)
+    .[, !names(.) %in% c("dataset_name", "status_name", "source_name")]
 
   # Push live and audit table changes
   # runInsertTable(mat=audit, table="source_audit", db=db, get.id = FALSE)

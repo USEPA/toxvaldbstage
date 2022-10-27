@@ -18,6 +18,9 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
 
   printCurrentFunction(paste(db,source,table))
 
+  non_hash_cols = c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
+                    "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version")
+
   if(is.element("chemical_index",names(res))) res = subset(res,select=-c(chemical_index))
   res$source_hash = "-"
   res$parent_hash = "-"
@@ -32,17 +35,15 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   if(nold>0) {
     sample0 = runQuery(paste0("select * from ",table, " limit 1"),db)
     nlist = names(sample0)
-    nlist = nlist[!is.element(nlist,c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
-                                      "parent_hash","create_time","modify_time","created_by"))]
+    nlist = nlist[!is.element(nlist,non_hash_cols)]
     sh0 = sample0[1,"source_hash"]
-    sample = sample0[,nlist]
+    sample = sample0[,sort(nlist)]
     sh1 = digest(paste0(sample,collapse=""), serialize = FALSE)
     cat("test that the columns are right for the hash key: ",sh0,sh1,"\n")
     #if(sh0!=sh1) browser()
   } else {
     nlist = runQuery(paste0("desc ",table),db)[,1]
-    nlist = nlist[!is.element(nlist,c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
-                                      "parent_hash","create_time","modify_time","created_by"))]
+    nlist = nlist[!is.element(nlist,non_hash_cols)]
   }
 
   #####################################################################
@@ -74,7 +75,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     temp[] = "-"
     res = cbind(res,temp)
   } else cat("no columns need to be added\n")
-  res.temp = res[,nlist]
+  res.temp = res[,sort(nlist)]
 
   for (i in 1:nrow(res)){
     row <- res.temp[i,]
