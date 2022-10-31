@@ -2,6 +2,7 @@
 #' Create audit table and add BEFORE UPDATE audit triggers to source_* tables
 #'
 #' @param src_tbl the name of the ToxVal source table to update
+#' @param source the name of the ToxVal source (different from src_tbl)
 #' @param map_file the file path to a Clowder document map
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
@@ -34,7 +35,7 @@ update.source.clowder.id <- function(src_tbl, map_file = NULL, db,
   if(nrow(res)){
     # Map Clowder ID values like normal
     mapped_res = set_clowder_id(res=res,
-                                source=src_tbl,
+                                source=source,
                                 map_file=map_file)
 
     # Query to join and make updates

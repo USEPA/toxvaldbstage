@@ -305,8 +305,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     }
   }
 
-  # Match hawc_pfas_150 records
-  if (source == "hawc_pfas_150") {
+  # Match hawc_pfas_150_sem records
+  if (source == "PFAS 150 SEM v2") {
     # Update map_file so it only contains mapped clowder_id values with long_refs
     map_file$clowder_id <- replace(map_file$clowder_id, map_file$clowder_id == "-", NA)
     map_file = map_file %>%
