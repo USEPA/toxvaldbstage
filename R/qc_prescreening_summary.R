@@ -11,7 +11,7 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
   if(is.null(db)) stop("No database name provided...")
   if(is.null(outputDir)) outputDir = getwd()
   # Use the runQuery function to extract a source table "src_tbl" from a database "db"
-  cat(paste0("Retrieving ",src_tble," data from database", "\n"))
+  cat(paste0("Retrieving ",src_tbl," data from database", "\n"))
   in_data = runQuery(paste0("select * from ",src_tbl),db)
 
   # Use tidyr pivot longer function to put data in long form
@@ -56,7 +56,8 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
                         path = out_file)
 
   cat("All done! Have fun!","\n")
-  return(x)
+  return(list('raw_data' = in_data,
+       'summary' = freq_df))
 }
 
 # qc_prescreening_summary(src_tbl = "source_pfas_150_sem", db = "database")
