@@ -50,8 +50,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   cat("check the columns\n")
   #####################################################################
   nlist0 = names(res)
-  nlist0 = nlist0[!is.element(nlist0,c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
-                                       "parent_hash","create_time","modify_time","created_by"))]
+  nlist0 = nlist0[!is.element(nlist0,non_hash_cols)]
   nlist01 = nlist0[!is.element(nlist0,nlist)]
   nlist10 = nlist[!is.element(nlist,nlist0)]
   if(length(nlist01)>0) {

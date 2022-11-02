@@ -8,8 +8,8 @@
 #' @param verbose if TRUE, print diagnostic information
 #' @export
 #--------------------------------------------------------------------------------------
-runUpdate <- function(updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE,verbose=FALSE){
-  if(is.null(query)){
+runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE,verbose=FALSE){
+  if(is.null(updateQuery)){
     cat("No query provided...\n")
     return(NULL)
   }
@@ -29,28 +29,32 @@ runUpdate <- function(updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE,verbos
 
   if(verbose) {
     printCurrentFunction()
-    cat("query: ",query,"\n")
+    cat("updateQuery: ",updateQuery,"\n")
     cat("db: ",db,"\n")
   }
   tryCatch({
     # Push temp table of updates
+    # Create a table like the source table so the COLLATE and encoding arguments match
+    runQuery(paste0("CREATE TABLE z_updated_df LIKE ", table), db)
     con <- dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
+
     res = dbWriteTable(con,
                        name="z_updated_df",
                        value=updated_df,
                        row.names=FALSE,
-                       overwrite=TRUE)
+                       append=TRUE)
     dbDisconnect(con)
     # Push updates
-    runStatement(query=update_query, db=db)
+    runStatement(query=updateQuery, db=db)
     # Drop temp table
     runStatement(query="DROP TABLE IF EXISTS z_updated_df", db=db)
-  }, warning = function(w) {
-    cat("WARNING:",query,"\n")
-    if(do.halt) browser()
+  #}, warning = function(w) {
+  #  cat("WARNING:",updateQuery,"\n")
+  #  if(do.halt) browser()
   }, error = function(e) {
-    #cat("ERROR:",query,"\n")
+    #cat("ERROR:",updateQuery,"\n")
     cat("Error messge: ",paste0(e, collapse=" | "), "\n")
     if(do.halt) browser()
-  }, finally = { dbDisconnect(con) })
+  }# , finally = { dbDisconnect(con) }
+  )
 }
