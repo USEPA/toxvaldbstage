@@ -24,7 +24,7 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
     # Filter to those named "source_*"
     .[grepl("source_", .)] %>%
     # Ignore those like source_audit or source_chemical
-    .[!grepl("chemical|audit", .)]
+    .[!grepl("chemical|source_audit", .)]
 
   # Loop through each table, get fields for JSON, reparse SQL, run Statement
   for(s_tbl in tblList){

@@ -29,26 +29,6 @@ runInsertTable <- function(mat,table,db,do.halt=T,verbose=F,get.id=T) {
     cat("db: ",db,"\n")
   }
   tryCatch({
-    #
-    # make sure all charactersc are in UTF8
-    #
-    desc <- runQuery(paste0("desc ",table),db)
-    desc <- desc[is.element(desc[,"Field"],names(mat)),]
-    for(i in 1:dim(desc)[1]) {
-      col <- desc[i,"Field"]
-      type <- desc[i,"Type"]
-      if(contains(type,"varchar") || contains(type,"text")) {
-        if(verbose) cat("   enc2utf8:",col,"\n")
-        x <- as.character(mat[,col])
-        x[is.na(x)] <- "-"
-        x <- enc2native(x)
-        x <- iconv(x,from="latin1",to="UTF-8")
-        x <- iconv(x,from="LATIN1",to="UTF-8")
-        x <- iconv(x,from="LATIN2",to="UTF-8")
-        x <- iconv(x,from="latin-9",to="UTF-8")
-        mat[,col] <- enc2utf8(x)
-      }
-    }
 
     con <- dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
     res = dbWriteTable(con,name=table,value=mat,row.names=F,overwrite=F,append=T)

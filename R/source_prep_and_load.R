@@ -18,7 +18,7 @@ source_prep_and_load <- function(db,source,table,res,
 
   #####################################################################
   cat("Generating source table in database\n")
-  create_source_table_SQL(source=table, res=res, db=db)
+  res = create_source_table_SQL(source=table, res=res, db=db)
   #####################################################################
 
   #####################################################################
@@ -41,6 +41,28 @@ source_prep_and_load <- function(db,source,table,res,
   cat("Set the clowder_id and document name\n")
   #####################################################################
   res = set_clowder_id(res=res,source=source)
+
+  #
+  # make sure all characters are in UTF8 - moved from runInsertTable.R
+  # so it is applied BEFORE hashing and loading
+  #
+  desc <- runQuery(paste0("desc ",table),db)
+  desc <- desc[is.element(desc[,"Field"],names(res)),]
+  for(i in 1:dim(desc)[1]) {
+    col <- desc[i,"Field"]
+    type <- desc[i,"Type"]
+    if(contains(type,"varchar") || contains(type,"text")) {
+      # if(verbose) cat("   enc2utf8:",col,"\n")
+      x <- as.character(res[,col])
+      x[is.na(x)] <- "-"
+      x <- enc2native(x)
+      x <- iconv(x,from="latin1",to="UTF-8")
+      x <- iconv(x,from="LATIN1",to="UTF-8")
+      x <- iconv(x,from="LATIN2",to="UTF-8")
+      x <- iconv(x,from="latin-9",to="UTF-8")
+      res[,col] <- enc2utf8(x)
+    }
+  }
 
   #####################################################################
   cat("Build the hash key and load the data \n")

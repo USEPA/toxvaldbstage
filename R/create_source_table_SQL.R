@@ -63,7 +63,7 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
   # Push the new table to database
   runQuery(query = src_sql$snew_source, db=db)
   # Return SQL if desired
-  return(src_sql$snew_source)
+  return(res)
 }
 
 #--------------------------------------------------------------------------------------
