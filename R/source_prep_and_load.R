@@ -22,7 +22,7 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
 
   #####################################################################
-  cat("Do the chemical checking\n")
+  cat("General fixes to non-ascii and encoding \n")
   #####################################################################
   res = as.data.frame(res)
   res$source = source
@@ -30,18 +30,7 @@ source_prep_and_load <- function(db,source,table,res,
   if(!is.element(source,c("HESS"))) res$document_name = "-"
   res$qc_status = "-"
   res = fix.non_ascii.v2(res,source)
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")
-
-  #####################################################################
-  cat("Set the default values for missing data\n")
-  #####################################################################
-  res = source_set_defaults(res,source)
-
-  #####################################################################
-  cat("Set the clowder_id and document name\n")
-  #####################################################################
-  res = set_clowder_id(res=res,source=source)
-
+  
   #
   # make sure all characters are in UTF8 - moved from runInsertTable.R
   # so it is applied BEFORE hashing and loading
@@ -63,6 +52,21 @@ source_prep_and_load <- function(db,source,table,res,
       res[,col] <- enc2utf8(x)
     }
   }
+  
+  #####################################################################
+  cat("Do the chemical checking\n")
+  #####################################################################
+  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")
+
+  #####################################################################
+  cat("Set the default values for missing data\n")
+  #####################################################################
+  res = source_set_defaults(res,source)
+
+  #####################################################################
+  cat("Set the clowder_id and document name\n")
+  #####################################################################
+  res = set_clowder_id(res=res,source=source)
 
   #####################################################################
   cat("Build the hash key and load the data \n")
