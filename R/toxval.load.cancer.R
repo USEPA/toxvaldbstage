@@ -15,6 +15,7 @@
 #' @param toxval.db The version of the database to use
 #-----------------------------------------------------------------------------------
 toxval.load.cancer <- function(toxval.db,source.db) {
+  # verbose = log
   printCurrentFunction(toxval.db)
 
   runQuery("delete from cancer_summary",toxval.db)

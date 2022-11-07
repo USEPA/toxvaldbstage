@@ -10,7 +10,7 @@ toxval.load.pprtv.ornl <- function(toxval.db,source.db,log=F) {
   printCurrentFunction(toxval.db)
   source <- "PPRTV (ORNL)"
   source_table = "source_pprtv_ornl"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

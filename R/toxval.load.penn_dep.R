@@ -9,7 +9,7 @@ toxval.load.penn_dep <- function(toxval.db, source.db,log=F){
   printCurrentFunction(toxval.db)
   source <- "Pennsylvania DEP MCLs"
   source_table = "source_penn_dep"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

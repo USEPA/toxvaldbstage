@@ -9,7 +9,7 @@ toxval.load.ow_dwsha <- function(toxval.db, source.db,log=F){
   printCurrentFunction(toxval.db)
   source <- "OW Drinking Water Standards"
   source_table = "source_ow_dwsha"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

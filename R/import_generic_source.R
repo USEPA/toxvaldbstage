@@ -16,11 +16,20 @@ import_generic_source <- function(db,chem.check.halt=F) {
   #####################################################################
   #
   # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source 
+  # additionally, the names in res need to match names in the source
   # database table. You do not need to add any of the generic columns
   # described in the SOP - they will get added in source_prep_and_load
   #
+
+  # Standardize the names
+  names(res0) <- names(res0) %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    stringr::str_squish() %>%
+    tolower()
+
   res = source.specific.transformations(res0)
+
 
   #####################################################################
   cat("Prep and load the data\n")

@@ -10,7 +10,7 @@ toxval.load.envirotox <- function(toxval.db, source.db, log=F) {
   printCurrentFunction(toxval.db)
   source <- "EnviroTox_v2"
   source_table = "source_envirotox"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

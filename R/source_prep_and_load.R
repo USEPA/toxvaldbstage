@@ -14,17 +14,48 @@ source_prep_and_load <- function(db,source,table,res,
                                  do.reset=FALSE,do.insert=FALSE,chem.check.halt=FALSE){
   printCurrentFunction(paste(db,"\n",source,":",table))
 
-  chem.check.halt = F
+  chem.check.halt = FALSE
 
   #####################################################################
-  cat("Do the chemical checking\n")
+  cat("Generating source table in database\n")
+  res = create_source_table_SQL(source=table, res=res, db=db)
+  #####################################################################
+
+  #####################################################################
+  cat("General fixes to non-ascii and encoding \n")
   #####################################################################
   res = as.data.frame(res)
   res$source = source
   res$clowder_id = "-"
   if(!is.element(source,c("HESS"))) res$document_name = "-"
-  res$qc_status = "-"
+  res$qc_status = "not determined"
   res = fix.non_ascii.v2(res,source)
+  
+  #
+  # make sure all characters are in UTF8 - moved from runInsertTable.R
+  # so it is applied BEFORE hashing and loading
+  #
+  desc <- runQuery(paste0("desc ",table),db)
+  desc <- desc[is.element(desc[,"Field"],names(res)),]
+  for(i in 1:dim(desc)[1]) {
+    col <- desc[i,"Field"]
+    type <- desc[i,"Type"]
+    if(contains(type,"varchar") || contains(type,"text")) {
+      # if(verbose) cat("   enc2utf8:",col,"\n")
+      x <- as.character(res[,col])
+      x[is.na(x)] <- "-"
+      x <- enc2native(x)
+      x <- iconv(x,from="latin1",to="UTF-8")
+      x <- iconv(x,from="LATIN1",to="UTF-8")
+      x <- iconv(x,from="LATIN2",to="UTF-8")
+      x <- iconv(x,from="latin-9",to="UTF-8")
+      res[,col] <- enc2utf8(x)
+    }
+  }
+  
+  #####################################################################
+  cat("Do the chemical checking\n")
+  #####################################################################
   res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")
 
   #####################################################################
@@ -35,7 +66,7 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
   cat("Set the clowder_id and document name\n")
   #####################################################################
-  res = set_clowder_id(res,source)
+  res = set_clowder_id(res=res,source=source)
 
   #####################################################################
   cat("Build the hash key and load the data \n")

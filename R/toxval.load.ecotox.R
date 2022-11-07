@@ -12,7 +12,7 @@ toxval.load.ecotox <- function(toxval.db,source.db,log=F,do.load=F,sys.date="202
   source <- "ECOTOX"
   source_table = "direct_load"
 
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

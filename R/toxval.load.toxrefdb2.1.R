@@ -10,7 +10,7 @@ toxval.load.toxrefdb2.1 <- function(toxval.db,source.db,log=F,do.init=F) {
   printCurrentFunction(toxval.db)
   source <- "ToxRefDB"
   source_table = "direct load"
-  verbose=F
+  verbose = log
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################

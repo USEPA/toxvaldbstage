@@ -11,8 +11,9 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   id_list = c("source_id", "source_hash", "parent_hash", "version", "qc_status",
               "create_time", "created_by", "modify_time")
   # Load SQL file with audit table and trigger creation queries
-  audit_sql = parse_sql_file() %T>%
-    { names(.) <- c("create_audit", "audit_trigger", "drop_trigger") }
+  audit_sql = parse_sql_file("Repo/audit_sql/toxval_source_audit_init.sql") %T>%
+    { names(.) <- c("create_audit", "bu_audit_trigger", "drop_bu_audit_trigger",
+                    "bu_source_trigger", "drop_bu_source_trigger") }
 
   # Create audit table
   runQuery(query=audit_sql$create_audit, db=db)
@@ -23,7 +24,7 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
     # Filter to those named "source_*"
     .[grepl("source_", .)] %>%
     # Ignore those like source_audit or source_chemical
-    .[!grepl("chemical|audit", .)]
+    .[!grepl("chemical|source_audit", .)]
 
   # Loop through each table, get fields for JSON, reparse SQL, run Statement
   for(s_tbl in tblList){
@@ -36,7 +37,8 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
     # Remove ID fields (don't add to JSON record field of audit table)
     field_list = field_list[!field_list %in% id_list]
     # Parse custom trigger for source table and fields
-    src_trigger = audit_sql$audit_trigger %>%
+    # BEFORE UPDATE TRIGGER
+    src_bu_audit_trigger = audit_sql$bu_audit_trigger %>%
       # Insert source table name
       gsub("source_table", s_tbl, .) %>%
       # Format JSON
@@ -47,46 +49,29 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
            .) %>%
       paste0(#"DELIMITER // \n",
              ., "\nEND;")#// DELIMITER;")
+
+    # AFTER UPDATE TRIGGER
+    src_bu_source_trigger = audit_sql$bu_source_trigger %>%
+      # Insert source table name
+      gsub("source_table|source_update", s_tbl, .) %>%
+      # Format JSON
+      paste0(#"DELIMITER // \n",
+        ., "\nEND;")#// DELIMITER;")
+
     # Drop trigger if exists already
-    runQuery(query=audit_sql$drop_trigger %>%
+    runQuery(query=audit_sql$drop_bu_audit_trigger %>%
+               gsub("source_table", s_tbl, .),
+             db=db)
+
+    # Drop trigger if exists already
+    runQuery(query=audit_sql$drop_bu_source_trigger %>%
                gsub("source_table", s_tbl, .),
              db=db)
 
     # Apply trigger to table
-    runQuery(query=src_trigger, db=db)
+    runQuery(query=src_bu_audit_trigger, db=db)
+    runQuery(query=src_bu_source_trigger, db=db)
   }
-}
-
-#--------------------------------------------------------------------------------------
-#'@description Function to parse SQL file into SQL query strings
-#'@param filepath Input SQL filepath
-#'@import stringr dplyr
-#--------------------------------------------------------------------------------------
-parse_sql_file <- function(filepath = "Repo/audit_sql/toxval_source_audit_init.sql"){
-  # Read in SQL file lines
-  raw_query = readr::read_lines(filepath)
-  # Replace -- comments with /**/ contained comments
-  raw_query = lapply(raw_query, function(line){
-    if(grepl("--",line) == TRUE){
-      line <- paste(sub("--","/*",line),"*/")
-    }
-    return(line)
-  }) %>% unlist()
-
-  # Empty list to append collapsed query lines
-  clean_query = list()
-  # Empty string to append query lines to for ";" checks
-  tmp_query = ""
-  for(i in seq_len(length(raw_query))){
-    tmp_query = paste(tmp_query, raw_query[i], sep=" ")
-    if(grepl(";", raw_query[i])){
-      clean_query = append(clean_query, tmp_query %>%
-                             stringr::str_squish())
-      tmp_query = ""
-    }
-  }
-  # Return cleaned list of queries to run
-  return(clean_query)
 }
 
 #--------------------------------------------------------------------------------------

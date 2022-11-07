@@ -7,6 +7,7 @@
 #' @export
 #--------------------------------------------------------------------------------------
 toxval.load.atsdr.pfas <- function(toxval.db,source.db, log=F){
+  verbose = log
   printCurrentFunction(toxval.db)
   source = "ATSDR PFAS"
   source_table = "source_atsdr_pfas"

@@ -7,6 +7,7 @@
 #' @export
 #--------------------------------------------------------------------------------------
 toxval.load.caloehha <- function(toxval.db,source.db ,log=F){
+  verbose = log
   printCurrentFunction(toxval.db)
 
   source <- "Cal OEHHA"
