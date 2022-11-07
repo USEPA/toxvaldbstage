@@ -70,6 +70,51 @@ export.all.with.references.v93 <- function(toxval.db="res_toxval_v93",file.name=
                     b.source='",src,"'
                     and human_eco='human health'
                     and toxval_type_supercategory in ('Point of Departure','Lethality Effect Level','Toxicity Value')")
+
+    query = paste0("SELECT
+                    a.dtxsid,a.casrn,a.name,
+                    b.source,b.subsource,
+                    b.qc_status,
+                    b.risk_assessment_class,
+                    b.toxval_type,
+                    b.toxval_subtype,
+                    e.toxval_type_supercategory,
+                    b.toxval_numeric_qualifier,
+                    b.toxval_numeric,
+                    b.toxval_units,
+                    b.study_type,
+                    b.study_duration_class,
+                    b.study_duration_value,
+                    b.study_duration_units,
+                    d.species_id,d.common_name,d.latin_name,d.ecotox_group,
+                    b.strain,
+                    b.strain_group,
+                    b.sex,
+                    b.generation,
+                    b.exposure_route,
+                    b.exposure_method,
+                    b.critical_effect,
+                    b.year,
+                    f.long_ref,
+                    f.title,
+                    f.author,
+                    f.journal,
+                    f.volume,
+                    f.year as ref_year,
+                    f.issue,
+                    f.url,
+                    b.source_hash,
+                    a.cleaned_casrn,a.cleaned_name
+                    FROM
+                    toxval b
+                    INNER JOIN source_chemical a on a.chemical_id=b.chemical_id
+                    LEFT JOIN species d on b.species_id=d.species_id
+                    INNER JOIN toxval_type_dictionary e on b.toxval_type=e.toxval_type
+                    INNER JOIN record_source f on b.toxval_id=f.toxval_id
+                    WHERE
+                    b.source='",src,"'
+                    and toxval_type_supercategory in ('Point of Departure','Lethality Effect Level','Toxicity Value')")
+
     mat = runQuery(query,toxval.db,T,F)
     mat = unique(mat)
     mat[mat$casrn=='-',"casrn"] = mat[mat$casrn=='-',"cleaned_casrn"]
@@ -96,7 +141,7 @@ export.all.with.references.v93 <- function(toxval.db="res_toxval_v93",file.name=
       cat("   ",nrow(mat),length(hlist),nrow(res),"\n")
     }
   }
-  res = subset(res,select= -c(hashkey))
+  #res = subset(res,select= -c(hashkey))
   file <- paste0(dir,"/toxval_all_with_references_",toxval.db,"_",Sys.Date(),".xlsx")
   if(!is.na(file.name))
     file <- paste0(dir,"/toxval_all_with_references_",file.name,"_",toxval.db,"_",Sys.Date(),".xlsx")

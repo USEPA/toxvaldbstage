@@ -4,18 +4,19 @@
 #' @return The database will be altered
 #' @export
 #--------------------------------------------------------------------------------------
-fix.study_type.manual = function(toxval.db,source=NULL,filename="toxval_new_study_type 2022-09-14"){
+fix.study_type.manual = function(toxval.db,source=NULL,sys.date="2022-10-27"){
   printCurrentFunction(toxval.db)
-  file = paste0(toxval.config()$datapath,"dictionary/",filename,".xlsx")
+  file = paste0(toxval.config()$datapath,"dictionary/toxval_new_study_type ",toxval.db," ",sys.date,".xlsx")
   print(file)
   mat = read.xlsx(file)
   mat = mat[mat$dtxsid!='NODTXSID',]
   mat = mat[!is.na(mat$dtxsid),]
   slist = sort(unique(mat$source))
   if(!is.null(source)) slist = source
-  #slist = slist[!is.element(slist,c("ToxRefDB","ECOTOX"))]
   for(source in slist) {
     temp0 = mat[is.element(mat$source,source),]
+    cat(source,row(temp0),"\n")
+    #browser()
     temp0$key = paste(temp0[,1],temp0[,2],temp0[,3],temp0[,4])
     temp = unique(temp0[,c("source_hash","study_type_corrected")])
     names(temp) = c("source_hash","study_type")
@@ -54,8 +55,4 @@ fix.study_type.manual = function(toxval.db,source=NULL,filename="toxval_new_stud
     cat("  check: ",source,n1,n2,"\n")
     if(n1>0 || n2>0) browser()
   }
-
-
-
-
 }

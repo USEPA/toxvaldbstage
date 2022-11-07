@@ -9,7 +9,7 @@
 #'  ../qc_export/toxval_pod_summary_min_quality_id_[human_eco]_[min_quality_id]_[Sys.Date].xlsx
 #'
 #-----------------------------------------------------------------------------------
-export.cancer.summary <- function(toxval.db, file.name=NA,dir="./export") {
+export.cancer.summary <- function(toxval.db, file.name=NA) {
   printCurrentFunction(toxval.db)
 
   query <- paste0("SELECT
@@ -24,15 +24,14 @@ export.cancer.summary <- function(toxval.db, file.name=NA,dir="./export") {
   print(dim(mat))
   nrow <- dim(mat)[1]
   if(!is.na(file.name)) {
-    file <- paste0("./chemicals/for_load/",file.name,".xlsx")
+    file <- paste0(toxval.config()$datapath,"chemicals/for_load/",file.name,".xlsx")
     chems <- read.xlsx(file)
     casrn.list <- chems[,"casrn"]
     mat <- mat[is.element(mat[,"casrn"],casrn.list),]
     print(dim(mat))
   }
-  file <- paste0(dir,"/toxval_cancer_summary_",Sys.Date(),".xlsx")
-  if(!is.na(file.name))
-    file <- paste0(dir,"/toxval_cancer_summary_",file.name,"_",Sys.Date(),".xlsx")
+  file = paste0(toxval.config()$datapath,"export/toxval_cancer_summary_",Sys.Date(),".xlsx")
+  if(!is.na(file.name)) file = paste0(toxval.config()$datapath,"export/toxval_cancer_summary_",file.name,"_",Sys.Date(),".xlsx")
   sty <- createStyle(halign="center",valign="center",textRotation=90,textDecoration = "bold")
   write.xlsx(mat,file,firstRow=T,headerStyle=sty)
 }

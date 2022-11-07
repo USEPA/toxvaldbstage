@@ -77,6 +77,7 @@ toxval.load.all <- function(toxval.db,
       toxval.load.toxrefdb2.1(toxval.db,source.db,log)
       toxval.load.echa.echemportal.api(toxval.db,source.db,log)
       toxval.load.ecotox(toxval.db,source.db,log)
+      toxval.load.chemidplus(toxval.db,source.db,log)
     }
   }
   if(do.post) {

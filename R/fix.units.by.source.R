@@ -41,14 +41,13 @@ fix.units.by.source <- function(toxval.db,source=NULL, do.convert.units=T) {
     cat("===============================================\n")
     cat("update 1\n")
     runQuery(paste0("update toxval set toxval_units_original='-' where toxval_units_original='' and source = '",source,"'"),toxval.db)
-    cat("update 1\n")
+    cat("update 2\n")
     runQuery(paste0("update toxval set toxval_units=toxval_units_original where source = '",source,"'"),toxval.db)
 
     # Remove special characters
     #
     cat(">>> Fix special characters in units\n")
     unit.list <- sort(runQuery(paste0("select distinct toxval_units_original from toxval where source = '",source,"' group by toxval_units_original"),toxval.db)[,1])
-
     for(i in 1:length(unit.list)) {
       input <- unit.list[i]
       output <- input

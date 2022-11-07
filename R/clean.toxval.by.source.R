@@ -9,7 +9,7 @@
 clean.toxval.by.source <- function(toxval.db,source) {
   printCurrentFunction(paste(toxval.db,":",source))
 
-  count <- runQuery(paste0("select count(*) from toxval where source='",source,"'"),toxval.db)[1,1]
+  count = runQuery(paste0("select count(*) from toxval where source='",source,"'"),toxval.db)[1,1]
   if(count>0) {
     runQuery(paste0("delete from toxval_notes where toxval_id in (select toxval_id from toxval where source='",source,"')"),toxval.db)
     runQuery(paste0("delete from toxval_qc_notes where toxval_id in (select toxval_id from toxval where source='",source,"')"),toxval.db)

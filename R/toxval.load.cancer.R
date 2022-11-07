@@ -26,11 +26,30 @@ toxval.load.cancer <- function(toxval.db,source.db) {
   niosh$cancer_call <- "potential occupational carcinogen"
   niosh <- niosh[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
-  file <- paste0(toxval.config()$datapath,"iris/iris_files/iris_scrape_woe 2018-10-31.xlsx")
+  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/IRIS/IRIS cancer calls 2022-10-21.xlsx")
   iris <- read.xlsx(file)
   iris$source <- "IRIS"
   iris$exposure_route <- "-"
   iris <- iris[,c("casrn","name","source","exposure_route","cancer_call","url")]
+  iris = iris[!is.na(iris$casrn),]
+  for(i in 1:nrow(iris)) iris[i,"casrn"] = fix.casrn(iris[i,"casrn"])
+
+  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/NTP/NTP ROC 2021.xlsx")
+  ntp <- read.xlsx(file)
+  ntp$exposure_route <- "-"
+  ntp = ntp[!is.na(ntp$casrn),]
+  ntp <- ntp[,c("casrn","name","source","exposure_route","cancer_call","url")]
+
+  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/IARC/IARC cancer 2022-10-21.xlsx")
+  iarc <- read.xlsx(file)
+  name.list <- c("casrn","name","cancer_call")
+  iarc <- iarc[,name.list]
+  iarc$exposure_route <- "-"
+  iarc$source <- "IARC"
+  iarc$url <- "https://monographs.iarc.who.int/list-of-classifications/"
+  iarc = iarc[!is.na(iarc$casrn),]
+  iarc = iarc[!is.na(iarc$cancer_call),]
+  iarc <- iarc[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
   file <- paste0(toxval.config()$datapath,"pprtv_ornl/pprtv_ornl_files/PPRTV_ORNL cancer calls 2018-10-25.xlsx")
   pprtv_ornl <- read.xlsx(file)
@@ -39,28 +58,14 @@ toxval.load.cancer <- function(toxval.db,source.db) {
   pprtv_ornl$exposure_route <- "-"
   pprtv_ornl$source <- "PPRTV (ORNL)"
   pprtv_ornl$url <- "https://hhpprtv.ornl.gov/quickview/pprtv.php"
+  pprtv_ornl = pprtv_ornl[!is.na(pprtv_ornl$casrn),]
   pprtv_ornl <- pprtv_ornl[,c("casrn","name","source","exposure_route","cancer_call","url")]
-
-  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/NTP/NTP cancer clean.xlsx")
-  ntp <- read.xlsx(file)
-  ntp$exposure_route <- "-"
-  ntp$source <- "NTP ROC"
-  ntp$url <- "https://ntp.niehs.nih.gov/pubhealth/roc/index-1.html#toc1"
-  ntp <- ntp[,c("casrn","name","source","exposure_route","cancer_call","url")]
-
-  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/IARC/IARC cancer 2018-10-29.xlsx")
-  iarc <- read.xlsx(file)
-  name.list <- c("casrn","name","cancer_call")
-  iarc <- iarc[,name.list]
-  iarc$exposure_route <- "-"
-  iarc$source <- "IARC"
-  iarc$url <- "https://monographs.iarc.fr/list-of-classifications-volumes/"
-  iarc <- iarc[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
   file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/HealthCanada/HealthCanada_TRVs_2010_AppendixA v2.xlsx")
   hc <- read.xlsx(file)
   hc$source <- "Health Canada"
   hc$url <- "http://publications.gc.ca/collections/collection_2012/sc-hc/H128-1-11-638-eng.pdf"
+  hc = hc[!is.na(hc$casrn),]
   hc <- hc[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
   file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/EPA_OPP_CARC/EPA_CARC.xlsx")
@@ -70,16 +75,17 @@ toxval.load.cancer <- function(toxval.db,source.db) {
   opp$exposure_route <- "-"
   opp$source <- "EPA OPP"
   opp$url <- "http://www.epa.gov/pesticides/carlist/"
+  opp = opp[!is.na(opp$casrn),]
   opp <- opp[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
-  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/CalEPA/calepa_p65_cancer_only.xlsx")
+  file <- paste0(toxval.config()$datapath,"cancer_summary/cancer/CalEPA/calepa_p65_cancer_only 2022-10-21.xlsx")
   calepa <- read.xlsx(file)
-  name.list <- c("casrn","name")
+  name.list <- c("casrn","name","cancer_call")
   calepa <- calepa[,name.list]
-  calepa$cancer_call <- "Likely Human Carcinogen"
   calepa$exposure_route <- "-"
   calepa$source <- "CalEPA"
   calepa$url <- "https://oehha.ca.gov/proposition-65/proposition-65-list"
+  calepa = calepa[!is.na(calepa$casrn),]
   calepa <- calepa[,c("casrn","name","source","exposure_route","cancer_call","url")]
 
   mat <- rbind(niosh,iris,pprtv_ornl,ntp,iarc,hc,opp,calepa)
