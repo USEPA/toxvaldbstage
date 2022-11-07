@@ -14,9 +14,9 @@ import_hawc_pfas_150_source <- function(db,
                                         infile3="hawc_pfas_150_groups3.xlsx",
                                         chem.check.halt=F) {
   printCurrentFunction(db)
-  infile1 = paste0(toxval.config()$datapath,"hawc_pfas_150/hawc_pfas_files/",infile1)
-  infile2 = paste0(toxval.config()$datapath,"hawc_pfas_150/hawc_pfas_files/",infile2)
-  infile3 = paste0(toxval.config()$datapath,"hawc_pfas_150/hawc_pfas_files/",infile3)
+  infile1 = paste0(toxval.config()$datapath,"hawc_pfas_150/hawc_pfas_150_files/",infile1)
+  infile2 = paste0(toxval.config()$datapath,"hawc_pfas_150/hawc_pfas_150_files/",infile2)
+  infile3 = paste0(toxval.config()$datapath,"hawc_pfas_150/hawc_pfas_150_files/",infile3)
   #####################################################################
   cat("Build original_hawc_pfas_150 table from source file  \n")
   #####################################################################
