@@ -28,7 +28,7 @@ source_prep_and_load <- function(db,source,table,res,
   res$source = source
   res$clowder_id = "-"
   if(!is.element(source,c("HESS"))) res$document_name = "-"
-  res$qc_status = "-"
+  res$qc_status = "not determined"
   res = fix.non_ascii.v2(res,source)
   
   #
