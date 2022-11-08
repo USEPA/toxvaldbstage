@@ -9,6 +9,7 @@
 #' @export
 #--------------------------------------------------------------------------------------
 create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE) {
+  message("source: ", source)
   # Normalize names
   names(res) <- names(res) %>%
     # Replace whitespace and periods with underscore
