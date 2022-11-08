@@ -92,23 +92,41 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   live = DAT_data$live_dat
   # Fill in additional changes required for hashing that was missed in older versions
   table = source
+  # desc <- runQuery(paste0("desc ",table),db)
+  # desc <- desc[is.element(desc[,"Field"],names(live)),]
+  # for(i in 1:dim(desc)[1]) {
+  #   col <- desc[i,"Field"]
+  #   type <- desc[i,"Type"]
+  #   if(contains(type,"varchar") || contains(type,"text")) {
+  #     live = live %>%
+  #       mutate(!!col := as.character(!!col) %>%
+  #                enc2native(.) %>%
+  #                iconv(.,from="latin1",to="UTF-8") %>%
+  #                iconv(.,from="LATIN1",to="UTF-8") %>%
+  #                iconv(.,from="LATIN2",to="UTF-8") %>%
+  #                iconv(.,from="latin-9",to="UTF-8") %>%
+  #                enc2utf8(.)
+  #                )
+  #
+  #     live[is.na(live[[col]]), col] <- "-"
+  #   }
+  # }
+
   desc <- runQuery(paste0("desc ",table),db)
   desc <- desc[is.element(desc[,"Field"],names(live)),]
   for(i in 1:dim(desc)[1]) {
     col <- desc[i,"Field"]
     type <- desc[i,"Type"]
     if(contains(type,"varchar") || contains(type,"text")) {
-      live = live %>%
-        mutate(!!col := as.character(!!col) %>%
-                 enc2native(.) %>%
-                 iconv(.,from="latin1",to="UTF-8") %>%
-                 iconv(.,from="LATIN1",to="UTF-8") %>%
-                 iconv(.,from="LATIN2",to="UTF-8") %>%
-                 iconv(.,from="latin-9",to="UTF-8") %>%
-                 enc2utf8(.)
-                 )
-
-      live[is.na(live[[col]]), col] <- "-"
+      # if(verbose) cat("   enc2utf8:",col,"\n")
+      x <- as.character(live[[col]])
+      x[is.na(x)] <- "-"
+      x <- enc2native(x)
+      x <- iconv(x,from="latin1",to="UTF-8")
+      x <- iconv(x,from="LATIN1",to="UTF-8")
+      x <- iconv(x,from="LATIN2",to="UTF-8")
+      x <- iconv(x,from="latin-9",to="UTF-8")
+      live[[col]] <- enc2utf8(x)
     }
   }
 
@@ -118,23 +136,32 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
     # Special case where all changes are submitted as version 2
     mutate(version = 2,
            created_by = qc_user,
-           create_time = Sys.time())
+           create_time = Sys.time(),
+           src_tbl_name = source,
+           hash_version_check = paste(source_hash, version, sep="_"))
 
   # Subset audit fields based on non-matching source_hash and parent_hash fields
+  # Need to remove case where source_hash and version is same in live and audit
   audit = live %>%
     filter(source_hash != parent_hash)
+  audit = audit %>%
+    filter(!hash_version_check %in% live$hash_version_check) %>%
+    select(-hash_version_check)
+  live = live %>%
+    select(-hash_version_check)
   # live %>% select(source_hash, parent_hash) %>% View()
   # Look at changes made/noted
   # audit %>% select(qc_status, qc_changes, qc_comments) %>% distinct %>% View()
   # No change
   # live %>% filter(source_hash == parent_hash) %>% select(qc_status, qc_changes, qc_comments) %>% distinct() %>% View()
   # Prepare audit values
-  audit = audit %>%
-    # Transform record columns into JSON
-    mutate(record = convert.audit.to.json(select(., -any_of(id_list)))) %>%
-    # Select only audit/ID columns and JSON record
-    select(any_of(id_list), record)
-
+  if(nrow(audit)){
+    audit = audit %>%
+      # Transform record columns into JSON
+      mutate(record = convert.audit.to.json(select(., -any_of(id_list)))) %>%
+      # Select only audit/ID columns and JSON record
+      select(any_of(id_list), record)
+  }
 
   live = live %>%
     # Process "fail" messages to use qc_flags
@@ -143,17 +170,18 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
     tidyr::unite("qc_notes", qc_comments, qc_changes, sep="; ") %>%
     mutate(qc_notes = qc_notes %>%
              gsub("NA; |; NA", "", .))
-
-  audit = audit %>%
-    # Process "fail" messages to use qc_flags
-    tidyr::separate(col="qc_status", into=c("qc_status", "qc_flags"), sep="; ", fill = "right") %>%
-    # Combine qc_change and qc_comments
-    tidyr::unite("qc_notes", qc_comments, qc_changes, sep="; ") %>%
-    mutate(qc_notes = qc_notes %>%
-             gsub("NA; |; NA", "", .))
+  if(nrow(audit)){
+    audit = audit %>%
+      # Process "fail" messages to use qc_flags
+      tidyr::separate(col="qc_status", into=c("qc_status", "qc_flags"), sep="; ", fill = "right") %>%
+      # Combine qc_change and qc_comments
+      tidyr::unite("qc_notes", qc_comments, qc_changes, sep="; ") %>%
+      mutate(qc_notes = qc_notes %>%
+               gsub("NA; |; NA", "", .))
+  }
 
   # qc_status spot check
-  # live %>% select(data_record_annotation, failure_reason, qc_status)
+  # live %>% select(qc_status, qc_notes, qc_flags) %>% distinct() %>% View()
 
   # Prep audit table push
   audit = audit %>%
