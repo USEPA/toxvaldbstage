@@ -17,7 +17,7 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
     stringr::str_squish() %>%
     tolower()
   # PUll generic table SQL
-  src_sql = parse_sql_file(filepath = "Repo/generic_toxval_source_table.sql") %T>% {
+  src_sql = parse_sql_file(filepath = paste0(toxval.config()$datapath, "generic_toxval_source_table.sql")) %T>% {
     names(.) <- "snew_source"
   }
   # Split by "`" and select even indexes which are the default fields
@@ -90,7 +90,7 @@ set_field_SQL_type <- function(src_f = NULL, default_fields = NULL){
                               "TEXT",
                               paste0("VARCHAR(",t_len,")")),
            "integer"=paste0("INT(",t_len,")"),
-           "double"=paste0("INT(",t_len,")"),
+           "double"=paste0("INT(",t_len,")"), # paste0("DOUBLE(",t_len,",",t_len,")"),
            "logical"=ifelse(t_len >= 100,
                             "TEXT",
                             paste0("VARCHAR(",t_len,")")),

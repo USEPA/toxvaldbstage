@@ -8,7 +8,7 @@ import_health_canada_source <- function(db,
                                         infile="HealthCanada_TRVs_2010_AppendixA v2.xlsx",
                                         chem.check.halt=T) {
   printCurrentFunction(db)
-  infile = paste0(infile,"health_canada/health_canada_files/",infile)
+  infile = paste0(toxval.config()$datapath,"health_canada/health_canada_files/",infile)
   #####################################################################
   cat("Build original_health_canada_table \n")
   #####################################################################

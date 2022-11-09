@@ -8,7 +8,7 @@ import_dod_ered_source <- function(db,
                                    infile="USACE_ERDC_ERED_database_12_07_2018.xlsx",
                                    chem.check.halt=F) {
   printCurrentFunction(db)
-  infile = paste0(toxval.config()$datapath,"dod/dod_files/",infile)
+  infile = paste0(toxval.config()$datapath,"dod_ered/dod_ered_files/",infile)
   #####################################################################
   cat("Build original_dod_ered_table and create dataframe res1 \n")
   #####################################################################

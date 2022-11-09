@@ -77,6 +77,22 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     cat("clowder_id and document_name set for ",source,"\n")
     return(res)
   }
+  
+  if(is.null(map_file)){
+    if (source == "Cal OEHHA"){
+      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                          "clowder_v3/cal_oehha_log_with_names_20221019.xlsx"))
+    } else if (source == "IRIS"){
+      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                          "clowder_v3/iris_document_map_2022_08_01.xlsx"))
+    } else if (source == "PPRTV (ORNL)"){
+      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                          "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx"))
+    } else if (source == "EFSA2"){
+      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                          "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx"))
+    }
+  }
 
   if(source=="RSL") {
     res[,"clowder_id"] = "61fabdc0e4b04a563fdc9bdd"
@@ -278,7 +294,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
   }
 
   # Match EFSA2 records
-  if (source == "efsa2") {
+  if (source == "EFSA2") {
     # Update map_file so it only contains mapped clowder_id values with long_refs
     map_file = map_file %>%
       select(clowder_id, document_name, long_ref) %>%

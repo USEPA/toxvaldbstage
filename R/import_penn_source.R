@@ -5,7 +5,7 @@
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
 import_penn_source <- function(db,
-                               infile="..enn DEP Table 5a.xlsx",
+                               infile="Penn DEP Table 5a.xlsx",
                                chem.check.halt=T) {
   printCurrentFunction(db)
 

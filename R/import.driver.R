@@ -11,10 +11,27 @@ import.driver <- function(db="res_toxval_source_v5",
   printCurrentFunction(db)
 
   if(do.clean) {
-    tlist = runQuery("show tables",sdb)[,1]
+    tlist = runQuery("show tables",db)[,1] #%>%
+      # Only delete source tables
+      #.[grepl("source_", .)]
     for(table in tlist) {
       if(substr(table,1,7)=="source_") {
         query = paste0("delete from ",table)
+        cat(query,"\n")
+        runQuery(query,db)
+      }
+    }
+  }
+  drop = FALSE
+  if(drop){
+    tlist = runQuery("show tables",db)[,1] %>%
+    # Only drop source tables to be rebuilt entirely
+    .[grepl("source_", .)] %>%
+      # Do not drop source_chemical, source_audit, or source_chemical_index tables
+    .[!grepl("chemical|audit", .)]
+    for(table in tlist) {
+      if(substr(table,1,7)=="source_") {
+        query = paste0("drop table ",table)
         cat(query,"\n")
         runQuery(query,db)
       }
@@ -51,7 +68,7 @@ import.driver <- function(db="res_toxval_source_v5",
   import_niosh_source(db,chem.check.halt=chem.check.halt) # NIOSH
   import_opp_source(db,chem.check.halt=chem.check.halt) # EPA OPP
   import_penn_source(db,chem.check.halt=chem.check.halt) # Pennsylvania DEP ToxValues
-  import_pfas_summary_pods_source(db,chem.check.halt=chem.check.halt) # PFAS Summary PODs
+  # import_pfas_summary_pods_source(db,chem.check.halt=chem.check.halt) # PFAS Summary PODs
   import_pprtv_ncea_source(db,chem.check.halt=chem.check.halt) # PPRTV (NCEA)
   import_pprtv_ornl_source(db,chem.check.halt=chem.check.halt) # PPRTV (ORNL)
   import_test_source(db,chem.check.halt=chem.check.halt) # TEST

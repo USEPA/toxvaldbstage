@@ -6,14 +6,14 @@
 #' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
 #--------------------------------------------------------------------------------------
 import_pprtv_ncea_source <- function(db,
-                                     csvfile="../pprtv_ncea/pprtv_ncea_files/dose_reg2.csv",
-                                     scrapepath="../pprtv_ncea/PPRTV_scrape2020-04-08.xlsx",
+                                     csvfile="dose_reg2.csv",
+                                     scrapepath="PPRTV_scrape2020-04-08.xlsx",
                                      chem.check.halt=F) {
   printCurrentFunction(db)
 
   filepath = paste0(toxval.config()$datapath,"pprtv_ncea/pprtv_ncea_files")
   csvfile = paste0(toxval.config()$datapath,"pprtv_ncea/pprtv_ncea_files/",csvfile)
-  scrapepath = paste0(toxval.config()$datapath,"pprtv_ncea/pprtv_ncea_files/",scrapepath)
+  scrapepath = paste0(toxval.config()$datapath,"pprtv_ncea/",scrapepath)
 
   #####################################################################
   cat("Build all input pprtv_ncea tables \n")
@@ -199,6 +199,16 @@ import_pprtv_ncea_source <- function(db,
             "study_duration_class","study_duration_value","study_duration_units")
   names(res) = nlist
   res[is.element(res$casrn,"64724-95-6"),"casrn"] = "64742-95-6"
+  ###
+  # Clear Intermdiate tables
+  tblList = runQuery(query = paste0("SHOW TABLES FROM ", db),
+                     db=db) %>% unlist() %>% unname() %>%
+    # Filter to those named "pprtv_ncea_*"
+    .[grepl("^pprtv_ncea", .)]
+  lapply(tblList, function(tbl){
+    runQuery(paste0("DROP TABLE ", tbl), db)
+  }) %>% 
+    invisible()
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################

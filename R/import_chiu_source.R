@@ -15,7 +15,7 @@ import_chiu_source <- function(db,
   #####################################################################
   cat("Build original_chiu from source file \n")
   #####################################################################
-  res0 <- openxlsx::read.xlsx(paste0(indir,infile))
+  res0 <- openxlsx::read.xlsx(infile)
   res1 <- res0[,c("strCAS","strName","Source","Type","numValue","strHyperlink","strReference","strUnitsPOD","strCriticalEffect","strDateAssessed",
                   "Species","Strain","strDuration","Duration.type","tblOrgan_strSex","numUF","numUFa","numUFh","numUFs","numUFl","numUFd","numUFother","Route")]
   res2 <- res0[,c("strCAS","strName","Source","POD.type","numPOD","strHyperlink","strReference","strUnitsPOD","strCriticalEffect","strDateAssessed",
