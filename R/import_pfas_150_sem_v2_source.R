@@ -6,7 +6,7 @@
 import_pfas_150_sem_v2_source <- function(db,
                                           chem.check.halt=F) {
   printCurrentFunction(db)
-  indir = paste0(toxval.config()$datapath,"PFAS 150 SEM v2/PFAS 150 SEM v2_files/")
+  indir = paste0(toxval.config()$datapath,"pfas_150_sem_v2/PFAS 150 SEM v2_files/")
 
   file = paste0(indir,"PFAS 150 SEM chemicals.xlsx")
   chems = read.xlsx(file)

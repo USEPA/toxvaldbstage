@@ -11,7 +11,8 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   id_list = c("source_id", "source_hash", "parent_hash", "version", "qc_status",
               "create_time", "created_by", "modify_time")
   # Load SQL file with audit table and trigger creation queries
-  audit_sql = parse_sql_file("Repo/audit_sql/toxval_source_audit_init.sql") %T>%
+  audit_sql = parse_sql_file(paste0(toxval.config()$datapath, 
+                                    "audit_sql/toxval_source_audit_init.sql")) %T>%
     { names(.) <- c("create_audit", "bu_audit_trigger", "drop_bu_audit_trigger",
                     "bu_source_trigger", "drop_bu_source_trigger") }
 

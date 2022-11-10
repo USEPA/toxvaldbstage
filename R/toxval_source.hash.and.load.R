@@ -84,15 +84,23 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   #####################################################################
   cat("See what is new \n")
   #####################################################################
-  shlist0 = runQuery(paste("select source_hash from ",table),db)[,1]
+  # Get all hash values in source table
+  hash_check = runQuery(paste("select source_hash, parent_hash from ",table),db) %>%
+    # Append audit table to hash_check for full hash check (audit and live)
+    rbind(., 
+          tryCatch({runQuery(paste0("SELECT fk_source_hash as source_hash, parent_hash FROM source_audit WHERE src_tbl_name = '", 
+                                    table, "'"), db, do.halt=FALSE)},
+                   error=function(cond){ return(NULL) })) %>%
+    distinct()
+  # Convert into unique vector of hash values
+  hash_check = c(hash_check$source_hash, hash_check$parent_hash) %>% unique() %>% unlist()
   shlist1 = res$source_hash
-  n0 = length(shlist0)
-  n1 = length(shlist1)
-  n01 = length(shlist0[is.element(shlist0,shlist1)])
-  newfrac = 100*(n1-n01)/n1
+  total = length(shlist1)
+  new = length(shlist1[!shlist1 %in% hash_check])
+  newfrac = 100*(new)/total
   cat("**************************************************************************\n")
   cat(source,"\n")
-  cat("hash matching: original,new,match:",n0,n1,n01," new percent: ",format(newfrac,digits=2),"\n")
+  cat("hash matching: new,total:",new,total," new percent: ",format(newfrac,digits=2),"\n")
   cat("**************************************************************************\n")
 
   if(do.reset) {
@@ -101,7 +109,10 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     browser()
     #####################################################################
     runQuery(paste("delete from ",table),db)
-  } else res = res[!is.element(res$source_hash,shlist0),]
+  } else {
+    # Check parent_hash and source_hash fields for all previous hashes
+    res = res[!res$source_hash %in% hash_check,]
+  }
 
   #####################################################################
   cat("Add to the database \n")

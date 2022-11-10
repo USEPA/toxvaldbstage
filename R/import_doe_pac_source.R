@@ -4,11 +4,11 @@
 #' @param infile The input file ./doe/doe_files/Revision_29.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #--------------------------------------------------------------------------------------
-import_doe_source <- function(db,
+import_doe_pac_source <- function(db,
                               infile="Revision_29.xlsx",
                               chem.check.halt=F) {
   printCurrentFunction(db)
-  infile = paste0(toxval.config()$datapath,"doe/doe_files/",infile)
+  infile = paste0(toxval.config()$datapath,"doe_pac/doe_pac_files/",infile)
   #####################################################################
   cat("Build new_doe_table by combining data from all four sheets from input file \n")
   #####################################################################

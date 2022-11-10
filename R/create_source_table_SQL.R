@@ -48,6 +48,26 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
                         "_MySQL/",
                         source,
                         ".sql"))
+    } else if (source %in% c("source_pfas_150_sem_v2")){
+      # Temporarily skip these sources due to not having write permission 
+      
+    } else if (source %in% c("source_alaska_dec",
+                             "source_cal_dph",
+                             "source_epa_aegl",
+                             "source_fda_cedi",
+                             "source_mass_mmcl",
+                             "source_osha_air_limits",
+                             "source_ow_dwsha",
+                             "source_penn_dep",
+                             "source_usgs_hbsl",
+                             "source_who_ipcs")){
+      # Skip for now due to write permissions
+      # writeLines(src_sql$snew_source,
+      #            paste0(toxval.config()$datapath,
+      #                   "ACToR replacements/ACToR_MySQL/",
+      #                   source,
+      #                   ".sql")
+      
     } else {
       writeLines(src_sql$snew_source,
                  paste0(toxval.config()$datapath,
@@ -90,7 +110,7 @@ set_field_SQL_type <- function(src_f = NULL, default_fields = NULL){
                               "TEXT",
                               paste0("VARCHAR(",t_len,")")),
            "integer"=paste0("INT(",t_len,")"),
-           "double"=paste0("INT(",t_len,")"), # paste0("DOUBLE(",t_len,",",t_len,")"),
+           "double"=paste0("float"), # paste0("DOUBLE(",t_len,",",t_len,")"),
            "logical"=ifelse(t_len >= 100,
                             "TEXT",
                             paste0("VARCHAR(",t_len,")")),

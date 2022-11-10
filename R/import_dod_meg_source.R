@@ -1,16 +1,16 @@
 #--------------------------------------------------------------------------------------
-#' Load DOD MEG to toxval_source. The file to be loaded are in ./dod/dod_files
+#' Load DOD MEG to toxval_source. The file to be loaded are in ./dod_meg/dod_meg_files
 #'
 #' @param db The version of toxval_source into which the tables are loaded.
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #' @export
 #-------------------------------------------------------------------------------------
-import_dod_source = function(db,
+import_dod_meg_source = function(db,
                              chem.check.halt=F) {
   printCurrentFunction(db)
 
   #Air-long-term
-  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod/dod_files/DOD_Air-MEGs_Long-Term_2013.xlsx")) -> mat
+  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/DOD_Air-MEGs_Long-Term_2013.xlsx")) -> mat
   mat = mat[3:nrow(mat),c(2:3,7:10)]
   names(mat) = c("casrn", "name","numeric_Negligible","subsource_Negligible", "numeric_Marginal","subsource_Marginal")
   mat$id = 1:nrow(mat)
@@ -26,7 +26,7 @@ import_dod_source = function(db,
   total = mat
 
   #Air-short-term
-  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod/dod_files/DOD_Air-MEGS_Short-Term_2013.xlsx")) -> mat
+  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/DOD_Air-MEGS_Short-Term_2013.xlsx")) -> mat
   mat = mat[4:nrow(mat),c(2:3,7:15)]
   names(mat) = c("casrn", "name","numeric_Negligible","subsource_Negligible", "numeric_Marginal","subsource_Marginal", "numeric_Critical","subsource_Critical", "numeric_Catastrophic","subsource_Catastrophic", "MEG-info")
   mat$id = 1:nrow(mat)
@@ -42,7 +42,7 @@ import_dod_source = function(db,
   total = rbind(total,mat)
 
   #Soil
-  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod/dod_files/DOD_Soil-MEGs_2013.xlsx")) -> mat
+  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/DOD_Soil-MEGs_2013.xlsx")) -> mat
   mat = mat[3:nrow(mat),c(2:3,7:8)]
   names(mat) = c("casrn", "name","numeric","subsource")
   mat$id = 1:nrow(mat)
@@ -56,7 +56,7 @@ import_dod_source = function(db,
   total = rbind(total,mat)
 
   #Water Long-term
-  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod/dod_files/DOD_Water-MEGS_Long-Term_2013.xlsx")) -> mat
+  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/DOD_Water-MEGS_Long-Term_2013.xlsx")) -> mat
   mat = mat[3:nrow(mat),c(2:3,7:8)]
   names(mat) = c("casrn", "name","numeric","subsource")
   mat$id = 1:nrow(mat)
@@ -71,7 +71,7 @@ import_dod_source = function(db,
   total = rbind(total,mat)
 
   #Water Short-term
-  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod/dod_files/DOD_Water-MEGs_Short-Term_2013.xlsx")) -> mat
+  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/DOD_Water-MEGs_Short-Term_2013.xlsx")) -> mat
   mat = mat[4:nrow(mat),c(2:3,7:11)]
   names(mat) = c("casrn", "name","numeric_5","subsource_5","numeric_15","subsource_15", "duration")
   mat$id = 1:nrow(mat)

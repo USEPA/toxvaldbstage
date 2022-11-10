@@ -23,7 +23,7 @@ import_flex_source <- function(db,
   files.list <- files.list[! files.list %in% any_temp_files]
   files.list <- paste0( filepath, '/',files.list)
   print(files.list)
-  browser()
+  # browser()
   res <- lapply(files.list,openxlsx::read.xlsx)
 
   names.list <- gsub("(.*)(\\/)(.*)(for.*)","\\3",files.list)

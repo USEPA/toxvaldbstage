@@ -54,7 +54,6 @@ import.driver <- function(db="res_toxval_source_v5",
   import_cosmos_source(db,chem.check.halt=chem.check.halt) # COSMOS [v1]
   import_dod_ered_source(db,chem.check.halt=chem.check.halt) # DOD ERED [v1]
   import_doe_benchmarks_source(db,chem.check.halt=chem.check.halt) # DOE Wildlife Benchmarks [v1]
-  import_echa_echemportal_api_source(db,chem.check.halt=chem.check.halt) # ECHA echemportal API
   import_efsa2_source(db,chem.check.halt=chem.check.halt)  # EFSA2
   import_efsa_source(db,chem.check.halt=chem.check.halt) # EFSA
   import_hawc_pfas_150_source(db,chem.check.halt=chem.check.halt) # HAWC PFAS 150
@@ -73,6 +72,18 @@ import.driver <- function(db="res_toxval_source_v5",
   import_pprtv_ornl_source(db,chem.check.halt=chem.check.halt) # PPRTV (ORNL)
   import_test_source(db,chem.check.halt=chem.check.halt) # TEST
   import_wignall_source(db,chem.check.halt=chem.check.halt) # Wignall
+  # Trouble loading
+  import_flex_source(db,chem.check.halt=chem.check.halt) # ACTOR old sources (10)
+  
+  import_dod_meg_source(db,chem.check.halt=chem.check.halt) # DOD MEG
+  import_doe_pac_source(db,chem.check.halt=chem.check.halt) # DOE PAC
+  import_envirotox_source(db,chem.check.halt=chem.check.halt) # envirotox
+  import_pfas_150_sem_v2_source(db,chem.check.halt=chem.check.halt) # PFAS 150 SEM v2
+  import_heast_source(db,chem.check.halt=chem.check.halt) # HEAST
+  import_oppt_source(db,chem.check.halt=chem.check.halt) # OPPT
+  import_rsl_source(db,chem.check.halt=chem.check.halt) # RSL
+  # Moved to end since it takes the longest
+  import_echa_echemportal_api_source(db,chem.check.halt=chem.check.halt) # ECHA echemportal API
   # Alaska DEC [v1]
   # Cal DPH [v1]
   # EPA AEGL [v1]
