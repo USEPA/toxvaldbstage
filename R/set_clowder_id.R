@@ -77,7 +77,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     cat("clowder_id and document_name set for ",source,"\n")
     return(res)
   }
-  
+
   if(is.null(map_file)){
     if (source == "Cal OEHHA"){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -91,6 +91,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     } else if (source == "EFSA2"){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx"))
+    } else if (source == "HAWC PFAS 150"){
+      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                          "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx"))
     }
   }
 
@@ -135,6 +138,10 @@ set_clowder_id <- function(res,source, map_file=NULL) {
   if(ccte) {
     map = map.ccte
     if(is.element(source,c("HAWC PFAS 150","HAWC PFAS 430"))) {
+      # Quick fix while we transition away from using the map.ccte logic (better maps)
+      if(source == "HAWC PFAS 150"){
+        map = map_file
+      }
       title2 = res$title
       title2 = gsub("Registration dossier: |RRegistration dossier: ","", title2)
       title2 = gsub('\\.$','',title2)
