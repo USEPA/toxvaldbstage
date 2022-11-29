@@ -33,15 +33,15 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
     # Set record_id for DAT template from source_hash
     dplyr::rename(record_id = source_hash) %T>% {
       # Get sample count based on sample_p
-      sample_n <<- ceiling(nrow(.) * sample_p)
+      sample_nrec <<- ceiling(nrow(.) * sample_p)
     } %>%
     filter(clowder_id != "-")
 
   # Sample down if sample_p parameter used
-  if(!is.na(sample_n)){
+  if(!is.na(sample_nrec)){
     src_data = src_data %>%
       #group_by(clowder_id) %>%
-      slice_sample(n=sample_n)
+      slice_sample(n=sample_nrec)
 
   }
 
