@@ -19,7 +19,8 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   printCurrentFunction(paste(db,source,table))
 
   non_hash_cols = c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
-                    "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version")
+                    "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version",
+                    "raw_input_file")
 
   if(is.element("chemical_index",names(res))) res = subset(res,select=-c(chemical_index))
   res$source_hash = "-"
@@ -87,8 +88,8 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   # Get all hash values in source table
   hash_check = runQuery(paste("select source_hash, parent_hash from ",table),db) %>%
     # Append audit table to hash_check for full hash check (audit and live)
-    rbind(., 
-          tryCatch({runQuery(paste0("SELECT fk_source_hash as source_hash, parent_hash FROM source_audit WHERE src_tbl_name = '", 
+    rbind(.,
+          tryCatch({runQuery(paste0("SELECT fk_source_hash as source_hash, parent_hash FROM source_audit WHERE src_tbl_name = '",
                                     table, "'"), db, do.halt=FALSE)},
                    error=function(cond){ return(NULL) })) %>%
     distinct()

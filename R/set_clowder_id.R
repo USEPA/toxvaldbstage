@@ -97,6 +97,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     } else if (source == "PFAS 150 SEM v2"){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/pfas_150_sem_document_map_10032022_mmille16.xlsx"))
+    } else if (source == "HPVIS"){
+      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                          "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx"))
     }
   }
 
@@ -329,6 +332,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     if(any(is.na(res$clowder_id))){
       cat("EFSA2 records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
     }
+    return(res)
   }
 
   # Match hawc_pfas_150_sem records
@@ -359,6 +363,22 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     if(any(is.na(res$clowder_id))){
       cat("hawc_pfas_150 records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
     }
+    return(res)
+  }
+  
+  if(source == "HPVIS"){
+    res$clowder_id = NULL
+    res$document_name = NULL
+    
+    res = res %>%
+      left_join(map_file %>%
+                  select(clowder_id, document_name), by = c("raw_input_file"="document_name")) %>%
+      mutate(document_name = raw_input_file)
+    # Report any that did not match
+    if(any(is.na(res$clowder_id))){
+      cat("HPVIS records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
+    }
+    return(res)
   }
 
   cat("try the v8 records\n")

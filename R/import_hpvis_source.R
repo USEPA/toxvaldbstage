@@ -24,6 +24,8 @@ import_hpvis_source <- function(db,
   names(res) <- paste0("hpvis_", res_names)
   names(res) <- gsub(" ","_",names(res))
   names(res) <- tolower(names(res))
+  # Add names to files.list so can map the file name at the end
+  names(files.list) <- names(res)
 
   res <- lapply(res, function(x) setNames(x, gsub(x = names(x), pattern = "\\.", replacement = "_")))
   res <- lapply(res, function(x) setNames(x, gsub(x = names(x), pattern = "\\_$", replacement = "")))
@@ -544,11 +546,18 @@ import_hpvis_source <- function(db,
   #####################################################################
   cat("combine all dataframes to build new_combined_hpvis_table\n")
   #####################################################################
+  # Add files.list name connection to each dataframe
+  new_res = lapply(names(new_res), function(f){
+    new_res[[f]] %>%
+      mutate(raw_input_file = basename(files.list[[f]]))
+  })
   hpvis_all_data <- do.call("rbind",new_res)
   row.names(hpvis_all_data) <- NULL
   hpvis_all_data <- unique(hpvis_all_data)
   hpvis_all_data["hpvis_id"] <- c(1:length(hpvis_all_data[,1]))
-  hpvis_all_data <- hpvis_all_data[c("hpvis_id",names(hpvis_all_data[-45]))]
+  #hpvis_all_data <- hpvis_all_data[c("hpvis_id",names(hpvis_all_data[-45]))]
+  # reorder hpvis_id to first column
+  hpvis_all_data <- hpvis_all_data[c("hpvis_id",names(hpvis_all_data)[!names(hpvis_all_data) %in% c("hpvis_id")])]
   hpvis_all_data <- lapply(hpvis_all_data, function(x) type.convert(as.character(x), as.is = T))
   hpvis_all_data <- data.frame(hpvis_all_data, stringsAsFactors = F)
   hpvis_all_data[sapply(hpvis_all_data, function(x) all(is.na(x) == T))] <- ""
@@ -587,7 +596,7 @@ import_hpvis_source <- function(db,
     "submitter_s_name","test_conditions_remarks","test_substance_cas_number_t_s_cas_n",
     "test_substance_chemical_name_t_s_c_n","test_substance_purity","sex",
     "type_of_exposure","study_type","population",
-    "new_study_type"
+    "new_study_type", "raw_input_file"
   )
 
 
@@ -611,7 +620,7 @@ import_hpvis_source <- function(db,
     "results_remarks",
     "test_conditions_remarks",
     "submission_name","sponsor_name","submitter_s_name",
-    "sponsored_chemical_result_type")
+    "sponsored_chemical_result_type", "raw_input_file")
   res = res[,nlist]
 
   nlist = c(
@@ -634,7 +643,7 @@ import_hpvis_source <- function(db,
     "results_remarks",
     "test_conditions_remarks",
     "submission_name","sponsor_name","submitter_s_name",
-    "sponsored_chemical_result_type")
+    "sponsored_chemical_result_type", "raw_input_file")
   names(res) = nlist
   cat(nrow(res),"\n")
   res = res[!is.na(res$toxval_numeric),]
