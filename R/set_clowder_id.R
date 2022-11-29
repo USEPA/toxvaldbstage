@@ -310,7 +310,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     # Update map_file so it only contains mapped clowder_id values with long_refs
     map_file$clowder_id <- replace(map_file$clowder_id, map_file$clowder_id == "-", NA)
     map_file = map_file %>%
-      select(clowder_id, document_name, long_ref) %>%
+      select(clowder_id, document_name, hero_id = `HERO ID`) %>%
+      mutate(hero_id = as.character(hero_id)) %>%
       distinct() %>%
       filter(!is.na(clowder_id))
     # clear old names
@@ -319,8 +320,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
 
     # match by longref
     res <- res %>%
-      left_join(select(map_file, long_ref, clowder_id, document_name),
-                by = "long_ref") %>%
+      left_join(map_file,
+                by = "hero_id") %>%
       distinct()
 
     # This introduces a few duplicates, which we then remove
