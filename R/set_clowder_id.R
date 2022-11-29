@@ -94,6 +94,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     } else if (source == "HAWC PFAS 150"){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx"))
+    } else if (source == "PFAS 150 SEM v2"){
+      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                          "clowder_v3/pfas_150_sem_document_map_10032022_mmille16.xlsx"))
     }
   }
 
