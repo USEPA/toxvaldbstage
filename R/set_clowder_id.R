@@ -328,6 +328,36 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     }
   }
 
+  # Match hawc_pfas_150_sem records
+  if (source == "PFAS 150 SEM v2") {
+    # Update map_file so it only contains mapped clowder_id values with long_refs
+    map_file$clowder_id <- replace(map_file$clowder_id, map_file$clowder_id == "-", NA)
+    map_file = map_file %>%
+      select(clowder_id, document_name, hero_id = `HERO ID`) %>%
+      mutate(hero_id = as.character(hero_id)) %>%
+      distinct() %>%
+      filter(!is.na(clowder_id))
+    # clear old names
+    res$clowder_id <- NULL
+    res$document_name <- NULL
+
+    # match by longref
+    res <- res %>%
+      left_join(map_file,
+                by = "hero_id") %>%
+      distinct()
+
+    # This introduces a few duplicates, which we then remove
+    # count <- res %>% dplyr::count(source_id)
+    # duplicates <- count[which(count$n > 1),]
+    # res <- filter(res, !(source_id %in% duplicates$source_id & is.na(clowder_id)))
+
+    # report any that did not match
+    if(any(is.na(res$clowder_id))){
+      cat("hawc_pfas_150 records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
+    }
+  }
+
   cat("try the v8 records\n")
   #browser()
   return(res)

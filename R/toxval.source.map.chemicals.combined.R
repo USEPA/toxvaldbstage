@@ -16,10 +16,10 @@
 #' @export
 #--------------------------------------------------------------------------------------
 toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.path, match.raw=FALSE){
-  message("Function still in draft phase - waiting for curated chemical files")
-  return()
+  # message("Function still in draft phase - waiting for curated chemical files")
+  # return()
   # Get source chemical table name to ID map
-  # Repo/chemical_mapping/renamed_source_chemical_files/
+  # input.path = paste0(toxval.config()$datapath, "chemical_mapping/renamed_source_chemical_files/")
   source_table_list = list.files(input.path)
   source_table_list = lapply(source_table_list, function(t){
     t %>%
@@ -41,7 +41,7 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
   }) %>% dplyr::bind_rows()
 
   # Get curated chemical lists to map - takes 3 file sets per source table
-  # Repo/chemical_mapping/DSSTOX_879/
+  # curated.path = paste0(toxval.config()$datapath, "chemical_mapping/DSSTOX_879/")
   c_dirs = list.dirs(curated.path, recursive = FALSE)
   curated_list = lapply(c_dirs, function(d){
     tmp = list.files(d)
@@ -248,12 +248,12 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
 
 # # First round where chemical_id changed, so match by raw
 # toxval.source.map.chemicals.combined(source.db="res_toxval_source_v5",
-#                                      input.path="Repo/chemical_mapping/renamed_source_chemical_files/",
-#                                      curated.path="Repo/chemical_mapping/DSSTOX_879/",
+#                                      input.path=paste0(toxval.config()$datapath,"chemical_mapping/renamed_source_chemical_files/"),
+#                                      curated.path=paste0(toxval.config()$datapath,"chemical_mapping/DSSTOX_879/"),
 #                                      match.raw=TRUE)
 # # Second round where chemical_id was hashed, so don't match by raw
 # toxval.source.map.chemicals.combined(source.db="res_toxval_source_v5",
-#                                      input.path="Repo/chemical_mapping/renamed_source_chemical_files/",
-#                                      curated.path="Repo/chemical_mapping/DSSTOX_934/",
+#                                      input.path=paste0(toxval.config()$datapath,"chemical_mapping/renamed_source_chemical_files/"),
+#                                      curated.path=paste0(toxval.config()$datapath,"chemical_mapping/DSSTOX_934/"),
 #                                      match.raw=FALSE)
 
