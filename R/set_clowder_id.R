@@ -188,6 +188,11 @@ set_clowder_id <- function(res,source, map_file=NULL) {
           res[is.element(res$title2,title4),"document_name"] = docname
         }
       }
+      # Hard coding a match due to HAWC extraction typo for a title (002 insted of 007)
+      if(source == "HAWC PFAS 150"){
+        res$clowder_id[res$title == "Registration dossier: Trifluoroacetic acid (CASRN: 76-05-1): Developmental toxicity/teratogenicity: 002 Supporting | Experimental result"] = "637e5e2be4b04f6bb1425fc0"
+        res$clowder_id[res$title == "Registration dossier: Trifluoroacetic acid (CASRN: 76-05-1): Developmental toxicity/teratogenicity: 007 Supporting | Experimental result"] = "637e5e2be4b04f6bb1425fc0"
+      }
       n1 = nrow(res)
       n2 = nrow(res[res$clowder_id!="-",])
       res2 = res[res$clowder_id=="-",]
