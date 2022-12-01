@@ -93,7 +93,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                                           "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx"))
     } else if (source == "HAWC PFAS 150"){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx"))
+                                          "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx")) %>%
+        dplyr::rename(study_name=`Study Name`)
     } else if (source == "PFAS 150 SEM v2"){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/pfas_150_sem_document_map_10032022_mmille16.xlsx"))
@@ -165,13 +166,15 @@ set_clowder_id <- function(res,source, map_file=NULL) {
         # Remove parenthetical information and trailing . information
         title3 = gsub("\\s*\\([^\\)]+\\)", "", title2) %>%
           gsub('\\.$','',.)
+        # https://stackoverflow.com/questions/64656479/identical-strings-from-different-data-files-wont-match-in-r 
+        title4 = iconv(title2, from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
         # Attempt various matching schemes
         # Direct title match
         if(any(is.element(res$title2,title2))){
           res[is.element(res$title2,title2),"clowder_id"] = cid
           res[is.element(res$title2,title2),"document_name"] = docname
-        # Removal of CASRN or other parenthetic information
+          # Removal of CASRN or other parenthetic information
         } else if(any(is.element(res$title3,title2))){
           res[is.element(res$title3,title2),"clowder_id"] = cid
           res[is.element(res$title3,title2),"document_name"] = docname
@@ -179,13 +182,11 @@ set_clowder_id <- function(res,source, map_file=NULL) {
         } else if(any(is.element(res$title2,title2b))){
           res[is.element(res$title2,title2b),"clowder_id"] = cid
           res[is.element(res$title2,title2b),"document_name"] = docname
-          # Escape any regex symbols (test as substring)
-          # https://stackoverflow.com/questions/27721008/how-do-i-deal-with-special-characters-like-in-my-regex
-          # Check if the map title3 is a substring of the full title
-        }#} else if(any(grepl(paste("\\Q", title3 ,"\\E"), res$title3, fixed = TRUE))){
-        #   res[grepl(paste("\\Q", title3 ,"\\E"), res$title3, fixed = TRUE),"clowder_id"] = cid
-        #   res[grepl(paste("\\Q", title3 ,"\\E"), res$title3, fixed = TRUE),"document_name"] = docname
-        # }
+          # Case of incompatible encoding (UTF-8 vs. unknown)
+        } else if(any(is.element(res$title2,title4))){
+          res[is.element(res$title2,title4),"clowder_id"] = cid
+          res[is.element(res$title2,title4),"document_name"] = docname
+        }
       }
       n1 = nrow(res)
       n2 = nrow(res[res$clowder_id!="-",])
