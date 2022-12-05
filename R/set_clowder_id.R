@@ -367,7 +367,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
 
     # report any that did not match
     if(any(is.na(res$clowder_id))){
-      cat("hawc_pfas_150 records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
+      cat("hawc_pfas_150 sem records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
     }
     return(res)
   }

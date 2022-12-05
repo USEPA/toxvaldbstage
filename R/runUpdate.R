@@ -6,9 +6,11 @@
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
+#' @param trigger_check if FALSE, audit triggers are ignored/bypassed
 #' @export
 #--------------------------------------------------------------------------------------
-runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE,verbose=FALSE){
+runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE,verbose=FALSE,
+                      trigger_check=TRUE){
   if(is.null(updateQuery)){
     cat("No query provided...\n")
     return(NULL)
@@ -43,8 +45,8 @@ runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE
                        value=updated_df,
                        row.names=FALSE,
                        append=TRUE)
-    # Disable triggers (custom global variable in triggers)
-    dbSendQuery(con, "SET @TRIGGER_CHECKS = FALSE")
+    # Enable/Disable triggers (custom global variable in triggers)
+    dbSendQuery(con, paste0("SET @TRIGGER_CHECKS = ", trigger_check)
     # Send update
     dbSendStatement(con, updateQuery)
     dbDisconnect(con)

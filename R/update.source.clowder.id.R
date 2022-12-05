@@ -30,13 +30,16 @@ update.source.clowder.id <- function(src_tbl, source, map_file = NULL, db,
   # If not a full reset, filter to only those without a Clowder ID
   if(!reset){
     res = res %>%
-      filter(is.na(clowder_id) | clowder_id == "")
+      filter(is.na(clowder_id) | clowder_id == "-")
   }
   if(nrow(res)){
     # Map Clowder ID values like normal
     mapped_res = set_clowder_id(res=res,
                                 source=source,
                                 map_file=map_file)
+    # Set NA values as "-'
+    mapped_res$clowder_id[is.na(mapped_res$clowder_id)] = "-"
+    mapped_res$document_name[is.na(mapped_res$document_name)] = "-"
 
     # Query to join and make updates (update Clowder info, keep same time, disabled triggers for audit)
     update_query = paste0("UPDATE ", src_tbl," a INNER JOIN z_updated_df b ",
@@ -44,7 +47,7 @@ update.source.clowder.id <- function(src_tbl, source, map_file = NULL, db,
                           "a.document_name = b.document_name, a.create_time = b.create_time"
     )
     # Push temp table of updates
-    runUpdate(table=src_tbl, updateQuery=update_query, updated_df=mapped_res, db=db)
+    runUpdate(table=src_tbl, updateQuery=update_query, updated_df=mapped_res, db=db, trigger_check=FALSE)
   } else {
     cat("\nNo new records to update. Set 'reset' to TRUE if a full reset is desired.")
   }
