@@ -102,7 +102,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
   }
 
   # Sources with a single document in a combined map
-  if(source %in% c("HEAST", "Mass. Drinking Water Standards", "Pennsylvania DEP MCLs", "Pennsylvania DEP ToxValues", "PFAS Summary PODs",
+  if(source %in% c("HEAST", "Mass. Drinking Water Standards",
+                   # "Pennsylvania DEP MCLs", "Pennsylvania DEP ToxValues",
                    "California DPH", "Copper Manufacturers", "DOD ERED", "DOE ECORISK", "DOE Protective Action Criteria",
                    "EPA OPPT", "PPRTV (NCEA)")){
     map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
