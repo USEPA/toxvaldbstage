@@ -43,14 +43,16 @@ runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE
                        value=updated_df,
                        row.names=FALSE,
                        append=TRUE)
+    # Disable triggers (custom global variable in triggers)
+    dbSendQuery(con, "SET @TRIGGER_CHECKS = FALSE")
+    # Send update
+    dbSendStatement(con, updateQuery)
     dbDisconnect(con)
-    # Push updates
-    runStatement(query=updateQuery, db=db)
     # Drop temp table
     runStatement(query="DROP TABLE IF EXISTS z_updated_df", db=db)
-  #}, warning = function(w) {
-  #  cat("WARNING:",updateQuery,"\n")
-  #  if(do.halt) browser()
+    #}, warning = function(w) {
+    #  cat("WARNING:",updateQuery,"\n")
+    #  if(do.halt) browser()
   }, error = function(e) {
     #cat("ERROR:",updateQuery,"\n")
     cat("Error messge: ",paste0(e, collapse=" | "), "\n")

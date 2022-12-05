@@ -10,7 +10,7 @@
 #' @param reset if TRUE, fully replace/update Clowder ID values, even if ID values exist
 #' @export
 #--------------------------------------------------------------------------------------
-update.source.clowder.id <- function(src_tbl, map_file = NULL, db,
+update.source.clowder.id <- function(src_tbl, source, map_file = NULL, db,
                                      do.halt=FALSE, verbose=FALSE, reset=FALSE){
   # Get toxval_source data to use for document mapping and updating
   res = runQuery(query=paste0("SELECT * FROM ", src_tbl), db=db)
@@ -38,13 +38,13 @@ update.source.clowder.id <- function(src_tbl, map_file = NULL, db,
                                 source=source,
                                 map_file=map_file)
 
-    # Query to join and make updates
+    # Query to join and make updates (update Clowder info, keep same time, disabled triggers for audit)
     update_query = paste0("UPDATE ", src_tbl," a INNER JOIN z_updated_df b ",
                           "ON (a.source_hash = b.source_hash) SET a.clowder_id = b.clowder_id, ",
-                          "a.document_name = b.document_name"
+                          "a.document_name = b.document_name, a.create_time = b.create_time"
     )
     # Push temp table of updates
-    runUpdate(updateQuery=update_query, updated_df=mapped_res, db)
+    runUpdate(table=src_tbl, updateQuery=update_query, updated_df=mapped_res, db=db)
   } else {
     cat("\nNo new records to update. Set 'reset' to TRUE if a full reset is desired.")
   }
