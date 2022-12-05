@@ -79,29 +79,40 @@ set_clowder_id <- function(res,source, map_file=NULL) {
   }
 
   if(is.null(map_file)){
-    if (source == "Cal OEHHA"){
-      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/cal_oehha_log_with_names_20221019.xlsx"))
-    } else if (source == "IRIS"){
-      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/iris_document_map_2022_08_01.xlsx"))
-    } else if (source == "PPRTV (ORNL)"){
-      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx"))
-    } else if (source == "EFSA2"){
-      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx"))
-    } else if (source == "HAWC PFAS 150"){
-      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx")) %>%
-        dplyr::rename(study_name=`Study Name`)
-    } else if (source == "PFAS 150 SEM v2"){
-      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/pfas_150_sem_document_map_10032022_mmille16.xlsx"))
-    } else if (source == "HPVIS"){
-      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx"))
-    }
+    # Switch case to load specific source document map files
+    map_file = switch(source,
+                      "Cal OEHHA" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                             "clowder_v3/cal_oehha_log_with_names_20221019.xlsx")),
+                      "IRIS" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                        "clowder_v3/iris_document_map_2022_08_01.xlsx")),
+                      "PPRTV (ORNL)" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                 "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
+                      "EFSA2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                         "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx")),
+                      "HAWC PFAS 150" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                 "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx")) %>%
+                        dplyr::rename(study_name=`Study Name`),
+                      "PFAS 150 SEM v2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/pfas_150_sem_document_map_10032022_mmille16.xlsx")),
+                      "HPVIS" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                         "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx"))
+
+                      )
+
+  }
+
+  # Sources with a single document in a combined map
+  if(source %in% c("HEAST", "Mass. Drinking Water Standards", "Pennsylvania DEP MCLs", "Pennsylvania DEP ToxValues", "PFAS Summary PODs",
+                   "California DPH", "Copper Manufacturers", "DOD ERED", "DOE ECORISK", "DOE Protective Action Criteria",
+                   "EPA OPPT", "PPRTV (NCEA)")){
+    map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                        "clowder_v3/source_single_doc_map.xlsx")) %>%
+      filter(source_name == source) %>%
+      select(clowder_id, document_name)
+    # Map document
+    res$clowder_id = map_file$clowder_id
+    res$document_name = map_file$document_name
+    return(res)
   }
 
   if(source=="RSL") {
@@ -166,7 +177,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
         # Remove parenthetical information and trailing . information
         title3 = gsub("\\s*\\([^\\)]+\\)", "", title2) %>%
           gsub('\\.$','',.)
-        # https://stackoverflow.com/questions/64656479/identical-strings-from-different-data-files-wont-match-in-r 
+        # https://stackoverflow.com/questions/64656479/identical-strings-from-different-data-files-wont-match-in-r
         title4 = iconv(title2, from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
         # Attempt various matching schemes
@@ -371,11 +382,11 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     }
     return(res)
   }
-  
+
   if(source == "HPVIS"){
     res$clowder_id = NULL
     res$document_name = NULL
-    
+
     res = res %>%
       left_join(map_file %>%
                   select(clowder_id, document_name), by = c("raw_input_file"="document_name")) %>%
