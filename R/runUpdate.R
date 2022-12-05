@@ -46,7 +46,7 @@ runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE
                        row.names=FALSE,
                        append=TRUE)
     # Enable/Disable triggers (custom global variable in triggers)
-    dbSendQuery(con, paste0("SET @TRIGGER_CHECKS = ", trigger_check)
+    dbSendQuery(con, paste0("SET @TRIGGER_CHECKS = ", trigger_check))
     # Send update
     dbSendStatement(con, updateQuery)
     dbDisconnect(con)
