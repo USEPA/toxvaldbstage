@@ -13,7 +13,9 @@ parse_sql_file <- function(filepath = NULL){
       line <- paste(sub("--","/*",line),"*/")
     }
     return(line)
-  }) %>% unlist()
+  }) %>% unlist() %>%
+    # Remove empty rows
+    .[. != ""]
 
   # Empty list to append collapsed query lines
   clean_query = list()
@@ -22,7 +24,7 @@ parse_sql_file <- function(filepath = NULL){
   for(i in seq_len(length(raw_query))){
     tmp_query = paste(tmp_query, raw_query[i], sep=" ")
     # Check if has termination ; AND next line is not an IF statement
-    if(grepl(";", raw_query[i]) & !grepl("IF |IF;|SET ", raw_query[i+1])){
+    if(grepl(";", raw_query[i]) & !grepl("IF |IF;|SET |INSERT", raw_query[i+1])){
       clean_query = append(clean_query, tmp_query %>%
                              stringr::str_squish())
       tmp_query = ""
