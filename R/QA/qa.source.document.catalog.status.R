@@ -32,7 +32,5 @@ qa.source.document.catalog.status <- function(db){
   }) %>% dplyr::bind_rows() %>%
     mutate(perc_toxval_source = round((n_records / sum(n_records)) * 100, 3) )
 
-
+  return(out)
 }
-
-#"source_pfas_150_sem_v2", "source_copper"

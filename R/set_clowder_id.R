@@ -95,7 +95,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                       "PFAS 150 SEM v2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/pfas_150_sem_document_map_10032022_mmille16.xlsx")),
                       "HPVIS" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                         "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx"))
+                                                         "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx")),
+                      "EPA OPPT" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                            "clowder_v3/source_oppt_doc_map_20221206.xlsx"))
 
                       )
 
@@ -103,9 +105,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
 
   # Sources with a single document in a combined map
   if(source %in% c("HEAST", "Mass. Drinking Water Standards",
-                   # "Pennsylvania DEP MCLs", "Pennsylvania DEP ToxValues",
                    "California DPH", "Copper Manufacturers", "DOD ERED", "DOE ECORISK", "DOE Protective Action Criteria",
-                   "EPA OPPT", "PPRTV (NCEA)")){
+                   "PPRTV (NCEA)")){
     map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                         "clowder_v3/source_single_doc_map.xlsx")) %>%
       filter(source_name == source) %>%
@@ -396,6 +397,24 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     if(any(is.na(res$clowder_id))){
       cat("HPVIS records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
     }
+    return(res)
+  }
+
+  if(source == "EPA OPPT"){
+    res$clowder_id = NULL
+    res$document_name = NULL
+
+    res = res %>%
+      left_join(map_file %>% select(clowder_id, filename),
+                by = c("srcf"="filename")) %>%
+      mutate(document_name = srcf)
+
+    n1 = nrow(res)
+    n2 = nrow(res[!is.na(res$clowder_id),])
+    res2 = res[is.na(res$clowder_id),]
+    n3 = length(unique(res2$srcf))
+    cat("matching for source",source,":",n2," out of ",n1," missing unique documents:",n3,"\n")
+
     return(res)
   }
 
