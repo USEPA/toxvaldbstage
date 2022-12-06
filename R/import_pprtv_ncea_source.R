@@ -34,14 +34,26 @@ import_pprtv_ncea_source <- function(db,
   cat("Provide dataframe names prefixed with pprtv_ncea and update column names by making necessary substitutions \n")
   #####################################################################
   res_names <- c('assessment_study', 'assessments','cancer_tt','cancer_types','cancer','chem_groups',
-                 'dose_reg','dose','dosimetry_lkp', 'dosimetry_rqd', 'endpoints_tier',
-                 'endpoints','exposure_route','exposure_units','PPRTV_scrape_11_2017',
+                 'dose_reg','dose','dosimetry_lkp', 'dosimetry_rqd', 'endpoints',
+                 'endpoints_tier','exposure_route','exposure_units','PPRTV_scrape_11_2017',
                  'ref_value_type','ref_value_units','reference_tt','reference','species',
                  'study_type','study', 'tissue_gen_types','tissue_gen','dose_reg2','new_scrape_table' )
 
   names(res) <- paste0("pprtv_ncea_", res_names)
   res <- lapply(res, function(x) setNames(x, gsub("\\.+","\\_", names(x))))
   res <- lapply(res, function(x) setNames(x, gsub("\\'|\\?","", names(x))))
+
+  # Add files.list name connection to each dataframe - for document mapping later
+  files.list = c(files.list, csvfile, scrapepath)
+  names(files.list) = names(res)
+  res = lapply(names(res), function(f){
+    res[[f]] %>%
+      mutate(raw_input_file = basename(
+        files.list[[f]]
+      )
+      )
+  })
+  names(res) = names(files.list)
 
   #####################################################################
   cat("Subset the source list of dataframes by excluding duplicated dataframes(cancer and reference) \n")
@@ -207,7 +219,7 @@ import_pprtv_ncea_source <- function(db,
     .[grepl("^pprtv_ncea", .)]
   lapply(tblList, function(tbl){
     runQuery(paste0("DROP TABLE ", tbl), db)
-  }) %>% 
+  }) %>%
     invisible()
   #####################################################################
   cat("Prep and load the data\n")
