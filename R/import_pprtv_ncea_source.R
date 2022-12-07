@@ -37,23 +37,20 @@ import_pprtv_ncea_source <- function(db,
                  'dose_reg','dose','dosimetry_lkp', 'dosimetry_rqd', 'endpoints',
                  'endpoints_tier','exposure_route','exposure_units','PPRTV_scrape_11_2017',
                  'ref_value_type','ref_value_units','reference_tt','reference','species',
-                 'study_type','study', 'tissue_gen_types','tissue_gen','dose_reg2','new_scrape_table' )
+                 'study_type','study', 'tissue_gen_types','tissue_gen','dose_reg2','new_scrape_table')
 
   names(res) <- paste0("pprtv_ncea_", res_names)
+  
+  # Handle difference between Linux and Windows file sorting (flips endpoints and endpoints_tier load order)
+  if(is.null(res$pprtv_ncea_endpoints$Details)){
+    names(res)[names(res) == "pprtv_ncea_endpoints"] <- "tmp_swap"
+    names(res)[names(res) == "pprtv_ncea_endpoints_tier"] <- "pprtv_ncea_endpoints"
+    names(res)[names(res) == "tmp_swap"] <- "pprtv_ncea_endpoints_tier"
+  }
+  
+  # Fix names
   res <- lapply(res, function(x) setNames(x, gsub("\\.+","\\_", names(x))))
   res <- lapply(res, function(x) setNames(x, gsub("\\'|\\?","", names(x))))
-
-  # Add files.list name connection to each dataframe - for document mapping later
-  files.list = c(files.list, csvfile, scrapepath)
-  names(files.list) = names(res)
-  res = lapply(names(res), function(f){
-    res[[f]] %>%
-      mutate(raw_input_file = basename(
-        files.list[[f]]
-      )
-      )
-  })
-  names(res) = names(files.list)
 
   #####################################################################
   cat("Subset the source list of dataframes by excluding duplicated dataframes(cancer and reference) \n")
@@ -179,7 +176,7 @@ import_pprtv_ncea_source <- function(db,
   UF_A,UF_D,UF_H,UF_L,UF_S,UF_C,Study_Year as year,author,study_title as title,Full_Reference as long_ref,
   species,strain,sex,substring_index(Route_of_Exposure,' - ',1) as exposure_route,
   substring_index(Route_of_Exposure,' - ',-1) as exposure_method,Duration_Class as study_duration_class,
-  Duration_of_Study as study_duration_value,Duration_Units as study_duration_units
+  Duration_of_Study as study_duration_value,Duration_Units as study_duration_units, c.HERO as hero_id
   from pprtv_ncea_tbl_assessment_study a
   inner join pprtv_ncea_tbl_assessment c on c.Assessment_ID = a.Assessment_ID
   inner join pprtv_ncea_tbl_study e on e.Study_ID = a.Study_ID
@@ -189,13 +186,39 @@ import_pprtv_ncea_source <- function(db,
     group by AsmtStudy_ID, Species, Strain, Route_of_Exposure, Duration_Class, Duration_of_Study, Duration_Units) d on d.AsmtStudy_ID = a.AsmtStudy_ID
   inner join pprtv_ncea_tbl_reference b on a.Assessment_ID = b.Assessment_ID and a.Study_ID = b.StudyID;"
 
+  # # Transition to using dplyr rather than creating database tables
+  # new_pprtv_ncea <- res$pprtv_ncea_assessment_study %>%
+  #   left_join(res$pprtv_ncea_assessments, 
+  #             by = "Assessment_ID") %>%
+  #   left_join(res$pprtv_ncea_study,
+  #             by = "Study_ID") %>%
+  #   left_join(res$pprtv_ncea_dose_reg %>%
+  #               select(AsmtStudy_ID, Species, Strain, Route_of_Exposure, Duration_Class, Duration_of_Study, Duration_Units, Gender) %>%
+  #               group_by(AsmtStudy_ID, Species, Strain, Route_of_Exposure, Duration_Class, Duration_of_Study, Duration_Units) %>%
+  #               summarize(sex = toString(unique(Gender)), .groups = "keep"),
+  #             by = "AsmtStudy_ID") %>%
+  #   left_join(res$pprtv_ncea_reference,
+  #             by = c("Assessment_ID", "Study_ID" = "StudyID")) %>%
+  #   select(casrn=CASRN,name=Chemical_Name,RFV_ID,toxval_type=Type,toxval_numeric=Reference_Value,
+  #          toxval_units=RfV_Units,study_type=StudyType,toxval_subtype=Tissue_Gen,phenotype=Endpoint,
+  #          POD_numeric=Point_of_Departure,POD_type=POD_Source,POD_units=PoD_Units,
+  #          UF_A,UF_D,UF_H,UF_L,UF_S,UF_C,year=Study_Year,Author,title=Study_Title,long_ref=Full_Reference,
+  #          Species,Strain,sex,Route_of_Exposure, study_duration_class=Duration_Class,
+  #          study_duration_value=Duration_of_Study,study_duration_units=Duration_Units,
+  #          raw_input_file.x, raw_input_file.x.x, raw_input_file.y, raw_input_file.y.y) %>%
+  #   # exposure_route = substring_index(Route_of_Exposure,' - ',1)
+  #   # exposure_method = substring_index(Route_of_Exposure,' - ',-1)
+  #   tidyr::separate(Route_of_Exposure, c("exposure_route", "exposure_method"), sep = " - ", fill = "right") %>%
+  #   tidyr::unite(col="raw_input_file", raw_input_file.x, raw_input_file.x.x, raw_input_file.y, raw_input_file.y.y, sep="; ")
+    
   new_pprtv_ncea <- runQuery(query2, db)
   print(new_pprtv_ncea[new_pprtv_ncea$casrn=="110-54-3","name"])
 
   new_pprtv_ncea["pprtv_ncea_id"] <- c(1:length(new_pprtv_ncea[,1]))
   print(new_pprtv_ncea[new_pprtv_ncea$casrn=="110-54-3","name"])
 
-  new_pprtv_ncea <- new_pprtv_ncea[c("pprtv_ncea_id",names(new_pprtv_ncea[-31]))]
+  #new_pprtv_ncea <- new_pprtv_ncea[c("pprtv_ncea_id",names(new_pprtv_ncea[-31]))]
+  new_pprtv_ncea <- new_pprtv_ncea[c("pprtv_ncea_id",names(new_pprtv_ncea)[!names(new_pprtv_ncea) %in% c("pprtv_ncea_id")])]
   print(new_pprtv_ncea[new_pprtv_ncea$casrn=="110-54-3","name"])
 
   res = as.data.frame(new_pprtv_ncea)
@@ -208,15 +231,17 @@ import_pprtv_ncea_source <- function(db,
             "uf_a","uf_d","uf_h","uf_l","uf_s","uf_c",
             "year","author","title","long_ref","species","strain",
             "sex","exposure_route","exposure_method",
-            "study_duration_class","study_duration_value","study_duration_units")
+            "study_duration_class","study_duration_value","study_duration_units",
+            "hero_id")
   names(res) = nlist
   res[is.element(res$casrn,"64724-95-6"),"casrn"] = "64742-95-6"
   ###
-  # Clear Intermdiate tables
+  # Find pprtv_ncea Intermdiate tables
   tblList = runQuery(query = paste0("SHOW TABLES FROM ", db),
                      db=db) %>% unlist() %>% unname() %>%
     # Filter to those named "pprtv_ncea_*"
     .[grepl("^pprtv_ncea", .)]
+  # Drop intermediate tables
   lapply(tblList, function(tbl){
     runQuery(paste0("DROP TABLE ", tbl), db)
   }) %>%
