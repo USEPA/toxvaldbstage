@@ -67,7 +67,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                     "FDA CEDI" = list(clowder_id = "619d2972e4b0993a3937de4f",
                                       document_name = "ToxValQA29176904_FDA_CumulativeEstimatedDailyIntake.pdf"),
                     "Wignall" = list(clowder_id = "62b30a1ee4b07abf29f56811",
-                                     document_name = "ToxValDBQA Wignall EHP 2014.pdf")
+                                     document_name = "ToxValDBQA Wignall EHP 2014.pdf"),
+                    "TEST" = list(clowder_id = "6390c185e4b04f6bb149889a; 6390c185e4b04f6bb1498899",
+                                  document_name = "TEST data.xlsx; test_chemicals_invitrodb.csv")
   )
 
   # Set the easy ones - NULL means no mapped source doc information
