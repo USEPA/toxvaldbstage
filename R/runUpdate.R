@@ -28,6 +28,10 @@ runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE
     cat("DB.PASSWORD not defined\n")
     return(NULL)
   }
+  if(is.null(db)){
+    cat("No 'db' database paramter provided...\n")
+    return(NULL)
+  }
 
   if(verbose) {
     printCurrentFunction()
