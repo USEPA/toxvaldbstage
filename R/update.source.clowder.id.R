@@ -36,19 +36,32 @@ update.source.clowder.id <- function(src_tbl, source, map_file = NULL, db,
     # Map Clowder ID values like normal
     mapped_res = set_clowder_id(res=res,
                                 source=source,
-                                map_file=map_file)
-    # Set NA values as "-'
-    mapped_res$clowder_id[is.na(mapped_res$clowder_id)] = "-"
-    mapped_res$document_name[is.na(mapped_res$document_name)] = "-"
-
+                                map_file=map_file) %>%
+      # Filter out any that did not map
+      filter(!is.na(clowder_id), clowder_id != "-")
+    if(!nrow(mapped_res)){
+      cat("\nNo new records mapped...returning\n")
+      return()
+    } 
+    
+    # Split update into chunks for increased query speed
+    mapped_res = mapped_res %>%
+      split(., seq(nrow(.)) %/% 1000)
+    
     # Query to join and make updates (update Clowder info, keep same time, disabled triggers for audit)
     update_query = paste0("UPDATE ", src_tbl," a INNER JOIN z_updated_df b ",
                           "ON (a.source_hash = b.source_hash) SET a.clowder_id = b.clowder_id, ",
                           "a.document_name = b.document_name, a.create_time = b.create_time"
     )
-    # Push temp table of updates
-    runUpdate(table=src_tbl, updateQuery=update_query, updated_df=mapped_res, db=db, trigger_check=FALSE)
+    
+    lapply(seq_len(length(mapped_res)), function(chunk){
+      cat("\nPushing updates for group (1000 records) ", chunk , " of ", length(mapped_res))
+      # Push temp table of updates
+      runUpdate(table=src_tbl, updateQuery=update_query, 
+                updated_df=mapped_res[[chunk]], db=db, trigger_check=FALSE)
+    }) %>% invisible()
+  
   } else {
-    cat("\nNo new records to update. Set 'reset' to TRUE if a full reset is desired.")
+    cat("\nNo new records to update. Set 'reset' to TRUE if a full reset is desired.\n")
   }
 }
