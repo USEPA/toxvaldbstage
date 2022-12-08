@@ -99,7 +99,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                       "HPVIS" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                          "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx")),
                       "EPA OPPT" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                            "clowder_v3/source_oppt_doc_map_20221206.xlsx"))
+                                                            "clowder_v3/source_oppt_doc_map_20221206.xlsx")),
+                      "EFSA" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                        "clowder_v3/source_efsa_matched_mmille16_09212022.xlsx"))
 
                       )
 
@@ -417,6 +419,26 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     n3 = length(unique(res2$srcf))
     cat("matching for source",source,":",n2," out of ",n1," missing unique documents:",n3,"\n")
 
+    return(res)
+  }
+  
+  if(source == "EFSA"){
+    res$clowder_id = NULL
+    res$document_name = NULL
+    
+    res = res %>%
+      left_join(map_file %>% 
+                  filter(!is.na(clowder_id)) %>%
+                  select(clowder_id, document_name = pdf_name, long_ref) %>%
+                  distinct(),
+                by = c("long_ref"))
+    
+    n1 = nrow(res)
+    n2 = nrow(res[!is.na(res$clowder_id),])
+    res2 = res[is.na(res$clowder_id),]
+    n3 = length(unique(res2$long_ref))
+    cat("matching for source",source,":",n2," out of ",n1," missing unique documents:",n3,"\n")
+    
     return(res)
   }
 
