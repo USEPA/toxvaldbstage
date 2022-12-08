@@ -56,8 +56,8 @@ import.driver <- function(db="res_toxval_source_v5",
   import_doe_benchmarks_source(db,chem.check.halt=chem.check.halt) # DOE Wildlife Benchmarks [v1]
   import_efsa2_source(db,chem.check.halt=chem.check.halt)  # EFSA2
   import_efsa_source(db,chem.check.halt=chem.check.halt) # EFSA
-  import_hawc_pfas_150_source(db,chem.check.halt=chem.check.halt) # HAWC PFAS 150
-  import_hawc_pfas_430_source(db,chem.check.halt=chem.check.halt) # HAWC PFAS 430
+  import_hawc_pfas_source(db, hawc_num=150, chem.check.halt=chem.check.halt) # HAWC PFAS 150
+  import_hawc_pfas_source(db, hawc_num=430, chem.check.halt=chem.check.halt) # HAWC PFAS 430
   import_hawc_source(db,chem.check.halt=chem.check.halt) # HAWC
   import_health_canada_source(db,chem.check.halt=chem.check.halt) # Health Canada
   import_hess_source(db,chem.check.halt=chem.check.halt) # HESS
