@@ -132,7 +132,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
 
   # Prepare live values
   live = live %>%
-    prep.DAT.conversion(., hash_id_list=hash_id_list, source=source) %>%
+    prep.DAT.conversion.manual(., hash_id_list=hash_id_list, source=source) %>%
     # Special case where all changes are submitted as version 2
     mutate(version = 2,
            created_by = qc_user,
@@ -158,7 +158,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   if(nrow(audit)){
     audit = audit %>%
       # Transform record columns into JSON
-      mutate(record = convert.audit.to.json(select(., -any_of(id_list)))) %>%
+      mutate(record = convert.audit.to.json.manual(select(., -any_of(id_list)))) %>%
       # Select only audit/ID columns and JSON record
       select(any_of(id_list), record)
   }
@@ -215,7 +215,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
 }
 
 # Combine non-ID columns from audit table into JSON format for audit storage
-convert.audit.to.json <- function(in_dat){
+convert.audit.to.json.manual <- function(in_dat){
   lapply(seq_len(nrow(in_dat)), function(row){
     in_dat[row, ] %>%
       summarise(record = jsonlite::toJSON(.)) %>%
@@ -228,29 +228,19 @@ convert.audit.to.json <- function(in_dat){
 }
 
 # Select and rename DAT audit columns for toxval_source, calculate new source_hash
-prep.DAT.conversion <- function(in_dat, hash_id_list, source){
+prep.DAT.conversion.manual <- function(in_dat, hash_id_list, source){
   in_dat = in_dat %>%
     dplyr::rename(parent_hash = src_record_id) %>%
     # Remove extraneous DAT fields
     .[ , !(names(.) %in% c("uuid", "description", "total_fields_changed", "dataset_description", "DAT_domain_name",
                            "domain_description", "DAT_source_name", "source_description", "status_description"))] %>%
     # Alphabetize the columns to ensure consistent hashing column order
-    .[, sort(colnames(.))] %T>% {
-      # message(paste0(names(.)[!names(.) %in% hash_id_list], collapse = ", "))
-    } %>%
+    .[, sort(colnames(.))] %>%
     tidyr::unite("pre_source_hash", any_of(names(.)[!names(.) %in% hash_id_list]),
                  sep="", remove = FALSE) %>%
     # Set source_hash
     mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
-    select(-pre_source_hash)#  %>%
-  # in_dat %>% select(parent_hash, pre_source_hash) %>% head(1) %>% View()
-
-  # in_dat$source_hash_2 = "-"
-  # for (i in 1:nrow(in_dat)){
-  #   row <- in_dat[i,]
-  #   row = row[,sort(names(row)[!names(row) %in% hash_id_list])]
-  #   in_dat[i,"source_hash_2"] <- digest(paste0(row,collapse=""), serialize = FALSE)
-  #   if(i%%1000==0) cat(i," out of ",nrow(in_dat),"\n")
-  # }
+    select(-pre_source_hash)
+  
   return(in_dat)
 }
