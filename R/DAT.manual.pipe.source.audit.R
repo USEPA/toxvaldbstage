@@ -197,6 +197,13 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   # live %>% select(parent_hash, source_hash, version) %>% mutate(compare = parent_hash == source_hash)
   # audit %>% select(parent_hash, fk_source_hash, version) %>% mutate(compare = parent_hash == fk_source_hash)
 
+  # General Check
+  # live %>% select(source_hash, parent_hash, qc_status, qc_flags, qc_notes, version) %>% mutate(compare = parent_hash == source_hash) %>% View()
+  
+  # Export intermediate before push
+  writexl::write_xlsx(list(live=live, audit=audit), 
+                      paste0(toxval.config()$datapath,"QC Pushed/", source,"_QC_push_",Sys.Date(),".xlsx"))
+  
   # Push live and audit table changes
   # runInsertTable(mat=audit, table="source_audit", db=db, get.id = FALSE)
   # Query to join and make updates

@@ -54,7 +54,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
   hash_id_list = append(id_list,
                         c("chemical_id","source_id","clowder_id","document_name",
                           "source_hash","qc_status", "parent_hash","create_time",
-                          "modify_time","created_by", "qc_notes", "qc_flags")) %>%
+                          "modify_time","created_by", "qc_notes", "qc_flags", "raw_input_file")) %>%
     unique()
   # Removing version which is part of source_hash generation
   # hash_id_list = hash_id_list[!hash_id_list %in% c("version")]
@@ -97,12 +97,12 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
   }
 
   # Determine qc_status - default these to fail
-  live$qc_status = "fail"
+  live$qc_status = "pass"
   # Audit always set to fail since it's been changed
   audit$qc_status = "fail"
   # Unchanged records = PASS outright
-  live$qc_status[live$source_hash %in% v_list$source_hash] = "pass"
-  # If record changed, but does not have a failure reason
+  # live$qc_status[live$source_hash %in% v_list$source_hash] = "pass"
+  # If record changed and has a failure reason
   live$qc_status[!is.na(live$failure_reason)] = "fail"
 
   # qc_status spot check
@@ -130,14 +130,21 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
   # live %>% select(parent_hash, source_hash, version) %>% mutate(compare = parent_hash == source_hash)
   # audit %>% select(parent_hash, fk_source_hash, version) %>% mutate(compare = parent_hash == fk_source_hash)
 
+  # General Check
+  # live %>% select(source_hash, parent_hash, qc_status, qc_flags, qc_notes, version) %>% mutate(compare = parent_hash == source_hash) %>% View()
+  
+  # Export intermediate before push
+  writexl::write_xlsx(list(live=live, audit=audit), 
+                      paste0(toxval.config()$datapath,"QC Pushed/", source,"_QC_push_",Sys.Date(),".xlsx"))
+  
   # Push live and audit table changes
-  runInsertTable(mat=audit, table="source_audit", db=db, get.id = FALSE)
+  # runInsertTable(mat=audit, table="source_audit", db=db, get.id = FALSE)
   # Query to join and make updates
   updateQuery = paste0("UPDATE ", source," a INNER JOIN z_updated_df b ",
                        "ON (a.source_hash = b.parent_hash) SET ",
                        paste0("a.", names(live),  " = b.", names(live), collapse = ", ")
   )
-  runUpdate(table=source, updateQuery=updateQuery, updated_df=live, db)
+  # runUpdate(table=source, updateQuery=updateQuery, updated_df=live, db)
 }
 
 # Combine non-ID columns from audit table into JSON format for audit storage
