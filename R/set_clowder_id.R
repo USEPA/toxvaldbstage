@@ -101,7 +101,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                       "EPA OPPT" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                             "clowder_v3/source_oppt_doc_map_20221206.xlsx")),
                       "EFSA" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                        "clowder_v3/source_efsa_matched_mmille16_09212022.xlsx"))
+                                                        "clowder_v3/source_efsa_matched_mmille16_09212022.xlsx")),
+                      "HAWC" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                       "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")),
 
                       )
 
@@ -441,29 +443,29 @@ set_clowder_id <- function(res,source, map_file=NULL) {
 
     return(res)
   }
-  if (source == "source_hawc"){
-
-#Focus only on the study id, clowder id and document name fields for matching
-    map_cols <- map_file%>%select(animal_group.experiment.study.id, clowder_id,document_name)
+  if (source == "HAWC"){
+    # Focus only on the study id, clowder id and document name fields for matching
+    map_cols <- map_file %>%
+      select(animal_group.experiment.study.id, clowder_id,document_name)
     unique_map_cols <- map_cols[!duplicated(map_cols[ ,"animal_group.experiment.study.id" ]), ]
 
-#Search for the indices of matches in the list of unique documents
+    # Search for the indices of matches in the list of unique documents
     match_idx <- match(res$study_id,unique_map_cols$animal_group.experiment.study.id)
-#Populate the clowder id and document name fields based on those match indices
+    # Populate the clowder id and document name fields based on those match indices
     res['clowder_id'] <- unique_map_cols$clowder_id[match_idx]
     res['document_name'] <- unique_map_cols$document_name[match_idx]
-#Second pass for stragglers.
-#No stragglers, all were matched to document map, but not all documents in map were matched to clowder documents
+    # Second pass for stragglers.
+    # No stragglers, all were matched to document map, but not all documents in map were matched to clowder documents
     res2 <- filter(res,is.na(clowder_id))
     records_missing <- nrow(res2)
     res2 <- res2[!duplicated(res2[ ,'study_id']), ]
     documents_missing <- nrow(res2)
 
-#Completion message and summary of missing records/documents
+    # Completion message and summary of missing records/documents
     total_records <- nrow(res)
     unique_documents <- nrow(res[!duplicated(res[ ,'study_id']), ])
-    cat("there are", total_records,"records in source_hawc from",unique_documents,"unique documents."
-        ,records_missing, "records were not matched to clowder ids from", documents_missing, "documents.")
+    cat("there are", total_records,"records in source_hawc from",unique_documents,"unique documents.",
+        records_missing, "records were not matched to clowder ids from", documents_missing, "documents.")
     return(res)
   }
 
