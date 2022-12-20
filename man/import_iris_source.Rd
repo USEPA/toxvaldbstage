@@ -6,8 +6,8 @@
 \usage{
 import_iris_source(
   db,
-  infile1 = "IRIS_non_cancer_clean 2020-05-27.xlsx",
-  infile2 = "IRIS_cancer_clean 2020-05-27.xlsx",
+  infile1 = "IRIS_non_cancer_clean 2022-10-21.xlsx",
+  infile2 = "IRIS_cancer_clean 2022-10-21.xlsx",
   chem.check.halt = T
 )
 }

@@ -2,9 +2,15 @@
 % Please edit documentation in R/toxval.load.ecotox.R
 \name{toxval.load.ecotox}
 \alias{toxval.load.ecotox}
-\title{Load ECOTOX from the web services output to toxval}
+\title{Load ECOTOX from the datahub to toxval}
 \usage{
-toxval.load.ecotox(toxval.db, source.db, log = F, do.load = F)
+toxval.load.ecotox(
+  toxval.db,
+  source.db,
+  log = F,
+  do.load = F,
+  sys.date = "2022-10-26"
+)
 }
 \arguments{
 \item{toxval.db}{The version of toxval into which the tables are loaded.}
@@ -18,5 +24,5 @@ toxval.load.ecotox(toxval.db, source.db, log = F, do.load = F)
 \item{verbose}{Whether the loaded rows should be printed to the console.}
 }
 \description{
-Load ECOTOX from the web services output to toxval
+Load ECOTOX from the datahub to toxval
 }

@@ -4,7 +4,7 @@
 \alias{toxval.load.bcfbaf}
 \title{Load the Arnot BAF / BCF data}
 \usage{
-toxval.load.bcfbaf(toxval.db, verbose = F)
+toxval.load.bcfbaf(toxval.db, source.db, verbose = F)
 }
 \arguments{
 \item{toxval.db}{The database to use.}

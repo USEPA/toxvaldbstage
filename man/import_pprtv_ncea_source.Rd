@@ -6,8 +6,8 @@
 \usage{
 import_pprtv_ncea_source(
   db,
-  csvfile = "../pprtv_ncea/pprtv_ncea_files/dose_reg2.csv",
-  scrapepath = "../pprtv_ncea/PPRTV_scrape2020-04-08.xlsx",
+  csvfile = "dose_reg2.csv",
+  scrapepath = "PPRTV_scrape2020-04-08.xlsx",
   chem.check.halt = F
 )
 }

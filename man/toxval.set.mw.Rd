@@ -4,7 +4,7 @@
 \alias{toxval.set.mw}
 \title{Set the molecular weight in the toxval table, for use in unit conversions}
 \usage{
-toxval.set.mw(toxval.db, source)
+toxval.set.mw(toxval.db, source = NULL)
 }
 \arguments{
 \item{toxval.db}{The database version to use}

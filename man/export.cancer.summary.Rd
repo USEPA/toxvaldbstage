@@ -4,7 +4,7 @@
 \alias{export.cancer.summary}
 \title{Build a data frame of the Cancer calls and exports as xlsx}
 \usage{
-export.cancer.summary(toxval.db, file.name = NA, dir = "./export")
+export.cancer.summary(toxval.db, file.name = NA)
 }
 \arguments{
 \item{toxval.db}{Database version}

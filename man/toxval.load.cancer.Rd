@@ -12,7 +12,7 @@
 ../cancer_summary/cancer/EPA_OPP_CARC/EPA_CARC.xlsx
 ../cancer_summary/cancer/CalEPA/calepa_p65_cancer_only.xlsx}
 \usage{
-toxval.load.cancer(toxval.db)
+toxval.load.cancer(toxval.db, source.db)
 }
 \arguments{
 \item{toxval.db}{The version of the database to use}

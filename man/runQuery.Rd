@@ -4,7 +4,7 @@
 \alias{runQuery}
 \title{Runs a database query and returns a result set}
 \usage{
-runQuery(query, db, do.halt = T, verbose = F)
+runQuery(query = NULL, db, do.halt = T, verbose = F)
 }
 \arguments{
 \item{query}{a properly formatted SQL query as a string}

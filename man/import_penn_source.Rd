@@ -4,7 +4,7 @@
 \alias{import_penn_source}
 \title{Load Penn Source into toxval_source}
 \usage{
-import_penn_source(db, infile = "..enn DEP Table 5a.xlsx", chem.check.halt = T)
+import_penn_source(db, infile = "Penn DEP Table 5a.xlsx", chem.check.halt = T)
 }
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}

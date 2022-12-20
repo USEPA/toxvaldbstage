@@ -5,7 +5,7 @@
 \title{Map the species to the ECOTOX species dictionary and export the missing species to
 add to the dictionary}
 \usage{
-species.mapper(toxval.db, date_string = "2022-02-23")
+species.mapper(toxval.db, date_string = "2022-05-25")
 }
 \arguments{
 \item{toxval.db}{The version of the database to use}

@@ -13,13 +13,14 @@ toxval.load.all(
   log = F,
   do.init = F,
   do.reset = F,
-  do.load = F
+  do.load = F,
+  do.post = F
 )
 }
 \arguments{
 \item{toxval.db}{The version of toxval into which the tables are loaded.}
 
-\item{source.db}{The version of toxvalsource database from which information is pulled.}
+\item{source.db}{The version of toxval_source database from which information is pulled.}
 
 \item{log}{If TRUE write the output from each load script to a log file}
 

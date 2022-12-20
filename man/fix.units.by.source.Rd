@@ -4,7 +4,7 @@
 \alias{fix.units.by.source}
 \title{Do all of the fixes to units}
 \usage{
-fix.units.by.source(toxval.db, source, do.convert.units = F)
+fix.units.by.source(toxval.db, source = NULL, do.convert.units = T)
 }
 \arguments{
 \item{toxval.db}{The version of toxvaldb to use.}

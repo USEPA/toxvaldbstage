@@ -9,7 +9,7 @@ import_atsdr_pfas_source(
   infile1 = "ATSDR_Perfluoroalkyls_Inhalation.xlsx",
   infile2 = "ATSDR_Perfluoroalkyls_Oral.xlsx",
   infile3 = "ATSDR_PFOA_Inhalation.xlsx",
-  infile4 = ".ATSDR_PFOA_Oral.xlsx",
+  infile4 = "ATSDR_PFOA_Oral.xlsx",
   infile5 = "ATSDR_PFOS_Oral.xlsx",
   chem.check.halt = F
 )

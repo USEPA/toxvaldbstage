@@ -4,7 +4,7 @@
 \alias{toxval.load.skin.eye}
 \title{Load the Skin eye data}
 \usage{
-toxval.load.skin.eye(toxval.db, verbose = F)
+toxval.load.skin.eye(toxval.db, source.db, verbose = F)
 }
 \arguments{
 \item{toxval.db}{Database version}

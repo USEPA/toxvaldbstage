@@ -2,7 +2,7 @@
 % Please edit documentation in R/toxval.load.doe.benchmarks.R
 \name{toxval.load.doe.benchmarks}
 \alias{toxval.load.doe.benchmarks}
-\title{Load DOE Wildlife Benchmarksdata from toxval_source to toxval}
+\title{Load DOE Wildlife Benchmarks data from toxval_source to toxval}
 \usage{
 toxval.load.doe.benchmarks(toxval.db, source.db, log = F)
 }
@@ -14,5 +14,5 @@ toxval.load.doe.benchmarks(toxval.db, source.db, log = F)
 \item{log}{If TRUE, send output to a log file}
 }
 \description{
-Load DOE Wildlife Benchmarksdata from toxval_source to toxval
+Load DOE Wildlife Benchmarks data from toxval_source to toxval
 }

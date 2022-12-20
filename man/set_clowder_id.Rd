@@ -4,12 +4,14 @@
 \alias{set_clowder_id}
 \title{Set the clowder_id and document_name in res}
 \usage{
-set_clowder_id(res, source)
+set_clowder_id(res, source, map_file = NULL)
 }
 \arguments{
 \item{res}{The input dataframe}
 
 \item{source}{The data source name}
+
+\item{map_file}{A dataframe of Clowder document mapping info \code{see update.source.clowder.id.R}}
 }
 \value{
 Returns the input dataframe with defaults set

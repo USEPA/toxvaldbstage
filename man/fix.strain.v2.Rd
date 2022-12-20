@@ -4,7 +4,7 @@
 \alias{fix.strain.v2}
 \title{Set the strain information in toxval}
 \usage{
-fix.strain.v2(toxval.db, source = NULL, date_string = "2022-08-04")
+fix.strain.v2(toxval.db, source = NULL, date_string = "2022-08-15")
 }
 \arguments{
 \item{toxval.db}{The version of the database to use}

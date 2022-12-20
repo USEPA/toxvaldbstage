@@ -4,14 +4,14 @@
 \alias{toxval.load.postprocess}
 \title{Do all of the post-processing steps for a source}
 \usage{
-toxval.load.postprocess(toxval.db, source.db, source, do.convert.units = F)
+toxval.load.postprocess(toxval.db, source.db, source, do.convert.units = T)
 }
 \arguments{
 \item{toxval.db}{The database version to use}
 
 \item{source}{The source name}
 
-\item{do.convert.units}{If TRUE, convert uints, mainly from ppm to mg/kg-day. THis code is not debugged}
+\item{do.convert.units}{If TRUE, convert units, mainly from ppm to mg/kg-day. This code is not debugged}
 
 \item{sourcedb}{The source database name}
 }
