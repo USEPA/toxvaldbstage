@@ -303,14 +303,29 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     # Clear any old mappings
     res$clowder_id = NULL
     res$document_name = NULL
-    # Match by URL
-    res = res %>%
+    # Match by chemical name
+    res0 = res %>%
       left_join(map_file %>% select(Chemical, clowder_id, document_name),
-                by= c("name"="Chemical"))
+                by= c("name"="Chemical")) %>%
+      filter(!is.na(clowder_id))
+    # Filter to non-matches
+    res = res %>%
+      filter(!name %in% res0$name)
+    # Match by cas
+    res1 = res %>%
+      left_join(map_file %>% select(CASRN, clowder_id, document_name),
+                by= c("casrn"="CASRN")) %>%
+      filter(!is.na(clowder_id))
+    # Filter to non-matches
+    res = res %>%
+      filter(!casrn %in% res1$casrn) %>%
+      mutate(clowder_id = NA,
+             document_name = NA)
     # Report any that did not match
     if(any(is.na(res$clowder_id))){
       cat("PPRTV NCEA records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
     }
+    res = rbind(res, res0, res1)
     return(res)
   }
 
