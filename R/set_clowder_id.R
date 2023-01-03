@@ -89,6 +89,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                                                         "clowder_v3/iris_document_map_2022_08_01.xlsx")),
                       "PPRTV (ORNL)" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
+                      "PPRTV (NCEA)" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                "clowder_v3/pprtv_ncea_document_map_12212021.xlsx")),
                       "EFSA2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                          "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx")),
                       "HAWC PFAS 150" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -294,6 +296,21 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       #Populate clowder id and document name fields with matched info from key
       res[i,'clowder_id'] = clowder_id
       res[i,'document_name'] = doc_name
+    }
+    return(res)
+  }
+
+  if (source == 'PPRTV NCEA'){
+    # Clear any old mappings
+    res$clowder_id = NULL
+    res$document_name = NULL
+    # Match by URL
+    res = res %>%
+      left_join(map_file %>% select(`PPRTV Assessment`, clowder_id, document_name),
+                by= "PPRTV Assessment")
+    # Report any that did not match
+    if(any(is.na(res$clowder_id))){
+      cat("PPRTV NCEA records not matched to Clowder ID: ", nrow(res[is.na(res$clowder_id),]))
     }
     return(res)
   }
