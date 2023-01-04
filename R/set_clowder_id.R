@@ -69,7 +69,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                     "Wignall" = list(clowder_id = "62b30a1ee4b07abf29f56811",
                                      document_name = "ToxValDBQA Wignall EHP 2014.pdf"),
                     "TEST" = list(clowder_id = "6390c185e4b04f6bb149889a; 6390c185e4b04f6bb1498899",
-                                  document_name = "TEST data.xlsx; test_chemicals_invitrodb.csv")
+                                  document_name = "TEST data.xlsx; test_chemicals_invitrodb.csv"),
+                    "ATSDR MRLs 2022" = list(clowder_id="63b58958e4b04f6bb1507bf2",
+                                             document_name="ATSDR MRLs - August 2022 - H.pdf")
   )
 
   # Set the easy ones - NULL means no mapped source doc information
