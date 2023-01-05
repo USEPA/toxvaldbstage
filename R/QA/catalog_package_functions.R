@@ -52,6 +52,7 @@ get_package_catalog <- function(package_name = "toxvaldb092", package_path = get
   # Get list of functions NOT in the pk_catalog (not used)
   dep_candidates = pk_functions[!pk_functions %in% pk_catalog$func_name]
 
-  return(list(pk_catalog=pk_catalog,
-              deprecation_candidates = dep_candidates))
+  return(list(pk_functions=pk_functions %>% data.frame(pk_functions=.),
+              pk_catalog=pk_catalog,
+              deprecation_candidates = dep_candidates %>% data.frame(dep_candidates=.)))
 }
