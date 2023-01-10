@@ -51,12 +51,12 @@ import_atsdr_pfas_2021_source <- function(db,
   res1$document_name <- gsub("(.*\\/)(.*)","\\2", res1$source_url)
 
   #extract study duration value, units and exposure_method from duration
-  res1$exposure_method_original <- res1$duration
   res1$exposure_method <- gsub("(.*\\s*)(\\(.*\\))(\\s*.*)","\\2",res1$duration)
   res1$exposure_method[grep("\\(.*\\)", res1$exposure_method, invert = T)] <- "-"
+  res1$exposure_method_original <- res1$exposure_method
 
-  res1$study_duration_value_original <- res1$duration
-  res1$study_duration_units_original <- res1$duration
+  res1$study_duration_value_original <- gsub("(.*\\s*)(\\(.*\\))(\\s*.*)","\\1",res1$duration)
+  res1$study_duration_units_original <- res1$study_duration_value_original
   res1[grep("^[0-9]+\\s+[A-Za-z]+\\s+.*",res1$duration),"study_duration_value"] <- gsub("(^[0-9]+)(\\s+[A-Za-z]+\\s+.*)","\\1",res1[grep("^[0-9]+\\s+[A-Za-z]+\\s+.*",res1$duration),"duration"])
   res1[grep("^[0-9]+\\s+[A-Za-z]+\\s+.*",res1$duration),"study_duration_units"] <- gsub("(^[0-9]+\\s+)([A-Za-z]+)(\\s+.*)","\\2",res1[grep("^[0-9]+\\s+[A-Za-z]+\\s+.*",res1$duration),"duration"])
 
@@ -97,7 +97,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
   # create key desc table
   key <- res[[1]][279:291,7]
-  key <- paste(key, collapse = "")
+  key <- paste(key, collapse = " ")
 
   key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
@@ -250,7 +250,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
   # create key desc table
   key <- res[[2]][15:16,7]
-  key <- paste(key, collapse = "")
+  key <- paste(key, collapse = " ")
 
   key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
@@ -384,7 +384,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
   # create key desc table
   key <- res[[3]][29,4]
-  key <- paste(key, collapse = "")
+  key <- paste(key, collapse = " ")
 
   key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
@@ -531,7 +531,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
   # create key desc table
   key <- res[[4]][35:39,7]
-  key <- paste(key, collapse = "")
+  key <- paste(key, collapse = " ")
 
   key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
@@ -642,12 +642,17 @@ import_atsdr_pfas_2021_source <- function(db,
   res5$document_name <- gsub("(.*\\/)(.*)","\\2", res5$source_url)
 
   #extract study duration value, units and exposure_method from duration
-  res5$exposure_method_original <- res5$duration
   res5[grep("\\(+",res5$duration),"exposure_method"] <- gsub("(.*\\s*)(\\([A-Z]+\\)*)(\\s*.*)","\\2",res5$duration[grep("\\(+",res5$duration)])
+  # Add closing parentheses where needed
+  res5[!grepl("\\)", res5$exposure_method) & !is.na(res5$exposure_method), "exposure_method"] <- paste0(res5[!grepl("\\)", res5$exposure_method) & !is.na(res5$exposure_method), "exposure_method"], ")")
   res5[is.na(res5$exposure_method), "exposure_method"] <- "-"
+  res5$exposure_method_original <- res5$exposure_method
 
-  res5$study_duration_value_original <- res5$duration
-  res5$study_duration_units_original <- res5$duration
+  # Remove exposure_method parentheses
+  res5$study_duration_value_original <- gsub("\\s*\\([^\\)]+\\)","",res5$duration) %>%
+    gsub("\\(GW", "", .) %>%
+    gsub("\\(G", "",.)
+  res5$study_duration_units_original <- res5$study_duration_value_original
 
   # 5 days/week 4 weeks starting at PND 21 (GW), 5 days/week 0, 5 4 weeks (GW)
   # dose assigned per original document - tp200-c2_T2-3.xlsx
@@ -698,7 +703,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
   # create key desc table
   key <- res[[5]][235:244,7]
-  key <- paste(key, collapse = "")
+  key <- paste(key, collapse = " ")
 
   key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
@@ -842,12 +847,15 @@ import_atsdr_pfas_2021_source <- function(db,
   res6$document_name <- gsub("(.*\\/)(.*)","\\2", res6$source_url)
 
   #extract study duration value, units and exposure_method from duration
-  res6$exposure_method_original <- res6$duration
   res6[grep("\\(+",res6$duration),"exposure_method"] <- gsub("(.*\\s*)(\\([A-Z]+\\)*)(\\s*.*)","\\2",res6$duration[grep("\\(+",res6$duration)])
+  # Add closing parentheses where needed
+  res6[!grepl("\\)", res6$exposure_method) & !is.na(res6$exposure_method), "exposure_method"] <- paste0(res6[!grepl("\\)", res6$exposure_method) & !is.na(res6$exposure_method), "exposure_method"], ")")
   res6[is.na(res6$exposure_method), "exposure_method"] <- "-"
+  res6$exposure_method_original <- res6$exposure_method
 
-  res6$study_duration_value_original <- res6$duration
-  res6$study_duration_units_original <- res6$duration
+  res6$study_duration_value_original <- gsub("\\s*\\([^\\)]+\\)","",res6$duration) %>%
+    gsub("\\(G", "",.)
+  res6$study_duration_units_original <- res6$study_duration_value_original
 
   # extract the maximum duration value
   res6[grep("[0-9]+",res6$duration),"study_duration_value"] <- sapply(str_extract_all(res6[grep("[0-9]+",res6$duration),"duration"], "\\d+"), function(x) max(as.numeric(x)))
