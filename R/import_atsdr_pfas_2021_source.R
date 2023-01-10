@@ -885,7 +885,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
   # create key desc table
   key <- res[[6]][206:215,7]
-  key <- paste(key, collapse = "")
+  key <- paste(key, collapse = " ")
 
   key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
