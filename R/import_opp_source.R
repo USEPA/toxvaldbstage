@@ -45,7 +45,7 @@ import_opp_source <- function(db,
   res5$toxval_units = "(mg/kg-day)-1"
   res5$risk_assessment_class = "cancer"
 
-  res6 = res[,c("casrn","name","cancer.slope.factor.(mg/kg-day)-1","carcinogenic.HHBP.ppb" )]
+  res6 = res[,c("casrn","name","carcinogenic.HHBP.ppb" )]
   names(res6) = c("casrn","name","toxval_numeric")
   res6$sensitive_lifestage = "-"
   res6$toxval_type = "carcinogenic.HHBP"
