@@ -308,19 +308,19 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     # Match by chemical name
     res0 = res %>%
       left_join(map_file %>% select(Chemical, clowder_id, document_name),
-                by= c("name"="Chemical")) %>%
+                by="Chemical") %>%
       filter(!is.na(clowder_id))
     # Filter to non-matches
     res = res %>%
-      filter(!name %in% res0$name)
+      filter(!Chemical %in% res0$Chemical)
     # Match by cas
     res1 = res %>%
       left_join(map_file %>% select(CASRN, clowder_id, document_name),
-                by= c("casrn"="CASRN")) %>%
+                by="CASRN") %>%
       filter(!is.na(clowder_id))
     # Filter to non-matches
     res = res %>%
-      filter(!casrn %in% res1$casrn) %>%
+      filter(!CASRN %in% res1$CASRN) %>%
       mutate(clowder_id = NA,
              document_name = NA)
     # Report any that did not match
