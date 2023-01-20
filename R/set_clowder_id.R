@@ -7,14 +7,14 @@
 #--------------------------------------------------------------------------------------
 set_clowder_id <- function(res,source, map_file=NULL) {
   printCurrentFunction(source)
-  file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx")
-  map.icf = openxlsx::read.xlsx(file)
+  # file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx")
+  # map.icf = openxlsx::read.xlsx(file)
 
-  file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_ccte.xlsx")
-  map.ccte = openxlsx::read.xlsx(file)
+  # file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_ccte.xlsx")
+  # map.ccte = openxlsx::read.xlsx(file)
 
-  map.icf = fix.non_ascii.v2(map.icf,"map.icf")
-  map.ccte = fix.non_ascii.v2(map.ccte,"map.ccte")
+  # map.icf = fix.non_ascii.v2(map.icf,"map.icf")
+  # map.ccte = fix.non_ascii.v2(map.ccte,"map.ccte")
   if(source=="HESS") {
     for(dn in unique(res$document_name)) {
       if(is.element(dn,map.icf$document_name)) {
@@ -98,6 +98,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                       "HAWC PFAS 150" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx")) %>%
                         dplyr::rename(study_name=`Study Name`),
+                      "HAWC PFAS 430" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                 "clowder_v3/hawc_pfas_430_doc_map_20230120.xlsx")),
                       "PFAS 150 SEM v2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/pfas_150_sem_document_map_10032022_mmille16.xlsx")),
                       "HPVIS" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -161,16 +163,17 @@ set_clowder_id <- function(res,source, map_file=NULL) {
   if(!is.element("document_name",nlist)) res$document_name = "-"
 
   # See if the source has records from the CCTE document mapping process
-  ccte = F
-  if(is.element(source,map.ccte$source)) ccte=T
-  if(is.element(source,map.ccte$subsource)) ccte=T
-  if(ccte) {
-    map = map.ccte
+  # ccte = F
+  # if(is.element(source,map.ccte$source)) ccte=T
+  # if(is.element(source,map.ccte$subsource)) ccte=T
+  #if(ccte) {
+    #map = map.ccte
     if(is.element(source,c("HAWC PFAS 150","HAWC PFAS 430"))) {
       # Quick fix while we transition away from using the map.ccte logic (better maps)
-      if(source == "HAWC PFAS 150"){
-        map = map_file
-      }
+      # if(source == "HAWC PFAS 150"){
+      #   map = map_file
+      # }
+      
       title2 = res$title
       title2 = gsub("Registration dossier: |RRegistration dossier: ","", title2)
       title2 = gsub('\\.$','',title2)
@@ -181,7 +184,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
         cid = map[i,"clowder_id"]
 
         docname = map[i,"document_name"]
-        title2 = str_trim(tolower(map[i,"study_name"])) %>%
+        title = map[i,"study_name"]
+        title2 = str_trim(tolower(title)) %>%
           gsub('\\.$','',.)
         # Remove trailing . information
         title2b = sub('\\..*', '', title2)
@@ -193,7 +197,10 @@ set_clowder_id <- function(res,source, map_file=NULL) {
 
         # Attempt various matching schemes
         # Direct title match
-        if(any(is.element(res$title2,title2))){
+        if(any(is.element(res$title,title))){
+          res[is.element(res$title,title),"clowder_id"] = cid
+          res[is.element(res$title,title),"document_name"] = docname
+        } else if(any(is.element(res$title2,title2))){
           res[is.element(res$title2,title2),"clowder_id"] = cid
           res[is.element(res$title2,title2),"document_name"] = docname
           # Removal of CASRN or other parenthetic information
@@ -226,7 +233,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       res$title3 = NULL
       return(res)
     }
-  }
+  #}
 
   # Match IRIS Clower ID's
   if (source == "IRIS") {
