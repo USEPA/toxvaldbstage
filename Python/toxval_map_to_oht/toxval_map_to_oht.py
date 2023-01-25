@@ -47,17 +47,23 @@ def exclude_toxval_type(df, df_in):
     """
     #Toxval types for exclusion of oht classification
     types = ["RfD", "F", "L", "L/F", "Micro", "Meso"]
+    df['OHT'] = ["" for i in range(len(df))]
+
     # Use in_data.apply method with a lambda function. x is going to be an entry in the toxval_type column and e is an element in the exlusion critera
-    df["toxval_type_original"] = df_in["toxval_type_original"].apply(
+    df["study_type_original_exclusion"] = df_in["study_type_original"].apply(
         lambda x: 1 if x in types else 0
     )
     # Next we need to do a in_data.apply on a row basis to create the message column
     # Writes an exclude message if there are any 1s (Yeses) in the toxval_type_original columns and a pass message if there are not
-    df["toxval_type_message"] = df['toxval_type_original'].apply(
+    df["exclude_type_message"] = df['study_type_original_exclusion'].apply(
         lambda x: "excluded"
         if x == 1
         else "passed on to check study_type_original",
     )
+    df['OHT'] = df['study_type_original_exclusion'].apply(
+        lambda x: 'exclude'
+        if x == 1
+        else "")
     return df
 
 
@@ -84,38 +90,50 @@ def class_study_type_original(df, df_in):
     # Can probably write this logic as a funciton later? Did something similar for decision 1 above
     
     #First determine what entries in the input data have a study_type_original of acute (1 if yes, 0 if no)
-    df["study_type_original_acute"] = df_in["study_type_original"].apply(
-        lambda x: 1 if "acute" in x.lower() 
+    not_done = df['OHT'] == ""
+    df.loc[not_done, "study_type_original_acute"] = df_in.loc[not_done, "study_type_original"].apply(
+        lambda x: 1 if str(x).lower().find('acute') != -1
         else 0
     )
     #Output next steps message. Either classify as oht now (acute study type) or need more decisions (not acute study type_)
-    df["study_type_original_message"] = df_in["study_type_original"].apply(
+    df.loc[not_done,"study_type_original_message"] = df_in.loc[not_done, "study_type_original"].apply(
         lambda x: f'checking exposure route and classifying as OHT. Study type is {x}' 
-        if 'acute' in x.lower()
+        if str(x).lower().find('acute') != -1
         else f'examining study type further before classifying as OHT. Study type is {x}'
     )
     
     #Classification of oht for this first stage depends on the exposure route
-    routes = ["oral", "inhalation", "dermal"]
-    
+    routes = ["oral", "inhalation", "dermal",'not specified','not reported']
+    df['exposure_route_original_message'] = ["" for x in range(len(df))]
     #Since each exposure route contribute to a different oht, we will make a column for each
     #Then populate the column with 1 (record has the exposure route) or 0 (doesn't have exposure route)
     route_columns = [f"exposure_route_original_{a}" for a in routes]
     for e in routes:
-        df[f"exposure_route_original_{e}"] = df_in["exposure_route_original"].apply(
-            lambda x: 1 if x.lower() == e else 0
+        df.loc[not_done,f"exposure_route_original_{e}"] = df_in.loc[not_done,"exposure_route_original"].apply(
+            lambda x: 1 if str(x).lower().find(e) != -1 
+            else 0
         )
+        
+
+        df.loc[not_done,'exposure_route_original_message'] += df_in.loc[not_done,'exposure_route_original'].apply(
+            lambda x: f'exposure route is {x}')
     #Once we have exposure routes, we can classify as an oht. either 60, 61, 62, or 63
-    ohts = ['OHT 60','OHT 61','OHT 62']
+    ohts = ['OHT 60','OHT 61','OHT 62','does not match to oht','does not match to oht']
     oht_dict = dict(zip(route_columns, ohts))
-    
+    acute = df['study_type_original_acute'] == 1
+    not_acute = df['study_type_original_acute'] == 0
     #Populate the oht classification fields by first filtering dataframe rows to ones where study type was acute
-    df['acute_oht_classification_message'] = df.loc[(df['study_type_original_acute'] == 1)][route_columns].apply(
-        lambda r: f'should classify to {oht_dict[r[r == 1].index[0]]}'
+    df.loc[not_done & acute,'acute_oht_classification_message'] = df.loc[not_done & acute][route_columns].apply(
+        lambda r: f'study type was acute. expected to classify to {oht_dict[r[r == 1].index[0]]}'
         if r.any()
-        else 'should classify to OHT 63',
+        else 'expected to classify to OHT 63',
         axis = 1)
-    df.loc[df['acute_oht_classification_message'].isna(), 'acute_oht_classification_message'] = 'study type is not acute'
+    df.loc[not_done & acute,'OHT'] = df.loc[not_done & acute][route_columns].apply(
+        lambda r: f'{oht_dict[r[r == 1].index[0]]}'
+        if r.any()
+        else 'OHT 63',
+        axis = 1)
+    df.loc[not_acute & not_done, 'acute_oht_classification_message'] = 'study type is not acute'
     
     return df
 
@@ -135,13 +153,14 @@ def page_2_decisions (df, df_in):
     df with modified decisions
     """  
     #Move on to a different page for the non classified records
-    #What page depends requires us to check the study_type original field for any of these 3 words
+    #What page for classification depends requires us to check the study_type original field for any of these 3 words
     #If it has the words, then page 2. If not, page 3
+    not_done = df['OHT'] == ""
     page_2 = ['repeated','chronic','short']
     for n in page_2:
-        df[f'study_type_original_{n}'] = df_in['study_type_original'].apply(lambda x:
+        not_done = df['OHT'] == ""
+        df.loc[not_done, f'study_type_original_{n}'] = df_in.loc[not_done,'study_type_original'].apply(lambda x:
                                                                             1 if x.lower().find(n) != -1
-   
                                                                             else 0)
     #Possible oht classifications from page 2
     page_2_dict = {'oral': 'OHT 67',
@@ -149,28 +168,39 @@ def page_2_decisions (df, df_in):
                    'dermal': 'OHT 69-1',
                    'other': 'OHT 69-2'}
     #Options for oht classification on page 2
-    filter1 = df['study_type_original_repeated'] == 1
-    filter2 = df['study_type_original_chronic'] == 1
-    filter3 = df['study_type_original_short'] == 1
+    repeated = df['study_type_original_repeated'] == 1
+    chronic = df['study_type_original_chronic'] == 1
+    short = df['study_type_original_short'] == 1
     
-    #Options for oht classification on page 3
-    filter4 = df['study_type_original_short'] == 0    
-    filter5 = df['study_type_original_chronic'] == 0
+    df.loc[repeated|chronic|short,'repeated_chronic_short_message'] = ["" for x in range(len(df.loc[repeated|chronic|short]))]
+                                                             
     for k in page_2_dict:
-        df[f'study_type_original_repeated_chronic_and_{k}'] = df_in.loc[filter1 | filter2]['exposure_route_original'].apply(
-            lambda x: 1 if k in x.lower().split() 
+        not_done = df['OHT'] == ""
+        #First check the study type original column for oral, inhalation, dermal, or other
+        df.loc[repeated|chronic|short&not_done,f'study_type_original_repeated_chronic_short_and_{k}'] = df_in.loc[repeated|chronic|short&not_done]['study_type_original'].apply(
+            lambda x: 1 if str(x).lower().find(k) != -1 
             else 0)
-        df.loc[df[f'study_type_original_repeated_chronic_and_{k}'] == 1,'page_2_decisions_message'] = f'exposure route is {k}. Classifies to {page_2_dict[k]} on page 2'
-        df[f'study_type_original_chronic_short_and_{k}'] = df_in.loc[filter2 | filter3]['exposure_route_original'].apply(
-            lambda x: 1 if k in x.lower().split()
+        temp = df[f'study_type_original_repeated_chronic_short_and_{k}'] == 1
+        df.loc[temp,'repeated_chronic_short_message'] = df_in.loc[temp,'study_type_original'].apply(
+            lambda x: f'study type original is {x}. It contains {k} and is expected to classify to {page_2_dict[k]}')
+        df.loc[temp,'OHT'] = page_2_dict[k]
+        
+        #Then check the exposure route original column, doing the same methods
+        not_done = df['OHT'] == ""
+        df.loc[repeated|chronic|short & not_done,f'study_type_repeated_chronic_short_exposure_route_{k}'] = df_in.loc[repeated|chronic|short&not_done]['exposure_route_original'].apply(
+            lambda x: 1 if str(x).lower().find(k) != -1
             else 0)
-        df.loc[df[f'study_type_original_chronic_short_and_{k}'] == 1,'page_2_decisions_message'] = f'exposure route is {k}. Classifies to {page_2_dict[k]} on page 2'
+        temp = df[f'study_type_repeated_chronic_short_exposure_route_{k}'] == 1
+        df.loc[temp,'repeated_chronic_short_message'] = df_in.loc[temp,'exposure_route_original'].apply(
+            lambda x: f'exposure route original is {x}. It contains {k} and is expected to classify to {page_2_dict[k]}')
+        df.loc[temp,'OHT'] = page_2_dict[k]
+        
     #Output messages for this stage. Either classified as oht, or needed to look at more fields which will be referenced in future helper functions
-    df['study_type_message'] = df_in.loc[df['study_type_original_acute'] == 0]['study_type_original'].apply(
-        lambda x: f'page 2 since study_type is {x}' if any(word in x for word in page_2)
-        else
-        'page 3')
-    df.loc[filter4 & filter5, 'page_2_decisions_message'] = 'classification based on page 3'
+    #df['study_type_message'] = df_in.loc[df['study_type_original_acute'] == 0]['study_type_original'].apply(
+        #lambda x: f'page 2 since study_type is {x}' if any(word in x for word in page_2)
+        #else
+        #'page 3')
+    #df.loc[not_short & not_chronic & not_repeated, 'page_2_decisions_message'] = 'classification based on page 3'
 
     return df
 
@@ -194,18 +224,29 @@ def page_3_decisions (df, df_in):
                     'developmental': 'OHT 74',
                     'developmental/teratogenicity': 'OHT 74',
                     'fish': 'OHT 41 or OHT 42'}
+    not_done = df['OHT'] == ""
+    
     for k in page_3_types:
-        df[f'study_type_original_{k}'] = df_in['study_type_original'].apply(lambda x:
-                                                                            1 if k in x.lower().split()
+        not_done = df['OHT'] == ""
+        df.loc[not_done,f'study_type_original_{k}'] = df_in.loc[not_done,'study_type_original'].apply(lambda x:
+                                                                            1 if x.lower().find(k) != -1
                                                                             else 0) 
-        df.loc[df[f'study_type_original_{k}'] == 1,'page_3_message'] = df_in['study_type_original'].apply(lambda x:
-                                                                  f'expected result is {page_3_types[k]}')
-    df.loc[df['page_3_message'].isna(), 'page_3_message'] = 'page 3 not required'
+        temp = df[f'study_type_original_{k}'] == 1
+        df.loc[temp,'page_3_message'] = df_in['study_type_original'].apply(lambda x:
+                                                                  f'study type is {x}. expected result is {page_3_types[k]}')
+        df.loc[temp,'OHT'] = page_3_types[k]
+    # df.loc[df['page_3_message'].isna(), 'page_3_message'] = 'page 3 not required'
     fish_types = ['short-term toxicity to fish', 'fet']
     filter6 = df['study_type_original_fish'] == 1
-    df.loc[filter6,'page_3_message'] = df_in[filter6]['study_type_original'].apply(
-        lambda x: 'OHT 41' if any(thing in fish_types for thing in x.lower()) 
+    for x in fish_types:
+        df.loc[filter6,f'fish_and_{x}'] = df_in.loc[filter6,'study_type_original'].apply(
+            lambda y: 1 if y.lower().find(x) != -1
+            else 0)
+        df.loc[df[f'fish_and_{x}'] == 1,'OHT'] = 'OHT 41'
+    df.loc[filter6,'page_3_message'] = df_in.loc[filter6,'study_type_original'].apply(
+        lambda x: 'expected classification to OHT 41' if any(thing in fish_types for thing in x.lower()) 
         else 'expect classification to OHT 42')
+    df.loc[df[f'fish_and_{x}'] == 0,'OHT'] = 'OHT 42'
     return df
 def message_concatenation (df):
     """
@@ -218,6 +259,11 @@ def message_concatenation (df):
     -------
     df with messages concatenated into one column for easier review.
     """
+    temp = df['OHT'] == ""
+    df.loc[temp,'OHT'] = 'Not classified to OHT'
+    j = [x for x in df.columns if 'message' in x]
+    for i in j:
+        df[i] = df[i].str.strip()
     df['message_summary'] = df.filter(like = 'message').apply(lambda r: ', '.join(r.astype(str)), axis = 1)
     return df
 
@@ -277,15 +323,20 @@ def run_OHT_classification(in_file, oht_key_file):
     dec_matrix = page_3_decisions(df = dec_matrix.copy(), df_in = in_data)
     dec_matrix = message_concatenation(dec_matrix.copy())
     #Load in the oht key as a pandas dataframe
-    key = pd.read_excel(oht_key_file)
+    #key = pd.read_excel(oht_key_file)
     
     #Assign oht classification based on rows from the key
-    dec_matrix = oht_classification(df = dec_matrix.copy(),key = key)
+    #dec_matrix = oht_classification(df = dec_matrix.copy(),key = key)
     
     return dec_matrix
 
 
 if __name__ == "__main__":
-    in_file = r"C:\Users\mmille16\OneDrive - Environmental Protection Agency (EPA)\Profile\Desktop\toxval_pfas150_pfas430.csv"
+    in_file = r"C:\Users\mmille16\Downloads\toxval_full_pull_2022_08_18.csv"
     key_file = r"C:\Users\mmille16\OneDrive - Environmental Protection Agency (EPA)\Profile\Desktop\footprint_key.xlsx"
     out = run_OHT_classification(in_file = in_file, oht_key_file = key_file)
+
+out_path = r"C:\Users\mmille16\OneDrive - Environmental Protection Agency (EPA)\Profile\Desktop\check2_12_30_22.xlsx"    
+with pd.ExcelWriter(out_path) as writer:
+    out.to_excel(writer, index = False)
+
