@@ -92,7 +92,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                       "PPRTV (ORNL)" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
                       "PPRTV (NCEA)" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                "clowder_v3/pprtv_ncea_document_map_20221228.xlsx")),
+                                                                "clowder_v3/pprtv_ncea_document_map_01122023.xlsx")),
                       "EFSA2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                          "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx")),
                       "HAWC PFAS 150" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -315,7 +315,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     # Match by chemical name
     res0 = res %>%
       left_join(map_file %>% select(Chemical, clowder_id, document_name),
-                by= c("name"="Chemical")) %>%
+                by=c("name" = "Chemical")) %>%
       filter(!is.na(clowder_id))
     # Filter to non-matches
     res = res %>%
