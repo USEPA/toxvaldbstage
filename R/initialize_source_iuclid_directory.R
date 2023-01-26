@@ -11,11 +11,11 @@ initialize_source_iuclid_directory <- function() {
   }
 
   # Create subdirectories and move files - only IUCLID files
-  files <- list.files(pattern="*-dossRegInfo.csv")
+  files <- list.files(pattern=".xlsx")
   for(f in files){
     # Get source name
     #source <- substring(f, 1, nchar(f)-16)
-    source = gsub("-dossRegInfo.csv", "", f) %>%
+    source = gsub(".xlsx", "", f) %>%
       paste0("iuclid_", .) %>%
       tolower()
     # Create source directory if not already present

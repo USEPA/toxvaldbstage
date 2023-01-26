@@ -10,9 +10,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
   source = paste0("IUCLID_", subf)
   source_table = paste0("source_iuclid_", subf) %>% tolower()
   dir = paste0(toxval.config()$datapath,"iuclid/",subf,"/",subf,"_files/")
-  file = list.files(dir, pattern=".csv", full.names = TRUE)
+  file = list.files(dir, pattern=".xlsx", full.names = TRUE)
   if(length(file) > 1) stop("More than 1 IUCLID file stored in '", dir, "'")
-  res = readr::read_csv(file)
+  res = readr::read_xlsx(file)
 
   if(!nrow(res)){
     return("...No rows found in file...skipping")
