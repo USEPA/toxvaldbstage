@@ -25,6 +25,7 @@ import_generic_source <- function(db,chem.check.halt=F) {
   names(res0) <- names(res0) %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
+    gsub("[*]", "", .) %>%
     stringr::str_squish() %>%
     tolower()
   
@@ -34,11 +35,38 @@ import_generic_source <- function(db,chem.check.halt=F) {
                   exposure_route=route,
                   study_duration_value=duration_value,
                   casrn=cas_number,
+                  MRL=mrl_value,
                   study_duration_units=duration_units,
-                  toxval_numeric=mrl_value,
                   critical_effect=endpoint,
                   toxval_units=mrl_unit) %>%
-    mutate(toxval_type="MRL")
+    # Recoding/fixing entries in critical_effect
+    mutate(critical_effect=recode(critical_effect,
+                                  "Body Wt." = "body weight",
+                                  "Develop." = "developmental",
+                                  "Endocr." = "endocrine",
+                                  "Gastro." = "gastrointestinal",
+                                  "Hemato." = "hematological",
+                                  "Hepatic,Endocr." = "hepatic, endocrine",
+                                  "Immuno." = "immunological",
+                                  "Lymphor." = "lymphatic",
+                                  "Metab." = "metabolic",
+                                  "Musculo." = "musculoskeletal",
+                                  "Neurol." = "neurological",
+                                  "Neurol.,Develop." = "neurological, developmental",
+                                  "Neurol.,Hepatic" = "neurological, hepatic",
+                                  "Neurol.,Reprod." = "neurological, reproductive",
+                                  "Reprod." = "reproductive",
+                                  "Resp." = "respiratory") %>%
+             tolower()) %>%
+    # calculating NOAEL
+    mutate(MRL=as.numeric(MRL), 
+           NOAEL=MRL*total_factors) %>%
+    # expanding toxval_type to include MRL and NOAEL columns
+    tidyr::pivot_longer(
+      cols= c("MRL", "NOAEL"),
+      names_to= "toxval_type",
+      values_to= "toxval_numeric"
+    )
 
   #####################################################################
   cat("Prep and load the data\n")
