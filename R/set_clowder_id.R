@@ -46,8 +46,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                                           document_name = "Connors_2019a.pdf"),
                     "EPA AEGL" = list(clowder_id = "61003a84e4b01a90a3f9ca2f",
                                       document_name = "4627c891c8ea494fb8ea7846b220bd14-United States Environmental Protection Agency (USEPA)-2020-Acute Expo.pdf"),
-                    "EPA OPP" = list(clowder_id = "610038d7e4b01a90a3f9ada1",
-                                     document_name = "44b5bf69be26a74522e947eea7a44e4c-United States Environmental Protection Agency (USEPA)-2017-Huma.pdf"),
+                    "EPA OPP" = list(clowder_id = "63d99625e4b02a0c3a37c5d8",
+                                     document_name = "2021 Human Health Benchmarks for Pesticides_US EPA.pdf"),
                     "Health Canada" = list(clowder_id = "61003a57e4b01a90a3f9c305",
                                            document_name = "60683b9de75ea6aced60e004a919370b-Health Canada-2010-Part II H.pdf"),
                     "NIOSH" = list(clowder_id = "61fabd3de4b04a563fdc9b99",
@@ -173,7 +173,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       # if(source == "HAWC PFAS 150"){
       #   map = map_file
       # }
-      
+
       title2 = res$title
       title2 = gsub("Registration dossier: |RRegistration dossier: ","", title2)
       title2 = gsub('\\.$','',title2)
