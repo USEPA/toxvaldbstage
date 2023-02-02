@@ -18,8 +18,7 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path, 
 
   # Get chemical table for source
   chem_tbl = runQuery(paste0("SELECT * FROM source_chemical where ",
-                             "chemical_id like 'ToxVal", source.index,"%' ",
-                             "and dtxrid is NULL"), db=db)
+                             "chemical_id like 'ToxVal", source.index,"%'"), db=db)
 
   # Check for duplicates
   if(nrow(out) > nrow(chem_tbl)){
@@ -32,7 +31,7 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path, 
   # If not resetting, only filter to what is missing a mapping in the database
   if(!reset.mapping){
     out = out %>%
-      filter(chemical_id %in% chem_tbl$chemical_id)
+      filter(chemical_id %in% chem_tbl$chemical_id[is.na(chem_tbl$dtxrid)])
   }
   # Push mappings
   for(c_id in out$chemical_id){
@@ -64,7 +63,7 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path, 
     paste0("UPDATE source_chemical SET ",
            varSet,
            " WHERE chemical_id = '", c_id, "'") %>%
-      runQuery(query=., db=source.db, do.halt = FALSE)
+      runQuery(query=., db=db, do.halt = FALSE)
   }
 }
 
