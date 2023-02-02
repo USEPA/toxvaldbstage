@@ -1,4 +1,5 @@
 # Script to push ChemReg curated chemical lists back to toxval_source tables
+# Deprecated 2023-02-02 with Jira Ticket TOXVAL-353 in favor of toxval.source_push_mapped_chemicals.R
 # By: Jonathan Taylor Wall
 # Created: 2022-05-27
 # R version 4.1.0 (2021-05-18)
@@ -12,7 +13,6 @@
 #' @param curated.path Path to folder with curated chemical lists
 #' @return None. SQL statements are executed.
 #' @import RMySQL dplyr readxl
-#' @export
 #--------------------------------------------------------------------------------------
 toxval.source.map.chemicals <- function(source.db, input.path, curated.path){
   message("Function still in draft phase - waiting for curated chemical files")

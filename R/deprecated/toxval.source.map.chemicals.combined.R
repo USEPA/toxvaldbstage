@@ -1,4 +1,5 @@
 # Script to push ChemReg curated chemical lists back to toxval_source tables
+# Deprecated 2023-02-02 with Jira Ticket TOXVAL-353 in favor of toxval.source_push_mapped_chemicals.R
 # By: Jonathan Taylor Wall
 # Created: 2022-05-27
 # R version 4.1.0 (2021-05-18)
@@ -8,14 +9,14 @@
 #' @title toxval.source.map.chemicals.combined
 #' @description push ChemReg curated chemicals to toxval_source db tables
 #' @param source.db The version of toxval source database to use.
+#' @param source.index The source chemical index (ex. ToxVal00001)
 #' @param input.path Path to folder with original chemical lists
 #' @param curated.path Path to folder with curated chemical lists
 #' @param match.raw Boolean whether to match by raw name/casrn values (Default FALSE)
 #' @return None. SQL statements are executed.
 #' @import RMySQL dplyr readxl
-#' @export
 #--------------------------------------------------------------------------------------
-toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.path, match.raw=FALSE){
+toxval.source.map.chemicals.combined <- function(source.db, source.index, input.path, curated.path, match.raw=FALSE){
   # message("Function still in draft phase - waiting for curated chemical files")
   # return()
   # Get source chemical table name to ID map
@@ -58,28 +59,37 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
       dplyr::rename(External_ID = Extenal_ID) %>%
       select(DSSTox_Source_Record_Id, External_ID, DSSTox_Substance_Id)
     # Get toxval source table ID from external ID
-    tbl_id = strsplit(chems$External_ID[1], split="_")[[1]][1] %>%
+    if(is.null(source.index)){
+      if(!is.na(chems$External_ID[1])){
+        source.index = chems$External_ID[1]
+      } else {
+        stop("Cannot determine 'source.index' for 'source.index'. Update External_ID or provide input source.index")
+      }
+    }
+
+    source.index = strsplit(source.index, split="_")[[1]][1] %>%
       gsub("ToxVal", "", .)
+
     # Get toxval source chemical table name to query
-    #src_chem_tbl = source_table_list$source_chem_table[source_table_list$id == tbl_id]
+    #src_chem_tbl = source_table_list$source_chem_table[source_table_list$id == source.index]
     # Get chemical table for source
     chem_tbl = runQuery(paste0("SELECT * FROM source_chemical where ",
-                               "chemical_id like 'ToxVal", tbl_id,"%' ",
+                               "chemical_id like 'ToxVal", source.index,"%' ",
                                "and dtxrid is NULL"), db=source.db)
 
     if(!nrow(chem_tbl)){
-      message("No chemicals to map for ", tbl_id, "...skipping!")
+      message("No chemicals to map for ", source.index, "...skipping!")
       next
     }
 
     if(match.raw){
-      orig_chem_file = curated_list$`DSSTox Files`[grepl(paste0("ToxVal", tbl_id),
+      orig_chem_file = curated_list$`DSSTox Files`[grepl(paste0("ToxVal", source.index),
                                                          curated_list$`DSSTox Files`)] %>%
         paste0(curated.path, "DSSTox Files/", .) %>%
         readxl::read_xlsx(path=.) %>%
         select(chemical_id = Extenal_ID, dtxrid = DSSTox_Source_Record_Id, quality=`DSSTox_QC-Level`)
     } else {
-      orig_chem_file = curated_list$`DSSTox Files`[grepl(paste0("ToxVal", tbl_id),
+      orig_chem_file = curated_list$`DSSTox Files`[grepl(paste0("ToxVal", source.index),
                                                          curated_list$`DSSTox Files`)] %>%
         paste0(curated.path, "DSSTox Files/", .) %>%
         readxl::read_xlsx(path=.) %>%
@@ -88,7 +98,7 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
     }
 
     # Get BIN file information
-    b_file = curated_list$`BIN Files`[grepl(paste0("ToxVal", tbl_id),
+    b_file = curated_list$`BIN Files`[grepl(paste0("ToxVal", source.index),
                                             curated_list$`BIN Files`)] %>%
       paste0(curated.path, "BIN Files/", .) %>%
       readxl::read_xlsx(path=.) %>%
@@ -97,10 +107,22 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
     # Get Jira cleaned information (connect BIN to external_id)
     # If matching by raw information (first curation round had chemical ID values that changed)
     if(match.raw){
-      j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", tbl_id, "_full.xlsx"),
-                                                      curated_list$jira_chemical_files)] %>%
-        paste0(curated.path, "jira_chemical_files/", .) %>%
-        readxl::read_xlsx(path=.) %>%
+      # Old files had "_full.xlsx", so try pull those first
+      if(grepl(paste0("ToxVal", source.index, "_full.xlsx"),
+               curated_list$jira_chemical_files)){
+        j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", source.index, "_full.xlsx"),
+                                                        curated_list$jira_chemical_files)] %>%
+          paste0(curated.path, "jira_chemical_files/", .)
+      } else if (grepl(paste0("ToxVal", source.index),
+                       curated_list$jira_chemical_files)){
+        j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", source.index),
+                                                        curated_list$jira_chemical_files)] %>%
+          paste0(curated.path, "jira_chemical_files/", .)
+      } else {
+        stop("Cannot match 'j_file'...")
+      }
+
+      j_file = readxl::read_xlsx(path=j_file) %>%
         # Match back to curated query which replaced "-" with NA for CASRN
         mutate(raw_casrn = ifelse(raw_casrn == "-", NA, raw_casrn))
 
@@ -112,8 +134,12 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
         left_join(orig_chem_file,
                   by="chemical_id") %>%
         select(-chemical_id, -raw_casrn, -raw_name) %>%
-        mutate(original_casrn = as.character(original_casrn)) %>%
         distinct()
+
+      if("original_casrn" %in% names(chem_map)){
+        chem_map = chem_map %>%
+          mutate(original_casrn = as.character(original_casrn))
+      }
 
       out = chem_tbl %>%
         select(chemical_id, source, raw_casrn, raw_name, cleaned_casrn, cleaned_name) %>%
@@ -145,7 +171,7 @@ toxval.source.map.chemicals.combined <- function(source.db, input.path, curated.
         # Filter out ones that didn't map
         filter(!is.na(dtxsid))
     } else {
-      j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", tbl_id),
+      j_file = curated_list$jira_chemical_files[grepl(paste0("ToxVal", source.index),
                                                       curated_list$jira_chemical_files)] %>%
         paste0(curated.path, "jira_chemical_files/", .) %>%
         readxl::read_xlsx(path=.) %>%
