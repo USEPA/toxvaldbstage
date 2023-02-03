@@ -74,10 +74,11 @@ import_efsa_source <- function(db,chem.check.halt=F) {
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
     mutate(toxval_unit = gsub("µ", "u", toxval_unit)) %>%
     mutate(toxval_unit = gsub("³", "3", toxval_unit))
-    
   
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
   source_prep_and_load(db,source=source,table=source_table,res=res,F,T,T)
 }
+
+
