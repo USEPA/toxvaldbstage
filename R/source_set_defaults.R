@@ -9,7 +9,7 @@ source_set_defaults <- function(res,source) {
   for(i in 1:ncol(res)) {
     x = res[,i]
     cc = class(x)
-    if(cc=="character") {
+    if(any(cc == "character")) {
       x[is.na(x)] = "-"
       res[,i] = x
     }

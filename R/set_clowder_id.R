@@ -473,7 +473,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                   filter(!is.na(clowder_id)) %>%
                   select(clowder_id, document_name = pdf_name, long_ref) %>%
                   distinct(),
-                by = c("long_ref"))
+                by = c("title" = "long_ref"))
 
     n1 = nrow(res)
     n2 = nrow(res[!is.na(res$clowder_id),])

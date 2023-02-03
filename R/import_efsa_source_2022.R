@@ -37,7 +37,7 @@ import_efsa_source <- function(db,chem.check.halt=F) {
                   toxval_type=endpoint,
                   toxval_numeric=value,
                   toxval_numeric_qualifier=qualifier_x,
-                  toxval_unit=doseunit,
+                  toxval_units=doseunit,
                   critical_effect=basis,
                   study_type=testtype,
                   study_duration_value=exp_duration_days,
@@ -72,8 +72,8 @@ import_efsa_source <- function(db,chem.check.halt=F) {
            study_duration_units = "days") %>%
     # splitting ROUTE into exposure_route and exposure_method columns
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
-    mutate(toxval_unit = gsub("µ", "u", toxval_unit)) %>%
-    mutate(toxval_unit = gsub("³", "3", toxval_unit))
+    mutate(toxval_units = gsub("Âµ", "u", toxval_units) %>%
+             gsub("Â³", "3", .))
   
   #####################################################################
   cat("Prep and load the data\n")

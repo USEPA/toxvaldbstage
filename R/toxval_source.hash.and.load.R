@@ -103,18 +103,22 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   cat(source,"\n")
   cat("hash matching: new,total:",new,total," new percent: ",format(newfrac,digits=2),"\n")
   cat("**************************************************************************\n")
-
+  
   if(do.reset) {
     #####################################################################
     cat("Do you really want to clean the database?\n")
     browser()
     #####################################################################
     runQuery(paste("delete from ",table),db)
+    save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed.RData"))
   } else {
     # Check parent_hash and source_hash fields for all previous hashes
     res = res[!res$source_hash %in% hash_check,]
   }
 
+  if(!file.exists(paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed.RData"))){
+    save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed.RData"))
+  }
   #####################################################################
   cat("Add to the database \n")
   #####################################################################
