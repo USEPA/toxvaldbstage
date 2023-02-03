@@ -20,13 +20,28 @@ set_chemical_id <- function(db, hash.check.only=TRUE){
     return(chems)
   }
 
-  src_chem = runQuery("SELECT chemical_id, raw_name, raw_casrn, cleaned_name, cleaned_casrn FROM source_chemical", db)
+  src_chem = runQuery("SELECT chemical_id, source, raw_name, raw_casrn, cleaned_name, cleaned_casrn FROM source_chemical", db)
 
   compare = src_chem %>%
+    filter(source %in% c(
+      'Cal OEHHA',
+      'Cancer Summary',
+      'DOE Protective Action Criteria',
+      'EFSA',
+      'EPA OPP',
+      'Pennsylvania DEP MCLs',
+      'Pennsylvania DEP ToxValues',
+      'BCF BAF',
+      'ChemIDPlus',
+      'ECOTOX',
+      'GeneTox Details',
+      'Genetox Summary'
+    )) %>%
     separate(chemical_id, c("prefix", "id"), remove=FALSE) %>%
     dplyr::rename(old_chemical_id = chemical_id) %>%
     old_chemical_hash() %>%
-    mutate(compare = old_chemical_id == chemical_id)
+    mutate(compare = old_chemical_id == chemical_id) %>%
+    filter(compare == FALSE)
 }
 
 
