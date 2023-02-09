@@ -11,26 +11,56 @@ import pandas as pd
 import time
 import openpyxl
 from tqdm import tqdm
-from os import listdir
+from os import listdir, makedirs, path
+
+# Prep output folder
+if not path.isdir("excel_sheets"):
+    makedirs("excel_sheets")
+# Get previously downloaded chemical list
+chemicals_downloaded = [
+    filename.split("_")[2]
+    for filename in listdir("excel_sheets")
+    # Only pull XLSX files
+    if filename.endswith(".xlsx")
+]
 
 # Read in data and grab the list of URLs to scrape
 # Pandas does not support hyperlinks, so we need to use openpyxl
-cphea = openpyxl.load_workbook('pprtv_cphea_chemicals_20230123.xlsx')
-sheet = cphea['pprtv_cphea_chemicals_20230123']
-url_list = [sheet.cell(row=i, column=2).hyperlink.target for i in range(2, sheet.max_row)]
+cphea = openpyxl.load_workbook("pprtv_cphea_chemicals_20230123.xlsx")
+sheet = cphea["pprtv_cphea_chemicals_20230123"]
+url_list = [
+    sheet.cell(row=i, column=2).hyperlink.target for i in range(2, sheet.max_row)
+]
+
 chemical_list = [sheet.cell(row=i, column=2).value for i in range(2, sheet.max_row)]
-chemicals_downloaded = [filename.split("_")[2] for filename in listdir("excel_sheets")]
+
+# Dataframe of chemical information
+in_chemicals = pd.DataFrame({"chems": chemical_list, "url": url_list})
+# Remaining chems to download
+chems_to_download = list(set(chemical_list).difference(set(chemicals_downloaded)))
+# Filter to non-downloaded chems
+# in_chemicals = in_chemicals[in_chemicals["chems"].isin(chems_to_download)]
 
 # Initialize master table to which we'll add each individual table
 cphea_complete = pd.DataFrame()
 
-for url in tqdm(url_list):
-    
+for index, row in tqdm(in_chemicals.iterrows()):
+    url = row["url"]
+    out_file = f"excel_sheets/pprtv_cphea_{row['chems']}_output.xlsx"
+
     # Skip if this page was already downloaded
-    index = url_list.index(url)
-    if chemical_list[index] in chemicals_downloaded:
-        continue
-    
+    if row["chems"] in chemicals_downloaded:
+        # Check if file was downloaded/craeted successfully
+        try:
+            tmp = pd.read_excel(out_file)
+            # If loads okay and has data (more than 0 rows), continue
+            if tmp.shape[0] > 0:
+                # Append to output list
+                cphea_complete = pd.concat(objs=[cphea_complete, tmp])
+                continue
+        except ValueError:
+            # Case where file did not save appropriately due to interruption
+            print(f"Issue with downloaded file...for {row['chems']}")
     # Rest between requests
     time.sleep(0.25)
     # Tutorial: https://www.dataquest.io/blog/web-scraping-python-using-beautiful-soup/
@@ -42,7 +72,7 @@ for url in tqdm(url_list):
     # Pull chemical name and casrn
     chemical = soup.find(class_="page-title")
     casrn = chemical.find_next().text.replace("CASRN", "").strip()
-    
+
     # Find every <sup> tag, prepend a ^ to it, and then append that to the previous tag
     sups = soup.find_all(name="sup")
     for sup in sups:
@@ -54,7 +84,6 @@ for url in tqdm(url_list):
         sup.previous_sibling.replace_with(number_with_sup)
         # remove the original <sup> tags so as not to repeat superscripts
         sup.replace_with("")
-
     print(f"Pulling data for {chemical.text}...")
     # Find assessment classes
     assessment_section = soup.find_all("h3", class_="pane-title")
@@ -77,29 +106,29 @@ for url in tqdm(url_list):
     headers_to_check = ("Estimate", "Weight")
     # Use this list to normalize output column order (and ensure columns are joined appropriately)
     out_cols = [
-        'chemical',
-        'casrn',
-        'Last Updated',
-        'Note_in_body',
-        'assessment_type',
-        'table_title',
-        'url',
-        'System',
-        'RfD (mg/kg-day)',
-        'Basis',
-        'PoD',
-        'UF',
-        'Confidence',
-        'Species Studied',
-        'Duration',
-        'Principal Study',
-        'Note',
-        'RfC (mg/m^3))',
-        'Oral Slope Factor',
-        'Tumor site(s)',
-        'Cancer',
-        'Unit Risk Factor',
-        'RfC (mg/kg-day)'
+        "chemical",
+        "casrn",
+        "Last Updated",
+        "Note_in_body",
+        "assessment_type",
+        "table_title",
+        "url",
+        "System",
+        "RfD (mg/kg-day)",
+        "Basis",
+        "PoD",
+        "UF",
+        "Confidence",
+        "Species Studied",
+        "Duration",
+        "Principal Study",
+        "Note",
+        "RfC (mg/m^3))",
+        "Oral Slope Factor",
+        "Tumor site(s)",
+        "Cancer",
+        "Unit Risk Factor",
+        "RfC (mg/kg-day)",
     ]
 
     # Process chemical page
@@ -139,7 +168,7 @@ for url in tqdm(url_list):
                     if n_tag.name == "span":
                         # Empty dataframe so column headers match later
                         # tmp0 = pd.DataFrame(columns=table_cols)
-                        
+
                         # Check whether body text contains a hyperlink, and if so, extract it
                         note_text = n_tag.find_next().next_sibling
                         href = note_text.find_next().get("href")
@@ -147,7 +176,6 @@ for url in tqdm(url_list):
                             note = f"{note_text.strip()} {note_text.find_next().text}: {href}"
                         else:
                             note = note_text.strip()
-                            
                         tmp = pd.DataFrame(
                             {
                                 "chemical": chemical.text,
@@ -185,32 +213,34 @@ for url in tqdm(url_list):
                             # Append processed dataframe
                             table_list.append(tmp.reset_index(drop=True))
     out = pd.concat(objs=table_list)
-    
+
     # Combine the two different Note columns, which should not have any overlap
     try:
-        out['Note'] = [i+j for i,j in zip(out.fillna("")['Note'], out.fillna("")['Note_in_body'])]
+        out["Note"] = [
+            i + j
+            for i, j in zip(out.fillna("")["Note"], out.fillna("")["Note_in_body"])
+        ]
         out = out.drop(columns="Note_in_body")
     except KeyError:
         # print("No note")
         pass
-    
     # Sort columns if exist from out_cols list
     out = out[[x for x in out_cols if x in out.columns]]
 
-    out.to_excel(f"excel_sheets/pprtv_cphea_{chemical.text}_output.xlsx", index=False)
-    
+    out.to_excel(out_file, index=False)
+
     cphea_complete = pd.concat(objs=[cphea_complete, out])
-    
 # Save full table and sub-tables filtered by table title
 cphea_complete.to_excel("pprtv_cphea_full.xlsx", index=False)
-for title in cphea_complete['table_title'].unique():
-    cphea_complete.loc[cphea_complete['table_title'] == title].to_excel(f"pprtv_cphea_{title}.xlsx", index=False)
-
+for title in cphea_complete["table_title"].unique():
+    cphea_complete.loc[cphea_complete["table_title"] == title].to_excel(
+        f"pprtv_cphea_{title}.xlsx", index=False
+    )
 # After downloading all files, loop through them to build a comprehensive list of column names
 # to add to the beginning of this file. Then redownload them and sort columns by that list.
-#files_downloaded = listdir("excel_sheets")
-#col_name_set = []
-#for filename in files_downloaded:
+# files_downloaded = listdir("excel_sheets")
+# col_name_set = []
+# for filename in files_downloaded:
 #    x = pd.read_excel(f'excel_sheets/{filename}')
 #    for col in x.columns:
 #        if col not in col_name_set:
