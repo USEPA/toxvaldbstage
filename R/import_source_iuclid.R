@@ -5,21 +5,50 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param subf The subfolder containing the IUCLID subsource
 #--------------------------------------------------------------------------------------
-import_source_iuclid <- function(db, subf, chem.check.halt=F) {
+#import_source_iuclid <- function(db, subf, chem.check.halt=F) {
+#  printCurrentFunction(db)
+#  source = paste0("IUCLID_", subf)
+#  source_table = paste0("source_iuclid_", subf) %>% tolower()
+#  dir = paste0(toxval.config()$datapath,"iuclid/",subf,"/",subf,"_files/")
+#  file = list.files(dir, pattern=".xlsx", full.names = TRUE)
+#  if(length(file) > 1) stop("More than 1 IUCLID file stored in '", dir, "'")
+#  res = readr::read_xlsx(file)
+
+import_efsa_source <- function(db,chem.check.halt=F) {
   printCurrentFunction(db)
-  source = paste0("IUCLID_", subf)
-  source_table = paste0("source_iuclid_", subf) %>% tolower()
-  dir = paste0(toxval.config()$datapath,"iuclid/",subf,"/",subf,"_files/")
-  file = list.files(dir, pattern=".xlsx", full.names = TRUE)
-  if(length(file) > 1) stop("More than 1 IUCLID file stored in '", dir, "'")
-  res = readr::read_xlsx(file)
+  source = "IUCLID"
+  source_table = "source_iuclid"
+  dir = paste0(toxval.config()$datapath,"iuclid/")
+  file = paste0(dir,"RepeatedDoseToxicityOral.xlsx")
+  res0 = readxl::read_xlsx(file)
 
   if(!nrow(res)){
     return("...No rows found in file...skipping")
   }
-  # Rename chemical identifier columns to fit ToxVal chemical cleaning
-  res = res %>%
-    dplyr::rename(name = DossSubstanceName, casrn = SubstanceCAS)
+
+  res <- res0 %>%
+  # Copy columns and rename new columns
+    mutate(name = reference_substance,
+           casrn = reference_substance_CASnumber,
+           ec_number = reference_substance_ECnumber,
+           url = ECHA_url,
+           toxval_type = ResultsAndDiscussion.EffectLevels.Efflevel..Endpoint.code,
+           toxval_units = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.unit.code,
+           sex = ResultsAndDiscussion.EffectLevels.Efflevel..Sex.code,
+           toxval_numeric_lower = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.lowerValue,
+           toxval_numeric_upper = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.upperValue,
+           toxval_qualifier_lower = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.lowerQualifier,
+           toxval_qualifier_upper = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.upperQualifier,
+           strain = MaterialsAndMethods.TestAnimals.Strain.code,
+           species = MaterialsAndMethods.TestAnimals.Species.code,
+           guideline = MaterialsAndMethods.Guideline.0.Guideline.code,
+           study_duration_value = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
+           study_duration_units = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
+           study_type = AdministrativeData.Endpoint.code,
+           exposure = MaterialsAndMethods.AdministrationExposure.RouteOfAdministration.code) %>%
+    tidyr::separate(., study_type, c("study_type","exposure_route"), sep=": ", fill="right", remove=FALSE) %>%
+    tidyr::separate(., exposure, c(NA,"exposure_method"), sep=": ", fill="right", remove=FALSE)
+    
   # Standardize the names
   names(res) <- names(res) %>%
     # Replace whitespace and periods with underscore
