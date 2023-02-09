@@ -7,14 +7,16 @@
 #' @param curated.path Input path to the folder directory with expected subdirectories of
 #' 'BIN Files', 'DSSTox Files', and 'jira_chemical_files'
 #' @param ignore.curation.dups Boolean whether to match with any curated records flagged as "unresolved duplicates" (Default TRUE)
+#' @param match.chemical.id Boolean whether to match by provided chemical_id external identifier (Default FALSE)
 #' @param reset.mapping Boolean whether to reset chemical mappings in source_chemical table of database
 #' @return None. Update SQL statements are executed.
 #' @import RMySQL dplyr readxl magrittr
 #--------------------------------------------------------------------------------------
-toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path, ignore.curation.dups=TRUE, reset.mapping=FALSE){
+toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path, ignore.curation.dups=TRUE, match.chemical.id=FALSE, reset.mapping=FALSE){
 
   # Map chemical information from curated files and select source.index
-  out = map_curated_chemicals(source.index=source.index, curated.path=curated.path, ignore.curation.dups=ignore.curation.dups)
+  out = map_curated_chemicals(source.index=source.index, curated.path=curated.path,
+                              ignore.curation.dups=ignore.curation.dups, match.chemical.id = match.chemical.id)
 
   # Get chemical table for source
   chem_tbl = runQuery(paste0("SELECT * FROM source_chemical where ",
@@ -76,10 +78,11 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path, 
 #' @param curated.path Input path to the folder directory with expected subdirectories of
 #' 'BIN Files', 'DSSTox Files', and 'jira_chemical_files'
 #' @param ignore.curation.dups Boolean whether to match with any curated records flagged as "unresolved duplicates" (Default TRUE)
+#' @param match.chemical.id Boolean whether to match by provided chemical_id external identifier (Default FALSE)
 #' @return Mapped chemical information based on input file directory file chemical information
 #' @import RMySQL dplyr readxl magrittr
 #--------------------------------------------------------------------------------------
-map_curated_chemicals <- function(source.index, curated.path, ignore.curation.dups = TRUE){
+map_curated_chemicals <- function(source.index, curated.path, ignore.curation.dups = TRUE, match.chemical.id = FALSE){
   # curated.path = "Repo\\chemical_mapping\\DSSTOX_1142"
   if(is.null(source.index) || is.na(source.index)) return("Must provide 'source.index'...")
   # Clean up source.index to only the numeric value
@@ -119,13 +122,32 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
       mutate(name = gsub("\"", "", name))
     # Select and rename columns
     c_files$d_file = c_files$d_file %>%
-      select(dtxsid = DSSTox_Substance_Id,
+      select(chemical_id = Extenal_ID,
+             dtxsid = DSSTox_Substance_Id,
              dtxrid = DSSTox_Source_Record_Id,
              quality=`DSSTox_QC-Level`) %>%
       distinct()
 
     # --- Collect matches ---
     out = data.frame()
+
+    if(match.chemical.id){
+      tmp = c_files$orig_file %>%
+        select(chemical_id) %>%
+        left_join(c_files$d_file,
+                  by="chemical_id") %>%
+        left_join(c_files$b_file %>%
+                    select(dtxsid, flags, `Top Hit Name`, `Top Hit Casrn`) %>%
+                    distinct(),
+                  by="dtxsid") %>%
+        # Filter out ones that didn't map
+        filter(!is.na(dtxrid) | !is.na(flags))
+      # Store matches
+      out = bind_rows(out, tmp)
+      # Remove previous matches
+      c_files$orig_file = c_files$orig_file %>%
+        filter(!chemical_id %in% out$chemical_id)
+    }
 
     # Scenario #1 Match by clean names AND casrn
     if(all(c("cleaned_name", "cleaned_casrn") %in% names(c_files$orig_file))){
@@ -137,7 +159,7 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
         left_join(c_files$d_file,
                   by="dtxsid") %>%
         # Filter out ones that didn't map
-        filter(!is.na(dtxsid) | !is.na(flags))
+        filter(!is.na(dtxrid) | !is.na(flags))
       # Store matches
       out = bind_rows(out, tmp)
       # Remove previous matches
@@ -154,7 +176,7 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
         left_join(c_files$d_file,
                   by="dtxsid") %>%
         # Filter out ones that didn't map
-        filter(!is.na(dtxsid) | !is.na(flags))
+        filter(!is.na(dtxrid) | !is.na(flags))
       # Store matches
       out = bind_rows(out, tmp)
       # Remove previous matches
@@ -172,7 +194,7 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
         left_join(c_files$d_file,
                   by="dtxsid") %>%
         # Filter out ones that didn't map
-        filter(!is.na(dtxsid) | !is.na(flags))
+        filter(!is.na(dtxrid) | !is.na(flags))
       # Store matches
       out = bind_rows(out, tmp)
       # Remove previous matches
@@ -189,7 +211,7 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
         left_join(c_files$d_file,
                   by="dtxsid") %>%
         # Filter out ones that didn't map
-        filter(!is.na(dtxsid) | !is.na(flags))
+        filter(!is.na(dtxrid) | !is.na(flags))
       # Store matches
       out = bind_rows(out, tmp)
       # Remove previous matches
