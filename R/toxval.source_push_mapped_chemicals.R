@@ -22,6 +22,14 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path, 
   chem_tbl = runQuery(paste0("SELECT * FROM source_chemical where ",
                              "chemical_id like 'ToxVal", source.index,"%'"), db=db)
 
+  out = out %>%
+    # Double-check chemical_id values from curation files still exist
+    filter(chemical_id %in% chem_tbl$chemical_id) %>%
+    # Filter out duplicates
+    group_by(chemical_id) %>%
+    filter(n()==1) %>%
+    ungroup()
+
   # Check for duplicates
   if(nrow(out) > nrow(chem_tbl)){
     message("Error: mapped chemical rows have more than input chemical table data")
@@ -36,7 +44,10 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path, 
       filter(chemical_id %in% chem_tbl$chemical_id[is.na(chem_tbl$dtxrid)])
   }
   # Push mappings
-  for(c_id in out$chemical_id){
+  for(i in seq_len(nrow(out))){
+  #for(c_id in out$chemical_id){
+    if(i%%200==0) cat(i," out of ",nrow(out),"\n")
+    c_id = out$chemical_id[i]
     map = out %>%
       filter(chemical_id == c_id) %>%
       # Only push columns that aren't NA
@@ -136,6 +147,8 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
         select(chemical_id) %>%
         left_join(c_files$d_file,
                   by="chemical_id") %>%
+        # Filter out ones that didn't map
+        filter(!is.na(dtxrid)) %>%
         left_join(c_files$b_file %>%
                     select(dtxsid, flags, `Top Hit Name`, `Top Hit Casrn`) %>%
                     distinct(),
@@ -147,6 +160,14 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
       # Remove previous matches
       c_files$orig_file = c_files$orig_file %>%
         filter(!chemical_id %in% out$chemical_id)
+    } else {
+      # Remove unneeded chemical ID column
+      c_files$d_file = c_files$d_file %>%
+        mutate(chemical_id = NULL) %>%
+        # Also filter out NA dtxSid values that will create false matches
+        # Sacrifice not being able to map a dtxRid to records...
+        # filter(!is.na(dtxsid)) %>%
+        distinct()
     }
 
     # Scenario #1 Match by clean names AND casrn
