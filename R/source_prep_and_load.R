@@ -27,10 +27,11 @@ source_prep_and_load <- function(db,source,table,res,
   res = as.data.frame(res)
   res$source = source
   res$clowder_id = "-"
+  res$parent_chemical_id = "-"
   if(!is.element(source,c("HESS"))) res$document_name = "-"
   res$qc_status = "not determined"
   res = fix.non_ascii.v2(res,source)
-  
+
   #
   # make sure all characters are in UTF8 - moved from runInsertTable.R
   # so it is applied BEFORE hashing and loading
@@ -52,7 +53,7 @@ source_prep_and_load <- function(db,source,table,res,
       res[,col] <- enc2utf8(x)
     }
   }
-  
+
   #####################################################################
   cat("Do the chemical checking\n")
   #####################################################################

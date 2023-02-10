@@ -8,16 +8,13 @@
 #--------------------------------------------------------------------------------------
 init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   # List of ID fields not to be added to JSON of audit
-  id_list = c("source_id", "source_hash", "parent_hash", "version", "qc_status",
+  id_list = c("source_id", "chemical_id", "parent_chemical_id", "source_hash", "parent_hash", "version", "qc_status",
               "create_time", "created_by", "modify_time")
   # Load SQL file with audit table and trigger creation queries
-  audit_sql = parse_sql_file(paste0(toxval.config()$datapath, 
+  audit_sql = parse_sql_file(paste0(toxval.config()$datapath,
                                     "audit_sql/toxval_source_audit_init.sql")) %T>%
     { names(.) <- c("create_audit", "bu_audit_trigger", "drop_bu_audit_trigger",
                     "bu_source_trigger", "drop_bu_source_trigger") }
-
-  # Create audit table
-  runQuery(query=audit_sql$create_audit, db=db)
 
   # Get list of source tables to add triggers
   tblList = runQuery(query = paste0("SHOW TABLES FROM ", db),
@@ -26,6 +23,22 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
     .[grepl("source_", .)] %>%
     # Ignore those like source_audit or source_chemical
     .[!grepl("chemical|source_audit", .)]
+
+  # Loop through and drop all previous triggers
+  for(s_tbl in tblList){
+    # Drop trigger if exists already
+    runQuery(query=audit_sql$drop_bu_audit_trigger %>%
+               gsub("source_table", s_tbl, .),
+             db=db)
+
+    # Drop trigger if exists already
+    runQuery(query=audit_sql$drop_bu_source_trigger %>%
+               gsub("source_table", s_tbl, .),
+             db=db)
+  }
+
+  # Create audit table
+  runQuery(query=audit_sql$create_audit, db=db)
 
   # Loop through each table, get fields for JSON, reparse SQL, run Statement
   for(s_tbl in tblList){
@@ -58,16 +71,6 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
       # Format JSON
       paste0(#"DELIMITER // \n",
         ., "\nEND;")#// DELIMITER;")
-
-    # Drop trigger if exists already
-    runQuery(query=audit_sql$drop_bu_audit_trigger %>%
-               gsub("source_table", s_tbl, .),
-             db=db)
-
-    # Drop trigger if exists already
-    runQuery(query=audit_sql$drop_bu_source_trigger %>%
-               gsub("source_table", s_tbl, .),
-             db=db)
 
     # Apply trigger to table
     runQuery(query=src_bu_audit_trigger, db=db)

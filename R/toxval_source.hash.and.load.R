@@ -18,7 +18,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
 
   printCurrentFunction(paste(db,source,table))
 
-  non_hash_cols = c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
+  non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
                     "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version",
                     "raw_input_file")
 
@@ -103,7 +103,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   cat(source,"\n")
   cat("hash matching: new,total:",new,total," new percent: ",format(newfrac,digits=2),"\n")
   cat("**************************************************************************\n")
-  
+
   if(do.reset) {
     #####################################################################
     cat("Do you really want to clean the database?\n")
