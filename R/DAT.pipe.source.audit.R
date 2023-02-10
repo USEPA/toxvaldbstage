@@ -145,7 +145,11 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
 
   # TODO Check combinations between chemical_id, parent_chemical_id, and old_parent_chemical_id
   live$parent_chemical_id[live$parent_chemical_id == live$chemical_id] = "-"
+  # Replace "-" parent_chemical_id with old_parent_chemical_id since no change was made in chemical_id
+  live$parent_chemical_id[live$parent_chemical_id == "-"] = live$old_parent_chemical_id[live$parent_chemical_id == "-"]
 
+  # Remove column
+  live$old_parent_chemical_id = NULL
 
   # Export intermediate before push
   writexl::write_xlsx(list(live=live, audit=audit),
