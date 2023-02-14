@@ -65,8 +65,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     tidyr::separate(., exposure, c(NA,"exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
     # Combine columns and name them
     unite(toxval_numeric, toxval_numeric_lower, toxval_numeric_upper, na.rm = TRUE, sep='-') %>%
-    unite(toxval_qualifier, toxval_qualifier_lower, toxval_qualifier_upper, na.rm = TRUE, sep=' ')
-
+    unite(toxval_qualifier, toxval_qualifier_lower, toxval_qualifier_upper, na.rm = TRUE, sep=' ') %>%
+    #select(-matches("CrossReference.*.uuid")) %>%
+    select(-matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation"))
+    
     # Replace column value with another column value based on a condition ("other:")
     res$toxval_units[res$toxval_units == 'other:' & !is.na(res$toxval_units)] <- res$toxval_units_other[res$toxval_units == 'other:' & !is.na(res$toxval_units)]
     res$toxval_type[res$toxval_type == 'other:' & !is.na(res$toxval_type)] <- res$toxval_type_other[res$toxval_type == 'other:' & !is.na(res$toxval_type)]
