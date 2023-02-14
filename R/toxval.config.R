@@ -20,13 +20,24 @@ library(textclean)
 library(logr)
 
 #--------------------------------------------------------------------------------------
-#'
+#' @#'
 #' Define a set of global variables. These include the source path (datapath)
 #' and the source databases (e.g. dev_toxval_{version} and dev_toxval_source_{version})
 #' and the urls for the ACToR web services.
 #'
 #' @return Returns a set of parameters to be used throughout the package
 #' @export
+#' @title FUNCTION_TITLE
+#' @description FUNCTION_DESCRIPTION
+
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @rdname toxval.config
 #--------------------------------------------------------------------------------------
 toxval.config <- function() {
   toxval.db <- "res_toxval_v92"
