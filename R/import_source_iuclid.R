@@ -84,7 +84,21 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]|[\\(]|[\\)]", "_", .) %>%
     stringr::str_squish() %>%
-    tolower()
+    tolower() %>%
+    # Truncate field names to abbreviated strings
+    textclean::mgsub(.,
+                     pattern = c("__", "administrativedata", "materialsandmethods", "administrationexposure", "administration",
+                                 "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity"
+                     ),
+                     replace = c("_", "admindata", "matnmet", "adminexposure", "admin", 
+                                 "mat", "resndisc", "efflvs", "sys", "tox")) %>%
+    gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .)
+  # Halt if field names are still too long
+  if(any(nchar(names(res)) > 65)){
+    message("Error: fieldnames too long: ", names(res)[nchar(names(res)) > 65] %>% toString())
+    browser()
+  }
+  
 
   #####################################################################
   cat("Load the data\n")
@@ -102,7 +116,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
 #' @return None, subsources loaded
 #--------------------------------------------------------------------------------------
 
-orchestrate_import_source_iuclid <- function(dir="Repo/iuclid") {
+orchestrate_import_source_iuclid <- function(dir=paste0(toxval.config()$datapath, "iuclid")) {
   # Loop through all subdirectories of current wd and load the source files within into ToxVal
   subdirs <- list.files(dir)
   for (subf in subdirs) {
