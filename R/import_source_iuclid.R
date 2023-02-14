@@ -20,7 +20,7 @@ import_efsa_source <- function(db,chem.check.halt=F) {
   source_table = "source_iuclid"
   dir = paste0(toxval.config()$datapath,"iuclid/")
   file = paste0(dir,"RepeatedDoseToxicityOral.xlsx")
-  res0 = readxl::read_xlsx(file)
+  res0 = readxl::read_xlsx(file, guess_max=Inf)
 
   if(!nrow(res)){
     return("...No rows found in file...skipping")
@@ -45,9 +45,30 @@ import_efsa_source <- function(db,chem.check.halt=F) {
            study_duration_value = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
            study_duration_units = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
            study_type = AdministrativeData.Endpoint.code,
-           exposure = MaterialsAndMethods.AdministrationExposure.RouteOfAdministration.code) %>%
+           exposure = MaterialsAndMethods.AdministrationExposure.RouteOfAdministration.code,
+           reference_title = literatureTitle,
+           reference_type = literatureType,
+           reference_year = literature_referenceYear,
+           effect_level_basis = ResultsAndDiscussion.EffectLevels.Efflevel..Basis..code,
+           toxval_units_other = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.unit.other,
+           toxval_type_other = ResultsAndDiscussion.EffectLevels.Efflevel..Endpoint.other,
+           species_other = MaterialsAndMethods.TestAnimals.Species.other,
+           strain_other = MaterialsAndMethods.TestAnimals.Strain.other,
+           media = ResultsAndDiscussion.TargetSystemOrganToxicity.TargetSystemOrganToxicity..Organ..code,
+           dose_units = ResultsAndDiscussion.TargetSystemOrganToxicity.TargetSystemOrganToxicity..LowestEffectiveDoseConc.unit.code,
+           dose = ResultsAndDiscussion.TargetSystemOrganToxicity.TargetSystemOrganToxicity..LowestEffectiveDoseConc.value) %>%
+    # Split columns and name them
     tidyr::separate(., study_type, c("study_type","exposure_route"), sep=": ", fill="right", remove=FALSE) %>%
-    tidyr::separate(., exposure, c(NA,"exposure_method"), sep=": ", fill="right", remove=FALSE)
+    tidyr::separate(., exposure, c(NA,"exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
+    # Combine columns and name them
+    unite(toxval_numeric, toxval_numeric_lower, toxval_numeric_upper, na.rm = TRUE, sep='-') %>%
+    unite(toxval_qualifier, toxval_qualifier_lower, toxval_qualifier_upper, na.rm = TRUE, sep=' ')
+  
+    # Replace column value with another column value based on a condition
+    res$toxval_units[res$toxval_units == 'other:' & !is.na(res$toxval_units)] <- res$toxval_units_other[res$toxval_units == 'other:' & !is.na(res$toxval_units)]
+    res$toxval_type[res$toxval_type == 'other:' & !is.na(res$toxval_type)] <- res$toxval_type_other[res$toxval_type == 'other:' & !is.na(res$toxval_type)]
+    res$species[res$species == 'other:' & !is.na(res$species)] <- res$species_other[res$species == 'other:' & !is.na(res$species)]
+    res$strain[res$strain == 'other:' & !is.na(res$strain)] <- res$strain_other[res$strain == 'other:' & !is.na(res$strain)]
     
   # Standardize the names
   names(res) <- names(res) %>%
