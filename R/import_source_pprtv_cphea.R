@@ -4,13 +4,12 @@
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #--------------------------------------------------------------------------------------
-import_generic_source <- function(db,chem.check.halt=F) {
+import_source_pprtv_cphea <- function(db,chem.check.halt=F) {
   printCurrentFunction(db)
   source = "PPRTV CPHEA"
   source_table = "source_pprtv_cphea"
   dir = paste0(toxval.config()$datapath,"pprtv_cphea/pprtv_cphea_files/")
-  # TODO files = ls(dir)
-  # TODO tmp = readxl::read_excel()
+  tmp = readxl::read_xlsx(paste0(dir, "pprtv_cphea_full.xlsx"))
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -22,108 +21,119 @@ import_generic_source <- function(db,chem.check.halt=F) {
 
   # Define helper function for cleaning up scientific notation
   parse_scientific <- function(s) {
-    if (grepl("[0-9]\\.?[0-9]* ?[Xx] ?10\\^.*", s)) {
-      mantissa <- as.double(gsub(" ?[Xx].*", "", s))
-      exponent <- as.double(gsub(".*\\^", "", s))
+    if (grepl("^[0-9]+\\.?[0-9]* ?[Xx] ?10\\^.*$", s)) {
+      mantissa <- as.numeric(gsub(" ?[Xx].*", "", s))
+      exponent <- as.numeric(gsub(".*\\^", "", s))
       return(mantissa * 10^exponent)
     }
-    else {
-      return(s)
-    }
+    return(suppressWarnings(as.numeric(s)))
   }
 
-  # Pivot RfD column to toxval_type, _numeric, _units
-  rfd <- tmp %>%
-    filter(!is.na(`RfD (mg/kg-day)`)) %>%
-    pivot_longer(`RfD (mg/kg-day)`,
-                 names_to = c("toxval_type", "toxval_units"), names_sep = " ",
-                 values_to = "toxval_numeric") %>%
-    # Standardize columns
-    select(-c(PoD, `RfC (mg/m^3))`, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`))
-  # Clean up toxval_units column
-  rfd$toxval_units <- sapply(rfd$toxval_units, function(x) {gsub("\\(|\\)", "", x)})
-  # Parse scientific notation in toxval_numeric column
-  rfd$toxval_numeric <- sapply(rfd$toxval_numeric, parse_scientific)
-
-  # Pivot PoD
-  pod <- tmp %>% filter(!is.na(PoD) & PoD != ":")
-  # Extract toxval_type, _numeric, and _units
-  pod$toxval_type <- sapply(pod$PoD, function(x){stringr::str_trim(gsub(":.*", "", x))})
-  # regmatches() outputs a list, so coerce to character
-  pod$toxval_numeric <- as.character(sapply(pod$PoD, function(x){regmatches(x, regexpr("[0-9]+\\.?[0-9]*", x))}))
-  pod$toxval_units <- sapply(pod$PoD, function(x){stringr::str_trim(gsub(".*[0-9] *", "", x))})
-  # Standardize columns
-  pod <- select(pod, -c(`RfD (mg/kg-day)`, PoD, `RfC (mg/m^3))`, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`))
-
-  # Pivot RfC (mg/m^3) column
-  rfc_m3 <- tmp %>%
-    filter(!is.na(`RfC (mg/m^3))`)) %>%
-    pivot_longer(`RfC (mg/m^3))`,
-                 names_to = c("toxval_type", "toxval_units"), names_sep = " ",
-                 values_to = "toxval_numeric") %>%
-    select(-c(`RfD (mg/kg-day)`, PoD, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`))
-  # Clean up toxval_units column
-  rfc_m3$toxval_units <- sapply(rfc_m3$toxval_units, function(x) {gsub("\\(|\\)", "", x)})
-  # Parse scientific notation in toxval_numeric column
-  rfc_m3$toxval_numeric <- sapply(rfc_m3$toxval_numeric, parse_scientific)
-
-  # Pivot Oral Slope Factor
-  osf <- tmp %>%
-    filter(!is.na(`Oral Slope Factor`))
-  # Extract toxval_type, _numeric, and _units
-  osf$toxval_type <- "Oral Slope Factor"
-  osf$toxval_numeric <- sapply(osf$`Oral Slope Factor`, function(x){parse_scientific(stringr::str_trim(gsub("per.*", "", x)))})
-  osf$toxval_units <- sapply(osf$`Oral Slope Factor`, function(x){stringr::str_trim(gsub(".*per", "", x))})
-  # Standardize columns
-  osf <- select(osf, -c(`RfD (mg/kg-day)`, PoD, `RfC (mg/m^3))`, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`))
-
-  # Pivot Unit Risk Factor
-  urf <- tmp %>%
-    filter(!is.na(`Unit Risk Factor`))
-  # Extract toxval_type, _numeric, and _units
-  urf$toxval_type <- "Unit Risk Factor"
-  urf$toxval_numeric <- sapply(urf$`Unit Risk Factor`, function(x){parse_scientific(stringr::str_trim(gsub("per.*", "", x)))})
-  urf$toxval_units <- sapply(urf$`Unit Risk Factor`, function(x){stringr::str_trim(gsub(".*per", "", x))})
-  # Standardize columns
-  urf <- select(urf, -c(`RfD (mg/kg-day)`, PoD, `RfC (mg/m^3))`, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`))
-
-  # If there are future versions of this source, they may have data in the RfC (mg/kg-day) column, but this version doesn't.
+  # Handle specific toxval_type fixes
+  # Empty dataframe to collect handled cases
+  res_parsed = data.frame()
+  # Add temp ID to help filter out handled cases
+  res = tmp %>%
+    dplyr::mutate(temp_id = 1:n())
 
   # Collect all the records that lack a toxval
-  remainder <- tmp %>%
+  res_parsed = res %>%
     filter(is.na(`RfD (mg/kg-day)`) & (is.na(PoD) | PoD == ":") & is.na(`RfC (mg/m^3))`)
            & is.na(`Oral Slope Factor`) & is.na(`Unit Risk Factor`)) %>%
     select(-c(`RfD (mg/kg-day)`, PoD, `RfC (mg/m^3))`, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`)) %>%
-    mutate(toxval_type = NA, toxval_numeric = NA, toxval_units = NA)
+    mutate(toxval_type = NA, toxval_numeric = NA, toxval_units = NA) %>%
+    rbind(res_parsed, .)
+  res = res %>% filter(!temp_id %in% res_parsed$temp_id)
+  # Resetting before the pivoting so we don't lose fields in the pivot
+  res_parsed$temp_id = NA
 
-  # Bind together all the lengthened dataframes and the remainders
-  res0 <- rbind(rfd, pod, rfc_m3, osf, urf, remainder)
+  # Get list of fields to pivot
+  toxval_type_list = c("RfD (mg/kg-day)", "PoD", "RfC (mg/m^3))",
+                       "Oral Slope Factor", "Unit Risk Factor", "RfC (mg/kg-day)")
+  # Apply general pivot longer fixes for all toxval_type fields
+  res = res %>%
+    tidyr::pivot_longer(cols = toxval_type_list,
+                        names_to="toxval_type",
+                        values_to="toxval_numeric",
+                        values_transform = list(toxval_numeric=as.character)) %>%
+    # Split out units for RfD and RfC variants
+    tidyr::separate(toxval_type, c("toxval_type", "toxval_units"), sep="\\(",
+                    extra="merge", fill="right", remove=FALSE) %>%
+    # Remove extra parentheses from units
+    dplyr::mutate(toxval_units = gsub("\\(|\\)", "", toxval_units),
+                  temp_id = 1:n()) %>%
+    dplyr::mutate(across(c("toxval_type", "toxval_units", "toxval_numeric"),
+                         ~stringr::str_squish(.)))
+
+  # Per splitting
+  res_parsed = res %>%
+    filter(grepl(" per ", toxval_numeric)) %>%
+    tidyr::separate(toxval_numeric, c("toxval_numeric", "toxval_units"), sep=" per ") %>%
+    rbind(res_parsed, .)
+  res = res %>% filter(!temp_id %in% res_parsed$temp_id)
+  # PoD splitting
+  res_parsed = res %>%
+    filter(grepl(" : ", toxval_numeric)) %>%
+    mutate(toxval_numeric = stringr::str_squish(toxval_numeric)) %>%
+    tidyr::separate(toxval_numeric, c("toxval_type", "toxval_numeric"), sep=" : ",
+                    fill="right") %>%
+    tidyr::separate(toxval_numeric, c("toxval_numeric", "toxval_units"), sep=" ") %>%
+    rbind(res_parsed, .)
+  res = res %>% filter(!temp_id %in% res_parsed$temp_id)
+########################################################################
+  # Straggler PoD without a PoD listed (just ":")
+  res_parsed = res %>%
+    filter(grepl("^:", toxval_numeric)) %>%
+    mutate(toxval_numeric = gsub(":", "", toxval_numeric) %>%
+             stringr::str_squish()) %>%
+    tidyr::separate(toxval_numeric, c("toxval_numeric", "toxval_units"), sep=" ",
+                    extra="merge", fill="left") %>%
+    rbind(res_parsed, .)
+  res = res %>% filter(!temp_id %in% res_parsed$temp_id)
+  # Recombine
+  res = res %>%
+    rbind(res_parsed) %>%
+    select(-temp_id) %>%
+    # Filter out unnecssarily created toxval_numeric-types during pivoting
+    filter(!(is.na(toxval_numeric) & !is.na(toxval_type)))
+
+  # View(res %>% select(toxval_numeric, toxval_numeric_new) %>% distinct())
+  # Check if parsing/filtering was successful
+  # if(nrow(res) != nrow(tmp)){
+  #   stop("Issue parsing, extra rows added")
+  # }
+
+  # TODO Handle cases where fields are "known" empty because they weren't in the original table
+  # Case: https://cfpub.epa.gov/ncea/pprtv/chemicalLanding.cfm?pprtv_sub_id=1550
+
+  # TODO Handle case like https://cfpub.epa.gov/ncea/pprtv/chemicalLanding.cfm?pprtv_sub_id=1815
+  # toxval_numeric remained as the units, toxval_numeric is in the notes section
+
+  # Fix scientific notation issue
+  res = res %>%
+    # Add rowwise so mutate can vectorize the parse_scientific function
+    dplyr::rowwise() %>%
+    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric))
 
   # Standardize the names
-  res0 <- res0 %>%
-    rename(name = chemical, endpoint = System, critical_effect = Basis, uncertainty_factor = UF,
+  res0 <- res %>%
+    dplyr::rename(name = chemical, endpoint = System, critical_effect = Basis, uncertainty_factor = UF,
                   species = `Species Studied`, study_reference = `Principal Study`,
-                  tumor_site = `Tumor site(s)`, cancer_type = Cancer)
+                  tumor_site = `Tumor site(s)`, cancer_type = Cancer) %>%
+    # Clean up punctuation/spacing for endpoint column
+    mutate(endpoint = gsub(" ,", ", ", endpoint)) %>%
+    dplyr::rowwise() %>%
+    # Determine study_type
+    dplyr::mutate(study_type = ifelse(grepl("Cancer|Carcinogenic", table_title),
+                                      "Cancer", ifelse(grepl("Subchronic", table_title),
+                                                       "Subchronic", "Chronic")))
+  # Fix names
   names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  # Clean up punctuation/spacing for endpoint column
-  res0$endpoint <- sapply(res0$endpoint, function(x){gsub(" ,", ", ", x)})
-
-  # Create study_type column
-  res0$study_type <- NA
-  for (i in 1:nrow(res0)) {
-    if (grepl("Cancer|Carcinogenic", res0$table_title[i])) {
-      res0$study_type[i] <- "Cancer"
-    } else if (grepl("Subchronic", res0$table_title[i])) {
-      res0$study_type[i] <- "Subchronic"
-    } else {
-      res0$study_type[i] <- "Chronic"
-    }
-  }
 
   # TODO: Split duration column into study_duration_value and _units
 
@@ -133,11 +143,8 @@ import_generic_source <- function(db,chem.check.halt=F) {
   res0$notes <- paste0(tidyr::replace_na(res0$note, ""), tidyr::replace_na(res0$note_in_body, ""))
   res0 <- res0 %>% select(-c(note, note_in_body))
 
-  res = source.specific.transformations(res0)
-
-
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source=source,table=source_table,res=res,F,T,T)
+  source_prep_and_load(db,source=source,table=source_table,res=res0,F,T,T)
 }
