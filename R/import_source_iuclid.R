@@ -274,11 +274,11 @@ fix_source_iuclid_study_duration <- function(df){
                  teens = c("ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"),
                  tens = c("twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"))
 
-  numbers = c(numbers,
+  numbers = c(numbers %>% c(),
               sapply(numbers$tens, function(n){ paste0(n, "", numbers$base)}, USE.NAMES = FALSE) %>% c(),
               sapply(numbers$tens, function(n){ paste0(n, "-", numbers$base)}, USE.NAMES = FALSE) %>% c(),
               sapply(numbers$tens, function(n){ paste0(n, " ", numbers$base)}, USE.NAMES = FALSE) %>% c()
-  )
+  ) %>% unlist()
   # Need to refine the splitting of the column
   tmp = df %>%
     filter(grepl(paste0("^", numbers, " [A-Za-z|.]+$", collapse="|"),
