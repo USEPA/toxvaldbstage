@@ -48,8 +48,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
            species_other = MaterialsAndMethods.TestAnimals.Species.other,
            guideline = MaterialsAndMethods.Guideline.0.Guideline.code,
            guideline_other = MaterialsAndMethods.Guideline.0.Guideline.other,
-           study_duration_value = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
-           study_duration_units = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
+           # Handled by helper function below
+           # study_duration_value = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
+           # study_duration_units = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
            study_type = AdministrativeData.Endpoint.code,
            exposure = MaterialsAndMethods.AdministrationExposure.RouteOfAdministration.code,
            exposure_other = MaterialsAndMethods.AdministrationExposure.RouteOfAdministration.other,
@@ -68,7 +69,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     unite(toxval_qualifier, toxval_qualifier_lower, toxval_qualifier_upper, na.rm = TRUE, sep=' ') %>%
     #select(-matches("CrossReference.*.uuid")) %>%
     select(-matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation"))
-    
+
     # Replace column value with another column value based on a condition ("other:")
     res$toxval_units[res$toxval_units == 'other:' & !is.na(res$toxval_units)] <- res$toxval_units_other[res$toxval_units == 'other:' & !is.na(res$toxval_units)]
     res$toxval_type[res$toxval_type == 'other:' & !is.na(res$toxval_type)] <- res$toxval_type_other[res$toxval_type == 'other:' & !is.na(res$toxval_type)]
@@ -81,6 +82,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     # Fix: reference_type TBD
     # Fix: dose_units TBD
 
+    # Fix study duration with various regex
+    res = fix_numeric_units_split(df = res, "raw_dur", "study_duration_value", "study_duration_units")
+
   # Standardize the names
   names(res) <- names(res) %>%
     # Replace whitespace and periods with underscore
@@ -92,7 +96,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
                      pattern = c("__", "administrativedata", "materialsandmethods", "administrationexposure", "administration",
                                  "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity"
                      ),
-                     replace = c("_", "admindata", "matnmet", "adminexposure", "admin", 
+                     replace = c("_", "admindata", "matnmet", "adminexposure", "admin",
                                  "mat", "resndisc", "efflvs", "sys", "tox")) %>%
     gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .)
   # Halt if field names are still too long
@@ -100,7 +104,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     message("Error: fieldnames too long: ", names(res)[nchar(names(res)) > 65] %>% toString())
     browser()
   }
-  
 
   #####################################################################
   cat("Load the data\n")
