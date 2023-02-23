@@ -100,5 +100,6 @@ import.driver <- function(db="res_toxval_source_v5",
   ###import_echa_echemportal_source(db,chem.check.halt=chem.check.halt) # ECHA eChemPortal 2020
   ###import_echa_iuclid_source(db,chem.check.halt=chem.check.halt) # ECHA IUCLID
   ###import_echa_source(db,chem.check.halt=chem.check.halt) # ECHA POC
+  import_source_atsdr_mrls_2022(db,chem.check.halt=chem.check.halt) # ATSDR MRLs 2022
 
 }

@@ -18,7 +18,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
 
   printCurrentFunction(paste(db,source,table))
 
-  non_hash_cols = c("chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
+  non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
                     "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version",
                     "raw_input_file")
 
@@ -110,11 +110,15 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     browser()
     #####################################################################
     runQuery(paste("delete from ",table),db)
+    save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed.RData"))
   } else {
     # Check parent_hash and source_hash fields for all previous hashes
     res = res[!res$source_hash %in% hash_check,]
   }
 
+  if(!file.exists(paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed.RData"))){
+    save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed.RData"))
+  }
   #####################################################################
   cat("Add to the database \n")
   #####################################################################

@@ -66,7 +66,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     tidyr::separate(., exposure, c(NA,"exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
     # Combine columns and name them
     unite(toxval_numeric, toxval_numeric_lower, toxval_numeric_upper, na.rm = TRUE, sep='-') %>%
-    unite(toxval_qualifier, toxval_qualifier_lower, toxval_qualifier_upper, na.rm = TRUE, sep=' ')
+    unite(toxval_qualifier, toxval_qualifier_lower, toxval_qualifier_upper, na.rm = TRUE, sep=' ') %>%
+    #select(-matches("CrossReference.*.uuid")) %>%
+    select(-matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation"))
 
     # Replace column value with another column value based on a condition ("other:")
     res$toxval_units[res$toxval_units == 'other:' & !is.na(res$toxval_units)] <- res$toxval_units_other[res$toxval_units == 'other:' & !is.na(res$toxval_units)]
@@ -83,12 +85,25 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     # Fix study duration with various regex
     res = fix_numeric_units_split(df = res, "raw_dur", "study_duration_value", "study_duration_units")
 
-    # Standardize the names
-    names(res) <- names(res) %>%
-      # Replace whitespace and periods with underscore
-      gsub("[[:space:]]|[.]|[\\(]|[\\)]", "_", .) %>%
-      stringr::str_squish() %>%
-      tolower()
+  # Standardize the names
+  names(res) <- names(res) %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]|[\\(]|[\\)]", "_", .) %>%
+    stringr::str_squish() %>%
+    tolower() %>%
+    # Truncate field names to abbreviated strings
+    textclean::mgsub(.,
+                     pattern = c("__", "administrativedata", "materialsandmethods", "administrationexposure", "administration",
+                                 "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity"
+                     ),
+                     replace = c("_", "admindata", "matnmet", "adminexposure", "admin",
+                                 "mat", "resndisc", "efflvs", "sys", "tox")) %>%
+    gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .)
+  # Halt if field names are still too long
+  if(any(nchar(names(res)) > 65)){
+    message("Error: fieldnames too long: ", names(res)[nchar(names(res)) > 65] %>% toString())
+    browser()
+  }
 
   #####################################################################
   cat("Load the data\n")
@@ -106,7 +121,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
 #' @return None, subsources loaded
 #--------------------------------------------------------------------------------------
 
-orchestrate_import_source_iuclid <- function(dir="Repo/iuclid") {
+orchestrate_import_source_iuclid <- function(dir=paste0(toxval.config()$datapath, "iuclid")) {
   # Loop through all subdirectories of current wd and load the source files within into ToxVal
   subdirs <- list.files(dir)
   for (subf in subdirs) {

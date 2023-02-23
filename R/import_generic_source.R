@@ -10,7 +10,7 @@ import_generic_source <- function(db,chem.check.halt=F) {
   source_table = "source_{source}"
   dir = paste0(toxval.config()$datapath,"{source}/{source}_files/")
   file = paste0(dir,"name of the source file.xlsx")
-  res0 = read.xslx(file)
+  res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -23,9 +23,9 @@ import_generic_source <- function(db,chem.check.halt=F) {
 
   # Standardize the names
   names(res0) <- names(res0) %>%
+    stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
-    stringr::str_squish() %>%
     tolower()
 
   res = source.specific.transformations(res0)

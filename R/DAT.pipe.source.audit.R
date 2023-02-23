@@ -52,7 +52,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
               "create_by", "source_name")
   # Identifiers excluded from source_hash generation
   hash_id_list = append(id_list,
-                        c("chemical_id","source_id","clowder_id","document_name",
+                        c("chemical_id","parent_chemical_id", "source_id","clowder_id","document_name",
                           "source_hash","qc_status", "parent_hash","create_time",
                           "modify_time","created_by", "qc_notes", "qc_flags", "raw_input_file")) %>%
     unique()
@@ -123,7 +123,10 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
     dplyr::rename(version = audit_version,
                   qc_notes = data_record_annotation,
                   qc_flags = failure_reason,
-                  created_by = create_by) %>%
+                  created_by = create_by,
+                  # Rename preemptively
+                  old_parent_chemical_id = parent_chemical_id,
+                  parent_chemical_id = chemical_id) %>%
     .[, !names(.) %in% c("dataset_name", "status_name", "source_name")]
 
   # Hash spotcheck - compare should be TRUE for unchanged records
@@ -132,11 +135,26 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
 
   # General Check
   # live %>% select(source_hash, parent_hash, qc_status, qc_flags, qc_notes, version) %>% mutate(compare = parent_hash == source_hash) %>% View()
-  
+
+  stop("Rehashing of chemicals to parent untested...")
+  # Re-hash chemical information
+  live = source_chemical.process(db,live,
+                                 source=live$source,
+                                 chem.check.halt=FALSE,
+                                 casrn.col="casrn",name.col="name")
+
+  # TODO Check combinations between chemical_id, parent_chemical_id, and old_parent_chemical_id
+  live$parent_chemical_id[live$parent_chemical_id == live$chemical_id] = "-"
+  # Replace "-" parent_chemical_id with old_parent_chemical_id since no change was made in chemical_id
+  live$parent_chemical_id[live$parent_chemical_id == "-"] = live$old_parent_chemical_id[live$parent_chemical_id == "-"]
+
+  # Remove column
+  live$old_parent_chemical_id = NULL
+
   # Export intermediate before push
-  writexl::write_xlsx(list(live=live, audit=audit), 
+  writexl::write_xlsx(list(live=live, audit=audit),
                       paste0(toxval.config()$datapath,"QC Pushed/", source,"_QC_push_",Sys.Date(),".xlsx"))
-  
+
   # Push live and audit table changes
   # runInsertTable(mat=audit, table="source_audit", db=db, get.id = FALSE)
   # Query to join and make updates
@@ -174,6 +192,6 @@ prep.DAT.conversion <- function(in_dat, hash_id_list, source){
     # Set source_hash
     mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
     select(-pre_source_hash)
-  
+
     return(in_dat)
 }

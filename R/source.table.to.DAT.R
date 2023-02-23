@@ -10,7 +10,8 @@
 #' @description Convert toxval source table to DAT format for loading to DAT
 #' application
 #' @param source.db The version of toxval source to use.
-#' @param source_table The name of toxval source table to use.
+#' @param source_table The name of toxval source table to use. If a DataFrame, input data will be
+#' processing and returned without saving to file.
 #' @param source The name of toxval source to use.
 #' @param limit Excel file grouping limit (default is max XLSX row limit)
 #' @param sample_p Percentage of records to sample down to
@@ -19,30 +20,36 @@
 #' @export
 #--------------------------------------------------------------------------------------
 source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample_p = NA){
-  # Skip if does not have the required ID field
-  name_check = runQuery(paste("SELECT * FROM ", source_table, " LIMIT 1"),
+  # Option to inject data directly to turn into DAT format
+  if(!is.data.frame(source_table)){
+    # Skip if does not have the required ID field
+    name_check = runQuery(paste("SELECT * FROM ", source_table, " LIMIT 1"),
+                          db=source.db) %>%
+      names()
+    if(!"source_hash" %in% name_check) {
+      message("...", source_table, " does not have required source_hash field...skipping...")
+      return()
+    }
+    # Pull source table data
+    src_data = runQuery(paste("SELECT * FROM ", source_table),
                         db=source.db) %>%
-    names()
-  if(!"source_hash" %in% name_check) {
-    message("...", source_table, " does not have required source_hash field...skipping...")
-    return()
-  }
-  # Pull source table data
-  src_data = runQuery(paste("SELECT * FROM ", source_table),
-                     db=source.db) %>%
-    # Set record_id for DAT template from source_hash
-    dplyr::rename(record_id = source_hash) %T>% {
-      # Get sample count based on sample_p
-      sample_nrec <<- ceiling(nrow(.) * sample_p)
-    } %>%
-    filter(clowder_id != "-")
+      # Set record_id for DAT template from source_hash
+      dplyr::rename(record_id = source_hash) %T>% {
+        # Get sample count based on sample_p
+        sample_nrec <<- ceiling(nrow(.) * sample_p)
+      } %>%
+      filter(clowder_id != "-")
 
-  # Sample down if sample_p parameter used
-  if(!is.na(sample_nrec)){
-    src_data = src_data %>%
-      #group_by(clowder_id) %>%
-      slice_sample(n=sample_nrec)
-
+    # Sample down if sample_p parameter used
+    if(!is.na(sample_nrec)){
+      src_data = src_data %>%
+        #group_by(clowder_id) %>%
+        slice_sample(n=sample_nrec)
+    }
+  } else {
+    src_data = source_table %>%
+      dplyr::rename(record_id = source_hash) %>%
+      filter(clowder_id != "-")
   }
 
   # Remove columns
@@ -74,13 +81,18 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
            document_id, document_name, document_path)
   # Prep export location (check and create if not present)
   if(!dir.exists("Repo/DAT Input")) dir.create("Repo/DAT Input")
-  # Export transformation in groups based on limit input
-  nr <- nrow(in_dat)
-  out_dat = split(in_dat, rep(1:ceiling(nr/limit), each=limit, length.out=nr))
-  # Write output files
-  for(i in seq_len(length(out_dat))){
-    writexl::write_xlsx(x=list(data=out_dat[[i]]),
-                        path = paste0("Repo/DAT Input/", source_table, "_DAT_input_",i,".xlsx"))
+
+  if(!is.data.frame(source_table)){
+    # Export transformation in groups based on limit input
+    nr <- nrow(in_dat)
+    out_dat = split(in_dat, rep(1:ceiling(nr/limit), each=limit, length.out=nr))
+    # Write output files
+    for(i in seq_len(length(out_dat))){
+      writexl::write_xlsx(x=list(data=out_dat[[i]]),
+                          path = paste0("Repo/DAT Input/", source_table, "_DAT_input_",i,".xlsx"))
+    }
+  } else {
+    out_dat = in_dat
   }
 
   return(out_dat)
