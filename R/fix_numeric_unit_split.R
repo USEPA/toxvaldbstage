@@ -26,7 +26,8 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
   split_check = nrow(df)
   # Quick normalization
   df = df %>%
-    dplyr::mutate(temp_id = 1:dplyr::n(),
+    ungroup() %>%
+    dplyr::mutate(temp_id = 1:n(),
                   raw_in = stringr::str_squish(tolower(!!rlang::sym(to_split))))
 
   # Filter to rows without a duration
@@ -34,7 +35,8 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
     dplyr::filter(is.na(!!rlang::sym(to_split))) %>%
     dplyr::mutate(!!value_to := NA,
                   !!units_to := NA) %>%
-    dplyr::select(!all_of(to_split))
+    # dplyr::select(!all_of(to_split)) %>%
+    select(-raw_in)
 
   # Filter out matches
   df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
