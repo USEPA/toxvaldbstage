@@ -69,8 +69,13 @@ import_rsl_source <- function(db,chem.check.halt=F) {
       names_to= "toxval_type",
       values_to= "toxval_numeric"
     )
+  
+  # filter out RfDo and RfCi in subchronic file
+  res2_2_1 <- res2_2 %>%
+  filter(grepl("^S", toxval_type))
+  
   # seperate out toxval_type to make other toxval columns and add input file column
-  res2_3 <- res2_2 %>%
+  res2_3 <- res2_2_1 %>%
   tidyr::separate(toxval_type, c("toxval_type", "risk_assessment", "exposure_route","toxval_unit"), sep="_", fill="right", remove=TRUE) %>%
     mutate(raw_input_file= "rsl_subchronic_nov_2022.xlsx")
 
@@ -95,7 +100,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
   # add input file columns and toxval_subtype columns to res0 and res1, thq tables
   res0_0 <- res0 %>%
     mutate(raw_input_file= "rsl_thq10_nov_2022.xlsx_",
-           toxval_subtype = "Thq = 1")
+           toxval_subtype = "Thq = 1.0")
   res1_0 <- res1 %>%
     mutate(raw_input_file= "rsl_thq01_nov_2022.xlsx",
            toxval_subtype = "Thq = 0.1")
@@ -232,13 +237,13 @@ import_rsl_source <- function(db,chem.check.halt=F) {
                             . =="s" ~ "Csat exceeded",
                             . =="c*" ~ "cancer where noncancer SL < 100X cancer SL",
                             . =="c**" ~ "cancer where noncancer SL < 10X cancer SL",
-                            . =="nm" ~ "noncancer; ceiling limit exceeded",
-                            . =="ns" ~ "noncancer; Csat exceeded",
-                            . =="nms" ~ "noncancer; ceiling limit exceeded; Csat exceeded",
+                            . =="nm" ~ "noncancer",
+                            . =="ns" ~ "noncancer",
+                            . =="nms" ~ "noncancer",
                             . =="DAF" ~ "dilution attentuation factor",
-                            . =="c*R" ~ "cancer where noncancer SL < 100X cancer SL; R",
-                            . =="c**R" ~ "cancer where noncancer SL < 10X cancer SL; R",
-                            . =="cR" ~ "cancer; R",
+                            . =="c*R" ~ "cancer where noncancer SL < 100X cancer SL",
+                            . =="c**R" ~ "cancer where noncancer SL < 10X cancer SL",
+                            . =="cR" ~ "cancer",
                             # . == "V" ~ "Vol",
                             TRUE ~ .
                             )
@@ -251,8 +256,53 @@ import_rsl_source <- function(db,chem.check.halt=F) {
  # dropping columns without a toxval_numeric value for they are not needed
  res6 <- res5 # %>%
    # drop_na(toxval_numeric)
+ # drop key and reference columns
+ res7 <- res6[ , !names(res6) %in% 
+       c("key1","key2","key3","key4","key5","key6","key7","key8",
+         "key9","key10","RfD Reference","SRfD Reference",
+         "RfC Reference","SRfC Reference")]
+ 
+ # make subsource column and leave cancer/noncancer values in annotation column
+ res7$subsource = res7$annotation
+ 
+ res7$subsource<-gsub("^noncancer","",as.character(res7$subsource))
+ res7$subsource<-gsub("^cancer where noncancer SL < 100X cancer SL","",as.character(res7$subsource))
+ res7$subsource<-gsub("^cancer where noncancer SL < 10X cancer SL","",as.character(res7$subsource))
+ res7$subsource<-gsub("^cancer","",as.character(res7$subsource))
+ 
+ res8 <- res7 %>%
+ dplyr::mutate(across(matches("annotation"),
+                      .fns = ~ case_when(. =="IRIS" ~ "",
+                                         . =="PPRTV" ~ "",
+                                         . =="OPP" ~ "",
+                                         . =="ATSDR" ~ "",
+                                         . =="Cal EPA" ~ "",
+                                         . =="PPRTV Screening Level" ~ "",
+                                         . =="HEAST" ~ "",
+                                         . =="OW" ~ "",
+                                         . =="TEF applied" ~ "",
+                                         . =="RPF applied" ~ "",
+                                         . =="see user's guide" ~ "",
+                                         . =="user provided" ~ "",
+                                         . =="ceiling limit exceeded" ~ "",
+                                         . =="ceiling limit exceeded" ~ "",
+                                         . =="Csat exceeded" ~ "",
+                                         . =="Csat exceeded" ~ "",
+                                         . =="dilution attentuation factor" ~ "",
+                                         . =="SCREEN" ~ "",
+                                         . =="DWSHA" ~ "",
+                                         # . == "V" ~ "Vol",
+                                         TRUE ~ .
+                                         )
+                            )
+          )
+
+   
+ 
  # relacing empty strings with NA value
- res <- replace(res6, res6=="", NA)
+ res <- replace(res8, res8=="", NA)
+ 
+ 
 
 
   # the final file should have column names that include "name" and "casrn"
