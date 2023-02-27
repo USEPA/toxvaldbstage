@@ -30,6 +30,14 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
   # Parse input data fields
   src_fields = set_field_SQL_type(src_f = res, default_fields=default_fields) %>%
     paste0(., ",\n")
+  
+  # Check for large table uploads
+  if(length(res) > 50){
+    # Replace all varchar with TEXT fields due to row size memory limit
+    src_fields = src_fields %>%
+      # https://stackoverflow.com/questions/24173194/remove-parentheses-and-text-within-from-strings-in-r
+      gsub("VARCHAR\\([^\\)]+\\)","TEXT", .)
+  }
 
   # Customize the source table SQL
   src_sql$snew_source = src_sql$snew_source %>%
@@ -48,26 +56,6 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
                         "_MySQL/",
                         source,
                         ".sql"))
-    } else if (source %in% c("source_pfas_150_sem_v2")){
-      # Temporarily skip these sources due to not having write permission 
-      
-    } else if (source %in% c("source_alaska_dec",
-                             "source_cal_dph",
-                             "source_epa_aegl",
-                             "source_fda_cedi",
-                             "source_mass_mmcl",
-                             "source_osha_air_limits",
-                             "source_ow_dwsha",
-                             "source_penn_dep",
-                             "source_usgs_hbsl",
-                             "source_who_ipcs")){
-      # Skip for now due to write permissions
-      # writeLines(src_sql$snew_source,
-      #            paste0(toxval.config()$datapath,
-      #                   "ACToR replacements/ACToR_MySQL/",
-      #                   source,
-      #                   ".sql")
-      
     } else {
       writeLines(src_sql$snew_source,
                  paste0(toxval.config()$datapath,
@@ -102,16 +90,16 @@ set_field_SQL_type <- function(src_f = NULL, default_fields = NULL){
       suppressWarnings() %>%
     # Handle case of empty column, set size to 100 or 10 default guess
     ifelse(is.infinite(.),
-           ifelse(type %in% c("character", "logical"), 100, 10),
+           ifelse(type %in% c("character", "logical"), 25, 10),
            .)
 
     switch(type,
-           "character"=ifelse(t_len >= 100,
+           "character"=ifelse(t_len >= 25,
                               "TEXT",
                               paste0("VARCHAR(",t_len,")")),
            "integer"=paste0("INT(",t_len,")"),
            "double"=paste0("float"), # paste0("DOUBLE(",t_len,",",t_len,")"),
-           "logical"=ifelse(t_len >= 100,
+           "logical"=ifelse(t_len >= 25,
                             "TEXT",
                             paste0("VARCHAR(",t_len,")")),
            { stop("Unhandled SQL type in set_field_SQL_type(): ", type) }) %>%

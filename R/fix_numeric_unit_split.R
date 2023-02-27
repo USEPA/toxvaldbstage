@@ -34,7 +34,8 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
     dplyr::filter(is.na(!!rlang::sym(to_split))) %>%
     dplyr::mutate(!!value_to := NA,
                   !!units_to := NA) %>%
-    dplyr::select(!to_split)
+    dplyr::select(!all_of(to_split))
+
   # Filter out matches
   df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
   # Case of integers with units, optional end in "." (e.g. 13 weeks.)
@@ -66,9 +67,10 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
   # Case like 90 to 94 days
   out = df %>%
     dplyr::filter(grepl("^[0-9]+\\s+to\\s+[0-9]+\\s+[A-Za-z]+$", raw_in)) %>%
-    dplyr::mutate(value_to = stringr::str_extract(raw_in, "^[0-9]+\\s+to\\s+[0-9]+\\s+") %>%
+    dplyr::mutate(!!value_to := stringr::str_extract(raw_in, "^[0-9]+\\s+to\\s+[0-9]+\\s+") %>%
                     gsub("to", "-", .),
-                  units_to = gsub("to", "", raw_in) %>%
+                  !!units_to := gsub("to", "", raw_in) %>%
+
                     stringr::str_replace_all("[:digit:]+", "")) %>%
     dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(tolower(.)))) %>%
     dplyr::select(-raw_in) %>%
@@ -79,8 +81,8 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
   out = df %>%
     dplyr::filter(grepl("^[0-9]+\\s[A-Za-z]+\\s[or|to]+\\s[0-9]+\\s[A-Za-z]+$", raw_in)) %>%
     # Uncertain how to handle, setting aside for now
-    dplyr::mutate(value_to = raw_in,
-           units_to = raw_in) %>%
+    dplyr::mutate(!!value_to := raw_in,
+           !!units_to := raw_in) %>%
     dplyr::select(-raw_in) %>%
     rbind(out, .)
   # Filter out matches
@@ -89,8 +91,8 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
   out = df %>%
     dplyr::filter(grepl("^[0-9]+\\s[or]+\\s[0-9]+\\s[A-Za-z]+$", raw_in)) %>%
     # Uncertain how to handle, setting aside for now
-    dplyr::mutate(value_to = stringr::str_extract(raw_in, "^[0-9]+\\s[or]+\\s[0-9]+"),
-                  units_to = gsub("or", "", raw_in) %>%
+    dplyr::mutate(!!value_to := stringr::str_extract(raw_in, "^[0-9]+\\s[or]+\\s[0-9]+"),
+                  !!units_to := gsub("or", "", raw_in) %>%
                     stringr::str_replace_all("[:digit:]+", "")) %>%
     dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(tolower(.)))) %>%
     dplyr::select(-raw_in) %>%
@@ -120,8 +122,8 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
   # TODO Case - Males: 14 days ... - Females: 14 days
   out = df %>%
     dplyr::filter(grepl("^- Males: [0-9]+ [A-Za-z]+|- Females: [0-9]+ [A-Za-z]+", raw_in)) %>%
-    dplyr::mutate(value_to = raw_in,
-           units_to = raw_in) %>%
+    dplyr::mutate(!!value_to := raw_in,
+           !!units_to := raw_in) %>%
     dplyr::select(-raw_in) %>%
     rbind(out, .)
   # Filter out matches
