@@ -20,7 +20,7 @@ import_efsa_source <- function(db,chem.check.halt=F) {
   # database table. You do not need to add any of the generic columns
   # described in the SOP - they will get added in source_prep_and_load
   #
-  
+
   # Standardize the names
   names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
@@ -28,9 +28,9 @@ import_efsa_source <- function(db,chem.check.halt=F) {
     gsub("[[:space:]]|[.]", "_", .) %>%
     gsub("___", "_", .) %>%
     tolower()
-  
+
   #res = source.specific.transformations(res0)
-  
+
   res <- res0 %>%
     # Renaming columns
     dplyr::rename(record_url=url,
@@ -74,7 +74,12 @@ import_efsa_source <- function(db,chem.check.halt=F) {
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
     mutate(toxval_units = gsub("µ", "u", toxval_units) %>%
              gsub("³", "3", .))
-  
+
+  # Remove unneeded ID fields from original source
+  res_test = res %>%
+    select(-matches("_id"), -testtype_code) %>%
+    distinct()
+
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
