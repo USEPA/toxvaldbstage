@@ -89,7 +89,7 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        source=source,
                        table=source_table,
                        res=res,
-                       do.reset=do.resest,
+                       do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt)
 }

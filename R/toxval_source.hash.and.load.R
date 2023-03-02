@@ -15,7 +15,8 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
                                         do.reset=FALSE,
                                         do.insert=FALSE,
                                         res) {
-
+  # Testing purposes hardcoding insert False
+  do.insert = FALSE
   printCurrentFunction(paste(db,source,table))
 
   non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
@@ -118,6 +119,12 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   cat("hash matching: new,total:",new,total," new percent: ",format(newfrac,digits=2),"\n")
   cat("**************************************************************************\n")
 
+  # Export RData copy to inspect later
+  if(!file.exists(paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed_",Sys.Date(),".RData"))){
+    cat("Exporting RData...\n")
+    save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed_",Sys.Date(),".RData"))
+  }
+  
   if(do.reset) {
     #####################################################################
     cat("Do you really want to clean the database?\n")
@@ -130,9 +137,6 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     res = res[!res$source_hash %in% hash_check,]
   }
 
-  if(!file.exists(paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed_",Sys.Date(),".RData"))){
-    save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed_",Sys.Date(),".RData"))
-  }
   #####################################################################
   cat("Add to the database \n")
   #####################################################################

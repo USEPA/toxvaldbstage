@@ -99,7 +99,7 @@ set_field_SQL_type <- function(src_f = NULL, default_fields = NULL){
            "character;character"=ifelse(t_len >= 25,
                               "TEXT",
                               paste0("VARCHAR(",t_len,")")),
-           "integer"=paste0("INT(",t_len,")"),
+           "integer;integer"=paste0("INT(",t_len,")"),
            "numeric;double"=paste0("float"), # paste0("DOUBLE(",t_len,",",t_len,")"),
            "logical;logical"=ifelse(t_len >= 25,
                             "TEXT",
