@@ -6,7 +6,8 @@
 #' @param table Name of the database table
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' inserting new data. Default FALSE
-#' @param do.insert If TRUE, insert data into the database, default TRUE
+#' @param do.insert If TRUE, insert data into the database, default False
+#' @param test_import If TRUE, save RData of import and return default False
 #' @param res The data frame to be processed
 #--------------------------------------------------------------------------------------
 toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
@@ -14,6 +15,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
                                         table,
                                         do.reset=F,
                                         do.insert=F,
+                                        test_import=F,
                                         res) {
 
   printCurrentFunction(paste(db,source,table))
@@ -77,11 +79,25 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   } else cat("no columns need to be added\n")
   res.temp = res[,sort(nlist)]
 
+  # tmp = data.frame()
   for (i in 1:nrow(res)){
     row <- res.temp[i,]
     res[i,"source_hash"] <- digest(paste0(row,collapse=""), serialize = FALSE)
     if(i%%1000==0) cat(i," out of ",nrow(res),"\n")
+    # tmp = rbind(tmp, data.frame(source_hash = res[i,"source_hash"],
+    #                             hashcol = paste0(row,collapse="")))
   }
+  # Vectorized hash instead of for-loop
+  # Different from previous in that Date columns aren't converted to numerics
+  # cat("Using vectorized hashing! \n")
+  # res.temp2 = res %>%
+  #   tidyr::unite(hash_col, all_of(sort(names(.)[!names(.) %in% non_hash_cols])), sep="") %>%
+  #   dplyr::rowwise() %>%
+  #   dplyr::mutate(#hashcol = paste0(all_of(sort(names(.)[!names(.) %in% non_hash_cols])),
+  #                 #                 collapse=""),
+  #                 source_hash = digest(hash_col, serialize = FALSE)) %>%
+  #   dplyr::ungroup()
+  # res$source_hash = res.temp$source_hash
   #####################################################################
   cat("See what is new \n")
   #####################################################################
@@ -116,15 +132,19 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     res = res[!res$source_hash %in% hash_check,]
   }
 
-  if(!file.exists(paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed.RData"))){
-    save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed.RData"))
+  if(!file.exists(paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed_",Sys.Date(),".RData"))){
+    save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed_",Sys.Date(),".RData"))
   }
   #####################################################################
   cat("Add to the database \n")
   #####################################################################
   if(nrow(res)>0) {
-    cat("entering new rows:",nrow(res),"\n")
-    if(do.insert) runInsertTable(res,table,db,do.halt=T,verbose=F)
+    if(do.insert && !test_import) {
+      cat("entering new rows:",nrow(res),"\n")
+      runInsertTable(res,table,db,do.halt=T,verbose=F)
+    } else {
+      cat("Set do.insert to TRUE and test_import to FALSE to insert new rows\n")
+    }
   } else cat("no new rows to add\n")
 }
 

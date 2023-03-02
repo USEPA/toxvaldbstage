@@ -3,8 +3,9 @@
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @param test_import If TRUE, save RData of import and return default False
 #--------------------------------------------------------------------------------------
-import_efsa_source <- function(db,chem.check.halt=F) {
+import_efsa_source <- function(db,chem.check.halt=FALSE, test_import=FALSE) {
   printCurrentFunction(db)
   source = "EFSA"
   source_table = "source_efsa"
@@ -83,7 +84,14 @@ import_efsa_source <- function(db,chem.check.halt=F) {
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source=source,table=source_table,res=res,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=FALSE,
+                       do.insert=TRUE,
+                       chem.check.halt=TRUE,
+                       test_import=test_import)
 }
 
 
