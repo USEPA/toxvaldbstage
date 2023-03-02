@@ -473,14 +473,15 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                   filter(!is.na(clowder_id)) %>%
                   select(clowder_id, document_name = pdf_name, long_ref) %>%
                   distinct(),
-                by = c("title" = "long_ref"))
+                by = c("title" = "long_ref")) %>%
+      # Remove excess whitespace and NBSP (non-breaking space)
+      mutate(document_name = stringr::str_squish(document_name))
 
     n1 = nrow(res)
     n2 = nrow(res[!is.na(res$clowder_id),])
     res2 = res[is.na(res$clowder_id),]
     n3 = length(unique(res2$long_ref))
     cat("matching for source",source,":",n2," out of ",n1," missing unique documents:",n3,"\n")
-
     return(res)
   }
   if (source == "HAWC"){

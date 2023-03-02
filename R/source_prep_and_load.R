@@ -22,7 +22,7 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
 
   #####################################################################
-  cat("General fixes to non-ascii and encoding \n")
+  cat("Setting default columns \n")
   #####################################################################
   res = as.data.frame(res)
   res$source = source
@@ -30,6 +30,14 @@ source_prep_and_load <- function(db,source,table,res,
   res$parent_chemical_id = "-"
   if(!is.element(source,c("HESS"))) res$document_name = "-"
   res$qc_status = "not determined"
+
+  #####################################################################
+  cat("Set the clowder_id and document name\n")
+  #####################################################################
+  res = set_clowder_id(res=res,source=source)
+
+  cat("General fixes to non-ascii and encoding \n")
+  # Handle character fixes
   res = fix.non_ascii.v2(res,source)
 
   #
@@ -63,11 +71,6 @@ source_prep_and_load <- function(db,source,table,res,
   cat("Set the default values for missing data\n")
   #####################################################################
   res = source_set_defaults(res,source)
-
-  #####################################################################
-  cat("Set the clowder_id and document name\n")
-  #####################################################################
-  res = set_clowder_id(res=res,source=source)
 
   #####################################################################
   cat("Build the hash key and load the data \n")

@@ -76,7 +76,7 @@ import_efsa_source <- function(db,chem.check.halt=F) {
              gsub("³", "3", .))
 
   # Remove unneeded ID fields from original source
-  res_test = res %>%
+  res = res %>%
     select(-matches("_id"), -testtype_code) %>%
     distinct()
 
