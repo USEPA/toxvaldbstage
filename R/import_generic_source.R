@@ -3,9 +3,10 @@
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
-#' @param test_import If TRUE, save RData of import and return default False
+#' @param do.reset If TRUE, delete data from the database for this source before
+#' @param do.insert If TRUE, insert data into the database, default FALSE
 #--------------------------------------------------------------------------------------
-import_generic_source <- function(db,chem.check.halt=FALSE, test_import=FALSE) {
+import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "name of the source"
   source_table = "source_{source}"
@@ -39,10 +40,9 @@ import_generic_source <- function(db,chem.check.halt=FALSE, test_import=FALSE) {
                        source=source,
                        table=source_table,
                        res=res,
-                       do.reset=FALSE,
-                       do.insert=TRUE,
-                       chem.check.halt=TRUE,
-                       test_import=test_import)
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt)
 }
 
 
