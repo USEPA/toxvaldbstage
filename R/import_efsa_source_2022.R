@@ -74,8 +74,9 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
            study_duration_units = "days") %>%
     # splitting ROUTE into exposure_route and exposure_method columns
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
-    mutate(toxval_units = gsub("µ", "u", toxval_units) %>%
-             gsub("³", "3", .))
+    dplyr::mutate(across(where(is.character), fix.greek.symbols)) %>%
+    # Replace superscript
+    mutate(toxval_units = gsub("³", "3", toxval_units))
 
   # Remove unneeded ID fields from original source
   res = res %>%

@@ -87,24 +87,32 @@ set_field_SQL_type <- function(src_f = NULL, default_fields = NULL){
     # type = typeof(src_f[[f]])
     # Get class and type, which matters for things like Dates
     type = paste0(c(class(src_f[[f]]), typeof(src_f[[f]])), collapse=";")
-    # Get max character length
-    t_len = max(nchar(src_f[[f]]), na.rm = TRUE) %>%
-      suppressWarnings() %>%
-    # Handle case of empty column, set size to 100 or 10 default guess
-    ifelse(is.infinite(.),
-           ifelse(grepl("character|logical", type), 25, 10),
-           .)
+
+    # Get numeric/double length and decimal places
+    if(grepl("numeric|double", type)){
+      t_len = lapply(src_f[[f]] %>% unique(), function(num){
+        return(get.num.decimal.count(num))
+      }) %>% dplyr::bind_rows()
+    } else {
+      # Get max character length
+      t_len = max(nchar(src_f[[f]]), na.rm = TRUE) %>%
+        suppressWarnings() %>%
+        # Handle case of empty column, set size to 100 or 10 default guess
+        ifelse(is.infinite(.),
+               ifelse(grepl("character|logical", type), 25, 10),
+               .)
+    }
 
     switch(type,
            "character;character"=ifelse(t_len >= 25,
                               "TEXT",
                               paste0("VARCHAR(",t_len,")")),
            "integer;integer"=paste0("INT(",t_len,")"),
-           "numeric;double"=paste0("float"), # paste0("DOUBLE(",t_len,",",t_len,")"),
+           "numeric;double"=paste0("DECIMAL(", max(t_len$num)+max(t_len$dec),", ", max(t_len$dec),")"), # paste0("DOUBLE(",t_len,",",t_len,")"),
            "logical;logical"=ifelse(t_len >= 25,
                             "TEXT",
                             paste0("VARCHAR(",t_len,")")),
-           "POSIXct;POSIXt;double"= "datetime",
+           "POSIXct;POSIXt;double"= "date",
            { message("Unhandled SQL type in set_field_SQL_type(): ", type); browser(); stop() }) %>%
       paste0("`", f, "` ", .,
              ifelse(grepl("VARCHAR", .),

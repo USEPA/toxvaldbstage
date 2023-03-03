@@ -16,7 +16,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
                                         do.insert=FALSE,
                                         res) {
   # Testing purposes hardcoding insert False
-  do.insert = FALSE
+  # do.insert = FALSE
   printCurrentFunction(paste(db,source,table))
 
   non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
@@ -124,7 +124,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     cat("Exporting RData...\n")
     save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed_",Sys.Date(),".RData"))
   }
-  
+
   if(do.reset) {
     #####################################################################
     cat("Do you really want to clean the database?\n")
