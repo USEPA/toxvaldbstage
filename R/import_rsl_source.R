@@ -76,17 +76,17 @@ import_rsl_source <- function(db,chem.check.halt=F) {
   
   # seperate out toxval_type to make other toxval columns and add input file column
   res2_3 <- res2_2_1 %>%
-  tidyr::separate(toxval_type, c("toxval_type", "risk_assessment", "exposure_route","toxval_unit"), sep="_", fill="right", remove=TRUE) %>%
+  tidyr::separate(toxval_type, c("toxval_type", "risk_assessment_class", "exposure_route","toxval_unit"), sep="_", fill="right", remove=TRUE) %>%
     mutate(raw_input_file= "rsl_subchronic_nov_2022.xlsx")
 
   # make new column for the key values to go in
-  res2_3$annotation = res2_3$toxval_type
+  res2_3$study_type = res2_3$toxval_type
   # replace values with key columns values
   res2_4 <- res2_3 %>%
-    mutate(annotation = ifelse(toxval_type == 'SRfCi', res2_3$`SRfC Reference`,annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'SRfDo', res2_3$`SRfD Reference`, annotation )) %>%
-    mutate(annotation = ifelse(toxval_type == 'RfDo', res2_3$`RfD Reference`, annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'RfCi', res2_3$`RfC Reference`, annotation))
+    mutate(study_type = ifelse(toxval_type == 'SRfCi', res2_3$`SRfC Reference`,study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'SRfDo', res2_3$`SRfD Reference`, study_type )) %>%
+    mutate(study_type = ifelse(toxval_type == 'RfDo', res2_3$`RfD Reference`, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'RfCi', res2_3$`RfC Reference`, study_type))
 
   # make dictionary of values in annotation column that needs to go
   rep_str0 = c('SRfCi'='',
@@ -95,7 +95,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
               'RfCi'='')
 
   # get rid of those values in annotation columns
-  res2_4$annotation <- str_replace_all(res2_4$annotation, rep_str0)
+  res2_4$study_type <- str_replace_all(res2_4$study_type, rep_str0)
 
   # add input file columns and toxval_subtype columns to res0 and res1, thq tables
   res0_0 <- res0 %>%
@@ -140,10 +140,14 @@ import_rsl_source <- function(db,chem.check.halt=F) {
                   "key8" = "key_23",
                   "key9" = "key_25",
                   "key10" = "key_28")
+  
+  # remove "vol" and "mutagen" columns
+  res_combo_01_2_1 <- res_combo_01_2[ , !names(res_combo_01_2) %in% 
+                  c("vol", "mutagen")]
 
 
   # make table longer based on toxval_type
-  res_combo_01_3 <- res_combo_01_2 %>%
+  res_combo_01_3 <- res_combo_01_2_1 %>%
   tidyr::pivot_longer(
           cols= c("Screening Level (Resident Soil)_chronic_mg/kg",
                   "Screening Level (Industrial Soil)_chronic_mg/kg",
@@ -157,7 +161,6 @@ import_rsl_source <- function(db,chem.check.halt=F) {
                   "IUR_chronic_(ug/m3)-1",
                   "RfDo_chronic_mg/kg-day",
                   "RfCi_chronic_mg/m3",
-                  "mutagen",
                   "GIABS_PhysChem",
                   "ABSd_PhysChem",
                   "Csat_chronic_mg/kg"),
@@ -169,23 +172,23 @@ import_rsl_source <- function(db,chem.check.halt=F) {
 
   # separate out toxval_type into other toxval columns
   res_combo_01_4 <- res_combo_01_3 %>%
-    tidyr::separate(toxval_type, c("toxval_type", "risk_assessment", "toxval_unit"), sep="_", fill="right", remove=TRUE)
+    tidyr::separate(toxval_type, c("toxval_type", "risk_assessment_class", "toxval_unit"), sep="_", fill="right", remove=TRUE)
 
   # make new column for the key values to go in
-  res_combo_01_4$annotation = res_combo_01_4$toxval_type
+  res_combo_01_4$study_type = res_combo_01_4$toxval_type
   # replace values with key columns values
   res_combo_01_5 <- res_combo_01_4 %>%
-    mutate(annotation = ifelse(toxval_type == 'SFO', key1,annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'IUR', key2, annotation )) %>%
-    mutate(annotation = ifelse(toxval_type == 'RfDo', key3, annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'RfCi', key4, annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'Screening Level (Resident Soil)', key5, annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'Screening Level (Industrial Soil)', key6, annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'Screening Level (Resident Air)', key7, annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'Screening Level (Industrial Air)', key8, annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'Screening Level (Tap Water)', key9, annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'Protection of Groundwater: Risk-based SSL', key10, annotation)) %>%
-    mutate(annotation = ifelse(toxval_type == 'Screening Level (MCL)', risk_assessment, annotation))
+    mutate(study_type = ifelse(toxval_type == 'SFO', key1,study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'IUR', key2, study_type )) %>%
+    mutate(study_type = ifelse(toxval_type == 'RfDo', key3, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'RfCi', key4, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (Resident Soil)', key5, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (Industrial Soil)', key6, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (Resident Air)', key7, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (Industrial Air)', key8, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (Tap Water)', key9, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Protection of Groundwater: Risk-based SSL', key10, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (MCL)', risk_assessment_class, study_type))
 
   # make dictionary of values in annotation column that needs to go
   rep_str = c('SFO'='',
@@ -208,7 +211,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
               'PhysChem' = '')
 
   # get rid of those values in annotation columns
-  res_combo_01_5$annotation <- str_replace_all(res_combo_01_5$annotation, rep_str)
+  res_combo_01_5$study_type <- str_replace_all(res_combo_01_5$study_type, rep_str)
 
 
   # combine res2 (subchronic table) and the combined res0/res1 tables (thq table)
@@ -216,7 +219,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
 
   res4 <- res3 %>%
     # replace key abbreviated values with text values using dictionary
-    dplyr::mutate(across(matches("key|vol|annotation"),
+    dplyr::mutate(across(matches("key|vol|study_type"),
                   .fns = ~ case_when(. =="I" ~ "IRIS",
                             . =="P" ~ "PPRTV",
                             . =="O" ~ "OPP",
@@ -237,9 +240,9 @@ import_rsl_source <- function(db,chem.check.halt=F) {
                             . =="s" ~ "Csat exceeded",
                             . =="c*" ~ "cancer where noncancer SL < 100X cancer SL",
                             . =="c**" ~ "cancer where noncancer SL < 10X cancer SL",
-                            . =="nm" ~ "noncancer",
-                            . =="ns" ~ "noncancer",
-                            . =="nms" ~ "noncancer",
+                            . =="nm" ~ "noncancer, ceiling limit exceeded",
+                            . =="ns" ~ "noncancer, Csat exceeded",
+                            . =="nms" ~ "noncancer, ceiling limit exceeded, Csat exceeded",
                             . =="DAF" ~ "dilution attentuation factor",
                             . =="c*R" ~ "cancer where noncancer SL < 100X cancer SL",
                             . =="c**R" ~ "cancer where noncancer SL < 10X cancer SL",
@@ -263,15 +266,19 @@ import_rsl_source <- function(db,chem.check.halt=F) {
          "RfC Reference","SRfC Reference")]
  
  # make subsource column and leave cancer/noncancer values in annotation column
- res7$subsource = res7$annotation
+ res7$subsource = res7$study_type
  
  res7$subsource<-gsub("^noncancer","",as.character(res7$subsource))
  res7$subsource<-gsub("^cancer where noncancer SL < 100X cancer SL","",as.character(res7$subsource))
  res7$subsource<-gsub("^cancer where noncancer SL < 10X cancer SL","",as.character(res7$subsource))
  res7$subsource<-gsub("^cancer","",as.character(res7$subsource))
+ res7$subsource<-gsub("^noncancer, ceiling limit exceeded","",as.character(res7$subsource))
+ res7$subsource<-gsub("^noncancer, Csat exceeded","",as.character(res7$subsource))
+ res7$subsource<-gsub("^noncancer, ceiling limit exceeded, Csat exceeded","",as.character(res7$subsource))
+ 
  
  res8 <- res7 %>%
- dplyr::mutate(across(matches("annotation"),
+ dplyr::mutate(across(matches("study_type"),
                       .fns = ~ case_when(. =="IRIS" ~ "",
                                          . =="PPRTV" ~ "",
                                          . =="OPP" ~ "",
@@ -297,10 +304,76 @@ import_rsl_source <- function(db,chem.check.halt=F) {
                             )
           )
 
-   
+ # add "source" column and fill it with 'RSL'
+ res8$source <- 'RSL'
  
+ # add 'EPA Regions' to "subsource" column for all 'Screening' toxval_type entries
+   res9 <- res8 %>%
+     dplyr::mutate(across(matches("subsource"),
+                          .fns = ~ case_when(toxval_type =="Screening Level (Industrial Soil)" ~ "EPA Regions",
+                                             toxval_type =="Screening Level (Resident Air)" ~ "EPA Regions",
+                                             toxval_type =="Screening Level (Industrial Air)" ~ "EPA Regions",
+                                             toxval_type == "Screening Level (Tap Water)" ~ "EPA Regions",
+                                             toxval_type == "Screening Level (Resident Soil)" ~ "EPA Regions",
+                                             toxval_type == "Screening Level (MCL)" ~ "EPA Regions",
+                                             TRUE ~ .
+                          )
+                )
+     )
+   
+  # make "risk_assessment_type" column and fill it with 'carcinogenicity' for all 'SFO', 'IUR' toxval_type entries 
+   res10 <- res9 %>%
+     add_column(risk_assessment_type =  "") %>%
+     dplyr::mutate(across(matches("risk_assessment_type"),
+                          .fns = ~ case_when(toxval_type =="SFO" ~ "carcinogenicity",
+                                             toxval_type =="IUR" ~ "carcinogenicity",
+                                             TRUE ~ .
+                          )
+                )
+     )
+   
+   
+   # make "toxval_subtype" column for all 'Screening' toxval_type entries with a "cancer" risk_assessment_class
+   res10 <- mutate(res10, toxval_subtype = case_when(toxval_type =="Screening Level (Industrial Soil)"& study_type == "cancer"  ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Resident Air)"& study_type == "cancer" ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Industrial Air)"& study_type == "cancer" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Tap Water)"& study_type == "cancer" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Resident Soil)"& study_type == "cancer" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (MCL)"& study_type == "cancer" ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Industrial Soil)"& study_type == "cancer where noncancer SL < 100X cancer SL"  ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Resident Air)"& study_type == "cancer where noncancer SL < 100X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Industrial Air)"& study_type == "cancer where noncancer SL < 100X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Tap Water)"& study_type == "cancer where noncancer SL < 100X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Resident Soil)"& study_type == "cancer where noncancer SL < 100X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (MCL)"& study_type == "cancer where noncancer SL < 100X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Industrial Soil)"& study_type == "cancer where noncancer SL < 10X cancer SL"  ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Resident Air)"& study_type == "cancer where noncancer SL < 10X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Industrial Air)"& study_type == "cancer where noncancer SL < 10X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Tap Water)"& study_type == "cancer where noncancer SL < 10X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Resident Soil)"& study_type == "cancer where noncancer SL < 10X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (MCL)"& study_type == "cancer where noncancer SL < 10X cancer SL" ~ "TR=1E-06",
+                                                     TRUE ~ toxval_subtype
+                         )
+   )
+   
+   
+   # update "exposure_route" column based on "toxval_type"
+   res10 <- mutate(res10, exposure_route = case_when(toxval_type =="RfCi"  ~ "inhalation",
+                                                     toxval_type =="RfDo"  ~ "oral",
+                                                     toxval_type =="Protection of Groundwater: MCL-based SSL"  ~ "oral",
+                                                     toxval_type =="Protection of Groundwater: Risk-based SSL"  ~ "oral",
+                                                     toxval_type =="Screening Level (Resident Soil)"  ~ "oral, dermal, and inhalation",
+                                                     toxval_type =="Screening Level (Industrial Soil)"  ~ "oral and inhalation",
+                                                     toxval_type =="Screening Level (Resident Air)"  ~ "inhalation",
+                                                     toxval_type =="Screening Level (Industrial Air)"  ~ "inhalation",
+                                                     toxval_type =="Screening Level (Tap Water)"  ~ "oral, dermal, and inhalation",
+                                                     toxval_type =="Screening Level (MCL)"  ~ "vary by chemical",
+                                                     TRUE ~ exposure_route
+                                )
+           )
+
  # relacing empty strings with NA value
- res <- replace(res8, res8=="", NA)
+ res <- replace(res10, res10=="", NA)
  
  
 
