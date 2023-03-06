@@ -110,6 +110,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                                                         "clowder_v3/source_efsa_matched_mmille16_09212022.xlsx")),
                       "HAWC" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                        "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")),
+                      data.frame()
 
                       )
 

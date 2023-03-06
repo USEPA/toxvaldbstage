@@ -93,12 +93,16 @@ set_field_SQL_type <- function(src_f = NULL, default_fields = NULL){
       t_len = lapply(src_f[[f]] %>% unique(), function(num){
         return(get.num.decimal.count(num))
       }) %>% dplyr::bind_rows()
+      # Default if nothing returned (case of all NA field)
+      if(!nrow(t_len)){
+        t_len = data.frame(num=8, dec=3)
+      }
     } else {
       # Get max character length
       t_len = max(nchar(src_f[[f]]), na.rm = TRUE) %>%
         suppressWarnings() %>%
-        # Handle case of empty column, set size to 100 or 10 default guess
-        ifelse(is.infinite(.),
+        # Handle case of empty column, or empty strings, set size to 25 or 10 default guess
+        ifelse(is.infinite(.) | . == 0,
                ifelse(grepl("character|logical", type), 25, 10),
                .)
     }

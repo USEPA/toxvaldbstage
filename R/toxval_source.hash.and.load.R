@@ -89,7 +89,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   # Vectorized hash instead of for-loop
   # Different from previous in that Date columns aren't converted to numerics
   # cat("Using vectorized hashing! \n")
-  # res.temp2 = res %>%
+  # res.temp = res %>%
   #   tidyr::unite(hash_col, all_of(sort(names(.)[!names(.) %in% non_hash_cols])), sep="") %>%
   #   dplyr::rowwise() %>%
   #   dplyr::mutate(#hashcol = paste0(all_of(sort(names(.)[!names(.) %in% non_hash_cols])),
