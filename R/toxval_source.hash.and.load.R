@@ -6,16 +6,17 @@
 #' @param table Name of the database table
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' inserting new data. Default FALSE
-#' @param do.insert If TRUE, insert data into the database, default TRUE
+#' @param do.insert If TRUE, insert data into the database, default False
 #' @param res The data frame to be processed
 #--------------------------------------------------------------------------------------
 toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
                                         source,
                                         table,
-                                        do.reset=F,
-                                        do.insert=F,
+                                        do.reset=FALSE,
+                                        do.insert=FALSE,
                                         res) {
-
+  # Testing purposes hardcoding insert False
+  # do.insert = FALSE
   printCurrentFunction(paste(db,source,table))
 
   non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
@@ -77,11 +78,25 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   } else cat("no columns need to be added\n")
   res.temp = res[,sort(nlist)]
 
+  # tmp = data.frame()
   for (i in 1:nrow(res)){
     row <- res.temp[i,]
     res[i,"source_hash"] <- digest(paste0(row,collapse=""), serialize = FALSE)
     if(i%%1000==0) cat(i," out of ",nrow(res),"\n")
+    # tmp = rbind(tmp, data.frame(source_hash = res[i,"source_hash"],
+    #                             hashcol = paste0(row,collapse="")))
   }
+  # Vectorized hash instead of for-loop
+  # Different from previous in that Date columns aren't converted to numerics
+  # cat("Using vectorized hashing! \n")
+  # res.temp = res %>%
+  #   tidyr::unite(hash_col, all_of(sort(names(.)[!names(.) %in% non_hash_cols])), sep="") %>%
+  #   dplyr::rowwise() %>%
+  #   dplyr::mutate(#hashcol = paste0(all_of(sort(names(.)[!names(.) %in% non_hash_cols])),
+  #                 #                 collapse=""),
+  #                 source_hash = digest(hash_col, serialize = FALSE)) %>%
+  #   dplyr::ungroup()
+  # res$source_hash = res.temp$source_hash
   #####################################################################
   cat("See what is new \n")
   #####################################################################
@@ -104,6 +119,12 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   cat("hash matching: new,total:",new,total," new percent: ",format(newfrac,digits=2),"\n")
   cat("**************************************************************************\n")
 
+  # Export RData copy to inspect later
+  if(!file.exists(paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed_",Sys.Date(),".RData"))){
+    cat("Exporting RData...\n")
+    save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed_",Sys.Date(),".RData"))
+  }
+
   if(do.reset) {
     #####################################################################
     cat("Do you really want to clean the database?\n")
@@ -116,15 +137,16 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     res = res[!res$source_hash %in% hash_check,]
   }
 
-  if(!file.exists(paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed.RData"))){
-    save(res, file=paste0(toxval.config()$datapath, "z_source_import_processed/", table, "_import_processed.RData"))
-  }
   #####################################################################
   cat("Add to the database \n")
   #####################################################################
   if(nrow(res)>0) {
-    cat("entering new rows:",nrow(res),"\n")
-    if(do.insert) runInsertTable(res,table,db,do.halt=T,verbose=F)
+    if(do.insert) {
+      cat("entering new rows:",nrow(res),"\n")
+      runInsertTable(res,table,db,do.halt=T,verbose=F)
+    } else {
+      cat("Set do.insert to TRUE to insert new rows\n")
+    }
   } else cat("no new rows to add\n")
 }
 

@@ -83,7 +83,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     # Fix: dose_units TBD
 
     # Fix study duration with various regex
-    res = fix_numeric_units_split(df = res, "raw_dur", "study_duration_value", "study_duration_units")
+    # res = fix_numeric_units_split(df = res, "raw_dur", "study_duration_value", "study_duration_units")
 
   # Standardize the names
   names(res) <- names(res) %>%

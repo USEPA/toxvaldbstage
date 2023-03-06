@@ -73,12 +73,12 @@ import.driver <- function(db="res_toxval_source_v5",
   import_test_source(db,chem.check.halt=chem.check.halt) # TEST
   import_wignall_source(db,chem.check.halt=chem.check.halt) # Wignall
   # Trouble loading
-  import_flex_source(db,chem.check.halt=chem.check.halt) # ACTOR old sources (10)
+  # import_flex_source(db,chem.check.halt=chem.check.halt) # ACTOR old sources (10)
   
   import_dod_meg_source(db,chem.check.halt=chem.check.halt) # DOD MEG
   import_doe_pac_source(db,chem.check.halt=chem.check.halt) # DOE PAC
   import_envirotox_source(db,chem.check.halt=chem.check.halt) # envirotox
-  import_pfas_150_sem_v2_source(db,chem.check.halt=chem.check.halt) # PFAS 150 SEM v2
+  # import_pfas_150_sem_v2_source(db,chem.check.halt=chem.check.halt) # PFAS 150 SEM v2
   import_heast_source(db,chem.check.halt=chem.check.halt) # HEAST
   import_oppt_source(db,chem.check.halt=chem.check.halt) # OPPT
   import_rsl_source(db,chem.check.halt=chem.check.halt) # RSL
@@ -94,7 +94,7 @@ import.driver <- function(db="res_toxval_source_v5",
   # Pennsylvania DEP MCLs [v1]
   # USGS HBSL [v1]
   # WHO IPCS [v1]
-  import_flex_source(db,chem.check.halt=chem.check.halt)
+  # import_flex_source(db,chem.check.halt=chem.check.halt)
 
   ###import_echa3_source(db,chem.check.halt=chem.check.halt) # ECHA
   ###import_echa_echemportal_source(db,chem.check.halt=chem.check.halt) # ECHA eChemPortal 2020
