@@ -97,18 +97,6 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=F) {
     # Filter out unnecssarily created toxval_numeric-types during pivoting
     filter(!(is.na(toxval_numeric) & !is.na(toxval_type)))
 
-  # View(res %>% select(toxval_numeric, toxval_numeric_new) %>% distinct())
-  # Check if parsing/filtering was successful
-  # if(nrow(res) != nrow(tmp)){
-  #   stop("Issue parsing, extra rows added")
-  # }
-
-  # TODO Handle cases where fields are "known" empty because they weren't in the original table
-  # Case: https://cfpub.epa.gov/ncea/pprtv/chemicalLanding.cfm?pprtv_sub_id=1550
-
-  # TODO Handle case like https://cfpub.epa.gov/ncea/pprtv/chemicalLanding.cfm?pprtv_sub_id=1815
-  # toxval_numeric remained as the units, toxval_numeric is in the notes section
-
   # Fix scientific notation issue
   res = res %>%
     # Add rowwise so mutate can vectorize the parse_scientific function
@@ -134,14 +122,37 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=F) {
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-
   # TODO: Split duration column into study_duration_value and _units
-
+  # Retain original duration column and coerce working column to lowercase
+  res0 <- res0 %>%
+    mutate(duration_original = duration,
+           duration = stringr::str_squish(tolower(duration)))
+  # Before passing to fix_numeric_unit_split, make some fixes that weren't general enough to add to that fxn.
+  res0$duration <- stringr::str_squish(tolower(res0$duration))
+  # Remove leading "N_1 hr/d, N_2 d/wk, for/on "
+  res0$duration <- stringr::str_replace(res0$duration,
+                                        "^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?", "")
+  # Remove leading "reproductive: " tag that occurs in a case for which we'll be using "gestational days" as units
+  res0$duration <- stringr::str_replace(res0$duration, "^reproductive:\\s", "")
+  # Fix various and sundry duration value/unit issues
+  res0 <- res0 %>%
+    fix_numeric_units_split("duration",value_to="study_duration_value",units_to="study_duration_units") %>%
+    select(-duration)
 
   # Combine two separate notes columns from the extraction into one
   # We don't need to worry about having values in both fields for one record, as they're exclusionary by construction
   res0$notes <- paste0(tidyr::replace_na(res0$note, ""), tidyr::replace_na(res0$note_in_body, ""))
   res0 <- res0 %>% select(-c(note, note_in_body))
+
+  # Handle cases like https://cfpub.epa.gov/ncea/pprtv/chemicalLanding.cfm?pprtv_sub_id=1815
+  # toxval_numeric remained as the units, toxval_numeric is in the notes section
+  # Not a piped, fully tidy solution, but cleaner than using a conditional mutate.
+  # NB that this only grabs the first number/unit pair from the notes.
+  # These all seem to be correct for this version of CPHEA, but check again if a re-extraction is performed.
+  missing_numeric <- which(is.na(res0$toxval_numeric) & !is.na(res0$toxval_type))
+  toxval_with_units <- stringr::str_extract(res0$notes[missing_numeric], "[0-9]+\\.?[0-9]* [^ ]* ")
+  res0$toxval_numeric[missing_numeric] <- gsub(" .*$", "", toxval_with_units)
+  res0$toxval_units[missing_numeric] <- gsub("^[^ ]* ", "", toxval_with_units)
 
   #####################################################################
   cat("Prep and load the data\n")
