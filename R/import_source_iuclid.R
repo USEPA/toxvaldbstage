@@ -13,7 +13,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
   file = list.files(dir, pattern=".xlsx", full.names = TRUE)
   if(length(file) > 1) stop("More than 1 IUCLID file stored in '", dir, "'")
   # guess_max used due to large file with some columns guessed as NA/logical when not
-  res0 = readxl::read_xlsx(file, guess_max=Inf)
+  res0 = readxl::read_xlsx(file, guess_max=21474836)
 
 #import_efsa_source <- function(db,chem.check.halt=F) {
 #  printCurrentFunction(db)
@@ -83,7 +83,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     # Fix: dose_units TBD
 
     # Fix study duration with various regex
-    res = fix_numeric_units_split(df = res, "raw_dur", "study_duration_value", "study_duration_units")
+    res = fix_numeric_units_split(df = res,
+                                  to_split = "MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure",
+                                  value_to = "study_duration_value",
+                                  units_to = "study_duration_units")
 
   # Standardize the names
   names(res) <- names(res) %>%
