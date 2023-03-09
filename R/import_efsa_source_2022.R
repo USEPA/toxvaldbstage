@@ -3,8 +3,10 @@
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @param do.reset If TRUE, delete data from the database for this source before
+#' @param do.insert If TRUE, insert data into the database, default FALSE
 #--------------------------------------------------------------------------------------
-import_efsa_source <- function(db,chem.check.halt=F) {
+import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "EFSA"
   source_table = "source_efsa"
@@ -20,7 +22,7 @@ import_efsa_source <- function(db,chem.check.halt=F) {
   # database table. You do not need to add any of the generic columns
   # described in the SOP - they will get added in source_prep_and_load
   #
-  
+
   # Standardize the names
   names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
@@ -28,9 +30,9 @@ import_efsa_source <- function(db,chem.check.halt=F) {
     gsub("[[:space:]]|[.]", "_", .) %>%
     gsub("___", "_", .) %>%
     tolower()
-  
+
   #res = source.specific.transformations(res0)
-  
+
   res <- res0 %>%
     # Renaming columns
     dplyr::rename(record_url=url,
@@ -72,13 +74,25 @@ import_efsa_source <- function(db,chem.check.halt=F) {
            study_duration_units = "days") %>%
     # splitting ROUTE into exposure_route and exposure_method columns
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
-    mutate(toxval_units = gsub("µ", "u", toxval_units) %>%
-             gsub("³", "3", .))
-  
+    dplyr::mutate(across(where(is.character), fix.greek.symbols)) %>%
+    # Replace superscript
+    mutate(toxval_units = gsub("³", "3", toxval_units))
+
+  # Remove unneeded ID fields from original source
+  res = res %>%
+    select(-matches("_id"), -testtype_code) %>%
+    distinct()
+
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source=source,table=source_table,res=res,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt)
 }
 
 
