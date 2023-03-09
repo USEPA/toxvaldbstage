@@ -313,6 +313,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     # Clear any old mappings
     res$clowder_id = NULL
     res$document_name = NULL
+    # Hardcode matching of "thiocyanate" to "thiocyanates"
+    res$clowder_id[which(res$chemical == "Thiocyanates")] <- "639a2fe6e4b04f6bb14a2734"
     # Match by chemical name
     res0 = res %>%
       left_join(map_file %>% select(Chemical, clowder_id, document_name),
