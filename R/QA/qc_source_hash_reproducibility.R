@@ -33,29 +33,29 @@ qa_source_hash_reproducibility <- function(check.import=FALSE){
       df = res; rm(res)
       if(!nrow(df)) next
       df.temp = df[,sort(nlist)]
-      # for (i in 1:nrow(df)){
-      #   row <- df.temp[i,]
-      #   df[i,"test_hash"] <- digest(paste0(row,collapse=""), serialize = FALSE)
-      #   if(i%%1000==0) cat(i," out of ",nrow(df),"\n")
-      #   # tmp = rbind(tmp, data.frame(source_hash = df[i,"source_hash"],
-      #   #                             hashcol = paste0(row,collapse="")))
-      #   hashing_log_import = rbind(hashing_log_import,
-      #                              data.frame(import_rehash = df[i, "test_hash"],
-      #                                         import=paste0(row,collapse="")))
-      # }
-      # df$compare = df$source_hash != df$test_hash
+      for (i in 1:nrow(df)){
+        row <- df.temp[i,]
+        df[i,"test_hash"] <- digest(paste0(row,collapse=""), serialize = FALSE)
+        if(i%%1000==0) cat(i," out of ",nrow(df),"\n")
+        # tmp = rbind(tmp, data.frame(source_hash = df[i,"source_hash"],
+        #                             hashcol = paste0(row,collapse="")))
+        hashing_log_import = rbind(hashing_log_import,
+                                   data.frame(import_rehash = df[i, "test_hash"],
+                                              import=paste0(row,collapse="")))
+      }
+      df$compare = df$source_hash != df$test_hash
 
       # Vectorized way to eventaully implement after source_hash rehashing
-      df = df %>%
-        tidyr::unite(hash_col, all_of(sort(names(.)[!names(.) %in% non_hash_cols])), sep="") %>%
-        dplyr::rowwise() %>%
-        dplyr::mutate(test_hash = digest(hash_col, serialize = FALSE),
-               compare = source_hash != test_hash) %>%
-        dplyr::ungroup()
-
-      hashing_log_import = rbind(hashing_log_import,
-                                 data.frame(import_rehash = df$test_hash,
-                                            import=df$hash_col))
+      # df = df %>%
+      #   tidyr::unite(hash_col, all_of(sort(names(.)[!names(.) %in% non_hash_cols])), sep="") %>%
+      #   dplyr::rowwise() %>%
+      #   dplyr::mutate(test_hash = digest(hash_col, serialize = FALSE),
+      #          compare = source_hash != test_hash) %>%
+      #   dplyr::ungroup()
+      #
+      # hashing_log_import = rbind(hashing_log_import,
+      #                            data.frame(import_rehash = df$test_hash,
+      #                                       import=df$hash_col))
 
       tmp = df %>%
         filter(compare == TRUE)
@@ -82,29 +82,29 @@ qa_source_hash_reproducibility <- function(check.import=FALSE){
     df = runQuery(paste0("select * from ",table),db)
     # Old hashing approach
     df.temp = df[,sort(nlist)]
-    # for (i in 1:nrow(df)){
-    #   row <- df.temp[i,]
-    #   df[i,"test_hash"] <- digest(paste0(row,collapse=""), serialize = FALSE)
-    #   if(i%%1000==0) cat(i," out of ",nrow(df),"\n")
-    #   # tmp = rbind(tmp, data.frame(source_hash = df[i,"source_hash"],
-    #   #                             hashcol = paste0(row,collapse="")))
-    #   hashing_log_database = rbind(hashing_log_database,
-    #                              data.frame(db_rehash = df[i, "test_hash"],
-    #                                         database=paste0(row,collapse="")))
-    # }
-    # df$compare = df$source_hash != df$test_hash
+    for (i in 1:nrow(df)){
+      row <- df.temp[i,]
+      df[i,"test_hash"] <- digest(paste0(row,collapse=""), serialize = FALSE)
+      if(i%%1000==0) cat(i," out of ",nrow(df),"\n")
+      # tmp = rbind(tmp, data.frame(source_hash = df[i,"source_hash"],
+      #                             hashcol = paste0(row,collapse="")))
+      hashing_log_database = rbind(hashing_log_database,
+                                 data.frame(db_rehash = df[i, "test_hash"],
+                                            database=paste0(row,collapse="")))
+    }
+    df$compare = df$source_hash != df$test_hash
 
     # # Vectorized way to eventaully implement after source_hash rehashing
-    df = df %>%
-      tidyr::unite(hash_col, all_of(sort(names(.)[!names(.) %in% non_hash_cols])), sep="") %>%
-      dplyr::rowwise() %>%
-      dplyr::mutate(test_hash = digest(hash_col, serialize = FALSE),
-             compare = source_hash != test_hash) %>%
-      dplyr::ungroup()
-
-    hashing_log_import = rbind(hashing_log_import,
-                               data.frame(db_rehash = df$test_hash,
-                                          database=df$hash_col))
+    # df = df %>%
+    #   tidyr::unite(hash_col, all_of(sort(names(.)[!names(.) %in% non_hash_cols])), sep="") %>%
+    #   dplyr::rowwise() %>%
+    #   dplyr::mutate(test_hash = digest(hash_col, serialize = FALSE),
+    #          compare = source_hash != test_hash) %>%
+    #   dplyr::ungroup()
+    #
+    # hashing_log_import = rbind(hashing_log_import,
+    #                            data.frame(db_rehash = df$test_hash,
+    #                                       database=df$hash_col))
 
     tmp = df %>%
       filter(compare == TRUE)
