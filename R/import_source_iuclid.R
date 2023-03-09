@@ -28,11 +28,21 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
   }
 
   # Load IUCLID field map
-  map = readxl::read_xlsx(paste0(toxval.config()$datapath,"iuclid/iuclid_field_map.xlsx")) %>%
+  map_orig = readxl::read_xlsx(paste0(toxval.config()$datapath,"iuclid/iuclid_field_map.xlsx"))
+  map = map_orig %>%
     filter(oht == subf)
 
   if(!nrow(map)) {
     return(paste0("No entries in IUCLID field map for: ", subf))
+  }
+
+  # Check for field mapping issues
+  map_check = map$from[!map$from %in% names(res0)]
+  if(length(map_check)){
+    map_orig$map_confirmed[(map_orig$oht == subf) & (map_orig$from %in% map_check)] <- 0
+    # Update the map to help with curation of field names
+    writexl::write_xlsx(map_orig, paste0(toxval.config()$datapath,"iuclid/iuclid_field_map.xlsx"))
+    return(paste0("Need to remap the following fields: ", toString(map_check)))
   }
 
   # Create a named vector to handle renaming from the map
