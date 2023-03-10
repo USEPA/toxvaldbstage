@@ -94,7 +94,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
 
   # add input file columns and toxval_subtype columns to res0 and res1, thq tables
   res0_0 <- res0 %>%
-    mutate(raw_input_file= "rsl_thq10_nov_2022.xlsx_",
+    mutate(raw_input_file= "rsl_thq10_nov_2022.xlsx",
            toxval_subtype = "Thq = 1")
   res1_0 <- res1 %>%
     mutate(raw_input_file= "rsl_thq01_nov_2022.xlsx",
