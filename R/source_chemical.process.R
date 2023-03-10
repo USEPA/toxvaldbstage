@@ -42,7 +42,7 @@ source_chemical.process <- function(db,
       gsub("ToxVal", "", .) %>%
       as.numeric() %>%
       # Add 1 as well as an extra 10,000 padding to prevent overlap from manual entry
-      {. <- . + 1 + 10000 } %>%
+      {. <- . + 1 } %>%
       # Add 0 padding
       formatC(width = 5, format = "d", flag = "0") %>%
       paste0("ToxVal", .)
