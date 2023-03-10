@@ -10,7 +10,7 @@ import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE,
   printCurrentFunction(db)
   source = "EPA OW NPDWR"
   source_table = "source_epa_ow_npdwr"
-  dir = paste0(toxval.config()$datapath,"source_epa_ow_npdwr/source_epa_ow_npdwr_files/")
+  dir = paste0(toxval.config()$datapath,"epa_ow_npdwr/epa_ow_npdwr_files/")
   file = paste0(dir,"epa_ow_npdwr_raw.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
@@ -43,15 +43,20 @@ import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE,
     dplyr::mutate(across(c("toxval_type", "toxval_numeric", "toxval_units"),
                          ~stringr::str_squish(.)))
 
+  # TODO Handle toxval_numeric case of 15 picocuries per Liter (pCi/L) or 5 pCi/L
+  # TODO Handle toxval_numeric case of 30 ug/L
+  # TODO Handle toxval_numeric case of 4 millirems per year
+  # TODO Handle toxval_numeric case of 7 million fibers per liter or 7 million fibers per liter (MFL)
+  # TODO Handle toxval_numeric case of MRDL=
+  # TODO Handle toxval_numeric case of TT; Action Level=0.015 or TT; Action Level=1.3
+  # TODO Handle toxval_numeric case of TT (TBD if keeping or filtering out)
+
   # Standardize the names
   names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
-
-  res = source.specific.transformations(res0)
-
 
   #####################################################################
   cat("Prep and load the data\n")
