@@ -111,6 +111,13 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
                                   value_to = "study_duration_value",
                                   units_to = "study_duration_units")
 
+  # Check for media column, or put as blank
+  if(!"media" %in% names(res)){
+    message("Media field is missing a mapping, defaulting to blank for now...")
+    # Pause for user to see warning message
+    Sys.sleep(5)
+    res$media = "-"
+  }
   # Standardize the names
   names(res) <- names(res) %>%
     # Replace whitespace and periods with underscore
