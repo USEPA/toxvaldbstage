@@ -57,12 +57,14 @@ import_generic_source <- function(db,chem.check.halt=F) {
     # getting rid of parenthesis around values in certain columns
     mutate(toxval_units = gsub("[()]", "", toxval_units)) %>%
     mutate(study_type = gsub("[()]", "", study_type)) %>%
+    # replacing multiple dashes with single dash for empty columns
     dplyr::mutate(across(matches("name|casrn|Publication_Year|toxval_numeric"),
                          .fns = ~ case_when(
                            . == "---" ~ "-",
                            . == "--" ~ "-",
                            . == "—" ~ "-",
                            TRUE ~ . ))) %>%
+    # getting rid of (P) at end of 'name' column values
     mutate(name = gsub("\\(P[)]$", "", name))
   # make column names lowercase now (didn't earlier to keep liter in toxval_units uppercase)
   names(res) <- tolower(names(res))
