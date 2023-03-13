@@ -29,10 +29,10 @@ chemicals_downloaded = [
 cphea = openpyxl.load_workbook("pprtv_cphea_chemicals_20230123.xlsx")
 sheet = cphea["pprtv_cphea_chemicals_20230123"]
 url_list = [
-    sheet.cell(row=i, column=2).hyperlink.target for i in range(2, sheet.max_row)
+    sheet.cell(row=i, column=2).hyperlink.target for i in range(2, sheet.max_row + 1)
 ]
 
-chemical_list = [sheet.cell(row=i, column=2).value for i in range(2, sheet.max_row)]
+chemical_list = [sheet.cell(row=i, column=2).value for i in range(2, sheet.max_row + 1)]
 
 # Dataframe of chemical information
 in_chemicals = pd.DataFrame({"chems": chemical_list, "url": url_list})
