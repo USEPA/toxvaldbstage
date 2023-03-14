@@ -8,7 +8,7 @@
 #--------------------------------------------------------------------------------------
 import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "PPRTV CPHEA"
+  source = "PPRTV (CPHEA)"
   source_table = "source_pprtv_cphea"
   dir = paste0(toxval.config()$datapath,"pprtv_cphea/pprtv_cphea_files/")
   tmp = readxl::read_xlsx(paste0(dir, "pprtv_cphea_full.xlsx"), guess_max=21474836)
