@@ -73,17 +73,15 @@ for index, row in tqdm(in_chemicals.iterrows()):
     chemical = soup.find(class_="page-title")
     casrn = chemical.find_next().text.replace("CASRN", "").strip()
 
-    # Find every <sup> tag, prepend a ^ to it, and then append that to the previous tag
+    # Find every <sup> tag, prepend a ^ to it
     sups = soup.find_all(name="sup")
     for sup in sups:
-        number_with_sup = f"{sup.previous_sibling.string}^{sup.text}"
-        # Grab units, if any
-        # TODO: find a better test for this
-        if sup.next_sibling is not None:
-            number_with_sup = number_with_sup + sup.next_sibling.text
-        sup.previous_sibling.replace_with(number_with_sup)
-        # remove the original <sup> tags so as not to repeat superscripts
-        sup.replace_with("")
+        # https://www.geeksforgeeks.org/change-the-tags-contents-and-replace-with-the-given-string-using-beautifulsoup/
+        # new tag
+        sup_new = soup.new_tag("sup")
+        # input string
+        sup_new.string = f"^{sup.text}"
+        sup.replace_with(sup_new)
     print(f"Pulling data for {chemical.text}...")
     # Find assessment classes
     assessment_section = soup.find_all("h3", class_="pane-title")
@@ -124,6 +122,7 @@ for index, row in tqdm(in_chemicals.iterrows()):
         "Principal Study",
         "Note",
         "RfC (mg/m^3))",
+        "RfC (mg/m^3)",
         "Oral Slope Factor",
         "Tumor site(s)",
         "Cancer",
@@ -147,10 +146,22 @@ for index, row in tqdm(in_chemicals.iterrows()):
                         )
                     # Add to last table extracted as it is found
                     tmp = table_list[-1]
+
+                    # Loop to grab all text before linebreak, checking for None as well
+                    cap_text = ""
+                    ns_next_sibling = header.next_sibling
+                    while ns_next_sibling is not None and ns_next_sibling.name not in (
+                        "br",
+                        "\n",
+                    ):
+                        # Handle superscripts
+                        if ns_next_sibling.name in ("sup", "a"):
+                            cap_text = cap_text + ns_next_sibling.text
+                        else:
+                            cap_text = cap_text + ns_next_sibling
+                        ns_next_sibling = ns_next_sibling.next_sibling
                     tmp0 = pd.DataFrame(
-                        {
-                            f"{header.text.replace(':', '').strip()}": header.next_sibling
-                        },
+                        {f"{header.text.replace(':', '').strip()}": cap_text},
                         index=[0],
                     )
                     tmp = pd.concat(objs=[tmp, tmp0], axis=1)
