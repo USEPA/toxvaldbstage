@@ -122,6 +122,7 @@ for index, row in tqdm(in_chemicals.iterrows()):
         "Principal Study",
         "Note",
         "RfC (mg/m^3))",
+        "RfC (mg/m^3)",
         "Oral Slope Factor",
         "Tumor site(s)",
         "Cancer",
