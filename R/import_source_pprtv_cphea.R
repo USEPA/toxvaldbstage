@@ -115,6 +115,47 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=F) {
     dplyr::mutate(study_type = ifelse(grepl("Cancer|Carcinogenic", table_title),
                                       "Cancer", ifelse(grepl("Subchronic", table_title),
                                                        "Subchronic", "Chronic")))
+  # Hardcode species for several records
+  res0$species[res0$study_reference == "Biodynamics 1988"
+               & res0$name == "Butyltin Compounds, mono-"] <- "Rat"
+  res0$species[res0$study_reference == "Kawakami et al., 2015"
+               & res0$name == "2-Nitropropane"] <- "Rat"
+  res0$species[res0$study_reference == "Lewis et al., (1979), Ulrich et al. (1977)"
+               & res0$name == "2-Nitropropane"] <- "Rat"
+  res0$species[res0$study_reference == "Lewis et al. (1979) and Ulrich et al. (1977)"
+               & res0$name == "2-Nitropropane"] <- "Rat"
+
+  # Remove Greek letters from character fields
+  res0 <- dplyr::mutate(res0, across(where(is.character), fix.greek.symbols))
+
+  # Add missing toxval_units (imputed from RfC/RfD) to NOAEL cases
+  for (i in 1:nrow(res0)){
+    # If the toxval_type is NOAEL and the units are NA
+    if (!is.na(res0$toxval_type[i]) & is.na(res0$toxval_units[i])) {
+      # Multiple if statements to avoid checking NA
+      if (res0$toxval_type[i] == "NOAEL") {
+        # Grab the RfC and RfD units
+        chemical_name <- res0$name[i]
+        ref <- res0$study_reference[i]
+        units <- res0$toxval_units[which(grepl("RfD|RfC", res0$toxval_type)
+                                         & res0$name == chemical_name
+                                         & res0$study_reference == ref
+                                         )]
+        # Skip row if RfC and RfD use different units
+        if (length(unique(units)) > 1) {
+          cat(paste0("Multiple units possible for ", chemical_name, ", please review \n"))
+          next
+        }
+        # Update units
+        res0$toxval_units[i] <- units[1]
+      }
+    }
+  }
+
+  # Update units for toxval_types Oral Slope/Unit Risk Factor
+  cases <- which(res0$toxval_type %in% c("Oral Slope Factor", "Unit Risk Factor"))
+  res0$toxval_units[cases] <- paste0("(", res0$toxval_units[cases], ")-1")
+
   # Fix names
   names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
@@ -122,22 +163,26 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=F) {
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  # TODO: Split duration column into study_duration_value and _units
-  # Retain original duration column and coerce working column to lowercase
+  # Split duration column into study_duration_value and _units
   res0 <- res0 %>%
-    mutate(duration_original = duration,
-           duration = stringr::str_squish(tolower(duration)))
-  # Before passing to fix_numeric_unit_split, make some fixes that weren't general enough to add to that fxn.
-  res0$duration <- stringr::str_squish(tolower(res0$duration))
-  # Remove leading "N_1 hr/d, N_2 d/wk, for/on "
-  res0$duration <- stringr::str_replace(res0$duration,
-                                        "^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?", "")
-  # Remove leading "reproductive: " tag that occurs in a case for which we'll be using "gestational days" as units
-  res0$duration <- stringr::str_replace(res0$duration, "^reproductive:\\s", "")
-  # Fix various and sundry duration value/unit issues
-  res0 <- res0 %>%
-    fix_numeric_units_split("duration",value_to="study_duration_value",units_to="study_duration_units") %>%
-    select(-duration)
+    mutate(# Remove leading "N hr/d, N d/wk, for/on "
+           duration = gsub("^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?",
+                           "", duration),
+           # Remove "postweaning" and "gavage study" from duration
+           duration = gsub(", postweaning|gavage study", "", duration),
+           duration = gsub("weejs", "weeks", duration)) %>%
+    # Clean up and split remaining numeric/unit pairs
+    fix_numeric_units_split(to_split = "duration",value_to="study_duration_value",
+                            units_to="study_duration_units") %>%
+    # Now that they've served as tags for adding units, remove these
+    mutate(across(c(study_duration_value, study_duration_units),
+                  ~ stringr::str_squish(
+                    stringr::str_replace_all(., "(reproductive: )?gds?|gestation days|pnds?", "")
+                    )
+                  )
+           ) %>%
+    # keep the raw duration column, but rename to distinguish it
+    rename(duration_original = duration)
 
   # Combine two separate notes columns from the extraction into one
   # We don't need to worry about having values in both fields for one record, as they're exclusionary by construction
