@@ -45,9 +45,9 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
 
   # Collect all the records that lack a toxval
   res_parsed = res %>%
-    filter(is.na(`RfD (mg/kg-day)`) & (is.na(PoD) | PoD == ":") & is.na(`RfC (mg/m^3))`)
+    filter(is.na(`RfD (mg/kg-day)`) & (is.na(PoD) | PoD == ":") & is.na(`RfC (mg/m^3)`)
            & is.na(`Oral Slope Factor`) & is.na(`Unit Risk Factor`)) %>%
-    select(-c(`RfD (mg/kg-day)`, PoD, `RfC (mg/m^3))`, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`)) %>%
+    select(-c(`RfD (mg/kg-day)`, PoD, `RfC (mg/m^3)`, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`)) %>%
     mutate(toxval_type = NA, toxval_numeric = NA, toxval_units = NA) %>%
     rbind(res_parsed, .)
   res = res %>% filter(!temp_id %in% res_parsed$temp_id)
@@ -55,7 +55,7 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
   res_parsed$temp_id = NA
 
   # Get list of fields to pivot
-  toxval_type_list = c("RfD (mg/kg-day)", "PoD", "RfC (mg/m^3))",
+  toxval_type_list = c("RfD (mg/kg-day)", "PoD", "RfC (mg/m^3)",
                        "Oral Slope Factor", "Unit Risk Factor", "RfC (mg/kg-day)")
   # Apply general pivot longer fixes for all toxval_type fields
   res = res %>%
@@ -161,7 +161,7 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
 
   # Update units for toxval_types Oral Slope/Unit Risk Factor
   cases <- which(res0$toxval_type %in% c("Oral Slope Factor", "Unit Risk Factor"))
-  res0$toxval_units[cases] <- paste0("(", res0$toxval_units[cases], ")-1")
+  res0$toxval_units[cases] <- paste0("(", res0$toxval_units[cases], ")^-1")
 
   # Fix names
   names(res0) <- names(res0) %>%
