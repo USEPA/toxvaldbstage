@@ -212,7 +212,8 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
 
   # Append units to cases like "gd(s)|gestation day(s) 1(-21)"
   out = df %>%
-    dplyr::filter(grepl("^gds? ?|gestation days? ?[0-9]+-?[0-9]*$", raw_in, ignore.case = TRUE)) %>%
+    dplyr::filter(grepl("^((reproductive: )?gds? ?|gestation days?) ?[0-9]+-?[0-9]*$",
+                        raw_in, ignore.case = TRUE)) %>%
     dplyr::mutate(raw_in = gsub("$", "_gestational days", raw_in)) %>%
     tidyr::separate(raw_in, c(value_to, units_to), sep="_", extra="merge") %>%
     dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(.))) %>%
