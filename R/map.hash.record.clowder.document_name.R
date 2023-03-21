@@ -1,5 +1,5 @@
-library("openxlsx")
-library("logr")
+# library("openxlsx")
+# library("logr")
 #--------------------------------------------------------------------------------------
 #' Replace record_source_hash with clowder record_source_hash by mapping using document names
 #' @param toxval.db The version of toxval in which the data is altered.

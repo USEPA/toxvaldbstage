@@ -13,7 +13,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
   file = list.files(dir, pattern=".xlsx", full.names = TRUE)
   if(length(file) > 1) stop("More than 1 IUCLID file stored in '", dir, "'")
   # guess_max used due to large file with some columns guessed as NA/logical when not
-  res0 = readxl::read_xlsx(file, guess_max=Inf)
+  res0 = readxl::read_xlsx(file, guess_max=21474836)
 
 #import_efsa_source <- function(db,chem.check.halt=F) {
 #  printCurrentFunction(db)
@@ -27,40 +27,63 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     return("...No rows found in file...skipping")
   }
 
+  # Load IUCLID field map
+  map_orig = readxl::read_xlsx(paste0(toxval.config()$datapath,"iuclid/iuclid_field_map.xlsx"))
+  map = map_orig %>%
+    filter(oht == subf)
+
+  if(!nrow(map)) {
+    return(paste0("No entries in IUCLID field map for: ", subf))
+  }
+
+  # Check for field mapping issues
+  map_check = map$from[!map$from %in% names(res0)]
+  if(length(map_check)){
+    map_orig$map_confirmed[(map_orig$oht == subf) & (map_orig$from %in% map_check)] <- 0
+    # Update the map to help with curation of field names
+    writexl::write_xlsx(map_orig, paste0(toxval.config()$datapath,"iuclid/iuclid_field_map.xlsx"))
+    return(paste0("Need to remap the following fields: ", toString(map_check)))
+  }
+
+  # Create a named vector to handle renaming from the map
+  tmp = map$from %T>% {
+    names(.) <- map$to
+  }
+
   res <- res0 %>%
   # Copy columns and rename new columns
-    mutate(name = reference_substance,
-           casrn = reference_substance_CASnumber,
-           ec_number = reference_substance_ECnumber,
-           source_url = ECHA_url,
-           toxval_type = ResultsAndDiscussion.EffectLevels.Efflevel..Endpoint.code,
-           toxval_type_other = ResultsAndDiscussion.EffectLevels.Efflevel..Endpoint.other,
-           toxval_units = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.unit.code,
-           toxval_units_other = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.unit.other,
-           sex = ResultsAndDiscussion.EffectLevels.Efflevel..Sex.code,
-           toxval_numeric_lower = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.lowerValue,
-           toxval_numeric_upper = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.upperValue,
-           toxval_qualifier_lower = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.lowerQualifier,
-           toxval_qualifier_upper = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.upperQualifier,
-           strain = MaterialsAndMethods.TestAnimals.Strain.code,
-           strain_other = MaterialsAndMethods.TestAnimals.Strain.other,
-           species = MaterialsAndMethods.TestAnimals.Species.code,
-           species_other = MaterialsAndMethods.TestAnimals.Species.other,
-           guideline = MaterialsAndMethods.Guideline.0.Guideline.code,
-           guideline_other = MaterialsAndMethods.Guideline.0.Guideline.other,
-           # Handled by helper function below
-           # study_duration_value = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
-           # study_duration_units = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
-           study_type = AdministrativeData.Endpoint.code,
-           exposure = MaterialsAndMethods.AdministrationExposure.RouteOfAdministration.code,
-           exposure_other = MaterialsAndMethods.AdministrationExposure.RouteOfAdministration.other,
-           reference_title = literatureTitle,
-           reference_type = literatureType,
-           reference_year = literature_referenceYear,
-           effect_level_basis = ResultsAndDiscussion.EffectLevels.Efflevel..Basis..code,
-           media = ResultsAndDiscussion.TargetSystemOrganToxicity.TargetSystemOrganToxicity..Organ..code,
-           dose_units = ResultsAndDiscussion.TargetSystemOrganToxicity.TargetSystemOrganToxicity..LowestEffectiveDoseConc.unit.code,
-           dose = ResultsAndDiscussion.TargetSystemOrganToxicity.TargetSystemOrganToxicity..LowestEffectiveDoseConc.value) %>%
+    dplyr::rename(tmp) %>%
+    # dplyr::rename(name = reference_substance,
+    #        casrn = reference_substance_CASnumber,
+    #        ec_number = reference_substance_ECnumber,
+    #        source_url = ECHA_url,
+    #        toxval_type = ResultsAndDiscussion.EffectLevels.Efflevel..Endpoint.code,
+    #        toxval_type_other = ResultsAndDiscussion.EffectLevels.Efflevel..Endpoint.other,
+    #        toxval_units = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.unit.code,
+    #        toxval_units_other = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.unit.other,
+    #        sex = ResultsAndDiscussion.EffectLevels.Efflevel..Sex.code,
+    #        toxval_numeric_lower = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.lowerValue,
+    #        toxval_numeric_upper = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.upperValue,
+    #        toxval_qualifier_lower = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.lowerQualifier,
+    #        toxval_qualifier_upper = ResultsAndDiscussion.EffectLevels.Efflevel..EffectLevel.upperQualifier,
+    #        strain = MaterialsAndMethods.TestAnimals.Strain.code,
+    #        strain_other = MaterialsAndMethods.TestAnimals.Strain.other,
+    #        species = MaterialsAndMethods.TestAnimals.Species.code,
+    #        species_other = MaterialsAndMethods.TestAnimals.Species.other,
+    #        guideline = MaterialsAndMethods.Guideline.0.Guideline.code,
+    #        guideline_other = MaterialsAndMethods.Guideline.0.Guideline.other,
+    #        # Handled by helper function below
+    #        study_duration_original = MaterialsAndMethods.AdministrationExposure.DurationOfTreatmentExposure,
+    #        study_type = AdministrativeData.Endpoint.code,
+    #        exposure = MaterialsAndMethods.AdministrationExposure.RouteOfAdministration.code,
+    #        exposure_other = MaterialsAndMethods.AdministrationExposure.RouteOfAdministration.other,
+    #        reference_title = literatureTitle,
+    #        reference_type = literatureType,
+    #        reference_year = literature_referenceYear,
+    #        effect_level_basis = ResultsAndDiscussion.EffectLevels.Efflevel..Basis..code,
+    #        media = ResultsAndDiscussion.TargetSystemOrganToxicity.TargetSystemOrganToxicity..Organ..code,
+    #        dose_units = ResultsAndDiscussion.TargetSystemOrganToxicity.TargetSystemOrganToxicity..LowestEffectiveDoseConc.unit.code,
+    #        dose = ResultsAndDiscussion.TargetSystemOrganToxicity.TargetSystemOrganToxicity..LowestEffectiveDoseConc.value) %>%
     # Split columns and name them
     tidyr::separate(., study_type, c("study_type","exposure_route"), sep=": ", fill="right", remove=FALSE) %>%
     tidyr::separate(., exposure, c(NA,"exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
@@ -83,8 +106,18 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     # Fix: dose_units TBD
 
     # Fix study duration with various regex
-    res = fix_numeric_units_split(df = res, "raw_dur", "study_duration_value", "study_duration_units")
+    res = fix_numeric_units_split(df = res,
+                                  to_split = "study_duration_original",
+                                  value_to = "study_duration_value",
+                                  units_to = "study_duration_units")
 
+  # Check for media column, or put as blank
+  if(!"media" %in% names(res)){
+    message("Media field is missing a mapping, defaulting to blank for now...")
+    # Pause for user to see warning message
+    Sys.sleep(5)
+    res$media = "-"
+  }
   # Standardize the names
   names(res) <- names(res) %>%
     # Replace whitespace and periods with underscore

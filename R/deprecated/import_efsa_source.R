@@ -1,6 +1,6 @@
 #--------------------------------------------------------------------------------------
 #' Process the raw excel files downloaded from EFSA version3(March 27 2020)
-#' deprecated on Feb 2, 2023 and replaced with new import script due to updates to 
+#' deprecated on Feb 2, 2023 and replaced with new import script due to updates to
 #' extraction and updated pull. Associated with Jira ticket TOXVAL-347
 #' To get the files, go to the web site
 #' https://zenodo.org/record/3693783#.XrsBMmhKjIU. At the bottom are links to
@@ -12,7 +12,7 @@
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#' 
+#'
 #--------------------------------------------------------------------------------------
 import_efsa_source <- function(db,
                                chem.check.halt=F){
@@ -147,4 +147,4 @@ import_efsa_source <- function(db,
   #cat("Prep and load the data\n")
   #####################################################################
   #source_prep_and_load(db,source="EFSA",table="source_efsa",res=res,F,T,T)
-#}
+}

@@ -1,342 +1,399 @@
 #--------------------------------------------------------------------------------------
-#' Load RSL Source Info into toxval source database
-#' @param db The version of toxval into which the source info is loaded.
-#' @param infile1a The input file ./rsl/rsl_files/final_rsl_thq_combined_nov21.xlsx
-#' @param infile1b The input file ./rsl/rsl_files/final_rsl_subchronic_nov21.xlsx
-#' @param infile2 The input file ./rsl/rsl_files/general_info_nov_21.xlsx
-#' @param infile3 The input file ./rsl/rsl_files/key_description_nov_21.xlsx
-#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' Import of rsl 2022 source into toxval_source
+#'
+#' @param db The version of toxval_source into which the source is loaded.
+#' @param infile1 The input file ./rsl/rsl_files/rsl_thq10_nov_2022.xlsx
+#' @param infile2 The input file ./rsl/rsl_files/rsl_thq01_nov_2022.xlsx
+#' @param infile3 The input file ./rsl/rsl_files/rsl_subchronic_nov_2022.xlsx
+#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #--------------------------------------------------------------------------------------
-import_rsl_source <- function(db,
-                              infile1a="final_rsl_thq_combined_nov21.xlsx",
-                              infile1b="final_rsl_subchronic_nov21.xlsx",
-                              infile2="general_info_nov_21.xlsx",
-                              infile3="key_description_nov_21.xlsx",
-                              chem.check.halt=T) {
+import_rsl_source <- function(db,chem.check.halt=F) {
   printCurrentFunction(db)
+  source = "rsl"
+  source_table = "source_rsl"
+  dir = paste0(toxval.config()$datapath,"rsl/rsl_files/")
+  file0 = paste0(dir,"rsl_thq10_nov_2022.xlsx")
+  file1 = paste0(dir,"rsl_thq01_nov_2022.xlsx")
+  file2 = paste0(dir,"rsl_subchronic_nov_2022.xlsx")
 
-  infile1a = paste0(toxval.config()$datapath,"rsl/rsl_files/",infile1a)
-  infile1b = paste0(toxval.config()$datapath,"rsl/rsl_files/",infile1b)
-  infile2 = paste0(toxval.config()$datapath,"rsl/rsl_files/",infile2)
-  infile3 = paste0(toxval.config()$datapath,"rsl/rsl_files/",infile3)
+  res0 = readxl::read_xlsx(file0, skip=2)
+  res1 = readxl::read_xlsx(file1, skip=2)
+  res2 = readxl::read_xlsx(file2, skip=2)
   #####################################################################
-  cat("create rsl_combined_thq_table \n")
+  cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  final_rsl_file2 <- openxlsx::read.xlsx(infile1a, 1)
-  # create subset with non screening level variables removed
-  cols_to_remove <- c("SFO.(mg/kg-day)-1","k.e.y._.SFO.(mg/kg-day)-1","IUR.(ug/m3)-1","k.e.y._.IUR.(ug/m3)-1","v.o.l","mutagen","GIABS","ABSd","Csat.(mg/kg)","MCL.(ug/L)","MCL-based.SSL.(mg/kg)")
-  final_rsl_file3 <- final_rsl_file2[,!names(final_rsl_file2) %in% cols_to_remove]
 
-  # create subset with the removed screening level variables, exception vol and mutagen
-  non_screen_levels <- c("SFO.(mg/kg-day)-1","k.e.y._.SFO.(mg/kg-day)-1","IUR.(ug/m3)-1","k.e.y._.IUR.(ug/m3)-1","GIABS","ABSd","Csat.(mg/kg)","MCL.(ug/L)","MCL-based.SSL.(mg/kg)","Analyte","CAS.No.")
-  non_sv <- final_rsl_file2[,names(final_rsl_file2) %in% non_screen_levels]
-  non_sv <- unique(non_sv)
-  names(non_sv) <- c("SFO_(mg/kg-day)-1","key_SFO","IUR_(ug/m3)-1","key_IUR","GIABS","ABSd","Csat_(mg/kg)", "name","casrn","MCL_(ug/L)","MCL-based_SSL_(mg/kg)")
+  # Standardize the names
+  names(res0) <- names(res0) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    gsub("___", "_", .) %>%
+    gsub("k_e_y", "key", .)
 
-  #####################################################################
-  cat("SFO\n")
-  #####################################################################
-  n_1 <- non_sv[,c(1,2,8,9)]
-  colnames(n_1)[3] <- c("name")
-  colnames(n_1)[4] <- c("casrn")
-  colnames(n_1)[1] <- c("values")
-  colnames(n_1)[2] <- c("keys")
-  n_1["types"] <- c(rep("SFO", nrow(n_1)))
-  n_1["units"] <- c(rep("(mg/kg-day)-1", nrow(n_1)))
-  n_1 <- n_1[,c(3:4,1:2,5:6)]
-  #####################################################################
-  cat("IUR\n")
-  #####################################################################
-  n_2 <- non_sv[,c(3,4,8,9)]
-  colnames(n_2)[3] <- c("name")
-  colnames(n_2)[4] <- c("casrn")
-  colnames(n_2)[1] <- c("values")
-  colnames(n_2)[2] <- c("keys")
-  n_2["types"] <- c(rep("IUR", nrow(n_2)))
-  n_2["units"] <- c(rep("(ug/m3)-1", nrow(n_2)))
-  n_2 <- n_2[,c(3:4,1:2,5:6)]
-  #####################################################################
-  cat("GIABS\n")
-  #####################################################################
-  n_3 <- non_sv[,c(5,8,9)]
-  colnames(n_3)[2] <- c("name")
-  colnames(n_3)[3] <- c("casrn")
-  colnames(n_3)[1] <- c("values")
-  n_3["keys"] <- c(rep("-", nrow(n_3)))
-  n_3["types"] <- c(rep("GIABS", nrow(n_3)))
-  n_3["units"] <- c(rep("-", nrow(n_3)))
-  n_3 <- n_3[,c(2:3,1,4:6)]
-  #####################################################################
-  cat("ABSd\n")
-  #####################################################################
-  n_4 <- non_sv[,c(6,8,9)]
-  colnames(n_4)[2] <- c("name")
-  colnames(n_4)[3] <- c("casrn")
-  colnames(n_4)[1] <- c("values")
-  n_4["keys"] <- c(rep("-", nrow(n_4)))
-  n_4["types"] <- c(rep("ABSd", nrow(n_4)))
-  n_4["units"] <- c(rep("-", nrow(n_4)))
-  n_4 <- n_4[,c(2:3,1,4:6)]
+  names(res1) <- names(res1) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    gsub("___", "_", .) %>%
+    gsub("k_e_y", "key", .)
 
-  #####################################################################
-  cat("Csat\n")
-  #####################################################################
-  n_5 <- non_sv[,c(7,8,9)]
-  colnames(n_5)[2] <- c("name")
-  colnames(n_5)[3] <- c("casrn")
-  colnames(n_5)[1] <- c("values")
-  n_5["keys"] <- c(rep("-", nrow(n_5)))
-  n_5["types"] <- c(rep("Soil Saturation Limit (Csat)", nrow(n_5)))
-  n_5["units"] <- c(rep("mg/kg", nrow(n_5)))
-  n_5 <- n_5[,c(2:3,1,4:6)]
-  #####################################################################
-  cat("MCL\n")
-  #####################################################################
-  n_6 <- non_sv[,c(10,8,9)]
-  colnames(n_6)[2] <- c("name")
-  colnames(n_6)[3] <- c("casrn")
-  colnames(n_6)[1] <- c("values")
-  n_6["keys"] <- c(rep("OW", nrow(n_6)))
-  n_6["types"] <- c(rep("MCL", nrow(n_6)))
-  n_6["units"] <- c(rep("ug/L", nrow(n_6)))
-  n_6 <- n_6[,c(2:3,1,4:6)]
+  names(res2) <- names(res2) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    gsub("___", "_", .) %>%
+    gsub("k_e_y", "key", .)
 
-  #####################################################################
-  cat("MCL-based_SSL\n")
-  #####################################################################
-  n_7 <- non_sv[,c(11,8,9)]
-  colnames(n_7)[2] <- c("name")
-  colnames(n_7)[3] <- c("casrn")
-  colnames(n_7)[1] <- c("values")
-  n_7["keys"] <- c(rep("-", nrow(n_7)))
-  n_7["types"] <- c(rep("Protection of Groundwater: MCL-based SSL", nrow(n_7)))
-  n_7["units"] <- c(rep("mg/kg", nrow(n_7)))
-  n_7 <- n_7[,c(2:3,1,4:6)]
-  non_sv <- rbind(n_1,n_2,n_3,n_4,n_5,n_6,n_7)
-  non_sv <- non_sv[which(!is.na(non_sv$values)),]
-  non_sv$exposure_route <- "-"
 
-  # seperate out rfd and rfc
-  final_rfd_rfc <-  final_rsl_file3[,names(final_rsl_file3)[grep("Rf|Analyte|CAS", names(final_rsl_file3))]]
-  final_rfd_rfc <- unique(final_rfd_rfc)
-  #names(final_rfd_rfc) <- c("RfDo_(mg/kg-day)","key_RfDo", "RfCi_(mg/m3)","key_RfCi", "name", "casrn")
-  #####################################################################
-  cat("RfDo\n")
-  #####################################################################
-  c_1 <- final_rfd_rfc[,c(5,6,1,2)]
-  colnames(c_1)[1] <- c("name")
-  colnames(c_1)[2] <- c("casrn")
-  colnames(c_1)[3] <- c("values")
-  colnames(c_1)[4] <- c("keys")
-  c_1["types"] <- c(rep("RfDo", nrow(c_1)))
-  c_1["units"] <- c(rep("mg/kg-day", nrow(c_1)))
+  # changes for res2, subchronic table
+  # rename columns in a way that they can be separated later for other column values
+  res2_1 <- res2 %>%
+    dplyr::rename( "SRfCi_subchronic_inhalation_mg/m3" = "SRfCi(mg/m3)",
+                   "SRfDo_subchronic_oral_mg/kg-day" = "SRfDo(mg/kg-day)",
+                   "RfDo_chronic_oral_mg/kg-day" = "RfDo(mg/kg-day)",
+                   "RfCi_chronic_inhalation_mg/m3" = "RfCi(mg/m3)",
+                   "casrn" = "CAS_No_",
+                   "name" = "Analyte",
+                   "RfD Reference" = "RfD_Reference",
+                   "SRfC Reference" = "SRfC_Reference",
+                   "SRfD Reference" = "SRfD_Reference",
+                   "RfC Reference" = "RfC_Reference")
+  # make table longer based on toxval_type
+  res2_2 <- res2_1 %>%
+    tidyr::pivot_longer(
+      cols= c("SRfCi_subchronic_inhalation_mg/m3",
+              "SRfDo_subchronic_oral_mg/kg-day",
+              "RfDo_chronic_oral_mg/kg-day",
+              "RfCi_chronic_inhalation_mg/m3"),
+      names_to= "toxval_type",
+      values_to= "toxval_numeric"
+    )
 
-  #####################################################################
-  cat("RfCi\n")
-  #####################################################################
-  c_2 <- final_rfd_rfc[,c(5,6,3,4)]
-  colnames(c_2)[1] <- c("name")
-  colnames(c_2)[2] <- c("casrn")
-  colnames(c_2)[3] <- c("values")
-  colnames(c_2)[4] <- c("keys")
-  c_2["types"] <- c(rep("RfCi", nrow(c_2)))
-  c_2["units"] <- c(rep("mg/m3", nrow(c_2)))
-  final_rfd_rfc <- rbind(c_1,c_2)
-  final_rfd_rfc <- final_rfd_rfc[which(!is.na(final_rfd_rfc$values)),]
-  final_rfd_rfc$exposure_route <- "-"
-  final_screening <- final_rsl_file3[,names(final_rsl_file3)[grep("Rf", names(final_rsl_file3), invert = T)]]
-  final_screening <- lapply(final_screening, function(x) type.convert(as.character(x), as.is = T))
-  final_screening <- data.frame(final_screening, stringsAsFactors = F)
-  names(final_screening) <- c("name","casrn", "Resident_Soil_(mg/kg)","key_Resident_Soil","Industrial_Soil_(mg/kg)","key_Industrial_Soil", "Resident_Air_(ug/m3)","key_Resident_Air","Industrial_Air_(ug/m3)","key_Industrial_Air","Tapwater_(ug/L)","key_Tapwater","Risk_based_SSL_(mg/kg)","key_Risk_based_SSL","sub_type")
+  # filter out RfDo and RfCi in subchronic file
+  res2_2_1 <- res2_2 %>%
+  filter(grepl("^S", toxval_type))
 
-  #####################################################################
-  cat("Resident_Soil\n")
-  #####################################################################
-  s_1 <- final_screening[,c(1,2,3,4,15)]
-  colnames(s_1)[1] <- c("name")
-  colnames(s_1)[2] <- c("casrn")
-  colnames(s_1)[3] <- c("values")
-  colnames(s_1)[4] <- c("risk_assessment_class")
-  colnames(s_1)[5] <- c("sub_type")
-  s_1["sub_type"] <- paste("Thq = ",s_1$sub_type)
-  s_1["types"] <- c(rep("Screening Level (Resident Soil)", nrow(s_1)))
-  s_1["units"] <- c(rep("mg/kg", nrow(s_1)))
-  s_1["keys"] <- c(rep("EPA Regions", nrow(s_1)))
+  # seperate out toxval_type to make other toxval columns and add input file column
+  res2_3 <- res2_2_1 %>%
+  tidyr::separate(toxval_type, c("toxval_type", "risk_assessment_class", "exposure_route","toxval_unit"), sep="_", fill="right", remove=TRUE) %>%
+    mutate(raw_input_file= "rsl_subchronic_nov_2022.xlsx")
 
-  #####################################################################
-  cat("Industrial_Soil\n")
-  #####################################################################
-  s_2 <- final_screening[,c(1,2,5,6,15)]
-  colnames(s_2)[1] <- c("name")
-  colnames(s_2)[2] <- c("casrn")
-  colnames(s_2)[3] <- c("values")
-  colnames(s_2)[4] <- c("risk_assessment_class")
-  colnames(s_2)[5] <- c("sub_type")
-  s_2["sub_type"] <- paste("Thq = ",s_2$sub_type)
-  s_2["types"] <- c(rep("Screening Level (Industrial Soil)", nrow(s_2)))
-  s_2["units"] <- c(rep("mg/kg", nrow(s_2)))
-  s_2["keys"] <- c(rep("EPA Regions", nrow(s_2)))
+  # make new column for the key values to go in
+  res2_3$study_type = res2_3$toxval_type
+  # replace values with key columns values
+  res2_4 <- res2_3 %>%
+    mutate(study_type = ifelse(toxval_type == 'SRfCi', res2_3$`SRfC Reference`,study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'SRfDo', res2_3$`SRfD Reference`, study_type )) %>%
+    mutate(study_type = ifelse(toxval_type == 'RfDo', res2_3$`RfD Reference`, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'RfCi', res2_3$`RfC Reference`, study_type))
 
-  #####################################################################
-  cat("Resident_Air\n")
-  #####################################################################
-  s_3 <- final_screening[,c(1,2,7,8,15)]
-  colnames(s_3)[1] <- c("name")
-  colnames(s_3)[2] <- c("casrn")
-  colnames(s_3)[3] <- c("values")
-  colnames(s_3)[4] <- c("risk_assessment_class")
-  colnames(s_3)[5] <- c("sub_type")
-  s_3["sub_type"] <- paste("Thq = ",s_3$sub_type)
-  s_3["types"] <- c(rep("Screening Level (Resident Air)", nrow(s_3)))
-  s_3["units"] <- c(rep("ug/m3", nrow(s_3)))
-  s_3["keys"] <- c(rep("EPA Regions", nrow(s_3)))
+  # make dictionary of values in annotation column that needs to go
+  rep_str0 = c('SRfCi'='',
+              'SRfDo'='',
+              'RfDo'='',
+              'RfCi'='')
 
-  #####################################################################
-  cat("Industrial_Air\n")
-  #####################################################################
-  s_4 <- final_screening[,c(1,2,9,10,15)]
-  colnames(s_4)[1] <- c("name")
-  colnames(s_4)[2] <- c("casrn")
-  colnames(s_4)[3] <- c("values")
-  colnames(s_4)[4] <- c("risk_assessment_class")
-  colnames(s_4)[5] <- c("sub_type")
-  s_4["sub_type"] <- paste("Thq = ",s_4$sub_type)
-  s_4["types"] <- c(rep("Screening Level (Industrial Air)", nrow(s_4)))
-  s_4["units"] <- c(rep("ug/m3", nrow(s_4)))
-  s_4["keys"] <- c(rep("EPA Regions", nrow(s_4)))
+  # get rid of those values in annotation columns
+  res2_4$study_type <- str_replace_all(res2_4$study_type, rep_str0)
 
-  #####################################################################
-  cat("Tapwater\n")
-  #####################################################################
-  s_5 <- final_screening[,c(1,2,11,12,15)]
-  colnames(s_5)[1] <- c("name")
-  colnames(s_5)[2] <- c("casrn")
-  colnames(s_5)[3] <- c("values")
-  colnames(s_5)[4] <- c("risk_assessment_class")
-  colnames(s_5)[5] <- c("sub_type")
-  s_5["sub_type"] <- paste("Thq = ",s_5$sub_type)
-  s_5["types"] <- c(rep("Screening Level (Tapwater)", nrow(s_5)))
-  s_5["units"] <- c(rep("ug/L", nrow(s_5)))
-  s_5["keys"] <- c(rep("EPA Regions", nrow(s_5)))
+  # add input file columns and toxval_subtype columns to res0 and res1, thq tables
+  res0_0 <- res0 %>%
+    mutate(raw_input_file= "rsl_thq10_nov_2022.xlsx",
+           toxval_subtype = "Thq = 1")
 
-  #####################################################################
-  cat("Risk_based_SSL\n")
-  #####################################################################
-  s_6 <- final_screening[,c(1,2,13,14,15)]
-  colnames(s_6)[1] <- c("name")
-  colnames(s_6)[2] <- c("casrn")
-  colnames(s_6)[3] <- c("values")
-  colnames(s_6)[4] <- c("risk_assessment_class")
-  colnames(s_6)[5] <- c("sub_type")
-  s_6["sub_type"] <- paste("Thq = ",s_6$sub_type)
-  #s_6["sub_type"] <- c(rep("-", nrow(s_6)))
-  s_6["types"] <- c(rep("Protection of Groundwater: Risk-based SSL", nrow(s_6)))
-  s_6["units"] <- c(rep("mg/kg", nrow(s_6)))
-  s_6["keys"] <- c(rep("EPA Regions", nrow(s_6)))
+  res1_0 <- res1 %>%
+    mutate(raw_input_file= "rsl_thq01_nov_2022.xlsx",
+           toxval_subtype = "Thq = 0.1")
 
-  final_screening <- rbind(s_1,s_2,s_3,s_4,s_5,s_6)
-  final_screening <- final_screening[which(!is.na(final_screening$values)),]
-  final_screening[grep("^cancer",final_screening$risk_assessment_class),"sub_type"] <- "TR=1E-06"
-  final_screening$values <- as.numeric(final_screening$values)
-  final_screening$exposure_route <- "-"
-  #####################################################################
-  cat("create rsl_subchronic_table \n")
-  #####################################################################
-  subchr_data <- openxlsx::read.xlsx(infile1b, 1)
-  subchr_data2 <- subchr_data
-  sd_1 <- subchr_data2[,c(1:4,7:8)]
-  sd_2 <- subchr_data2[,c(1:2,5:6, 9:10)]
+  # combine res0 and res1
+  res_combo_01 <- res0_0 %>%
+    bind_rows(res1_0 %>%
+                mutate(across(c("SFO(mg/kg-day)-1"), ~as.numeric(.))))
 
-  #####################################################################
-  cat("RfDo\n")
-  #####################################################################
-  sc_1 <- sd_1[,c(1,2,3,4)]
-  colnames(sc_1)[3] <- c("values")
-  colnames(sc_1)[4] <- c("keys")
-  sc_1["types"] <- c(rep("RfDo", nrow(sc_1)))
-  sc_1["units"] <- c(rep("mg/kg-day", nrow(sc_1)))
-  sc_1["exposure_route"] <- c(rep("oral", nrow(sc_1)))
+  # rename columsn in a way that they can be separated later for other toxval column values
+  res_combo_01_2 <- res_combo_01 %>%
+    dplyr::rename("Screening Level (Resident Soil)_chronic_mg/kg" = "Resident_Soil_(mg/kg)",
+                  "Screening Level (Industrial Soil)_chronic_mg/kg" = "Industrial_Soil_(mg/kg)",
+                  "Screening Level (Resident Air)_chronic_ug/m3" = "Resident_Air_(ug/m3)",
+                  "Screening Level (Industrial Air)_chronic_ug/m3" = "Industrial_Air_(ug/m3)",
+                  "Screening Level (Tap Water)_chronic_ug/L" = "Tap_Water_(ug/L)",
+                  "Screening Level (MCL)_chronic_ug/L" = "MCL_(ug/L)",
+                  "Protection of Groundwater: Risk-based SSL_chronic_mg/kg" = "Risk-based_SSL_(mg/kg)",
+                  "Protection of Groundwater: MCL-based SSL_chronic_mg/kg" = "MCL-based_SSL_(mg/kg)",
+                  "SFO_chronic_(mg/kg-day)-1" = "SFO_(mg/kg-day)-1",
+                  "IUR_chronic_(ug/m3)-1" = "IUR_(ug/m3)-1",
+                  "RfDo_chronic_mg/kg-day" = "RfDo(mg/kg-day)",
+                  "RfCi_chronic_mg/m3" = "RfCi(mg/m3)",
+                  "Csat_chronic_mg/kg" = "Csat(mg/kg)",
+                  "GIABS_PhysChem" = "GIABS",
+                  "ABSd_PhysChem" = "ABSd",
+                  "vol" = "v_o_l",
+                  "casrn" = "CAS_No_",
+                  "name" = "Analyte",
+                  "key1" = "key_2",
+                  "key2" = "key_4",
+                  "key3" = "key_6",
+                  "key4" = "key_8",
+                  "key5" = "key_17",
+                  "key6" = "key_19",
+                  "key7" = "key_21",
+                  "key8" = "key_23",
+                  "key9" = "key_25",
+                  "key10" = "key_28")
 
-  #####################################################################
-  cat("RfCi\n")
-  #####################################################################
-  sc_2 <- sd_1[,c(1,2,5,6)]
-  colnames(sc_2)[3] <- c("values")
-  colnames(sc_2)[4] <- c("keys")
-  sc_2["types"] <- c(rep("RfCi", nrow(sc_2)))
-  sc_2["units"] <- c(rep("mg/m3", nrow(sc_2)))
-  sc_2["exposure_route"] <- c(rep("inhalation", nrow(sc_2)))
+  # remove "vol" and "mutagen" columns
+  res_combo_01_2_1 <- res_combo_01_2[ , !names(res_combo_01_2) %in%
+                  c("vol", "mutagen")]
 
-  #####################################################################
-  cat("SRfDo\n")
-  #####################################################################
-  sc_3 <- sd_2[,c(1,2,3,4)]
-  colnames(sc_3)[3] <- c("values")
-  colnames(sc_3)[4] <- c("keys")
-  sc_3["types"] <- c(rep("SRfDo", nrow(sc_3)))
-  sc_3["units"] <- c(rep("mg/kg-day", nrow(sc_3)))
-  sc_3["exposure_route"] <- c(rep("oral", nrow(sc_3)))
 
-  #####################################################################
-  cat("SRfCi\n")
-  #####################################################################
-  sc_4 <- sd_2[,c(1,2,5,6)]
-  colnames(sc_4)[3] <- c("values")
-  colnames(sc_4)[4] <- c("keys")
-  sc_4["types"] <- c(rep("SRfCi", nrow(sc_4)))
-  sc_4["units"] <- c(rep("mg/m3", nrow(sc_4)))
-  sc_4["exposure_route"] <- c(rep("inhalation", nrow(sc_4)))
-  subchr_data2 <-  rbind(sc_1, sc_2, sc_3, sc_4)
-  subchr_data2 <- subchr_data2[which(!is.na(subchr_data2$values)),]
+  # make table longer based on toxval_type
+  res_combo_01_3 <- res_combo_01_2_1 %>%
+  tidyr::pivot_longer(
+          cols= c("Screening Level (Resident Soil)_chronic_mg/kg",
+                  "Screening Level (Industrial Soil)_chronic_mg/kg",
+                  "Screening Level (Resident Air)_chronic_ug/m3",
+                  "Screening Level (Industrial Air)_chronic_ug/m3",
+                  "Screening Level (Tap Water)_chronic_ug/L",
+                  "Screening Level (MCL)_chronic_ug/L",
+                  "Protection of Groundwater: Risk-based SSL_chronic_mg/kg",
+                  "Protection of Groundwater: MCL-based SSL_chronic_mg/kg",
+                  "SFO_chronic_(mg/kg-day)-1",
+                  "IUR_chronic_(ug/m3)-1",
+                  "RfDo_chronic_mg/kg-day",
+                  "RfCi_chronic_mg/m3",
+                  "GIABS_PhysChem",
+                  "ABSd_PhysChem",
+                  "Csat_chronic_mg/kg"),
+          names_to= "toxval_type",
+          values_to= "toxval_numeric",
+          values_transform = list(toxval_numeric = as.numeric)
+  )
 
-  #combine thq rf values with subchronic rf values
-  final_rf_with_subchronic <- rbind(final_rfd_rfc,subchr_data2)
-  final_rf_with_subchronic <- unique(final_rf_with_subchronic)
 
-  # combine reference data with both chronic and subchronic with non screening level data
-  final_non_screening_data <- rbind(final_rf_with_subchronic,non_sv)
-  final_non_screening_data <- lapply(final_non_screening_data, function(x) type.convert(as.character(x), as.is = T))
-  final_non_screening_data <- data.frame(final_non_screening_data, stringsAsFactors = F)
-  final_non_screening_data$sub_type <- "-"
-  final_non_screening_data$risk_assessment_class <- "-"
-  final_non_screening_data <- final_non_screening_data[,c(1:3,9,8,5:6,4,7)]
-  #remove (G) from values like 7.0E+06(G)
-  final_non_screening_data[grep("\\(G\\)$",final_non_screening_data$values), "values"] <- gsub("(.*)(\\(G\\)$)","\\1",final_non_screening_data[grep("\\(G\\)$",final_non_screening_data$values), "values"])
-  final_non_screening_data$values <- as.numeric(final_non_screening_data$values)
+  # separate out toxval_type into other toxval columns
+  res_combo_01_4 <- res_combo_01_3 %>%
+    tidyr::separate(toxval_type, c("toxval_type", "risk_assessment_class", "toxval_unit"), sep="_", fill="right", remove=TRUE)
 
-  # final_rsl combining both final_screening and final_non_screening_data
-  final_rsl <- rbind(final_screening, final_non_screening_data)
-  final_rsl$source <- "RSL"
-  colnames(final_rsl)[8] <- c("subsource")
+  # make new column for the key values to go in
+  res_combo_01_4$study_type = res_combo_01_4$toxval_type
+  # replace values with key columns values
+  res_combo_01_5 <- res_combo_01_4 %>%
+    mutate(study_type = ifelse(toxval_type == 'SFO', key1,study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'IUR', key2, study_type )) %>%
+    mutate(study_type = ifelse(toxval_type == 'RfDo', key3, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'RfCi', key4, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (Resident Soil)', key5, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (Industrial Soil)', key6, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (Resident Air)', key7, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (Industrial Air)', key8, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (Tap Water)', key9, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Protection of Groundwater: Risk-based SSL', key10, study_type)) %>%
+    mutate(study_type = ifelse(toxval_type == 'Screening Level (MCL)', risk_assessment_class, study_type))
 
-  final_rsl$study_type <- final_rsl$risk_assessment_class
-  physchem_class <- c("GIABS","Soil Saturation Limit (Csat)","ABSd")
-  final_rsl[which(final_rsl$types %in% physchem_class),"risk_assessment_class"] <- "PhysChem"
-  chronic_class <- c("Screening Level (Resident Soil)","Screening Level (Industrial Soil)","Screening Level (Resident Air)","Screening Level (Industrial Air)","Screening Level (Tapwater)","Protection of Groundwater: Risk-based SSL",
-                     "Protection of Groundwater: MCL-based SSL","RfDo","RfCi")
-  final_rsl[which(final_rsl$types %in% chronic_class),"risk_assessment_class"] <- "chronic"
-  cancer_class <- c("SFO","IUR")
-  final_rsl[which(final_rsl$types %in% cancer_class),"risk_assessment_class"] <- "carcinogenicity"
-  subchronic_class <- c("SRfDo","SRfCi")
-  final_rsl[which(final_rsl$types %in% subchronic_class),"risk_assessment_class"] <- "subchronic"
-  final_rsl$source_url <- "https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables"
-  final_rsl <- lapply(final_rsl, function(x) type.convert(as.character(x), as.is = T))
-  final_rsl <- data.frame(final_rsl, stringsAsFactors = F)
-  final_rsl <- unique(final_rsl)
-  names(final_rsl) <- c("name","casrn","toxval_numeric","risk_assessment_class","toxval_subtype","toxval_type","toxval_units","subsource","exposure_route","source","study_type", "source_url")
-  final_rsl["source_id"] <- c(1:dim(final_rsl)[1])
-  final_rsl <- final_rsl[,c("source_id",names(final_rsl[-13]))]
-  final_rsl["source_hash"] <- "-"
-  final_rsl <- final_rsl[,c("source_id","source_hash","name","casrn","toxval_numeric","risk_assessment_class","toxval_subtype","toxval_type","toxval_units","subsource","exposure_route","source","study_type", "source_url")]
-  #  print(View(final_rsl))
+  # make dictionary of values in annotation column that needs to go
+  rep_str = c('SFO'='',
+              'IUR'='',
+              'RfDo'='',
+              'RfCi'='',
+              'Screening Level (Resident Soil)'='',
+              'Screening Level (Industrial Soil)'='',
+              'Screening Level (Resident Air)'='',
+              'Screening Level (Industrial Air)'='',
+              'Screening Level (Tap Water)'='',
+              'Protection of Groundwater: Risk-based SSL' = '',
+              'mutagen' = '',
+              'GIABS' = '',
+              'ABSd' = '',
+              'Csat' = '',
+              'Protection of Groundwater: MCL-based SSL' = '',
+              'Screening Level (MCL)' = '',
+              'chronic' = '',
+              'PhysChem' = '')
 
-  x = substr(final_rsl$casrn,1,1)
-  mask = vector(length=length(x),mode="integer")
-  mask[] = 1
-  mask[x=="E"] = 0
-  final_rsl = final_rsl[mask==1,]
+  # get rid of those values in annotation columns
+  res_combo_01_5$study_type <- str_replace_all(res_combo_01_5$study_type, rep_str)
+
+
+  # combine res2 (subchronic table) and the combined res0/res1 tables (thq table)
+  res3 <- bind_rows(res_combo_01_5, res2_4)
+
+  res4 <- res3 %>%
+    # replace key abbreviated values with text values using dictionary
+    dplyr::mutate(across(matches("key|vol|study_type"),
+                  .fns = ~ case_when(. =="I" ~ "IRIS",
+                            . =="P" ~ "PPRTV",
+                            . =="O" ~ "OPP",
+                            . =="A" ~ "ATSDR",
+                            . =="C" ~ "Cal EPA",
+                            . =="X" ~ "PPRTV Screening Level",
+                            . =="H" ~ "HEAST",
+                            . =="D" ~ "OW",
+                            . =="W" ~ "TEF applied",
+                            . =="E" ~ "RPF applied",
+                            . =="G" ~ "see user's guide",
+                            . =="U" ~ "user provided",
+                            . =="c" ~ "cancer",
+                            . =="n" ~ "noncancer",
+                            . =="max" ~ "ceiling limit exceeded",
+                            . =="m" ~ "ceiling limit exceeded",
+                            . =="sat" ~ "Csat exceeded",
+                            . =="s" ~ "Csat exceeded",
+                            . =="c*" ~ "cancer where noncancer SL < 100X cancer SL",
+                            . =="c**" ~ "cancer where noncancer SL < 10X cancer SL",
+                            . =="nm" ~ "noncancer, ceiling limit exceeded",
+                            . =="ns" ~ "noncancer, Csat exceeded",
+                            . =="nms" ~ "noncancer, ceiling limit exceeded, Csat exceeded",
+                            . =="DAF" ~ "dilution attentuation factor",
+                            . =="c*R" ~ "cancer where noncancer SL < 100X cancer SL",
+                            . =="c**R" ~ "cancer where noncancer SL < 10X cancer SL",
+                            . =="cR" ~ "cancer",
+                            # . == "V" ~ "Vol",
+                            TRUE ~ .
+                            )
+                  )
+           )
+
+ # adding source_url column
+ res5 <- res4 %>%
+   mutate(source_url= "https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables")
+ # dropping columns without a toxval_numeric value for they are not needed
+ res6 <- res5 # %>%
+   # drop_na(toxval_numeric)
+ # drop key and reference columns
+ res7 <- res6[ , !names(res6) %in%
+       c("key1","key2","key3","key4","key5","key6","key7","key8",
+         "key9","key10","RfD Reference","SRfD Reference",
+         "RfC Reference","SRfC Reference")]
+
+ # make subsource column and leave cancer/noncancer values in annotation column
+ res7$subsource = res7$study_type
+
+ res7$subsource<-gsub("^noncancer","",as.character(res7$subsource))
+ res7$subsource<-gsub("^cancer where noncancer SL < 100X cancer SL","",as.character(res7$subsource))
+ res7$subsource<-gsub("^cancer where noncancer SL < 10X cancer SL","",as.character(res7$subsource))
+ res7$subsource<-gsub("^cancer","",as.character(res7$subsource))
+ res7$subsource<-gsub("^noncancer, ceiling limit exceeded","",as.character(res7$subsource))
+ res7$subsource<-gsub("^noncancer, Csat exceeded","",as.character(res7$subsource))
+ res7$subsource<-gsub("^noncancer, ceiling limit exceeded, Csat exceeded","",as.character(res7$subsource))
+
+
+ res8 <- res7 %>%
+ dplyr::mutate(across(matches("study_type"),
+                      .fns = ~ case_when(. =="IRIS" ~ "",
+                                         . =="PPRTV" ~ "",
+                                         . =="OPP" ~ "",
+                                         . =="ATSDR" ~ "",
+                                         . =="Cal EPA" ~ "",
+                                         . =="PPRTV Screening Level" ~ "",
+                                         . =="HEAST" ~ "",
+                                         . =="OW" ~ "",
+                                         . =="TEF applied" ~ "",
+                                         . =="RPF applied" ~ "",
+                                         . =="see user's guide" ~ "",
+                                         . =="user provided" ~ "",
+                                         . =="ceiling limit exceeded" ~ "",
+                                         . =="ceiling limit exceeded" ~ "",
+                                         . =="Csat exceeded" ~ "",
+                                         . =="Csat exceeded" ~ "",
+                                         . =="dilution attentuation factor" ~ "",
+                                         . =="SCREEN" ~ "",
+                                         . =="DWSHA" ~ "",
+                                         # . == "V" ~ "Vol",
+                                         TRUE ~ .
+                                         )
+                            )
+          )
+
+ # add "source" column and fill it with 'RSL'
+ res8$source <- 'RSL'
+
+ # add 'EPA Regions' to "subsource" column for all 'Screening' toxval_type entries
+   res9 <- res8 %>%
+     dplyr::mutate(across(matches("subsource"),
+                          .fns = ~ case_when(toxval_type =="Screening Level (Industrial Soil)" ~ "EPA Regions",
+                                             toxval_type =="Screening Level (Resident Air)" ~ "EPA Regions",
+                                             toxval_type =="Screening Level (Industrial Air)" ~ "EPA Regions",
+                                             toxval_type == "Screening Level (Tap Water)" ~ "EPA Regions",
+                                             toxval_type == "Screening Level (Resident Soil)" ~ "EPA Regions",
+                                             toxval_type == "Screening Level (MCL)" ~ "EPA Regions",
+                                             TRUE ~ .
+                          )
+                )
+     )
+
+  # make "risk_assessment_type" column and fill it with 'carcinogenicity' for all 'SFO', 'IUR' toxval_type entries
+   res10 <- res9 %>%
+     add_column(risk_assessment_type =  "") %>%
+     dplyr::mutate(across(matches("risk_assessment_type"),
+                          .fns = ~ case_when(toxval_type =="SFO" ~ "carcinogenicity",
+                                             toxval_type =="IUR" ~ "carcinogenicity",
+                                             TRUE ~ .
+                          )
+                )
+     )
+
+
+   # make "toxval_subtype" column for all 'Screening' toxval_type entries with a "cancer" risk_assessment_class
+   res10 <- mutate(res10, toxval_subtype = case_when(toxval_type =="Screening Level (Industrial Soil)"& study_type == "cancer"  ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Resident Air)"& study_type == "cancer" ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Industrial Air)"& study_type == "cancer" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Tap Water)"& study_type == "cancer" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Resident Soil)"& study_type == "cancer" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (MCL)"& study_type == "cancer" ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Industrial Soil)"& study_type == "cancer where noncancer SL < 100X cancer SL"  ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Resident Air)"& study_type == "cancer where noncancer SL < 100X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Industrial Air)"& study_type == "cancer where noncancer SL < 100X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Tap Water)"& study_type == "cancer where noncancer SL < 100X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Resident Soil)"& study_type == "cancer where noncancer SL < 100X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (MCL)"& study_type == "cancer where noncancer SL < 100X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Industrial Soil)"& study_type == "cancer where noncancer SL < 10X cancer SL"  ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Resident Air)"& study_type == "cancer where noncancer SL < 10X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type =="Screening Level (Industrial Air)"& study_type == "cancer where noncancer SL < 10X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Tap Water)"& study_type == "cancer where noncancer SL < 10X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (Resident Soil)"& study_type == "cancer where noncancer SL < 10X cancer SL" ~ "TR=1E-06",
+                                                     toxval_type == "Screening Level (MCL)"& study_type == "cancer where noncancer SL < 10X cancer SL" ~ "TR=1E-06",
+                                                     TRUE ~ toxval_subtype
+                         )
+   )
+
+
+   # update "exposure_route" column based on "toxval_type"
+   res10 <- mutate(res10, exposure_route = case_when(toxval_type =="RfCi"  ~ "inhalation",
+                                                     toxval_type =="RfDo"  ~ "oral",
+                                                     toxval_type =="Protection of Groundwater: MCL-based SSL"  ~ "oral",
+                                                     toxval_type =="Protection of Groundwater: Risk-based SSL"  ~ "oral",
+                                                     toxval_type =="Screening Level (Resident Soil)"  ~ "oral, dermal, and inhalation",
+                                                     toxval_type =="Screening Level (Industrial Soil)"  ~ "oral and inhalation",
+                                                     toxval_type =="Screening Level (Resident Air)"  ~ "inhalation",
+                                                     toxval_type =="Screening Level (Industrial Air)"  ~ "inhalation",
+                                                     toxval_type =="Screening Level (Tap Water)"  ~ "oral, dermal, and inhalation",
+                                                     toxval_type =="Screening Level (MCL)"  ~ "vary by chemical",
+                                                     TRUE ~ exposure_route
+                                )
+           )
+
+ # relacing empty strings with NA value
+ res <- replace(res10, res10=="", NA)
+
+
+
+
+  # the final file should have column names that include "name" and "casrn"
+  # additionally, the names in res need to match names in the source
+  # database table. You do not need to add any of the generic columns
+  # described in the SOP - they will get added in source_prep_and_load
+  #
+
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="RSL",table="source_rsl",res=final_rsl,F,T,T)
+  source_prep_and_load(db,source=source,table=source_table,res=res,F,T,T)
 }

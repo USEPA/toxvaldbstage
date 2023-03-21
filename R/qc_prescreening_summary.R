@@ -18,7 +18,7 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
   # These columns are not necessary and are just unique identification numbers for the document
   id_columns <- c("source_hash", "parent_hash", "version", "data_record_annotation",
                "failure_reason", "src_tbl_name", "qc_status", "status_name",
-               "create_by", "create_time", "end_time", "chemical_id",
+               "create_by", "create_time", "end_time", "chemical_id", "parent_chemical_id",
                "source_id", "clowder_id", "document_name", "modify_time", "created_by")
   # So remove them and work with that dataframe
   data <- in_data[, !(names(in_data) %in% id_columns)]
@@ -50,10 +50,10 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
   out_file = paste0(outputDir, "/qc_prescreening_", src_tbl, ".xlsx")
   cat("Outputing excel file as: ", out_file)
   # This saves the raw data and summary table to different sheets in the same file
-    writexl::write_xlsx(x = list('raw_data' = in_data,
-                                 'summary' = freq_df),
-                        # The file name we will save as, using the inpu parameters
-                        path = out_file)
+  writexl::write_xlsx(x = list('raw_data' = in_data,
+                               'summary' = freq_df),
+                      # The file name we will save as, using the inpu parameters
+                      path = out_file)
 
   cat("All done! Have fun!","\n")
   return(list('raw_data' = in_data,

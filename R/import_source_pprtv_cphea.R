@@ -3,13 +3,15 @@
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @param do.reset If TRUE, delete data from the database for this source before
+#' @param do.insert If TRUE, insert data into the database, default FALSE
 #--------------------------------------------------------------------------------------
-import_source_pprtv_cphea <- function(db,chem.check.halt=F) {
+import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "PPRTV CPHEA"
   source_table = "source_pprtv_cphea"
   dir = paste0(toxval.config()$datapath,"pprtv_cphea/pprtv_cphea_files/")
-  tmp = readxl::read_xlsx(paste0(dir, "pprtv_cphea_full.xlsx"))
+  tmp = readxl::read_xlsx(paste0(dir, "pprtv_cphea_full.xlsx"), guess_max=21474836)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -21,9 +23,14 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=F) {
 
   # Define helper function for cleaning up scientific notation
   parse_scientific <- function(s) {
-    if (grepl("^[0-9]+\\.?[0-9]* ?[Xx] ?10\\^.*$", s)) {
+    # Handle scientific notation conversion (either 10's or e notation)
+    if(grepl("[Xx]", s) && grepl("^[0-9]+\\.?[0-9]* ?[Xx] ?10\\^.*$", s)){
       mantissa <- as.numeric(gsub(" ?[Xx].*", "", s))
       exponent <- as.numeric(gsub(".*\\^", "", s))
+      return(mantissa * 10^exponent)
+    } else if(grepl("[eE]", s) && grepl("^(-?[0-9]*)\\.?[0-9]+[eE]?[-\\+]?[0-9]+$", s)){
+      mantissa <- as.numeric(gsub(" ?[eE].*", "", s))
+      exponent <- as.numeric(gsub(".*?[eE]", "", s))
       return(mantissa * 10^exponent)
     }
     return(suppressWarnings(as.numeric(s)))
@@ -52,7 +59,7 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=F) {
                        "Oral Slope Factor", "Unit Risk Factor", "RfC (mg/kg-day)")
   # Apply general pivot longer fixes for all toxval_type fields
   res = res %>%
-    tidyr::pivot_longer(cols = toxval_type_list,
+    tidyr::pivot_longer(cols = all_of(toxval_type_list),
                         names_to="toxval_type",
                         values_to="toxval_numeric",
                         values_transform = list(toxval_numeric=as.character)) %>%
@@ -96,12 +103,6 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=F) {
     select(-temp_id) %>%
     # Filter out unnecssarily created toxval_numeric-types during pivoting
     filter(!(is.na(toxval_numeric) & !is.na(toxval_type)))
-
-  # Fix scientific notation issue
-  res = res %>%
-    # Add rowwise so mutate can vectorize the parse_scientific function
-    dplyr::rowwise() %>%
-    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric))
 
   # Standardize the names
   res0 <- res %>%
@@ -199,8 +200,21 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=F) {
   res0$toxval_numeric[missing_numeric] <- gsub(" .*$", "", toxval_with_units)
   res0$toxval_units[missing_numeric] <- gsub("^[^ ]* ", "", toxval_with_units)
 
+  # Fix scientific notation issue
+  res0 = res0 %>%
+    # Add rowwise so mutate can vectorize the parse_scientific function
+    dplyr::rowwise() %>%
+    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric))
+
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source=source,table=source_table,res=res0,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res0,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt)
+
 }
