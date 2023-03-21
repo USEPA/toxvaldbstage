@@ -130,26 +130,32 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
   res0 <- dplyr::mutate(res0, across(where(is.character), fix.greek.symbols))
 
   # Add missing toxval_units (imputed from RfC/RfD) to NOAEL cases
-  for (i in 1:nrow(res0)){
-    # If the toxval_type is NOAEL and the units are NA
-    if (!is.na(res0$toxval_type[i]) & is.na(res0$toxval_units[i])) {
-      # Multiple if statements to avoid checking NA
-      if (res0$toxval_type[i] == "NOAEL") {
-        # Grab the RfC and RfD units
-        chemical_name <- res0$name[i]
-        ref <- res0$study_reference[i]
-        units <- res0$toxval_units[which(grepl("RfD|RfC", res0$toxval_type)
-                                         & res0$name == chemical_name
-                                         & res0$study_reference == ref
-                                         )]
-        # Skip row if RfC and RfD use different units
-        if (length(unique(units)) > 1) {
-          cat(paste0("Multiple units possible for ", chemical_name, ", please review \n"))
-          next
-        }
-        # Update units
-        res0$toxval_units[i] <- units[1]
-      }
+  # Narrow down the search first
+  noael_fix = res0 %>%
+    filter(toxval_type == "NOAEL", is.na(toxval_units)) %>%
+    select(name, study_type, table_title) %>%
+    distinct()
+
+  # Fix each individual case
+  for(i in seq_len(nrow(noael_fix))){
+    # Pull case of chemical from same table and same type
+    n_fix = res0 %>%
+      filter(name == noael_fix$name[i], study_type == noael_fix$study_type[i],
+             table_title == noael_fix$table_title[i],
+             !is.na(toxval_units)) %>%
+      # Select available units
+      select(toxval_units)
+
+    # Skip if multiple units
+    if(nrow(n_fix) > 1){
+      message("Issue with NOAEL chemical: ", noael_fix$name[i])
+      next
+    } else {
+      # Make replacement of NA
+      res0$toxval_units[is.na(res0$toxval_units) &
+                          res0$name == noael_fix$name[i] &
+                          res0$study_type == noael_fix$study_type[i] &
+                          res0$table_title == noael_fix$table_title[i]] = n_fix$toxval_units
     }
   }
 
@@ -166,24 +172,24 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
 
   # Split duration column into study_duration_value and _units
   res0 <- res0 %>%
-    mutate(# Remove leading "N hr/d, N d/wk, for/on "
-           duration = gsub("^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?",
-                           "", duration),
-           # Remove "postweaning" and "gavage study" from duration
-           duration = gsub(", postweaning|gavage study", "", duration),
-           duration = gsub("weejs", "weeks", duration)) %>%
+    dplyr::mutate(# Remove leading "N hr/d, N d/wk, for/on "
+      duration_original = duration,
+      duration = gsub("^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?",
+                      "", duration),
+      # Remove "postweaning" and "gavage study" from duration
+      duration = gsub(", postweaning|gavage study", "", duration),
+      duration = gsub("weejs", "weeks", duration)) %>%
     # Clean up and split remaining numeric/unit pairs
     fix_numeric_units_split(to_split = "duration",value_to="study_duration_value",
                             units_to="study_duration_units") %>%
     # Now that they've served as tags for adding units, remove these
-    mutate(across(c(study_duration_value, study_duration_units),
+    dplyr::mutate(across(c(study_duration_value, study_duration_units),
                   ~ stringr::str_squish(
                     stringr::str_replace_all(., "(reproductive: )?gds?|gestation days|pnds?", "")
                     )
                   )
            ) %>%
-    # keep the raw duration column, but rename to distinguish it
-    rename(duration_original = duration)
+    select(-duration)
 
   # Combine two separate notes columns from the extraction into one
   # We don't need to worry about having values in both fields for one record, as they're exclusionary by construction
