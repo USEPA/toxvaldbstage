@@ -119,7 +119,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   res = res %>%
     tidyr::separate_rows(name, sep=";") %>%
     # Fix greek symbols in units
-    dplyr::mutate(across(match("_units"), fix.greek.symbols(.)))
+    dplyr::mutate(across(matches("_units"), fix.greek.symbols(.)))
 
   # Standardize the names
   names(res) <- names(res) %>%
