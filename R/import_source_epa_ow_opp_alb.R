@@ -10,7 +10,7 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   printCurrentFunction(db)
   source = "EPA OW OPP-ALB"
   source_table = "source_epa_ow_opp_alb"
-  dir = paste0(toxval.config()$datapath,"epa_ow_nrwqc_hhc/epa_ow_opp_alb_files/")
+  dir = paste0(toxval.config()$datapath,"epa_ow_opp_alb/epa_ow_opp_alb_files/")
   file = paste0(dir,"source_epa_ow_opp_alb_20230228.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
@@ -29,7 +29,7 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
                    "Nonvascular Plants", "Vascular Plants",
                    "Office of Water  Aquatic Life Criteria_Acute",
                    "Office of Water  Aquatic Life Criteria_Chronic")
-  res0 <- res0 %>%
+  res <- res0 %>%
     # Rename colums
     dplyr::rename(
       name = Pesticide,
@@ -42,28 +42,25 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       # Replace all greek letters "µ" with "u"
       across(.fns = ~gsub("µ", "u", .)),
       # Remove ">" and "<" from toxval columns...
-      across(toxval_cols, ~gsub(" *[<>] *", "", .)),
-      # ...and convert them all to doubles
-      across(toxval_cols, ~as.numeric(.))
+      across(all_of(toxval_cols), ~gsub(" *[<>] *", "", .)),
+      # ...and convert them all to numerics
+      across(all_of(toxval_cols), ~as.numeric(.))
       ) %>%
     # Pivot out toxvals
-    tidyr::pivot_longer(toxval_cols, names_to = "toxval_type",
+    tidyr::pivot_longer(all_of(toxval_cols), names_to = "species",
                         values_to = "toxval_numeric"
     ) %>%
-    # Separate "toxval_type" into "toxval_type" and "study_type" by "_"
-    tidyr::separate(toxval_type, c("toxval_type", "study_type"),
+    # Separate "species" into "species" and "study_type" by "_"
+    tidyr::separate(species, c("species", "study_type"),
                     sep = "_", extra = "merge", fill = "right", remove = FALSE
     )
 
   # Standardize the names
-  names(res0) <- names(res0) %>%
+  names(res) <- names(res) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
-
-  res = source.specific.transformations(res0)
-
 
   #####################################################################
   cat("Prep and load the data\n")
