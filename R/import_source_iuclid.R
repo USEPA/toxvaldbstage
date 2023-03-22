@@ -36,7 +36,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   if(length(map_check)){
     map_orig$map_confirmed[(map_orig$oht == subf) & (map_orig$from %in% map_check)] <- 0
     # Update the map to help with curation of field names
-    writexl::write_xlsx(map_orig, paste0(toxval.config()$datapath,"iuclid/iuclid_field_map.xlsx"))
+    writexl::write_xlsx(map_orig, paste0(toxval.config()$datapath,"iuclid/field_maps/iuclid_field_map.xlsx"))
     return(paste0("Need to remap the following fields: ", toString(map_check)))
   }
 
@@ -65,12 +65,25 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     select(-matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation"))
 
     # Replace column value with another column value based on a condition ("other:")
-    res$toxval_units[res$toxval_units == 'other:' & !is.na(res$toxval_units)] <- res$toxval_units_other[res$toxval_units == 'other:' & !is.na(res$toxval_units)]
-    res$toxval_type[res$toxval_type == 'other:' & !is.na(res$toxval_type)] <- res$toxval_type_other[res$toxval_type == 'other:' & !is.na(res$toxval_type)]
-    res$species[res$species == 'other:' & !is.na(res$species)] <- res$species_other[res$species == 'other:' & !is.na(res$species)]
-    res$strain[res$strain == 'other:' & !is.na(res$strain)] <- res$strain_other[res$strain == 'other:' & !is.na(res$strain)]
-    res$guideline[res$guideline == 'other:' & !is.na(res$guideline)] <- res$guideline_other[res$guideline == 'other:' & !is.na(res$guideline)]
-    res$exposure[res$exposure == 'other:' & !is.na(res$exposure)] <- res$exposure_other[res$exposure == 'other:' & !is.na(res$exposure)]
+    if(all(c("toxval_units", "toxval_units_other")) %in% names(res)){
+      res$toxval_units[res$toxval_units == 'other:' & !is.na(res$toxval_units)] <- res$toxval_units_other[res$toxval_units == 'other:' & !is.na(res$toxval_units)]
+    }
+    if(all(c("toxval_type", "toxval_type_other")) %in% names(res)){
+      res$toxval_type[res$toxval_type == 'other:' & !is.na(res$toxval_type)] <- res$toxval_type_other[res$toxval_type == 'other:' & !is.na(res$toxval_type)]
+    }
+    if(all(c("species", "species_other")) %in% names(res)){
+      res$species[res$species == 'other:' & !is.na(res$species)] <- res$species_other[res$species == 'other:' & !is.na(res$species)]
+    }
+    if(all(c("strain", "strain_other")) %in% names(res)){
+      res$strain[res$strain == 'other:' & !is.na(res$strain)] <- res$strain_other[res$strain == 'other:' & !is.na(res$strain)]
+    }
+    if(all(c("guideline", "guideline_other")) %in% names(res)){
+      res$guideline[res$guideline == 'other:' & !is.na(res$guideline)] <- res$guideline_other[res$guideline == 'other:' & !is.na(res$guideline)]
+    }
+    if(all(c("exposure", "exposure_other")) %in% names(res)){
+      res$exposure[res$exposure == 'other:' & !is.na(res$exposure)] <- res$exposure_other[res$exposure == 'other:' & !is.na(res$exposure)]
+    }
+
     # Fix: effect_level_basis TBD
     # Fix: media TBD
     # Fix: reference_type TBD
@@ -101,6 +114,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     Sys.sleep(5)
     res$media = "-"
   }
+
+  # Split chemical mixtures/lists
+  res = res %>%
+    tidyr::separate_rows(name, sep=";") %>%
+    # Fix greek symbols in units
+    dplyr::mutate(across(match("_units"), fix.greek.symbols(.)))
 
   # Standardize the names
   names(res) <- names(res) %>%
