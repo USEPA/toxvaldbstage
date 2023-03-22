@@ -23,14 +23,14 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   # described in the SOP - they will get added in source_prep_and_load
   #
   # Load and clean source
-  res0 <- og_res # TODO TODO TODO DELETE THIS LINE
-  res0 <- res0 %>%
+  res <- res0 %>%
     # Rename colums
     dplyr::rename(name = Pollutant,
                   casrn = "CAS Number"
                   ) %>%
     # Pivot out toxvals
-    tidyr::pivot_longer(c(3,4), # By number, not name, out of fear of unicode
+    # Use matches due to concern for unicode handling of micrograms in field name
+    tidyr::pivot_longer(matches("Human Health for the consumption of"),
                         names_to = "toxval_type",
                         values_to = "toxval_numeric"
                         ) %>%
@@ -60,14 +60,11 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
     dplyr::mutate(casrn = ifelse(is.na(casrn), casrn, fix.casrn(casrn)))
 
   # Standardize the names
-  names(res0) <- names(res0) %>%
+  names(res) <- names(res) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
-
-  res = source.specific.transformations(res0)
-
 
   #####################################################################
   cat("Prep and load the data\n")
