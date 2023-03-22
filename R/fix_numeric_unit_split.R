@@ -210,19 +210,10 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
   # Filter out matches
   df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
 
-  # Case "21-day gavage study"
-  out = df %>%
-    dplyr::filter(grepl("^[0-9]+-day gavage study$", raw_in)) %>%
-    dplyr::mutate(raw_in = gsub("-day gavage study", " days", raw_in)) %>%
-    tidyr::separate(raw_in, c(value_to, units_to), sep="\\s", extra="merge") %>%
-    dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(.))) %>%
-    rbind(out, .)
-  # Filter out matches
-  df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
-
   # Append units to cases like "gd(s)|gestation day(s) 1(-21)"
   out = df %>%
-    dplyr::filter(grepl("^gds? ?|gestation days? ?[0-9]+-?[0-9]*$", raw_in)) %>%
+    dplyr::filter(grepl("^((reproductive: )?gds? ?|gestation days?) ?[0-9]+-?[0-9]*$",
+                        raw_in, ignore.case = TRUE)) %>%
     dplyr::mutate(raw_in = gsub("$", "_gestational days", raw_in)) %>%
     tidyr::separate(raw_in, c(value_to, units_to), sep="_", extra="merge") %>%
     dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(.))) %>%
@@ -230,11 +221,11 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
   # Filter out matches
   df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
 
-  # Case "N (years or weeks), postweaning"
+  # Append units to cases like "pnds 5-11"
   out = df %>%
-    dplyr::filter(grepl("^[0-9]+ years|weeks, postweaning$", raw_in)) %>%
-    dplyr::mutate(raw_in = gsub(", postweaning", "", raw_in)) %>%
-    tidyr::separate(raw_in, c(value_to, units_to), sep="\\s", extra="merge") %>%
+    dplyr::filter(grepl("^pnds? [0-9]+ ?- ?[0-9]*$", raw_in)) %>%
+    dplyr::mutate(raw_in = gsub("$", "_postnatal days", raw_in)) %>%
+    tidyr::separate(raw_in, c(value_to, units_to), sep="_", extra="merge") %>%
     dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(.))) %>%
     rbind(out, .)
   # Filter out matches
