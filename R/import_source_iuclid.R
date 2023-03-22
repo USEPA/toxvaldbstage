@@ -2,10 +2,12 @@
 #' A generic template for adding data to toxval_source for a new source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
-#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param subf The subfolder containing the IUCLID subsource
+#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @param do.reset If TRUE, delete data from the database for this source before
+#' @param do.insert If TRUE, insert data into the database, default FALSE
 #--------------------------------------------------------------------------------------
-import_source_iuclid <- function(db, subf, chem.check.halt=F) {
+import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = paste0("IUCLID_", subf)
   source_table = paste0("source_iuclid_", subf) %>% tolower()
@@ -15,22 +17,15 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
   # guess_max used due to large file with some columns guessed as NA/logical when not
   res0 = readxl::read_xlsx(file, guess_max=21474836)
 
-#import_efsa_source <- function(db,chem.check.halt=F) {
-#  printCurrentFunction(db)
-#  source = "IUCLID"
-#  source_table = "source_iuclid"
-#  dir = paste0(toxval.config()$datapath,"iuclid/")
-#  file = paste0(dir,"RepeatedDoseToxicityOral.xlsx")
-# res0 = readxl::read_xlsx(file, guess_max=Inf)
-
   if(!nrow(res0)){
     return("...No rows found in file...skipping")
   }
 
   # Load IUCLID field map
-  map_orig = readxl::read_xlsx(paste0(toxval.config()$datapath,"iuclid/iuclid_field_map.xlsx"))
+  map_orig = readxl::read_xlsx(paste0(toxval.config()$datapath,"iuclid/field_maps/iuclid_field_map.xlsx"))
   map = map_orig %>%
-    filter(oht == subf)
+    filter(oht == subf,
+           !grepl("not needed", notes))
 
   if(!nrow(map)) {
     return(paste0("No entries in IUCLID field map for: ", subf))
@@ -52,7 +47,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
 
   res <- res0 %>%
   # Copy columns and rename new columns
-    dplyr::rename(tmp) %>%
+    dplyr::rename(all_of(tmp)) %>%
     # dplyr::rename(name = reference_substance,
     #        casrn = reference_substance_CASnumber,
     #        ec_number = reference_substance_ECnumber,
@@ -105,11 +100,23 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     # Fix: reference_type TBD
     # Fix: dose_units TBD
 
-    # Fix study duration with various regex
-    res = fix_numeric_units_split(df = res,
-                                  to_split = "study_duration_original",
-                                  value_to = "study_duration_value",
-                                  units_to = "study_duration_units")
+    # Check for acute OHTs without a mapped duration field
+    if(grepl("acute", subf, ignore.case = TRUE)){
+      # Set duration to 1 day if not present in value/units
+      if(!all(c("study_duration_value", "study_duration_units") %in% names(res))){
+        res$study_duration_value = 1
+        res$study_duration_units = "day"
+      }
+    }
+
+    # Perform study duration split if needed
+    if("study_duration_original" %in% names(res)){
+      # Fix study duration with various regex
+      res = fix_numeric_units_split(df = res,
+                                    to_split = "study_duration_original",
+                                    value_to = "study_duration_value",
+                                    units_to = "study_duration_units")
+    }
 
   # Check for media column, or put as blank
   if(!"media" %in% names(res)){
@@ -118,6 +125,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
     Sys.sleep(5)
     res$media = "-"
   }
+
   # Standardize the names
   names(res) <- names(res) %>%
     # Replace whitespace and periods with underscore
@@ -141,8 +149,13 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
   #####################################################################
   cat("Load the data\n")
   #####################################################################
-  source_prep_and_load(db,source=source,table=source_table,res=res,
-                       do.reset=FALSE,do.insert=TRUE,chem.check.halt=TRUE)
+  source_prep_and_load(db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt)
 }
 
 #--------------------------------------------------------------------------------------
@@ -156,8 +169,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=F) {
 
 orchestrate_import_source_iuclid <- function(dir=paste0(toxval.config()$datapath, "iuclid")) {
   # Loop through all subdirectories of current wd and load the source files within into ToxVal
-  subdirs <- list.files(dir)
+  subdirs <- list.files(dir, pattern="iuclid")
   for (subf in subdirs) {
-    import_source_iuclid(db, subf, chem.check.halt = FALSE)
+    import_source_iuclid(db=db,
+                         subf=subf,
+                         chem.check.halt=FALSE,
+                         do.reset=FALSE,
+                         do.insert=FALSE)
   }
 }
