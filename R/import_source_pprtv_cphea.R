@@ -45,9 +45,9 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
 
   # Collect all the records that lack a toxval
   res_parsed = res %>%
-    filter(is.na(`RfD (mg/kg-day)`) & (is.na(PoD) | PoD == ":") & is.na(`RfC (mg/m^3))`)
+    filter(is.na(`RfD (mg/kg-day)`) & (is.na(PoD) | PoD == ":") & is.na(`RfC (mg/m^3)`)
            & is.na(`Oral Slope Factor`) & is.na(`Unit Risk Factor`)) %>%
-    select(-c(`RfD (mg/kg-day)`, PoD, `RfC (mg/m^3))`, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`)) %>%
+    select(-c(`RfD (mg/kg-day)`, PoD, `RfC (mg/m^3)`, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`)) %>%
     mutate(toxval_type = NA, toxval_numeric = NA, toxval_units = NA) %>%
     rbind(res_parsed, .)
   res = res %>% filter(!temp_id %in% res_parsed$temp_id)
@@ -55,7 +55,7 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
   res_parsed$temp_id = NA
 
   # Get list of fields to pivot
-  toxval_type_list = c("RfD (mg/kg-day)", "PoD", "RfC (mg/m^3))",
+  toxval_type_list = c("RfD (mg/kg-day)", "PoD", "RfC (mg/m^3)",
                        "Oral Slope Factor", "Unit Risk Factor", "RfC (mg/kg-day)")
   # Apply general pivot longer fixes for all toxval_type fields
   res = res %>%
@@ -116,6 +116,53 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
     dplyr::mutate(study_type = ifelse(grepl("Cancer|Carcinogenic", table_title),
                                       "Cancer", ifelse(grepl("Subchronic", table_title),
                                                        "Subchronic", "Chronic")))
+  # Hardcode species for several records
+  res0$species[res0$study_reference == "Biodynamics 1988"
+               & res0$name == "Butyltin Compounds, mono-"] <- "Rat"
+  res0$species[res0$study_reference == "Kawakami et al., 2015"
+               & res0$name == "2-Nitropropane"] <- "Rat"
+  res0$species[res0$study_reference == "Lewis et al., (1979), Ulrich et al. (1977)"
+               & res0$name == "2-Nitropropane"] <- "Rat"
+  res0$species[res0$study_reference == "Lewis et al. (1979) and Ulrich et al. (1977)"
+               & res0$name == "2-Nitropropane"] <- "Rat"
+
+  # Remove Greek letters from character fields
+  res0 <- dplyr::mutate(res0, across(where(is.character), fix.greek.symbols))
+
+  # Add missing toxval_units (imputed from RfC/RfD) to NOAEL cases
+  # Narrow down the search first
+  noael_fix = res0 %>%
+    filter(toxval_type == "NOAEL", is.na(toxval_units)) %>%
+    select(name, study_type, table_title) %>%
+    distinct()
+
+  # Fix each individual case
+  for(i in seq_len(nrow(noael_fix))){
+    # Pull case of chemical from same table and same type
+    n_fix = res0 %>%
+      filter(name == noael_fix$name[i], study_type == noael_fix$study_type[i],
+             table_title == noael_fix$table_title[i],
+             !is.na(toxval_units)) %>%
+      # Select available units
+      select(toxval_units)
+
+    # Skip if multiple units
+    if(nrow(n_fix) > 1){
+      message("Issue with NOAEL chemical: ", noael_fix$name[i])
+      next
+    } else {
+      # Make replacement of NA
+      res0$toxval_units[is.na(res0$toxval_units) &
+                          res0$name == noael_fix$name[i] &
+                          res0$study_type == noael_fix$study_type[i] &
+                          res0$table_title == noael_fix$table_title[i]] = n_fix$toxval_units
+    }
+  }
+
+  # Update units for toxval_types Oral Slope/Unit Risk Factor
+  cases <- which(res0$toxval_type %in% c("Oral Slope Factor", "Unit Risk Factor"))
+  res0$toxval_units[cases] <- paste0("(", res0$toxval_units[cases], ")^-1")
+
   # Fix names
   names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
@@ -123,21 +170,25 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  # TODO: Split duration column into study_duration_value and _units
-  # Retain original duration column and coerce working column to lowercase
+  # Split duration column into study_duration_value and _units
   res0 <- res0 %>%
-    mutate(duration_original = duration,
-           duration = stringr::str_squish(tolower(duration)))
-  # Before passing to fix_numeric_unit_split, make some fixes that weren't general enough to add to that fxn.
-  res0$duration <- stringr::str_squish(tolower(res0$duration))
-  # Remove leading "N_1 hr/d, N_2 d/wk, for/on "
-  res0$duration <- stringr::str_replace(res0$duration,
-                                        "^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?", "")
-  # Remove leading "reproductive: " tag that occurs in a case for which we'll be using "gestational days" as units
-  res0$duration <- stringr::str_replace(res0$duration, "^reproductive:\\s", "")
-  # Fix various and sundry duration value/unit issues
-  res0 <- res0 %>%
-    fix_numeric_units_split("duration",value_to="study_duration_value",units_to="study_duration_units") %>%
+    dplyr::mutate(# Remove leading "N hr/d, N d/wk, for/on "
+      duration_original = duration,
+      duration = gsub("^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?",
+                      "", duration),
+      # Remove "postweaning" and "gavage study" from duration
+      duration = gsub(", postweaning|gavage study", "", duration),
+      duration = gsub("weejs", "weeks", duration)) %>%
+    # Clean up and split remaining numeric/unit pairs
+    fix_numeric_units_split(to_split = "duration",value_to="study_duration_value",
+                            units_to="study_duration_units") %>%
+    # Now that they've served as tags for adding units, remove these
+    dplyr::mutate(across(c(study_duration_value, study_duration_units),
+                  ~ stringr::str_squish(
+                    stringr::str_replace_all(., "(reproductive: )?gds?|gestation days|pnds?", "")
+                    )
+                  )
+           ) %>%
     select(-duration)
 
   # Combine two separate notes columns from the extraction into one
