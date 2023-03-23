@@ -51,6 +51,22 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Split columns and name them
     tidyr::separate(., study_type, c("study_type","exposure_route"), sep=": ", fill="right", remove=FALSE)
 
+  # Handle developmental fetus vs. maternal studies
+  if(grepl("developmental", subf) && any(grepl("fetus_|maternal_", names(res)))){
+    message("Handling developmental OHT fetus vs. maternal field pivots...")
+    # Fill default maternal sex
+    res$maternal_sex = "female"
+    res = res %>%
+      # Get all maternal and fetus fields in one field
+      tidyr::pivot_longer(cols=starts_with("fetus_") | starts_with("maternal_"),
+                          names_to = "dev_field",
+                          values_transform = list(value=as.character)) %>%
+      # Split by maternal vs. fetus fields with "generation_type"
+      tidyr::separate(dev_field, into=c("generation_type", "field"), sep="_", extra="merge") %>%
+      # Spread out fields again, now without theif "fetus_" or "maternal_" prefixes (now stored in "generation_type")
+      tidyr::pivot_wider(names_from = field, values_from=value)
+  }
+
   ## Chemical cleaning
   # Handle chemical name reassignment ("-" or NA values)
   res$name[res$name == "-" | is.na(res$name)] <- res$chemical_name[res$name == "-" | is.na(res$name)]
@@ -70,8 +86,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     tidyr::separate_rows(casrn, sep=",") %>%
     # Squish extra whitespace
     dplyr::mutate(across(c("name", "casrn"), ~stringr::str_squish(.)))
-
-  # tmp2 = res %>% select(name, casrn, source_url) %>% filter(source_url == 'https://echa.europa.eu/registration-dossier/-/registered-dossier/24318/7/3/2/')
 
   # Fill "-" name and casrn with NA
   res$name[res$name == "-" | res$name == ""] = NA
@@ -160,10 +174,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Truncate field names to abbreviated strings
     textclean::mgsub(.,
                      pattern = c("__", "administrativedata", "materialsandmethods", "administrationexposure", "administration",
-                                 "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity", "inhalation"
+                                 "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity", "inhalation",
+                                 "developmental", "maternal", "fetuses", "fetal", "results", "abnormalities", "animals",
+                                 "fetus"
                      ),
                      replace = c("_", "admindata", "matnmet", "adminexposure", "admin",
-                                 "mat", "resndisc", "efflvs", "sys", "tox", "inhale")) %>%
+                                 "mat", "resndisc", "efflvs", "sys", "tox", "inhale",
+                                 "devmtl", "mtnl", "fts", "ftl", "res", "abnorm", "anim",
+                                 "fts")) %>%
     gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .)
 
   # Halt if field names are still too long
@@ -198,9 +216,6 @@ orchestrate_import_source_iuclid <- function(dir=paste0(toxval.config()$datapath
   subdirs <- list.files(dir, pattern="iuclid")
 
   for (subf in subdirs) {
-    if(any(grepl(subf, tblList))){
-      next
-    }
     message("Pushing: ", subf)
     import_source_iuclid(db=db,
                          subf=subf,
