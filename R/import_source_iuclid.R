@@ -51,6 +51,24 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Split columns and name them
     tidyr::separate(., study_type, c("study_type","exposure_route"), sep=": ", fill="right", remove=FALSE)
 
+  ## Chemical cleaning
+  # Handle chemical name reassignment ("-" or NA values)
+  res$name[res$name == "-" | is.na(res$name)] <- res$chemical_name[res$name == "-" | is.na(res$name)]
+  # Handle casrn reassignment ("-" or NA values)
+  res$casrn[res$casrn == "-" | is.na(res$casrn)] <- res$chemical_CASnumber[res$casrn == "-" | is.na(res$casrn)]
+
+  # Split chemical mixtures/lists
+  res = res %>% tidyr::separate_rows(name, sep=";")
+
+  # Fill "-" name and casrn with NA
+  res$name[res$name == "-" | res$name == ""] = NA
+  res$casrn[res$casrn == "-" | res$casrn == ""] = NA
+  # Filter out incomplete cases, keep partial cases (has something for name or casrn)
+  res = res %>%
+    filter(!(is.na(name) & is.na(casrn)))
+  # View(res %>% filter(is.na(name)) %>% select(name, casrn) %>% distinct())
+  # View(res %>% filter(is.na(casrn)) %>% select(name, casrn) %>% distinct())
+
   # Handle case where exposure was mapped to exposure_form and exposure_method in the map
   if("exposure" %in% names(res)){
     res = res %>%
@@ -64,48 +82,48 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     #select(-matches("CrossReference.*.uuid")) %>%
     select(-matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation"))
 
-    # Replace column value with another column value based on a condition ("other:")
-    if(all(c("toxval_units", "toxval_units_other")) %in% names(res)){
-      res$toxval_units[res$toxval_units == 'other:' & !is.na(res$toxval_units)] <- res$toxval_units_other[res$toxval_units == 'other:' & !is.na(res$toxval_units)]
-    }
-    if(all(c("toxval_type", "toxval_type_other")) %in% names(res)){
-      res$toxval_type[res$toxval_type == 'other:' & !is.na(res$toxval_type)] <- res$toxval_type_other[res$toxval_type == 'other:' & !is.na(res$toxval_type)]
-    }
-    if(all(c("species", "species_other")) %in% names(res)){
-      res$species[res$species == 'other:' & !is.na(res$species)] <- res$species_other[res$species == 'other:' & !is.na(res$species)]
-    }
-    if(all(c("strain", "strain_other")) %in% names(res)){
-      res$strain[res$strain == 'other:' & !is.na(res$strain)] <- res$strain_other[res$strain == 'other:' & !is.na(res$strain)]
-    }
-    if(all(c("guideline", "guideline_other")) %in% names(res)){
-      res$guideline[res$guideline == 'other:' & !is.na(res$guideline)] <- res$guideline_other[res$guideline == 'other:' & !is.na(res$guideline)]
-    }
-    if(all(c("exposure", "exposure_other")) %in% names(res)){
-      res$exposure[res$exposure == 'other:' & !is.na(res$exposure)] <- res$exposure_other[res$exposure == 'other:' & !is.na(res$exposure)]
-    }
+  # Replace column value with another column value based on a condition ("other:")
+  if(all(c("toxval_units", "toxval_units_other") %in% names(res))){
+    res$toxval_units[res$toxval_units == 'other:' & !is.na(res$toxval_units)] <- res$toxval_units_other[res$toxval_units == 'other:' & !is.na(res$toxval_units)]
+  }
+  if(all(c("toxval_type", "toxval_type_other") %in% names(res))){
+    res$toxval_type[res$toxval_type == 'other:' & !is.na(res$toxval_type)] <- res$toxval_type_other[res$toxval_type == 'other:' & !is.na(res$toxval_type)]
+  }
+  if(all(c("species", "species_other") %in% names(res))){
+    res$species[res$species == 'other:' & !is.na(res$species)] <- res$species_other[res$species == 'other:' & !is.na(res$species)]
+  }
+  if(all(c("strain", "strain_other") %in% names(res))){
+    res$strain[res$strain == 'other:' & !is.na(res$strain)] <- res$strain_other[res$strain == 'other:' & !is.na(res$strain)]
+  }
+  if(all(c("guideline", "guideline_other") %in% names(res))){
+    res$guideline[res$guideline == 'other:' & !is.na(res$guideline)] <- res$guideline_other[res$guideline == 'other:' & !is.na(res$guideline)]
+  }
+  if(all(c("exposure", "exposure_other") %in% names(res))){
+    res$exposure[res$exposure == 'other:' & !is.na(res$exposure)] <- res$exposure_other[res$exposure == 'other:' & !is.na(res$exposure)]
+  }
 
-    # Fix: effect_level_basis TBD
-    # Fix: media TBD
-    # Fix: reference_type TBD
-    # Fix: dose_units TBD
+  # Fix: effect_level_basis TBD
+  # Fix: media TBD
+  # Fix: reference_type TBD
+  # Fix: dose_units TBD
 
-    # Check for acute OHTs without a mapped duration field
-    if(grepl("acute", subf, ignore.case = TRUE)){
-      # Set duration to 1 day if not present in value/units
-      if(!all(c("study_duration_value", "study_duration_units") %in% names(res))){
-        res$study_duration_value = 1
-        res$study_duration_units = "day"
-      }
+  # Check for acute OHTs without a mapped duration field
+  if(grepl("acute", subf, ignore.case = TRUE)){
+    # Set duration to 1 day if not present in value/units
+    if(!all(c("study_duration_value", "study_duration_units") %in% names(res))){
+      res$study_duration_value = 1
+      res$study_duration_units = "day"
     }
+  }
 
-    # Perform study duration split if needed
-    if("study_duration_original" %in% names(res)){
-      # Fix study duration with various regex
-      res = fix_numeric_units_split(df = res,
-                                    to_split = "study_duration_original",
-                                    value_to = "study_duration_value",
-                                    units_to = "study_duration_units")
-    }
+  # Perform study duration split if needed
+  if("study_duration_original" %in% names(res)){
+    # Fix study duration with various regex
+    res = fix_numeric_units_split(df = res,
+                                  to_split = "study_duration_original",
+                                  value_to = "study_duration_value",
+                                  units_to = "study_duration_units")
+  }
 
   # Check for media column, or put as blank
   if(!"media" %in% names(res)){
@@ -115,11 +133,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$media = "-"
   }
 
-  # Split chemical mixtures/lists
-  res = res %>%
-    tidyr::separate_rows(name, sep=";") %>%
-    # Fix greek symbols in units
-    dplyr::mutate(across(matches("_units"), fix.greek.symbols(.)))
+  # Fix Greek symbols in units
+  res <- res %>%
+    dplyr::mutate(across(ends_with("_units"), ~fix.greek.symbols(.)))
+
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -135,6 +152,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                      replace = c("_", "admindata", "matnmet", "adminexposure", "admin",
                                  "mat", "resndisc", "efflvs", "sys", "tox")) %>%
     gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .)
+
   # Halt if field names are still too long
   if(any(nchar(names(res)) > 65)){
     message("Error: fieldnames too long: ", names(res)[nchar(names(res)) > 65] %>% toString())
