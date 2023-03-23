@@ -54,11 +54,24 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   ## Chemical cleaning
   # Handle chemical name reassignment ("-" or NA values)
   res$name[res$name == "-" | is.na(res$name)] <- res$chemical_name[res$name == "-" | is.na(res$name)]
+  # Replace 'not available', 'no iupac name', etc.
+  res$name[grepl("available|no iupac name|Not allocated|see remarks|confidential", res$name, ignore.case = TRUE)] <-
+    res$chemical_name[grepl("available|no iupac name|Not allocated|see remarks|confidential", res$name, ignore.case = TRUE)]
   # Handle casrn reassignment ("-" or NA values)
   res$casrn[res$casrn == "-" | is.na(res$casrn)] <- res$chemical_CASnumber[res$casrn == "-" | is.na(res$casrn)]
+  # Replace "to be assigned", "Not assigned", "not yet assigned"
+  res$casrn[grepl("assigned", res$casrn, ignore.case = TRUE)] <- res$chemical_CASnumber[grepl("assigned", res$casrn, ignore.case = TRUE)]
 
   # Split chemical mixtures/lists
-  res = res %>% tidyr::separate_rows(name, sep=";")
+  res = res %>%
+    dplyr::mutate(casrn = gsub(" and", ",", casrn)) %>%
+    tidyr::separate_rows(name, sep=";") %>%
+    tidyr::separate_rows(casrn, sep=";") %>%
+    tidyr::separate_rows(casrn, sep=",") %>%
+    # Squish extra whitespace
+    dplyr::mutate(across(c("name", "casrn"), ~stringr::str_squish(.)))
+
+  # tmp2 = res %>% select(name, casrn, source_url) %>% filter(source_url == 'https://echa.europa.eu/registration-dossier/-/registered-dossier/24318/7/3/2/')
 
   # Fill "-" name and casrn with NA
   res$name[res$name == "-" | res$name == ""] = NA
@@ -147,10 +160,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Truncate field names to abbreviated strings
     textclean::mgsub(.,
                      pattern = c("__", "administrativedata", "materialsandmethods", "administrationexposure", "administration",
-                                 "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity"
+                                 "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity", "inhalation"
                      ),
                      replace = c("_", "admindata", "matnmet", "adminexposure", "admin",
-                                 "mat", "resndisc", "efflvs", "sys", "tox")) %>%
+                                 "mat", "resndisc", "efflvs", "sys", "tox", "inhale")) %>%
     gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .)
 
   # Halt if field names are still too long
@@ -183,7 +196,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 orchestrate_import_source_iuclid <- function(dir=paste0(toxval.config()$datapath, "iuclid")) {
   # Loop through all subdirectories of current wd and load the source files within into ToxVal
   subdirs <- list.files(dir, pattern="iuclid")
+
   for (subf in subdirs) {
+    if(any(grepl(subf, tblList))){
+      next
+    }
+    message("Pushing: ", subf)
     import_source_iuclid(db=db,
                          subf=subf,
                          chem.check.halt=FALSE,
