@@ -13,6 +13,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   source_table = paste0("source_iuclid_", subf) %>% tolower()
   dir = paste0(toxval.config()$datapath,"iuclid/",subf,"/",subf,"_files/")
   file = list.files(dir, pattern=".xlsx", full.names = TRUE)
+  if(!length(file)) return(cat("...No files to process...\n"))
   if(length(file) > 1) stop("More than 1 IUCLID file stored in '", dir, "'")
   # guess_max used due to large file with some columns guessed as NA/logical when not
   res0 = readxl::read_xlsx(file, guess_max=21474836)
@@ -37,7 +38,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     map_orig$map_confirmed[(map_orig$oht == subf) & (map_orig$from %in% map_check)] <- 0
     # Update the map to help with curation of field names
     writexl::write_xlsx(map_orig, paste0(toxval.config()$datapath,"iuclid/field_maps/iuclid_field_map.xlsx"))
-    return(paste0("Need to remap the following fields: ", toString(map_check)))
+    return(cat(paste0("Need to remap the following fields: ", toString(map_check)), "\n"))
   }
 
   # Create a named vector to handle renaming from the map
@@ -67,16 +68,18 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       tidyr::pivot_wider(names_from = field, values_from=value)
   }
 
-  ## Chemical cleaning
-  # Handle chemical name reassignment ("-" or NA values)
-  res$name[res$name == "-" | is.na(res$name)] <- res$chemical_name[res$name == "-" | is.na(res$name)]
-  # Replace 'not available', 'no iupac name', etc.
-  res$name[grepl("available|no iupac name|Not allocated|see remarks|confidential", res$name, ignore.case = TRUE)] <-
-    res$chemical_name[grepl("available|no iupac name|Not allocated|see remarks|confidential", res$name, ignore.case = TRUE)]
-  # Handle casrn reassignment ("-" or NA values)
-  res$casrn[res$casrn == "-" | is.na(res$casrn)] <- res$chemical_CASnumber[res$casrn == "-" | is.na(res$casrn)]
-  # Replace "to be assigned", "Not assigned", "not yet assigned"
-  res$casrn[grepl("assigned", res$casrn, ignore.case = TRUE)] <- res$chemical_CASnumber[grepl("assigned", res$casrn, ignore.case = TRUE)]
+  # Removed since we only want to use the reference_* chemical information fields
+  # The other chemical_* fields come from ECHA
+  # ## Chemical cleaning
+  # # Handle chemical name reassignment ("-" or NA values)
+  # res$name[res$name == "-" | is.na(res$name)] <- res$chemical_name[res$name == "-" | is.na(res$name)]
+  # # Replace 'not available', 'no iupac name', etc.
+  # res$name[grepl("available|no iupac name|Not allocated|see remarks|confidential", res$name, ignore.case = TRUE)] <-
+  #   res$chemical_name[grepl("available|no iupac name|Not allocated|see remarks|confidential", res$name, ignore.case = TRUE)]
+  # # Handle casrn reassignment ("-" or NA values)
+  # res$casrn[res$casrn == "-" | is.na(res$casrn)] <- res$chemical_CASnumber[res$casrn == "-" | is.na(res$casrn)]
+  # # Replace "to be assigned", "Not assigned", "not yet assigned"
+  # res$casrn[grepl("assigned", res$casrn, ignore.case = TRUE)] <- res$chemical_CASnumber[grepl("assigned", res$casrn, ignore.case = TRUE)]
 
   # Split chemical mixtures/lists
   res = res %>%
@@ -176,17 +179,17 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                      pattern = c("__", "administrativedata", "materialsandmethods", "administrationexposure", "administration",
                                  "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity", "inhalation",
                                  "developmental", "maternal", "fetuses", "fetal", "results", "abnormalities", "animals",
-                                 "fetus"
+                                 "fetus", "remarks"
                      ),
                      replace = c("_", "admindata", "matnmet", "adminexposure", "admin",
                                  "mat", "resndisc", "efflvs", "sys", "tox", "inhale",
                                  "devmtl", "mtnl", "fts", "ftl", "res", "abnorm", "anim",
-                                 "fts")) %>%
+                                 "fts", "remrk")) %>%
     gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .)
 
   # Halt if field names are still too long
-  if(any(nchar(names(res)) > 65)){
-    message("Error: fieldnames too long: ", names(res)[nchar(names(res)) > 65] %>% toString())
+  if(any(nchar(names(res)) >= 65)){
+    message("Error: fieldnames too long: ", names(res)[nchar(names(res)) >= 65] %>% toString())
     browser()
   }
 
@@ -221,6 +224,6 @@ orchestrate_import_source_iuclid <- function(dir=paste0(toxval.config()$datapath
                          subf=subf,
                          chem.check.halt=FALSE,
                          do.reset=FALSE,
-                         do.insert=FALSE)
+                         do.insert=TRUE)
   }
 }
