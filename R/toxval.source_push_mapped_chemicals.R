@@ -9,10 +9,13 @@
 #' @param ignore.curation.dups Boolean whether to match with any curated records flagged as "unresolved duplicates" (Default TRUE)
 #' @param match.chemical.id Boolean whether to match by provided chemical_id external identifier (Default FALSE)
 #' @param reset.mapping Boolean whether to reset chemical mappings in source_chemical table of database
+#' @param bulk.push Boolean whether to bulk push updates, or one at a time. Default is TRUE
 #' @return None. Update SQL statements are executed.
 #' @import RMySQL dplyr readxl magrittr
 #--------------------------------------------------------------------------------------
-toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path, ignore.curation.dups=TRUE, match.chemical.id=FALSE, reset.mapping=FALSE){
+toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
+                                                ignore.curation.dups=TRUE, match.chemical.id=FALSE,
+                                                reset.mapping=FALSE, bulk.push = TRUE){
 
   # Map chemical information from curated files and select source.index
   out = map_curated_chemicals(source.index=source.index, curated.path=curated.path,
@@ -38,45 +41,65 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path, 
   # Filter only to those with DTXRID values
   out = out %>%
     filter(!is.na(dtxrid))
+  # Fill in blanks
+  out$name[is.na(out$name)] = "-"
+  out$casrn[is.na(out$casrn)] = "-"
   # If not resetting, only filter to what is missing a mapping in the database
   if(!reset.mapping){
     out = out %>%
       filter(chemical_id %in% chem_tbl$chemical_id[is.na(chem_tbl$dtxrid)])
   }
-  # Push mappings
-  for(i in seq_len(nrow(out))){
-  #for(c_id in out$chemical_id){
-    if(i%%200==0) cat(i," out of ",nrow(out),"\n")
-    c_id = out$chemical_id[i]
-    map = out %>%
-      filter(chemical_id == c_id) %>%
-      # Only push columns that aren't NA
-      select(where(~!all(is.na(.))))
 
-    # NA values present for all columns or all but chemical_id, skip
-    if(length(map) <= 1){
-      message("No record to push...")
-      next
+  if(!nrow(out)){
+    message("...no new chemical maps to push. Set reset.mapping to TRUE to reset mappings")
+  }
+  # Clean curated chemical information (sometimes has utf8 encoding issues)
+  result = chem.check(out,name.col="name",casrn.col="casrn",verbose=FALSE,source="-")
+  out = result$res0
+
+  if(bulk.push){
+    updateQuery = paste0("UPDATE source_chemical a INNER JOIN z_updated_df b ",
+                         "ON (a.chemical_id = b.chemical_id) SET ",
+                         paste0("a.", names(out)[!names(out) %in% c("chemical_id")],
+                                " = b.", names(out)[!names(out) %in% c("chemical_id")], collapse = ", ")
+    )
+    runUpdate(table="source_chemical", updateQuery=updateQuery, updated_df=out, db=db)
+  } else {
+    # Push mappings
+    for(i in seq_len(nrow(out))){
+      #for(c_id in out$chemical_id){
+      if(i%%200==0) cat(i," out of ",nrow(out),"\n")
+      c_id = out$chemical_id[i]
+      map = out %>%
+        filter(chemical_id == c_id) %>%
+        # Only push columns that aren't NA
+        select(where(~!all(is.na(.))))
+
+      # NA values present for all columns or all but chemical_id, skip
+      if(length(map) <= 1){
+        message("No record to push...")
+        next
+      }
+      if(nrow(map) > 1){
+        message("Error: multiple rows mapped for single chemical ID")
+        next
+      }
+
+      varSet <- lapply(map %>%
+                         select(-chemical_id) %>%
+                         names(), function(x){
+                           paste0(x, ' = "', map[[x]] %>%
+                                    # Escape quotation mark double-prime for names
+                                    gsub('"', '\\\\"', .),
+                                  '"')
+                         }) %>%
+        paste0(collapse = ', ')
+
+      paste0("UPDATE source_chemical SET ",
+             varSet,
+             " WHERE chemical_id = '", c_id, "'") %>%
+        runQuery(query=., db=db, do.halt = FALSE)
     }
-    if(nrow(map) > 1){
-      message("Error: multiple rows mapped for single chemical ID")
-      next
-    }
-
-    varSet <- lapply(map %>%
-                       select(-chemical_id) %>%
-                       names(), function(x){
-                         paste0(x, ' = "', map[[x]] %>%
-                                  # Escape quotation mark double-prime for names
-                                  gsub('"', '\\\\"', .),
-                                '"')
-                       }) %>%
-      paste0(collapse = ', ')
-
-    paste0("UPDATE source_chemical SET ",
-           varSet,
-           " WHERE chemical_id = '", c_id, "'") %>%
-      runQuery(query=., db=db, do.halt = FALSE)
   }
 }
 
@@ -101,7 +124,7 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
 
   c_dirs = list.dirs(curated.path, recursive = FALSE)
   curated_list = lapply(c_dirs, function(d){
-    tmp = list.files(d) %>%
+    tmp = list.files(d, pattern=".xlsx") %>%
       .[grepl(source.index, .)]
     # Remove Windows temp files that start with "~"
     return(tmp[!grepl("^~", tmp)])
@@ -109,12 +132,17 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
 
   out = lapply(curated_list$`DSSTox Files`, function(c_list){
     message("...mapping file: ", c_list)
+    # Get specific sub source.index (e.g., _a, _b, _c)
+    curated_source.index = c_list %>%
+      gsub("DSSTox_ToxVal", "", .) %>%
+      strsplit("_") %>% unlist()
+    curated_source.index = paste0(curated_source.index[1], "_", curated_source.index[2])
     # Load required files from curation
-    c_files = list(orig_file = curated_list$jira_chemical_files[grepl(source.index, curated_list$jira_chemical_files)] %>%
+    c_files = list(orig_file = curated_list$jira_chemical_files[grepl(curated_source.index, curated_list$jira_chemical_files)] %>%
                      paste0(curated.path, "/jira_chemical_files/", .),
-                   b_file = curated_list$`BIN Files`[grepl(source.index, curated_list$`BIN Files`)] %>%
+                   b_file = curated_list$`BIN Files`[grepl(curated_source.index, curated_list$`BIN Files`)] %>%
                      paste0(curated.path, "/BIN Files/", .),
-                   d_file = curated_list$`DSSTox Files`[grepl(source.index, curated_list$`DSSTox Files`)] %>%
+                   d_file = curated_list$`DSSTox Files`[grepl(curated_source.index, curated_list$`DSSTox Files`)] %>%
                      paste0(curated.path, "/DSSTox Files/", .))
 
     # Check files exist (need all 3)
@@ -143,6 +171,10 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
     out = data.frame()
 
     if(match.chemical.id){
+      if("external_id" %in% names(c_files$orig_file)){
+        c_files$orig_file = c_files$orig_file %>%
+          dplyr::rename(chemical_id = external_id)
+      }
       tmp = c_files$orig_file %>%
         select(chemical_id) %>%
         left_join(c_files$d_file,
