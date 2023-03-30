@@ -210,12 +210,14 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
   res0 = res0 %>%
     # Add rowwise so mutate can vectorize the parse_scientific function
     dplyr::rowwise() %>%
-    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric)) #%>%
+    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric)) %>%
     ## Add blank manual curation fields
-    #mutate(strain = "-",
-    #       sex = "-",
-    #       exposure_route = "-",
-    #       exposure_method = "-")
+    mutate(strain = "-",
+           sex = "-",
+           exposure_route = "-",
+           exposure_method = "-")
+  # Replacing empty notes with "-"
+  res0$notes[res0$notes == ""] <- "-"
 
   #####################################################################
   cat("Prep and load the data\n")
