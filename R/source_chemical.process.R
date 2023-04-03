@@ -3,6 +3,7 @@
 #' @param db The version of toxval into which the source info is loaded.
 #' @param res The input dataframe to which chemical information will be added
 #' @param source The source to process
+#' @param table Name of the database table
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #' @param casrn.col The name of the column containing the CASRN
 #' @param name.col The name ofhte column containing hte chemical name
@@ -14,6 +15,7 @@
 source_chemical.process <- function(db,
                                     res,
                                     source,
+                                    table,
                                     chem.check.halt=FALSE,
                                     casrn.col="casrn",
                                     name.col="name",
@@ -49,7 +51,7 @@ source_chemical.process <- function(db,
       formatC(width = 5, format = "d", flag = "0") %>%
       paste0("ToxVal", .)
     # Insert to chemical_source_index table
-    data.frame(`source`= source, chemprefix = prefix) %>%
+    data.frame(`source`= source, chemprefix = prefix, source_table=table) %>%
       runInsertTable(., "chemical_source_index", db, get.id = FALSE)
     # Pull prefix
     prefix = runQuery(paste0("select chemprefix from chemical_source_index where source='",source,"'"),db)[1,1]

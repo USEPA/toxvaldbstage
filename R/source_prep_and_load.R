@@ -66,7 +66,7 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
   cat("Do the chemical checking\n")
   #####################################################################
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")
+  res = source_chemical.process(db,res,source,table,chem.check.halt,casrn.col="casrn",name.col="name")
 
   #####################################################################
   cat("Set the default values for missing data\n")
