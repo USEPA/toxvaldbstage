@@ -110,8 +110,9 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                                                         "clowder_v3/source_efsa_matched_mmille16_09212022.xlsx")),
                       "HAWC" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                        "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")),
+                      "PPRTV CPHEA" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                               "clowder_v3/pprtv_cphea_doc_map_mmille16.xlsx")),
                       data.frame()
-
                       )
 
   }
@@ -516,4 +517,24 @@ set_clowder_id <- function(res,source, map_file=NULL) {
   cat("try the v8 records\n")
   #browser()
   return(res)
+  if (source == "PPRTV CPHEA"){
+    #Filter map file to extraction pdfs only
+    map <- filter(map_file, parentPath == "PPRTV CPHEA/Extraction Documents/Extraction PDF")
+    #Indices for locations of matches based on chemical names
+    match_idx <- match(res$name,map$Chemical)
+    #Populate clowder id and document name from document map
+    res['clowder_id'] <- map$uuid[match_idx]
+    res['document_name'] <- map$subDir3[match_idx]
+    #Checking and outputing cat statement
+    res2 <- filter(res,is.na(clowder_id))
+    records_missing <- nrow(res2)
+    res2 <- res2[!duplicated(res2[ ,'study_id']), ]
+    documents_missing <- nrow(res2)
+    total_records <- nrow(res)
+    unique_documents <- nrow(res[!duplicated(res[ ,'study_id']), ])
+    cat("there are", total_records,"records in source_hawc from",unique_documents,"unique documents.",
+        records_missing, "records were not matched to clowder ids from", documents_missing, "documents.")
+    return(res)
+
+  }
 }
