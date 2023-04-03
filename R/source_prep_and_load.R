@@ -6,12 +6,13 @@
 #' @param res The data frame to be processed
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' inserting new data. Default FALSE
-#' @param do.insert If TRUE, insert data into the database, default TRUE
+#' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @param chem.check.halt If TRUE, stop the execution if there are errors in the
 #' chemical  mapping
 #--------------------------------------------------------------------------------------
 source_prep_and_load <- function(db,source,table,res,
-                                 do.reset=FALSE,do.insert=FALSE,chem.check.halt=FALSE){
+                                 do.reset=FALSE, do.insert=FALSE,
+                                 chem.check.halt=FALSE){
   printCurrentFunction(paste(db,"\n",source,":",table))
 
   chem.check.halt = FALSE
@@ -65,7 +66,7 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
   cat("Do the chemical checking\n")
   #####################################################################
-  res = source_chemical.process(db,res,source,chem.check.halt,casrn.col="casrn",name.col="name")
+  res = source_chemical.process(db,res,source,table,chem.check.halt,casrn.col="casrn",name.col="name")
 
   #####################################################################
   cat("Set the default values for missing data\n")
@@ -75,5 +76,7 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
   cat("Build the hash key and load the data \n")
   #####################################################################
-  toxval_source.hash.and.load(db,source,table,F,T,res)
+  toxval_source.hash.and.load(db=db, source=source,table=table,
+                              do.reset=do.reset, do.insert=do.insert,
+                              res=res)
 }

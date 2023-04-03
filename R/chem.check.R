@@ -87,7 +87,7 @@ chem.check <- function(res0,
   }
   cat("\n>>> Deal with CASRN\n")
   for(i in 1:nrow(res0)) {
-    n0 = res0[i,casrn.col]
+    n0 = res0[[casrn.col]][i]#  res0[i,casrn.col]
     if(!is.na(n0)) {
       n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
       n2 = stri_escape_unicode(n1)

@@ -30,7 +30,7 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
   # Parse input data fields
   src_fields = set_field_SQL_type(src_f = res, default_fields=default_fields) %>%
     paste0(., ",\n")
-  
+
   # Check for large table uploads
   if(length(res) > 50){
     # Replace all varchar with TEXT fields due to row size memory limit
@@ -83,26 +83,41 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
 #--------------------------------------------------------------------------------------
 set_field_SQL_type <- function(src_f = NULL, default_fields = NULL){
   lapply(names(src_f)[!names(src_f) %in% default_fields], function(f){
-    # Get type
-    type = typeof(src_f[[f]])
-    # Get max character length
-    t_len = max(nchar(src_f[[f]]), na.rm = TRUE) %>%
-      suppressWarnings() %>%
-    # Handle case of empty column, set size to 100 or 10 default guess
-    ifelse(is.infinite(.),
-           ifelse(type %in% c("character", "logical"), 25, 10),
-           .)
+    # # Get type
+    # type = typeof(src_f[[f]])
+    # Get class and type, which matters for things like Dates
+    type = paste0(c(class(src_f[[f]]), typeof(src_f[[f]])), collapse=";")
+
+    # Get numeric/double length and decimal places
+    if(grepl("numeric|double", type)){
+      t_len = lapply(src_f[[f]] %>% unique(), function(num){
+        return(get.num.decimal.count(num))
+      }) %>% dplyr::bind_rows()
+      # Default if nothing returned (case of all NA field)
+      if(!nrow(t_len)){
+        t_len = data.frame(num=8, dec=3)
+      }
+    } else {
+      # Get max character length
+      t_len = max(nchar(src_f[[f]]), na.rm = TRUE) %>%
+        suppressWarnings() %>%
+        # Handle case of empty column, or empty strings, set size to 25 or 10 default guess
+        ifelse(is.infinite(.) | . == 0,
+               ifelse(grepl("character|logical", type), 25, 10),
+               .)
+    }
 
     switch(type,
-           "character"=ifelse(t_len >= 25,
+           "character;character"=ifelse(t_len >= 25,
                               "TEXT",
                               paste0("VARCHAR(",t_len,")")),
-           "integer"=paste0("INT(",t_len,")"),
-           "double"=paste0("float"), # paste0("DOUBLE(",t_len,",",t_len,")"),
-           "logical"=ifelse(t_len >= 25,
+           "integer;integer"=paste0("INT(",t_len,")"),
+           "numeric;double"=paste0("DECIMAL(", max(t_len$num)+max(t_len$dec),", ", max(t_len$dec),")"), # paste0("DOUBLE(",t_len,",",t_len,")"),
+           "logical;logical"=ifelse(t_len >= 25,
                             "TEXT",
                             paste0("VARCHAR(",t_len,")")),
-           { stop("Unhandled SQL type in set_field_SQL_type(): ", type) }) %>%
+           "POSIXct;POSIXt;double"= "date",
+           { message("Unhandled SQL type in set_field_SQL_type(): ", type); browser(); stop() }) %>%
       paste0("`", f, "` ", .,
              ifelse(grepl("VARCHAR", .),
                     " COLLATE utf8_unicode_ci", ""),

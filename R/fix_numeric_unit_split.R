@@ -26,7 +26,8 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
   split_check = nrow(df)
   # Quick normalization
   df = df %>%
-    dplyr::mutate(temp_id = 1:dplyr::n(),
+    ungroup() %>%
+    dplyr::mutate(temp_id = 1:n(),
                   raw_in = stringr::str_squish(tolower(!!rlang::sym(to_split))))
 
   # Filter to rows without a duration
@@ -34,7 +35,9 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
     dplyr::filter(is.na(!!rlang::sym(to_split))) %>%
     dplyr::mutate(!!value_to := NA,
                   !!units_to := NA) %>%
-    dplyr::select(!all_of(to_split))
+    # dplyr::select(!all_of(to_split)) %>%
+    select(-raw_in)
+
   # Filter out matches
   df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
   # Case of integers with units, optional end in "." (e.g. 13 weeks.)
@@ -126,9 +129,9 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
     rbind(out, .)
   # Filter out matches
   df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
-  # Case like Up to 10 months
+  # Case like "Up to 10 months"
   out = df %>%
-    dplyr::filter(grepl("^[Uu]p to [0-9]+ [A-Za-z|.]+$", raw_in)) %>%
+    dplyr::filter(grepl("^[Uu]p to [0-9]+\\.?[0-9]* [A-Za-z|.]+$", raw_in)) %>%
     dplyr::mutate(raw_in = gsub("up to", "", raw_in, ignore.case=TRUE) %>%
              stringr::str_squish(.)) %>%
     tidyr::separate(raw_in, c(value_to, units_to), sep="\\s", extra="merge") %>%
@@ -176,6 +179,67 @@ fix_numeric_units_split <- function(df, to_split="", value_to="value", units_to=
               sapply(numbers$tens, function(n){ paste0(n, "-", numbers$base)}, USE.NAMES = FALSE) %>% c(),
               sapply(numbers$tens, function(n){ paste0(n, " ", numbers$base)}, USE.NAMES = FALSE) %>% c()
   ) %>% unlist()
+
+  # Case "10weeks"
+  out = df %>%
+    dplyr::filter(grepl("^[0-9]+weeks$", raw_in)) %>%
+    dplyr::mutate(raw_in = gsub("w", " weeks", raw_in)) %>%
+    tidyr::separate(raw_in, c(value_to, units_to), sep="\\s", extra="merge") %>%
+    dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(.))) %>%
+    rbind(out, .)
+  # Filter out matches
+  df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
+
+  # Case "6wk"
+  out = df %>%
+    dplyr::filter(grepl("^[0-9]+wk$", raw_in)) %>%
+    dplyr::mutate(raw_in = gsub("wk", " weeks", raw_in)) %>%
+    tidyr::separate(raw_in, c(value_to, units_to), sep="\\s", extra="merge") %>%
+    dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(.))) %>%
+    rbind(out, .)
+  # Filter out matches
+  df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
+
+  # Case "21d)" (too specific?)
+  out = df %>%
+    dplyr::filter(grepl("^[0-9]+d\\)$", raw_in)) %>%
+    dplyr::mutate(raw_in = gsub("d\\)", " days", raw_in)) %>%
+    tidyr::separate(raw_in, c(value_to, units_to), sep="\\s", extra="merge") %>%
+    dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(.))) %>%
+    rbind(out, .)
+  # Filter out matches
+  df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
+
+  # Append units to cases like "gd(s)|gestation day(s) 1(-21)"
+  out = df %>%
+    dplyr::filter(grepl("^((reproductive: )?gds? ?|gestation days?) ?[0-9]+-?[0-9]*$",
+                        raw_in, ignore.case = TRUE)) %>%
+    dplyr::mutate(raw_in = gsub("$", "_gestational days", raw_in)) %>%
+    tidyr::separate(raw_in, c(value_to, units_to), sep="_", extra="merge") %>%
+    dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(.))) %>%
+    rbind(out, .)
+  # Filter out matches
+  df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
+
+  # Append units to cases like "pnds 5-11"
+  out = df %>%
+    dplyr::filter(grepl("^pnds? [0-9]+ ?- ?[0-9]*$", raw_in)) %>%
+    dplyr::mutate(raw_in = gsub("$", "_postnatal days", raw_in)) %>%
+    tidyr::separate(raw_in, c(value_to, units_to), sep="_", extra="merge") %>%
+    dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(.))) %>%
+    rbind(out, .)
+  # Filter out matches
+  df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
+
+  # Case "X, Y, or Z weeks"
+  out = df %>%
+    dplyr::filter(grepl("^[0-9]-[0-9]+, [0-9]+, or [0-9]+ weeks", raw_in)) %>%
+    dplyr::mutate(raw_in = gsub(" weeks", "_weeks", raw_in)) %>%
+    tidyr::separate(raw_in, c(value_to, units_to), sep="_", extra="merge") %>%
+    dplyr::mutate(dplyr::across(c(value_to, units_to), ~stringr::str_squish(.))) %>%
+    rbind(out, .)
+  # Filter out matches
+  df = df %>% dplyr::filter(!temp_id %in% out$temp_id)
   # Need to refine the splitting of the column
   tmp = df %>%
     dplyr::filter(grepl(paste0("^", numbers, " [A-Za-z|.]+$", collapse="|"),

@@ -11,7 +11,8 @@ initialize_source_iuclid_directory <- function() {
   }
 
   # Create subdirectories and move files - only IUCLID files
-  files <- list.files(pattern=".xlsx")
+  files <- list.files(pattern=".xlsx") %>%
+    .[!. %in% c("iuclid_field_map.xlsx")]
   for(f in files){
     # Get source name
     #source <- substring(f, 1, nchar(f)-16)

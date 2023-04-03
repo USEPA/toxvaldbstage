@@ -7,14 +7,14 @@
 #--------------------------------------------------------------------------------------
 set_clowder_id <- function(res,source, map_file=NULL) {
   printCurrentFunction(source)
-  # file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx")
-  # map.icf = openxlsx::read.xlsx(file)
+  file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx")
+  map.icf = openxlsx::read.xlsx(file)
 
-  # file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_ccte.xlsx")
-  # map.ccte = openxlsx::read.xlsx(file)
+  file = paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_ccte.xlsx")
+  map.ccte = openxlsx::read.xlsx(file)
 
-  # map.icf = fix.non_ascii.v2(map.icf,"map.icf")
-  # map.ccte = fix.non_ascii.v2(map.ccte,"map.ccte")
+  map.icf = fix.non_ascii.v2(map.icf,"map.icf")
+  map.ccte = fix.non_ascii.v2(map.ccte,"map.ccte")
   if(source=="HESS") {
     for(dn in unique(res$document_name)) {
       if(is.element(dn,map.icf$document_name)) {
@@ -112,7 +112,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
                                                        "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")),
                       "PPRTV CPHEA" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/pprtv_cphea_doc_map_mmille16.xlsx")),
-
+                      data.frame()
                       )
 
   }
@@ -175,7 +175,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
       # if(source == "HAWC PFAS 150"){
       #   map = map_file
       # }
-
+      map = map_file
       title2 = res$title
       title2 = gsub("Registration dossier: |RRegistration dossier: ","", title2)
       title2 = gsub('\\.$','',title2)
@@ -314,6 +314,8 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     # Clear any old mappings
     res$clowder_id = NULL
     res$document_name = NULL
+    # Hardcode matching of "thiocyanate" to "thiocyanates"
+    res$clowder_id[which(res$chemical == "Thiocyanates")] <- "639a2fe6e4b04f6bb14a2734"
     # Match by chemical name
     res0 = res %>%
       left_join(map_file %>% select(Chemical, clowder_id, document_name),

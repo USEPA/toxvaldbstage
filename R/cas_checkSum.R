@@ -44,7 +44,10 @@ cas_checkSum <- function(x, checkLEN = TRUE) {
     stop("input must be of class character")
   }
 
-  if(!str_detect(x,"[0-9]")) return(0)
+  if(!stringr::str_detect(x,"[0-9]")) {
+    return(0)
+  }
+
   x_clean  <- gsub("\\D", "", x)
   if(checkLEN) {
     x_clean[nchar(x_clean)>10 | nchar(x_clean)<4] <- NA

@@ -3,6 +3,7 @@
 #' @param db The version of toxval into which the source info is loaded.
 #' @param res The input dataframe to which chemical information will be added
 #' @param source The source to process
+#' @param table Name of the database table
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #' @param casrn.col The name of the column containing the CASRN
 #' @param name.col The name ofhte column containing hte chemical name
@@ -14,6 +15,7 @@
 source_chemical.process <- function(db,
                                     res,
                                     source,
+                                    table,
                                     chem.check.halt=FALSE,
                                     casrn.col="casrn",
                                     name.col="name",
@@ -22,7 +24,9 @@ source_chemical.process <- function(db,
   #####################################################################
   cat("Do the chemical checking\n")
   #####################################################################
-  res$chemical_index = paste(res[,casrn.col],res[,name.col])
+  # res$chemical_index = paste(res[,casrn.col],res[,name.col])
+  res = res %>%
+    tidyr::unite(col="chemical_index", casrn.col, name.col, sep=" ", remove=FALSE)
   result = chem.check(res,name.col=name.col,casrn.col=casrn.col,verbose=verbose,source)
   if(chem.check.halt) if(!result$name.OK || !result$casrn.OK || !result$checksum.OK) browser()
 
@@ -42,12 +46,12 @@ source_chemical.process <- function(db,
       gsub("ToxVal", "", .) %>%
       as.numeric() %>%
       # Add 1 as well as an extra 10,000 padding to prevent overlap from manual entry
-      {. <- . + 1 + 10000 } %>%
+      {. <- . + 1 } %>%
       # Add 0 padding
       formatC(width = 5, format = "d", flag = "0") %>%
       paste0("ToxVal", .)
     # Insert to chemical_source_index table
-    data.frame(`source`= source, chemprefix = prefix) %>%
+    data.frame(`source`= source, chemprefix = prefix, source_table=table) %>%
       runInsertTable(., "chemical_source_index", db, get.id = FALSE)
     # Pull prefix
     prefix = runQuery(paste0("select chemprefix from chemical_source_index where source='",source,"'"),db)[1,1]
