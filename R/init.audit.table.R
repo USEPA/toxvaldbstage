@@ -22,7 +22,7 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
     # Filter to those named "source_*"
     .[grepl("source_", .)] %>%
     # Ignore those like source_audit or source_chemical
-    .[!grepl("chemical|source_audit", .)]
+    .[!grepl("chemical|source_audit|_old", .)]
 
   # Loop through and drop all previous triggers
   for(s_tbl in tblList){
