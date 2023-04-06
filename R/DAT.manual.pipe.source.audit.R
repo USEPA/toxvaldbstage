@@ -11,8 +11,8 @@
 #' @export
 #--------------------------------------------------------------------------------------
 DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn Rowan") {
-  # live_df = list("Repo/DAT reports/qc_updated_hawc_pfas_150_20221011_hashed.xlsx",
-  #             "Repo/DAT reports/qc_updated_hawc_pfas_150_clowder_20221020_hashed.xlsx")
+  # live_df = list("Repo/DAT reports/qc_update_hawc_pfas_430_hashed_20221013.xlsx",
+  #             "Repo/DAT reports/qc_updated_hawc_pfas_430_clowder_hashed_20221020.xlsx")
   # Used to prevent accidental usage - only use manually when certain it should be used.
   return("Should only be used to process special case of manually QC'd data without DAT")
   # Check input to ensure is list or string
@@ -28,8 +28,9 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
     tmp = readxl::read_xlsx(f) %>%
       # Remove QC fields that will be repopulated in this workflow
       .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))] %>%
-      filter(!qc_status %in% c("done in 20221011", "fail: multiple source documents"),
-             !is.na(qc_status))
+      filter(!qc_status %in% c("fail: multiple source documents"),
+             !is.na(qc_status),
+             !grepl("done in 10", qc_status))
 
     names(tmp) <- names(tmp) %>%
       # Replace whitespace and periods with underscore
@@ -59,7 +60,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
 
   # Add back columns removed from QC data
   source_data = runQuery(paste0("SELECT * FROM ", source, " WHERE source_hash in ('",
-                                paste0(DAT_data$live_dat$src_record_id, collapse="', '"),"')"), db=db) %>%
+                                paste0(DAT_data$live_dat$src_record_id %>% unique(), collapse="', '"),"')"), db=db) %>%
     # Only select columns (and source_hash) not already present in DAT QC data
     .[, names(.)[!names(.) %in% names(DAT_data$live_dat)]] %>%
     # Remove QC fields that will be repopulated in this workflow
