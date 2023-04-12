@@ -45,7 +45,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_hawc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                         "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")),
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/pprtv_cphea_doc_map_mmille16.xlsx")),
+                                                               "clowder_v3/pprtv_cphea_doc_map_lineage_jwall01.xlsx")),
                       data.frame()
     )
 
@@ -71,7 +71,9 @@ set_clowder_id_lineage <- function(source_table,
 
   mat <- map_file %>%
     filter(!clowder_id %in% pushed_docs$clowder_id) %>%
-    select(clowder_id)
+    select(clowder_id) %>%
+    # Only push unique Clowder IDs
+    unique()
 
   if(nrow(mat)){
     message("...pushing ", nrow(mat), " new document entries...")
@@ -98,20 +100,43 @@ set_clowder_id_lineage <- function(source_table,
                                  paste0(unique(map_file$clowder_id), collapse="', '"),
                                  "')"),
                           db)
-  # Match records to documents table records
+  # Match records to documents ID table records
   map_file <- map_file %>%
     left_join(pushed_docs,
               by="clowder_id")
 
-  if(!"parent_document_id" %in% names(map_file)){
+  if(!"parent_clowder_id" %in% names(map_file)){
     message("'parent_document_id' field not in map, cannot map document association lineage...skipping...")
   } else {
-    # TODO Push document-to-document associations
+    # Push document-to-document associations
+    mat <- map_file %>%
+      # Select linkage cols
+      select(clowder_id, parent_clowder_id, parent_flag, fk_doc_id) %>%
+      # Only those with a parent
+      filter(!is.na(parent_clowder_id)) %>%
+      # Split parent_clowder_id list (provided as semicolon separated list)
+      tidyr::separate_rows(parent_clowder_id, parent_flag, sep="; ", convert=TRUE) %>%
+      # Filter out NA split parent fields
+      filter(!is.na(parent_clowder_id)) %>%
+      # Map document ID values from database by Clowder ID
+      left_join(pushed_docs %>%
+                  dplyr::rename(fk_parent_doc_id=fk_doc_id),
+                by=c("parent_clowder_id"="clowder_id")) %>%
+      select(-clowder_id, -parent_clowder_id) %>%
+      # Only those that matched a document ID
+      filter(!is.na(fk_parent_doc_id))
+
+    # Insert linkages (don't have to check pushed associations before due to
+    # 'unique' database key on fk_doc_id and fk_parent_doc_id fields)
+    runInsertTable(mat=mat,
+                   table = "documents_lineage",
+                   get.id = FALSE,
+                   db=db)
   }
 
   # PUll source table data
   res <- runQuery(paste0("SELECT * FROM ", source_table), db=db)
-  # TODO custom mapping source_hash to document ID
+  # Custom mapping source_hash to document ID
   # Map documents to source_hash records like normal
   res <- switch(source_table,
 
