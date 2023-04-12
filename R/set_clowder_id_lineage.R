@@ -90,8 +90,11 @@ set_clowder_id_lineage <- function(source_table,
        is.na(clowder_url) || is.na(clowder_api_key)){
       cat("\nCannot sync clowder metadata without clowder_url and clowder_api_key...")
     } else {
-      # TODO Implement function with this subset of new documents
-      # doc_lineage_sync_clowder_metadata()
+      # Implement function with this subset of new documents
+      doc_lineage_sync_clowder_metadata(source_table=source_table,
+                                        db=db,
+                                        clowder_url=clowder_url,
+                                        clowder_api_key=clowder_api_key)
     }
   }
 
