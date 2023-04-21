@@ -1,12 +1,25 @@
 #-------------------------------------------------------------------------------------
-#' Load the FLEX data (old ACToR data) from files to toxval source. This will load all
+#' @description Load the FLEX data (old ACToR data) from files to toxval source. This will load all
 #' Excel file in the folder ACToR replacements/
 #' @param db The version of toxval_source into which the tables are loaded.
 #' @param filepath The path for all the input xlsx files ./ACToR replacements
 #' @param verbose Whether the loaded rows should be printed to the console.
 #' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
 #' @param do.clean If true, remove data for these sources before reloading
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_flex_source
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_flex_source <- function(db,
                                filepath="ACToR replacements",
@@ -36,7 +49,7 @@ import_flex_source <- function(db,
   for(i in 1:length(res)) {
     nres = names(res)[i]
     res0 = res[[i]]
-    res0 = res0[!is.element(res0$casrn,"NOCAS"),]
+    res0 = res0[!generics::is.element(res0$casrn,"NOCAS"),]
     source = res0[1,"source"]
     table = paste0("source_",nres)
     if(do.clean) {

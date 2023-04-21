@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_hpvis_source.R
 \name{import_hpvis_source}
 \alias{import_hpvis_source}
-\title{Load HPVIS Source Info into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_hpvis_source(db, filepath = "hpvis/hpvis_files", chem.check.halt = T)
 }
@@ -13,6 +13,25 @@ import_hpvis_source(db, filepath = "hpvis/hpvis_files", chem.check.halt = T)
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load HPVIS Source Info into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[stats]{setNames}}
+ \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{reexports}}
+ \code{\link[utils]{type.convert}}
 }

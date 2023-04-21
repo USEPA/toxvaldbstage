@@ -1,8 +1,28 @@
 #--------------------------------------------------------------------------------------
-#' Load DOE Source into toxval_source
+#' @description Load DOE Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./doe/doe_files/Revision_29.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{filter-joins}}
+#'  \code{\link[tidyr]{reexports}}
+#' @rdname import_doe_pac_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom gsubfn list
+#' @importFrom dplyr distinct semi_join anti_join
+#' @importFrom tidyr contains
 #--------------------------------------------------------------------------------------
 import_doe_pac_source <- function(db,
                               infile="Revision_29.xlsx",
@@ -102,7 +122,7 @@ import_doe_pac_source <- function(db,
   names(res4) <- header_res4
   rm(res4_unit)
 
-  res <- Reduce(function(x,y) merge(x,y, all = T), list(res2,res3,res4))
+  res <- Reduce(function(x,y) merge(x,y, all = T), gsubfn::list(res2,res3,res4))
   res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1` <- as.numeric(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1`)
   res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2` <- as.numeric(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2`)
   res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3` <- as.numeric(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`)
@@ -111,7 +131,7 @@ import_doe_pac_source <- function(db,
   res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2` <- signif(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2`, digits = 3)
   res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`<- signif(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`, digits = 3)
 
-  new_res <- res %>% distinct(`Chemical Name`,CASRN, `PACs based on AEGLs, ERPGs, or TEELs,PAC-1`,
+  new_res <- res %>% dplyr::distinct(`Chemical Name`,CASRN, `PACs based on AEGLs, ERPGs, or TEELs,PAC-1`,
                               `PACs based on AEGLs, ERPGs, or TEELs,PAC-2`,`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`,Units,
                               `Source of PACs-PAC-1, PAC-2, PAC-3`, .keep_all = T)
 
@@ -121,10 +141,10 @@ import_doe_pac_source <- function(db,
 
   source_res1 <- source_res[,c(2:7)]
   no_source_res1 <- no_source_res[,c(2:7)]
-  uniq_vals <- semi_join(source_res1,no_source_res1, by = c("Chemical Name", "CASRN", "PACs based on AEGLs, ERPGs, or TEELs,PAC-1",
+  uniq_vals <- dplyr::semi_join(source_res1,no_source_res1, by = c("Chemical Name", "CASRN", "PACs based on AEGLs, ERPGs, or TEELs,PAC-1",
                                                             "PACs based on AEGLs, ERPGs, or TEELs,PAC-2", "PACs based on AEGLs, ERPGs, or TEELs,PAC-3",
                                                             "Units"))
-  new_no_source_res <- anti_join(no_source_res, uniq_vals, by = c("Chemical Name","CASRN", "PACs based on AEGLs, ERPGs, or TEELs,PAC-1",
+  new_no_source_res <- dplyr::anti_join(no_source_res, uniq_vals, by = c("Chemical Name","CASRN", "PACs based on AEGLs, ERPGs, or TEELs,PAC-1",
                                                                   "PACs based on AEGLs, ERPGs, or TEELs,PAC-2","PACs based on AEGLs, ERPGs, or TEELs,PAC-3","Units"))
   new_res2 <- merge(new_no_source_res, source_res, all = T )
 
@@ -156,7 +176,7 @@ import_doe_pac_source <- function(db,
                       "toxval_units","pac_source")
   mask = vector(length=nrow(new_res1),mode="integer")
   mask[] = 1
-  for(i in 1:nrow(new_res1)) if(contains(new_res1[i,"casrn"],"z-")) mask[i] = 0
+  for(i in 1:nrow(new_res1)) if(tidyr::contains(new_res1[i,"casrn"],"z-")) mask[i] = 0
   new_res1 = new_res1[mask==1,]
   #####################################################################
   cat("Prep and load the data\n")

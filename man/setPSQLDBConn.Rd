@@ -2,17 +2,32 @@
 % Please edit documentation in R/setPSQLDBConn.R
 \name{setPSQLDBConn}
 \alias{setPSQLDBConn}
-\title{set PSQL connection to the database}
+\title{FUNCTION_TITLE}
 \usage{
 setPSQLDBConn(server, port, user, password)
 }
 \arguments{
 \item{server}{SQL server on which relevant database lives}
 
+\item{port}{PARAM_DESCRIPTION}
+
 \item{user}{SQL username to access database}
 
 \item{password}{SQL password corresponding to username}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 set PSQL connection to the database
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
 }

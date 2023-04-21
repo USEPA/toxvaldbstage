@@ -2,9 +2,15 @@
 % Please edit documentation in R/import_source_iuclid.R
 \name{import_source_iuclid}
 \alias{import_source_iuclid}
-\title{A generic template for adding data to toxval_source for a new source}
+\title{FUNCTION_TITLE}
 \usage{
-import_source_iuclid(db, subf, chem.check.halt = F)
+import_source_iuclid(
+  db,
+  subf,
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
+)
 }
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}
@@ -12,7 +18,33 @@ import_source_iuclid(db, subf, chem.check.halt = F)
 \item{subf}{The subfolder containing the IUCLID subsource}
 
 \item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
+
+\item{do.reset}{If TRUE, delete data from the database for this source before}
+
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
 A generic template for adding data to toxval_source for a new source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[readxl]{read_excel}}
+ \code{\link[dplyr]{filter}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{select}}
+ \code{\link[writexl]{write_xlsx}}
+ \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
+ \code{\link[gsubfn]{list}}
+ \code{\link[stringr]{str_trim}}
+ \code{\link[textclean]{mgsub}}
 }

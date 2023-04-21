@@ -1,8 +1,24 @@
 #--------------------------------------------------------------------------------------
-#' Load efsa2 Source into toxval_source
+#' @description Load efsa2 Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./efsa2/efsa2_files/merge2/EFSA_combined_new.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[utils]{type.convert}}
+#' @rdname import_efsa2_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom utils type.convert
 #--------------------------------------------------------------------------------------
 import_efsa2_source <- function(db,
                                 infile="EFSA_combined_new 2022-07-19.xlsx",
@@ -13,7 +29,7 @@ import_efsa2_source <- function(db,
   cat("Build new_efsa2 table\n")
   #####################################################################
   res <- openxlsx::read.xlsx(infile)
-  res <- lapply(res, function(x) type.convert(as.character(x),as.is = T))
+  res <- lapply(res, function(x) utils::type.convert(as.character(x),as.is = T))
   res <- data.frame(res,stringsAsFactors = F)
   res["new_efsa2_id"] <- c(1:length(res[,1]))
   res <- res[c('new_efsa2_id', names(res[-19]))]

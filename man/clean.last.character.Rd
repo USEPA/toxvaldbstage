@@ -2,7 +2,7 @@
 % Please edit documentation in R/clean.last.character.R
 \name{clean.last.character}
 \alias{clean.last.character}
-\title{Clean unneeded characters from the end of a string}
+\title{FUNCTION_TITLE}
 \usage{
 clean.last.character(x)
 }
@@ -14,4 +14,17 @@ The cleaned string
 }
 \description{
 Clean unneeded characters from the end of a string
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[stringr]{str_trim}}
 }

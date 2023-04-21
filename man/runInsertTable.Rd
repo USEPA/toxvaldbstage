@@ -2,7 +2,7 @@
 % Please edit documentation in R/runInsertTable.R
 \name{runInsertTable}
 \alias{runInsertTable}
-\title{Inserts multiple rows into a database table}
+\title{FUNCTION_TITLE}
 \usage{
 runInsertTable(mat, table, db, do.halt = T, verbose = F, get.id = T)
 }
@@ -16,7 +16,25 @@ runInsertTable(mat, table, db, do.halt = T, verbose = F, get.id = T)
 \item{do.halt}{if TRUE, halt on errors or warnings}
 
 \item{verbose}{if TRUE, print diagnostic information}
+
+\item{get.id}{PARAM_DESCRIPTION, Default: T}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
 Inserts multiple rows into a database table
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
 }

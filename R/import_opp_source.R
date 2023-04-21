@@ -1,8 +1,26 @@
 #--------------------------------------------------------------------------------------
-#' Load OPP Source into toxval_source
+#' @description Load OPP Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./opp/opp_files/OPP RfD.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{mutate}}
+#'  \code{\link[stringr]{str_trim}}
+#' @rdname import_opp_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom dplyr arrange mutate
+#' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
 import_opp_source <- function(db,
                               infile="source_opp_raw_20230131.xlsx",
@@ -62,11 +80,11 @@ import_opp_source <- function(db,
     dplyr::arrange(name)
   resall$toxval_numeric[resall$toxval_numeric %in% c("--", "-")] = NA
   resall$sensitive_lifestage[resall$sensitive_lifestage %in% c("--", "-")] = NA
-  
-  
+
+
   resall = resall %>%
     # Fix name encoding error
-    mutate(name = gsub("&amp;", "&", name),
+    dplyr::mutate(name = gsub("&amp;", "&", name),
            # Fix excess whitespace
            casrn = stringr::str_squish(casrn))
   # resall = resall[!is.na(resall$toxval_numeric),]

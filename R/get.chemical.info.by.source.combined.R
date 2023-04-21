@@ -9,10 +9,21 @@
 #' @description get chemical info from source db tables for curation, create
 #' chemical table to map curated chemicals to.
 #' @param source.db The version of toxval source to use.
-#' @param source_table The name of toxval source table to use.
 #' @param source The name of toxval source to use.
+#' @param source_table The name of toxval source table to use.
 #' @return database info collected
-#' @export
+#' @export 
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[dplyr]{bind}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{context}}
+#' @rdname get.chemical.info.by.source.combined
+#' @importFrom dplyr bind_rows mutate n
 #--------------------------------------------------------------------------------------
 get.chemical.info.by.source.combined <- function(source.db,source_table,source){
   message("Function still in draft phase - waiting for more guidance")
@@ -76,11 +87,11 @@ get.chemical.info.by.source.combined <- function(source.db,source_table,source){
     # print(chem_table_name)
     #print(View(chemical_information))
     return(chemical_information)
-  }) %>% bind_rows()
+  }) %>% dplyr::bind_rows()
 
   # Add ID column
   chems = chems %>%
-    mutate(id = 1:n())
+    dplyr::mutate(id = 1:dplyr::n())
   # Insert Chemical Table for all source tables
   #runInsertTable(chemical_information,"toxval_source_chemicals",source.db,do.halt=T,verbose=F)
 

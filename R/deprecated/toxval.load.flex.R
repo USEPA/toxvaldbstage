@@ -5,7 +5,6 @@
 #' @param verbose Whether the loaded rows should be printed to the console.
 #' @param only.new if TRUE only files where the sources is not alrady in the database
 #' will be loaded
-#' @export
 #--------------------------------------------------------------------------------------
 toxval.load.flex <- function(toxval.db,verbose=F,only.new=F) {
   printCurrentFunction(toxval.db)
@@ -89,7 +88,7 @@ toxval.load.flex <- function(toxval.db,verbose=F,only.new=F) {
       name.list <- names(res)
       name.list[is.element(name.list,"phenotype")] <- "critical_effect"
       names(res) <- name.list
-      
+
       res$datestamp <- Sys.time()
       if(is.element("species_original",names(res))) res[,"species_original"] <- tolower(res[,"species_original"])
       cat("step6",nrow(res),"\n")

@@ -1,7 +1,23 @@
 #--------------------------------------------------------------------------------------
-#' Load PFAS 150 SEM V2 Source data into toxval_source
+#' @description Load PFAS 150 SEM V2 Source data into toxval_source
 #' @param db The version of toxval_source into which the source info is loaded.
 #' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[digest]{digest}}
+#' @rdname import_pfas_150_sem_v2_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom digest digest
 #--------------------------------------------------------------------------------------
 import_pfas_150_sem_v2_source <- function(db,
                                           chem.check.halt=F) {
@@ -9,11 +25,11 @@ import_pfas_150_sem_v2_source <- function(db,
   indir = paste0(toxval.config()$datapath,"pfas_150_sem_v2/PFAS 150 SEM v2_files/")
 
   file = paste0(indir,"PFAS 150 SEM chemicals.xlsx")
-  chems = read.xlsx(file)
+  chems = openxlsx::read.xlsx(file)
   file = paste0(indir,"PFAS 150 SEM results.xlsx")
-  res = read.xlsx(file)
+  res = openxlsx::read.xlsx(file)
   file = paste0(indir,"PFAS 150 SEM HERO ID vs citation.xlsx")
-  hero = read.xlsx(file)
+  hero = openxlsx::read.xlsx(file)
 
   res[is.na(res$hero_id),"hero_id"] = -1
   res$long_ref = res$citation
@@ -23,17 +39,17 @@ import_pfas_150_sem_v2_source <- function(db,
   hlist = hlist[!is.na(hlist)]
   hlist = hlist[hlist>0]
   for(hero_id in hlist) {
-    if(is.element(hero_id,hero$HERO.ID)) cit = hero[hero$HERO.ID==hero_id,"Citation"]
-    else cit = unique(res[is.element(res$hero_id,hero_id),"citation"])[1]
-    res[is.element(res$hero_id,hero_id),"long_ref"] = cit
+    if(generics::is.element(hero_id,hero$HERO.ID)) cit = hero[hero$HERO.ID==hero_id,"Citation"]
+    else cit = unique(res[generics::is.element(res$hero_id,hero_id),"citation"])[1]
+    res[generics::is.element(res$hero_id,hero_id),"long_ref"] = cit
   }
   clist = unique(res$chemical_name)
   for(name in clist) {
-    if(is.element(name,chems$name)) {
-      dtxsid = chems[is.element(chems$name,name),"dtxsid"]
-      casrn = chems[is.element(chems$name,name),"casrn"]
-      res[is.element(res$chemical_name,name),"dtxsid"] = dtxsid
-      res[is.element(res$chemical_name,name),"casrn"] = casrn
+    if(generics::is.element(name,chems$name)) {
+      dtxsid = chems[generics::is.element(chems$name,name),"dtxsid"]
+      casrn = chems[generics::is.element(chems$name,name),"casrn"]
+      res[generics::is.element(res$chemical_name,name),"dtxsid"] = dtxsid
+      res[generics::is.element(res$chemical_name,name),"casrn"] = casrn
       #cat(casrn,dtxsid,name,"\n")
     }
     else {
@@ -45,7 +61,7 @@ import_pfas_150_sem_v2_source <- function(db,
   #####################################################################
   cat("pull the different PODs apart \n")
   #####################################################################
-  names(res)[is.element(names(res),"chemical_name")] = "name"
+  names(res)[generics::is.element(names(res),"chemical_name")] = "name"
   cenames2 = c("endpoint_system","endpoint_organ","endpoint","system_descriptor")
   res$critical_effect = NA
   res.ce = res[,cenames2]
@@ -105,7 +121,7 @@ import_pfas_150_sem_v2_source <- function(db,
 
   res2$hashkey = NA
   for(i in 1:nrow(res2)) {
-    hashkey = digest(paste0(res2[i,],collapse=""), serialize = FALSE)
+    hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
     res2[i,"hashkey"] = hashkey
     res[i,"hashkey"] = hashkey
   }

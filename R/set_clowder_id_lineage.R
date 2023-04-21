@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' Create document records and associations in toxval_source based on input source table and document map
+#' @description Create document records and associations in toxval_source based on input source table and document map
 #' @param source_table The source table name (e.g. source_test)
 #' @param map_file A dataframe of Clowder document mapping info. If NULL, will try to load a hardcoded map for the source
 #' @param map_clowder_id_field Column name for the Clowder ID field of the map
@@ -7,6 +7,23 @@
 #' @param clowder_api_key API key to access Clowder resources
 #' @param sync_clowder_metadata Boolean whether to sync Clowder metadata for new document records. Default is False.
 #' @return Returns an updated map with newly associated toxval_source table ID values
+#' @title FUNCTION_TITLE
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}
+#'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
+#' @rdname set_clowder_id_lineage
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr rename filter select left_join mutate
+#' @importFrom tidyr separate_rows unite
 #--------------------------------------------------------------------------------------
 set_clowder_id_lineage <- function(source_table,
                                    map_clowder_id_field,
@@ -70,8 +87,8 @@ set_clowder_id_lineage <- function(source_table,
                        db)
 
   mat <- map_file %>%
-    filter(!clowder_id %in% pushed_docs$clowder_id) %>%
-    select(clowder_id) %>%
+    dplyr::filter(!clowder_id %in% pushed_docs$clowder_id) %>%
+    dplyr::select(clowder_id) %>%
     # Only push unique Clowder IDs
     unique()
 
@@ -105,7 +122,7 @@ set_clowder_id_lineage <- function(source_table,
                           db)
   # Match records to documents ID table records
   map_file <- map_file %>%
-    left_join(pushed_docs,
+    dplyr::left_join(pushed_docs,
               by="clowder_id")
 
   if(!"parent_clowder_id" %in% names(map_file)){
@@ -114,20 +131,20 @@ set_clowder_id_lineage <- function(source_table,
     # Push document-to-document associations
     mat <- map_file %>%
       # Select linkage cols
-      select(clowder_id, parent_clowder_id, parent_flag, fk_doc_id) %>%
+      dplyr::select(clowder_id, parent_clowder_id, parent_flag, fk_doc_id) %>%
       # Only those with a parent
-      filter(!is.na(parent_clowder_id)) %>%
+      dplyr::filter(!is.na(parent_clowder_id)) %>%
       # Split parent_clowder_id list (provided as semicolon separated list)
       tidyr::separate_rows(parent_clowder_id, parent_flag, sep="; ", convert=TRUE) %>%
       # Filter out NA split parent fields
-      filter(!is.na(parent_clowder_id)) %>%
+      dplyr::filter(!is.na(parent_clowder_id)) %>%
       # Map document ID values from database by Clowder ID
-      left_join(pushed_docs %>%
+      dplyr::left_join(pushed_docs %>%
                   dplyr::rename(fk_parent_doc_id=fk_doc_id),
                 by=c("parent_clowder_id"="clowder_id")) %>%
-      select(-clowder_id, -parent_clowder_id) %>%
+      dplyr::select(-clowder_id, -parent_clowder_id) %>%
       # Only those that matched a document ID
-      filter(!is.na(fk_parent_doc_id))
+      dplyr::filter(!is.na(fk_parent_doc_id))
 
     # Insert linkages (don't have to check pushed associations before due to
     # 'unique' database key on fk_doc_id and fk_parent_doc_id fields)
@@ -145,14 +162,14 @@ set_clowder_id_lineage <- function(source_table,
 
                 "source_pprtv_cphea" = {
                   res <- res %>%
-                    select(source_hash, name) %>%
-                    left_join(map_file %>%
-                                select(fk_doc_id, clowder_id, Chemical),
+                    dplyr::select(source_hash, name) %>%
+                    dplyr::left_join(map_file %>%
+                                dplyr::select(fk_doc_id, clowder_id, Chemical),
                               by=c("name"="Chemical"))
 
                   #Checking and outing cat statement
                   res2 <- res %>%
-                    filter(is.na(clowder_id))
+                    dplyr::filter(is.na(clowder_id))
                   records_missing <- length(unique(res2$source_hash))
                   total_records <- length(unique(res$source_hash))
                   cat("Mapped records: ", total_records-records_missing, "| Missing: ", records_missing, "(", round(records_missing/total_records*100, 3),"%)\n")
@@ -177,15 +194,15 @@ set_clowder_id_lineage <- function(source_table,
 
   mat <- res %>%
     tidyr::unite(col="pushed_docs", source_hash, fk_doc_id, remove=FALSE) %>%
-    filter(!pushed_docs %in% pushed_doc_records$pushed_docs,
+    dplyr::filter(!pushed_docs %in% pushed_doc_records$pushed_docs,
            !is.na(fk_doc_id)) %>%
-    select(source_hash, fk_doc_id)
+    dplyr::select(source_hash, fk_doc_id)
 
   if(nrow(mat)){
     message("...pushing ", nrow(mat), " new documents_records entries...")
     # Push new document records to documents table
     runInsertTable(mat=mat %>%
-                     mutate(source_table = source_table),
+                     dplyr::mutate(source_table = source_table),
                    table="documents_records",
                    db=db)
   } else {

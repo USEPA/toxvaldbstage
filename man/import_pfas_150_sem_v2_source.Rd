@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_pfas_150_sem_v2_source.R
 \name{import_pfas_150_sem_v2_source}
 \alias{import_pfas_150_sem_v2_source}
-\title{Load PFAS 150 SEM V2 Source data into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_pfas_150_sem_v2_source(db, chem.check.halt = F)
 }
@@ -11,6 +11,23 @@ import_pfas_150_sem_v2_source(db, chem.check.halt = F)
 
 \item{chem.check.halt}{If TRUE and there are problems with chemicals CASRN checks, halt the program}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load PFAS 150 SEM V2 Source data into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[digest]{digest}}
 }

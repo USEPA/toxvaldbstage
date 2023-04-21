@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_niosh_source.R
 \name{import_niosh_source}
 \alias{import_niosh_source}
-\title{Load NIOSH Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_niosh_source(db, infile = "niosh_IDLH_2020.xlsx", chem.check.halt = T)
 }
@@ -13,6 +13,22 @@ import_niosh_source(db, infile = "niosh_IDLH_2020.xlsx", chem.check.halt = T)
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load NIOSH Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

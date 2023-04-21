@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' Runs a database query and returns a result set
+#' @description Runs a database query and returns a result set
 #'
 #' @param updateQuery a properly formatted SQL query as a string in the form of an UPDATE INNER JOIN
 #' @param updated_df a dataframe of updated data to temporarily write to database for INNER JOIN
@@ -7,7 +7,23 @@
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
 #' @param trigger_check if FALSE, audit triggers are ignored/bypassed
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @param table PARAM_DESCRIPTION
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
+#'  \code{\link[DBI]{dbSendStatement}}
+#' @rdname runUpdate
+#' @importFrom RMySQL dbConnect MySQL dbWriteTable dbSendQuery dbDisconnect
+#' @importFrom DBI dbSendStatement
 #--------------------------------------------------------------------------------------
 runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE,verbose=FALSE,
                       trigger_check=TRUE){
@@ -42,18 +58,18 @@ runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE
     # Push temp table of updates
     # Create a table like the source table so the COLLATE and encoding arguments match
     runQuery(paste0("CREATE TABLE z_updated_df LIKE ", table), db)
-    con <- dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
+    con <- RMySQL::dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
 
-    res = dbWriteTable(con,
+    res = RMySQL::dbWriteTable(con,
                        name="z_updated_df",
                        value=updated_df,
                        row.names=FALSE,
                        append=TRUE)
     # Enable/Disable triggers (custom global variable in triggers)
-    dbSendQuery(con, paste0("SET @TRIGGER_CHECKS = ", trigger_check))
+    RMySQL::dbSendQuery(con, paste0("SET @TRIGGER_CHECKS = ", trigger_check))
     # Send update
-    dbSendStatement(con, updateQuery)
-    dbDisconnect(con)
+    DBI::dbSendStatement(con, updateQuery)
+    RMySQL::dbDisconnect(con)
     # Drop temp table
     runStatement(query="DROP TABLE IF EXISTS z_updated_df", db=db)
     #}, warning = function(w) {

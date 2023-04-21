@@ -9,7 +9,6 @@ library('stringi')
 #' @param step3 Run the third step of the processing
 #' @param step4 Run the fourth step of the processing
 #'
-#' @export
 #--------------------------------------------------------------------------------------
 efsa.prep <- function(dir,step1=F,step2=F,step3=F,step4=F) {
   printCurrentFunction()
@@ -134,7 +133,7 @@ efsa.prep <- function(dir,step1=F,step2=F,step3=F,step4=F) {
     }
 
   }
-  
+
   ##########################################################################
   if(step3) {
     acute <- NULL
@@ -142,7 +141,7 @@ efsa.prep <- function(dir,step1=F,step2=F,step3=F,step4=F) {
     dart <- NULL
     file.list <- list.files(paste0(dir,"merge1/"))
     print(file.list)
-    
+
     for(f in file.list) {
       file <- paste0(dir,"merge1/",f)
       if(contains(f,"AcuteTox")) {

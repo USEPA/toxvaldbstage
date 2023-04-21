@@ -1,11 +1,35 @@
 #--------------------------------------------------------------------------------------
-#' Import of rsl 2022 source into toxval_source
+#' @description Import of rsl 2022 source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./rsl/rsl_files/rsl_thq10_nov_2022.xlsx
 #' @param infile2 The input file ./rsl/rsl_files/rsl_thq01_nov_2022.xlsx
 #' @param infile3 The input file ./rsl/rsl_files/rsl_subchronic_nov_2022.xlsx
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{bind}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[tibble]{add_column}}
+#' @rdname import_rsl_source
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom stringr str_squish str_replace_all
+#' @importFrom dplyr rename filter mutate bind_rows across case_when
+#' @importFrom tidyr pivot_longer separate matches
+#' @importFrom gsubfn list
+#' @importFrom tibble add_column
 #--------------------------------------------------------------------------------------
 import_rsl_source <- function(db,chem.check.halt=F) {
   printCurrentFunction(db)
@@ -72,21 +96,21 @@ import_rsl_source <- function(db,chem.check.halt=F) {
 
   # filter out RfDo and RfCi in subchronic file
   res2_2_1 <- res2_2 %>%
-  filter(grepl("^S", toxval_type))
+  dplyr::filter(grepl("^S", toxval_type))
 
   # seperate out toxval_type to make other toxval columns and add input file column
   res2_3 <- res2_2_1 %>%
   tidyr::separate(toxval_type, c("toxval_type", "risk_assessment_class", "exposure_route","toxval_unit"), sep="_", fill="right", remove=TRUE) %>%
-    mutate(raw_input_file= "rsl_subchronic_nov_2022.xlsx")
+    dplyr::mutate(raw_input_file= "rsl_subchronic_nov_2022.xlsx")
 
   # make new column for the key values to go in
   res2_3$study_type = res2_3$toxval_type
   # replace values with key columns values
   res2_4 <- res2_3 %>%
-    mutate(study_type = ifelse(toxval_type == 'SRfCi', res2_3$`SRfC Reference`,study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'SRfDo', res2_3$`SRfD Reference`, study_type )) %>%
-    mutate(study_type = ifelse(toxval_type == 'RfDo', res2_3$`RfD Reference`, study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'RfCi', res2_3$`RfC Reference`, study_type))
+    dplyr::mutate(study_type = ifelse(toxval_type == 'SRfCi', res2_3$`SRfC Reference`,study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'SRfDo', res2_3$`SRfD Reference`, study_type )) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'RfDo', res2_3$`RfD Reference`, study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'RfCi', res2_3$`RfC Reference`, study_type))
 
   # make dictionary of values in annotation column that needs to go
   rep_str0 = c('SRfCi'='',
@@ -95,21 +119,21 @@ import_rsl_source <- function(db,chem.check.halt=F) {
               'RfCi'='')
 
   # get rid of those values in annotation columns
-  res2_4$study_type <- str_replace_all(res2_4$study_type, rep_str0)
+  res2_4$study_type <- stringr::str_replace_all(res2_4$study_type, rep_str0)
 
   # add input file columns and toxval_subtype columns to res0 and res1, thq tables
   res0_0 <- res0 %>%
-    mutate(raw_input_file= "rsl_thq10_nov_2022.xlsx",
+    dplyr::mutate(raw_input_file= "rsl_thq10_nov_2022.xlsx",
            toxval_subtype = "Thq = 1")
 
   res1_0 <- res1 %>%
-    mutate(raw_input_file= "rsl_thq01_nov_2022.xlsx",
+    dplyr::mutate(raw_input_file= "rsl_thq01_nov_2022.xlsx",
            toxval_subtype = "Thq = 0.1")
 
   # combine res0 and res1
   res_combo_01 <- res0_0 %>%
-    bind_rows(res1_0 %>%
-                mutate(across(c("SFO(mg/kg-day)-1"), ~as.numeric(.))))
+    dplyr::bind_rows(res1_0 %>%
+                dplyr::mutate(dplyr::across(c("SFO(mg/kg-day)-1"), ~as.numeric(.))))
 
   # rename columsn in a way that they can be separated later for other toxval column values
   res_combo_01_2 <- res_combo_01 %>%
@@ -167,7 +191,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
                   "Csat_chronic_mg/kg"),
           names_to= "toxval_type",
           values_to= "toxval_numeric",
-          values_transform = list(toxval_numeric = as.numeric)
+          values_transform = gsubfn::list(toxval_numeric = as.numeric)
   )
 
 
@@ -179,17 +203,17 @@ import_rsl_source <- function(db,chem.check.halt=F) {
   res_combo_01_4$study_type = res_combo_01_4$toxval_type
   # replace values with key columns values
   res_combo_01_5 <- res_combo_01_4 %>%
-    mutate(study_type = ifelse(toxval_type == 'SFO', key1,study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'IUR', key2, study_type )) %>%
-    mutate(study_type = ifelse(toxval_type == 'RfDo', key3, study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'RfCi', key4, study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'Screening Level (Resident Soil)', key5, study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'Screening Level (Industrial Soil)', key6, study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'Screening Level (Resident Air)', key7, study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'Screening Level (Industrial Air)', key8, study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'Screening Level (Tap Water)', key9, study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'Protection of Groundwater: Risk-based SSL', key10, study_type)) %>%
-    mutate(study_type = ifelse(toxval_type == 'Screening Level (MCL)', risk_assessment_class, study_type))
+    dplyr::mutate(study_type = ifelse(toxval_type == 'SFO', key1,study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'IUR', key2, study_type )) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'RfDo', key3, study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'RfCi', key4, study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'Screening Level (Resident Soil)', key5, study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'Screening Level (Industrial Soil)', key6, study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'Screening Level (Resident Air)', key7, study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'Screening Level (Industrial Air)', key8, study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'Screening Level (Tap Water)', key9, study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'Protection of Groundwater: Risk-based SSL', key10, study_type)) %>%
+    dplyr::mutate(study_type = ifelse(toxval_type == 'Screening Level (MCL)', risk_assessment_class, study_type))
 
   # make dictionary of values in annotation column that needs to go
   rep_str = c('SFO'='',
@@ -212,16 +236,16 @@ import_rsl_source <- function(db,chem.check.halt=F) {
               'PhysChem' = '')
 
   # get rid of those values in annotation columns
-  res_combo_01_5$study_type <- str_replace_all(res_combo_01_5$study_type, rep_str)
+  res_combo_01_5$study_type <- stringr::str_replace_all(res_combo_01_5$study_type, rep_str)
 
 
   # combine res2 (subchronic table) and the combined res0/res1 tables (thq table)
-  res3 <- bind_rows(res_combo_01_5, res2_4)
+  res3 <- dplyr::bind_rows(res_combo_01_5, res2_4)
 
   res4 <- res3 %>%
     # replace key abbreviated values with text values using dictionary
-    dplyr::mutate(across(matches("key|vol|study_type"),
-                  .fns = ~ case_when(. =="I" ~ "IRIS",
+    dplyr::mutate(dplyr::across(tidyr::matches("key|vol|study_type"),
+                  .fns = ~ dplyr::case_when(. =="I" ~ "IRIS",
                             . =="P" ~ "PPRTV",
                             . =="O" ~ "OPP",
                             . =="A" ~ "ATSDR",
@@ -256,7 +280,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
 
  # adding source_url column
  res5 <- res4 %>%
-   mutate(source_url= "https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables")
+   dplyr::mutate(source_url= "https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables")
  # dropping columns without a toxval_numeric value for they are not needed
  res6 <- res5 # %>%
    # drop_na(toxval_numeric)
@@ -279,8 +303,8 @@ import_rsl_source <- function(db,chem.check.halt=F) {
 
 
  res8 <- res7 %>%
- dplyr::mutate(across(matches("study_type"),
-                      .fns = ~ case_when(. =="IRIS" ~ "",
+ dplyr::mutate(dplyr::across(tidyr::matches("study_type"),
+                      .fns = ~ dplyr::case_when(. =="IRIS" ~ "",
                                          . =="PPRTV" ~ "",
                                          . =="OPP" ~ "",
                                          . =="ATSDR" ~ "",
@@ -310,8 +334,8 @@ import_rsl_source <- function(db,chem.check.halt=F) {
 
  # add 'EPA Regions' to "subsource" column for all 'Screening' toxval_type entries
    res9 <- res8 %>%
-     dplyr::mutate(across(matches("subsource"),
-                          .fns = ~ case_when(toxval_type =="Screening Level (Industrial Soil)" ~ "EPA Regions",
+     dplyr::mutate(dplyr::across(tidyr::matches("subsource"),
+                          .fns = ~ dplyr::case_when(toxval_type =="Screening Level (Industrial Soil)" ~ "EPA Regions",
                                              toxval_type =="Screening Level (Resident Air)" ~ "EPA Regions",
                                              toxval_type =="Screening Level (Industrial Air)" ~ "EPA Regions",
                                              toxval_type == "Screening Level (Tap Water)" ~ "EPA Regions",
@@ -324,9 +348,9 @@ import_rsl_source <- function(db,chem.check.halt=F) {
 
   # make "risk_assessment_type" column and fill it with 'carcinogenicity' for all 'SFO', 'IUR' toxval_type entries
    res10 <- res9 %>%
-     add_column(risk_assessment_type =  "") %>%
-     dplyr::mutate(across(matches("risk_assessment_type"),
-                          .fns = ~ case_when(toxval_type =="SFO" ~ "carcinogenicity",
+     tibble::add_column(risk_assessment_type =  "") %>%
+     dplyr::mutate(dplyr::across(tidyr::matches("risk_assessment_type"),
+                          .fns = ~ dplyr::case_when(toxval_type =="SFO" ~ "carcinogenicity",
                                              toxval_type =="IUR" ~ "carcinogenicity",
                                              TRUE ~ .
                           )
@@ -335,7 +359,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
 
 
    # make "toxval_subtype" column for all 'Screening' toxval_type entries with a "cancer" risk_assessment_class
-   res10 <- mutate(res10, toxval_subtype = case_when(toxval_type =="Screening Level (Industrial Soil)"& study_type == "cancer"  ~ "TR=1E-06",
+   res10 <- dplyr::mutate(res10, toxval_subtype = dplyr::case_when(toxval_type =="Screening Level (Industrial Soil)"& study_type == "cancer"  ~ "TR=1E-06",
                                                      toxval_type =="Screening Level (Resident Air)"& study_type == "cancer" ~ "TR=1E-06",
                                                      toxval_type =="Screening Level (Industrial Air)"& study_type == "cancer" ~ "TR=1E-06",
                                                      toxval_type == "Screening Level (Tap Water)"& study_type == "cancer" ~ "TR=1E-06",
@@ -359,7 +383,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
 
 
    # update "exposure_route" column based on "toxval_type"
-   res10 <- mutate(res10, exposure_route = case_when(toxval_type =="RfCi"  ~ "inhalation",
+   res10 <- dplyr::mutate(res10, exposure_route = dplyr::case_when(toxval_type =="RfCi"  ~ "inhalation",
                                                      toxval_type =="RfDo"  ~ "oral",
                                                      toxval_type =="Protection of Groundwater: MCL-based SSL"  ~ "oral",
                                                      toxval_type =="Protection of Groundwater: Risk-based SSL"  ~ "oral",

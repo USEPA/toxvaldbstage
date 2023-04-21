@@ -2,7 +2,7 @@
 % Please edit documentation in R/getDBConn.R
 \name{getDBConn}
 \alias{getDBConn}
-\title{Get the names the database server, user, and pass or returns error message}
+\title{FUNCTION_TITLE}
 \usage{
 getDBConn()
 }
@@ -11,4 +11,14 @@ print the database connection information
 }
 \description{
 Get the names the database server, user, and pass or returns error message
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
 }

@@ -2,13 +2,29 @@
 % Please edit documentation in R/fix.non_ascii.R
 \name{fix.non_ascii}
 \alias{fix.non_ascii}
-\title{Flag non ascii characters in the database}
+\title{FUNCTION_TITLE}
 \usage{
 fix.non_ascii(df)
+}
+\arguments{
+\item{df}{PARAM_DESCRIPTION}
 }
 \value{
 The dataframe with non ascii characters replaced with XXX
 }
 \description{
 Flag non ascii characters in the database
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[gsubfn]{list}}
 }

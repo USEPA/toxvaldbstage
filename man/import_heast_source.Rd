@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_heast_source.R
 \name{import_heast_source}
 \alias{import_heast_source}
-\title{Load HEAST Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_heast_source(
   db,
@@ -17,6 +17,22 @@ import_heast_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load HEAST Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

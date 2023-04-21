@@ -1,11 +1,25 @@
 #--------------------------------------------------------------------------------------
-#' Load chiu Source into dev_toxval_source_v3.
+#' @#' Load chiu Source into dev_toxval_source_v3.
 #' Data from the Chiu et al. paper on RfD values
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./chiu/chiu_files/Full_RfD_databaseQAed-FINAL.xlsx
-#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
-#' stop to look at the results in indir/chemcheck.xlsx
+#' @param chem.check.halt If TRUE and there are bad chemical names or casrn, #' stop to look at the results in indir/chemcheck.xlsx
+#' @title FUNCTION_TITLE
+#' @description FUNCTION_DESCRIPTION
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_chiu_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_chiu_source <- function(db,
                                infile="Full_RfD_databaseQAed-FINAL.xlsx",

@@ -1,8 +1,28 @@
 #--------------------------------------------------------------------------------------
-#' Load HPVIS Source Info into toxval_source
+#' @description Load HPVIS Source Info into toxval_source
 #' @param db The version of toxval_source into which the source info is loaded.
 #' @param filepath The path for all the input xlsx files ./hpvis/hpvis_files
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[stats]{setNames}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{reexports}}
+#'  \code{\link[utils]{type.convert}}
+#' @rdname import_hpvis_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom stats setNames
+#' @importFrom dplyr mutate setdiff intersect
+#' @importFrom utils type.convert
 #--------------------------------------------------------------------------------------
 import_hpvis_source <- function(db,
                                 filepath="hpvis/hpvis_files",
@@ -27,8 +47,8 @@ import_hpvis_source <- function(db,
   # Add names to files.list so can map the file name at the end
   names(files.list) <- names(res)
 
-  res <- lapply(res, function(x) setNames(x, gsub(x = names(x), pattern = "\\.", replacement = "_")))
-  res <- lapply(res, function(x) setNames(x, gsub(x = names(x), pattern = "\\_$", replacement = "")))
+  res <- lapply(res, function(x) stats::setNames(x, gsub(x = names(x), pattern = "\\.", replacement = "_")))
+  res <- lapply(res, function(x) stats::setNames(x, gsub(x = names(x), pattern = "\\_$", replacement = "")))
 
   #####################################################################
   cat("fix casrn and chemical name and then form new list of dataframes called res1(excluding search_categories)\n")
@@ -61,24 +81,24 @@ import_hpvis_source <- function(db,
 
   for (i in 1:length(subset_cas)){
     subset_cas[[i]] <- lapply(subset_cas[[i]], gsub, pattern ="\\n", replacement = "")
-    subset_cas[[i]] <- as.data.frame(subset_cas[[i]]) %>% mutate(cas_key1 = ifelse(subset_cas[[i]]$Sponsored_Chemical_CAS_Number %in% subset_cas[[i]]$Test_Substance_CAS_Number,chemical_categories_key_table[2,1], chemical_categories_key_table[3,1]))
-    subset_cas[[i]] <- as.data.frame(subset_cas[[i]]) %>% mutate(cas_key2 = ifelse(subset_cas[[i]]$Category_Chemical_CAS_Number %in% subset_cas[[i]]$Test_Substance_CAS_Number,chemical_categories_key_table[1,1], chemical_categories_key_table[3,1]))
+    subset_cas[[i]] <- as.data.frame(subset_cas[[i]]) %>% dplyr::mutate(cas_key1 = ifelse(subset_cas[[i]]$Sponsored_Chemical_CAS_Number %in% subset_cas[[i]]$Test_Substance_CAS_Number,chemical_categories_key_table[2,1], chemical_categories_key_table[3,1]))
+    subset_cas[[i]] <- as.data.frame(subset_cas[[i]]) %>% dplyr::mutate(cas_key2 = ifelse(subset_cas[[i]]$Category_Chemical_CAS_Number %in% subset_cas[[i]]$Test_Substance_CAS_Number,chemical_categories_key_table[1,1], chemical_categories_key_table[3,1]))
     subset_cas[[i]]$cas_key <- paste(subset_cas[[i]]$cas_key1, subset_cas[[i]]$cas_key2, sep = "," )
     subset_cas[[i]] <- subset_cas[[i]][,c(-4,-5)]
   }
 
   for (i in 1:length(subset_name)){
     subset_name[[i]] <- lapply(subset_name[[i]], gsub, pattern ="\\n", replacement = "")
-    subset_name[[i]] <- as.data.frame(subset_name[[i]]) %>% mutate(name_key1 = ifelse(subset_name[[i]]$Sponsored_Chemical_Name %in% subset_name[[i]]$Test_Substance_Chemical_Name,chemical_categories_key_table[5,1], chemical_categories_key_table[6,1]))
-    subset_name[[i]] <- as.data.frame(subset_name[[i]]) %>% mutate(name_key2 = ifelse(subset_name[[i]]$Category_Chemical_Name %in% subset_name[[i]]$Test_Substance_Chemical_Name,chemical_categories_key_table[4,1], chemical_categories_key_table[6,1]))
+    subset_name[[i]] <- as.data.frame(subset_name[[i]]) %>% dplyr::mutate(name_key1 = ifelse(subset_name[[i]]$Sponsored_Chemical_Name %in% subset_name[[i]]$Test_Substance_Chemical_Name,chemical_categories_key_table[5,1], chemical_categories_key_table[6,1]))
+    subset_name[[i]] <- as.data.frame(subset_name[[i]]) %>% dplyr::mutate(name_key2 = ifelse(subset_name[[i]]$Category_Chemical_Name %in% subset_name[[i]]$Test_Substance_Chemical_Name,chemical_categories_key_table[4,1], chemical_categories_key_table[6,1]))
     subset_name[[i]]$name_key <- paste(subset_name[[i]]$name_key1, subset_name[[i]]$name_key2, sep = "," )
     subset_name[[i]] <- subset_name[[i]][,c(-4,-5)]
   }
   chemical_subset <- mapply(cbind, subset_cas, subset_name, SIMPLIFY = F)
 
   for (i in 1:length(chemical_subset)){
-    chemical_subset[[i]] <- chemical_subset[[i]] %>% mutate(casrn1 = ifelse(as.character(chemical_subset[[i]]$Sponsored_Chemical_CAS_Number) == as.character(chemical_subset[[i]]$Test_Substance_CAS_Number),as.character(chemical_subset[[i]]$Sponsored_Chemical_CAS_Number), as.character(chemical_subset[[i]]$Test_Substance_CAS_Number)))
-    chemical_subset[[i]] <- chemical_subset[[i]] %>% mutate(casrn2 = ifelse(as.character(chemical_subset[[i]]$Category_Chemical_CAS_Number) == as.character(chemical_subset[[i]]$Test_Substance_CAS_Number),as.character(chemical_subset[[i]]$Category_Chemical_CAS_Number), as.character(chemical_subset[[i]]$Test_Substance_CAS_Number)))
+    chemical_subset[[i]] <- chemical_subset[[i]] %>% dplyr::mutate(casrn1 = ifelse(as.character(chemical_subset[[i]]$Sponsored_Chemical_CAS_Number) == as.character(chemical_subset[[i]]$Test_Substance_CAS_Number),as.character(chemical_subset[[i]]$Sponsored_Chemical_CAS_Number), as.character(chemical_subset[[i]]$Test_Substance_CAS_Number)))
+    chemical_subset[[i]] <- chemical_subset[[i]] %>% dplyr::mutate(casrn2 = ifelse(as.character(chemical_subset[[i]]$Category_Chemical_CAS_Number) == as.character(chemical_subset[[i]]$Test_Substance_CAS_Number),as.character(chemical_subset[[i]]$Category_Chemical_CAS_Number), as.character(chemical_subset[[i]]$Test_Substance_CAS_Number)))
   }
   chemical_subset <- chemical_subset[-19]
 
@@ -95,8 +115,8 @@ import_hpvis_source <- function(db,
   }
 
   for (i in 1:length(chemical_subset)){
-    chemical_subset[[i]] <- chemical_subset[[i]] %>% mutate(name1 = ifelse(as.character(chemical_subset[[i]]$Sponsored_Chemical_Name) == as.character(chemical_subset[[i]]$Test_Substance_Chemical_Name),as.character(chemical_subset[[i]]$Sponsored_Chemical_Name), as.character(chemical_subset[[i]]$Test_Substance_Chemical_Name)))
-    chemical_subset[[i]] <- chemical_subset[[i]] %>% mutate(name2 = ifelse(as.character(chemical_subset[[i]]$Category_Chemical_Name) == as.character(chemical_subset[[i]]$Test_Substance_Chemical_Name),as.character(chemical_subset[[i]]$Category_Chemical_Name), as.character(chemical_subset[[i]]$Test_Substance_Chemical_Name)))
+    chemical_subset[[i]] <- chemical_subset[[i]] %>% dplyr::mutate(name1 = ifelse(as.character(chemical_subset[[i]]$Sponsored_Chemical_Name) == as.character(chemical_subset[[i]]$Test_Substance_Chemical_Name),as.character(chemical_subset[[i]]$Sponsored_Chemical_Name), as.character(chemical_subset[[i]]$Test_Substance_Chemical_Name)))
+    chemical_subset[[i]] <- chemical_subset[[i]] %>% dplyr::mutate(name2 = ifelse(as.character(chemical_subset[[i]]$Category_Chemical_Name) == as.character(chemical_subset[[i]]$Test_Substance_Chemical_Name),as.character(chemical_subset[[i]]$Category_Chemical_Name), as.character(chemical_subset[[i]]$Test_Substance_Chemical_Name)))
   }
 
   for (i in 1:length(chemical_subset)){
@@ -227,7 +247,7 @@ import_hpvis_source <- function(db,
   cat("assign appropriate data types\n")
   #####################################################################
   for (i in 1:length(res1)) {
-    res1[[i]] <- lapply(res1[[i]], function(x) type.convert(as.character(x), as.is = T))
+    res1[[i]] <- lapply(res1[[i]], function(x) utils::type.convert(as.character(x), as.is = T))
     res1[[i]] <- data.frame(res1[[i]], stringsAsFactors = F)
   }
 
@@ -419,10 +439,10 @@ import_hpvis_source <- function(db,
   #####################################################################
   cat("rename columns which represent the same field but are named differently in different dataframes\n")
   #####################################################################
-  res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "Species_or_in_Vitro_System", replacement = "Species")))
-  res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "Gender", replacement = "Sex")))
-  res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "Mammalian_Strain", replacement = "Strain")))
-  res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "Type_of_Study", replacement = "study_type")))
+  res_new <- lapply(res_new, function(x) stats::setNames(x, gsub(x = names(x), pattern = "Species_or_in_Vitro_System", replacement = "Species")))
+  res_new <- lapply(res_new, function(x) stats::setNames(x, gsub(x = names(x), pattern = "Gender", replacement = "Sex")))
+  res_new <- lapply(res_new, function(x) stats::setNames(x, gsub(x = names(x), pattern = "Mammalian_Strain", replacement = "Strain")))
+  res_new <- lapply(res_new, function(x) stats::setNames(x, gsub(x = names(x), pattern = "Type_of_Study", replacement = "study_type")))
 
   #####################################################################
   cat("rename exposure period and its unit in dataframes having single entry of both\n")
@@ -436,20 +456,20 @@ import_hpvis_source <- function(db,
   }
   names(subset_expo_dur3) <- names(res_new)
   subset_expo_dur3 <- subset_expo_dur3[sapply(subset_expo_dur3, ncol) == 2]
-  res_new[names(res_new) %in% names(subset_expo_dur3)] <- lapply(res_new[names(res_new) %in% names(subset_expo_dur3)], function(x) setNames(x, gsub(x = names(x), pattern = "^Exposure_Period$", replacement = "duration")))
-  res_new[names(res_new) %in% names(subset_expo_dur3)] <- lapply(res_new[names(res_new) %in% names(subset_expo_dur3)], function(x) setNames(x, gsub(x = names(x), pattern = "^Exposure_Period_Units$", replacement = "duration_units")))
+  res_new[names(res_new) %in% names(subset_expo_dur3)] <- lapply(res_new[names(res_new) %in% names(subset_expo_dur3)], function(x) stats::setNames(x, gsub(x = names(x), pattern = "^Exposure_Period$", replacement = "duration")))
+  res_new[names(res_new) %in% names(subset_expo_dur3)] <- lapply(res_new[names(res_new) %in% names(subset_expo_dur3)], function(x) stats::setNames(x, gsub(x = names(x), pattern = "^Exposure_Period_Units$", replacement = "duration_units")))
 
   #####################################################################
   cat("replace dot characters to underscores in all data frame column names \n")
   #####################################################################
-  res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "\\.", replacement = "_")))
+  res_new <- lapply(res_new, function(x) stats::setNames(x, gsub(x = names(x), pattern = "\\.", replacement = "_")))
 
   #####################################################################
   cat("combine species and other species to form new_species with elements seperated by comma, do the same for strain and Route of Administration \n")
   #####################################################################
   cols <- c("Species","Other_Species","Strain","Other_Strain","Route_of_Administration","Other_Route_of_Administration")
   for ( i in 1:length(res_new)){
-    res_new[[i]][setdiff(cols,names(res_new[[i]]))] <- ""
+    res_new[[i]][dplyr::setdiff(cols,names(res_new[[i]]))] <- ""
   }
 
   for ( i in 1:length(res_new)){
@@ -473,8 +493,8 @@ import_hpvis_source <- function(db,
   #####################################################################
   cat("fix multiple underscores and trailing underscores in column names\n")
   #####################################################################
-  res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "_+", replacement = "_")))
-  res_new <- lapply(res_new, function(x) setNames(x, gsub(x = names(x), pattern = "_$", replacement = "")))
+  res_new <- lapply(res_new, function(x) stats::setNames(x, gsub(x = names(x), pattern = "_+", replacement = "_")))
+  res_new <- lapply(res_new, function(x) stats::setNames(x, gsub(x = names(x), pattern = "_$", replacement = "")))
   #####################################################################
   cat("order column names alphabetically\n")
   #####################################################################
@@ -483,7 +503,7 @@ import_hpvis_source <- function(db,
   cat("assign appropriate data types\n")
   #####################################################################
   for (i in 1:length(res_new)) {
-    res_new[[i]] <- lapply(res_new[[i]], function(x) type.convert(as.character(x), as.is = T))
+    res_new[[i]] <- lapply(res_new[[i]], function(x) utils::type.convert(as.character(x), as.is = T))
     res_new[[i]] <- data.frame(res_new[[i]], stringsAsFactors = F)
     res_new[[i]][sapply(res_new[[i]], function(x) all(is.na(x) == T))] <- ""
   }
@@ -527,20 +547,20 @@ import_hpvis_source <- function(db,
   #####################################################################
   cat("get column names which are present in common cols but not in required cols , combine them to form the new required cols\n")
   #####################################################################
-  non_mutual_cols <- setdiff(common_cols, mutual_cols)
-  non_mutual_cols <- setdiff(non_mutual_cols, cols)
+  non_mutual_cols <- dplyr::setdiff(common_cols, mutual_cols)
+  non_mutual_cols <- dplyr::setdiff(non_mutual_cols, cols)
   reqd_cols <- c(reqd_cols, non_mutual_cols)
 
   #####################################################################
   cat("create new_res by subsetting res_new with the columns present in required cols\n")
   #####################################################################
-  new_res <- lapply(res_new, function(x) subset(x, select = intersect(reqd_cols, colnames(x))))
+  new_res <- lapply(res_new, function(x) subset(x, select = dplyr::intersect(reqd_cols, colnames(x))))
 
   #####################################################################
   cat("in case any required col not being present in a data frame add that column and assign it as empty\n")
   #####################################################################
   for ( i in 1:length(new_res)){
-    new_res[[i]][setdiff(reqd_cols,names(new_res[[i]]))] <- ""
+    new_res[[i]][dplyr::setdiff(reqd_cols,names(new_res[[i]]))] <- ""
   }
 
   #####################################################################
@@ -549,7 +569,7 @@ import_hpvis_source <- function(db,
   # Add files.list name connection to each dataframe
   new_res = lapply(names(new_res), function(f){
     new_res[[f]] %>%
-      mutate(raw_input_file = basename(files.list[[f]]))
+      dplyr::mutate(raw_input_file = basename(files.list[[f]]))
   })
   hpvis_all_data <- do.call("rbind",new_res)
   row.names(hpvis_all_data) <- NULL
@@ -558,7 +578,7 @@ import_hpvis_source <- function(db,
   #hpvis_all_data <- hpvis_all_data[c("hpvis_id",names(hpvis_all_data[-45]))]
   # reorder hpvis_id to first column
   hpvis_all_data <- hpvis_all_data[c("hpvis_id",names(hpvis_all_data)[!names(hpvis_all_data) %in% c("hpvis_id")])]
-  hpvis_all_data <- lapply(hpvis_all_data, function(x) type.convert(as.character(x), as.is = T))
+  hpvis_all_data <- lapply(hpvis_all_data, function(x) utils::type.convert(as.character(x), as.is = T))
   hpvis_all_data <- data.frame(hpvis_all_data, stringsAsFactors = F)
   hpvis_all_data[sapply(hpvis_all_data, function(x) all(is.na(x) == T))] <- ""
   names(hpvis_all_data) <- tolower(names(hpvis_all_data))

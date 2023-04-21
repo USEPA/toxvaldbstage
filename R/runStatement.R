@@ -13,7 +13,18 @@
 #' @param verbose if TRUE, print diagnostic information
 #' @return None. SQL statement is run.
 #' @import RMySQL DBI
-#' @export
+#' @export 
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
+#' @rdname runStatement
+#' @importFrom RMySQL dbConnect MySQL dbSendQuery dbHasCompleted dbClearResult dbDisconnect
 #--------------------------------------------------------------------------------------
 runStatement <- function(query,db,do.halt=F,verbose=F) {
 
@@ -35,10 +46,10 @@ runStatement <- function(query,db,do.halt=F,verbose=F) {
     cat("db: ",db,"\n")
   }
   tryCatch({
-    con <- dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
-    rs <- dbSendQuery(con, query)
-    dbHasCompleted(rs)
-    dbClearResult(rs)
+    con <- RMySQL::dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
+    rs <- RMySQL::dbSendQuery(con, query)
+    RMySQL::dbHasCompleted(rs)
+    RMySQL::dbClearResult(rs)
   }, warning = function(w) {
     cat("WARNING:",query," : [",db,"]\n",sep="")
     if(do.halt) browser()
@@ -47,6 +58,6 @@ runStatement <- function(query,db,do.halt=F,verbose=F) {
     print(e)
     if(do.halt) browser()
   }, finally = {
-    dbDisconnect(con)
+    RMySQL::dbDisconnect(con)
   })
 }

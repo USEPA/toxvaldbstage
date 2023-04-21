@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_oppt_source.R
 \name{import_oppt_source}
 \alias{import_oppt_source}
-\title{Load OPPT Source Info into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_oppt_source(db, infile = "OPPT_data_20181219.xlsx", chem.check.halt = T)
 }
@@ -13,6 +13,24 @@ import_oppt_source(db, infile = "OPPT_data_20181219.xlsx", chem.check.halt = T)
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
-Load OPPT Source Info into toxval_source
+FUNCTION_DESCRIPTION
+}
+\details{
+#' Load OPPT Source Info into toxval_source
+
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

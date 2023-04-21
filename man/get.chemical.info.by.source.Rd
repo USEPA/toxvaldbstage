@@ -2,7 +2,7 @@
 % Please edit documentation in R/get.chemical.info.by.source.R
 \name{get.chemical.info.by.source}
 \alias{get.chemical.info.by.source}
-\title{get chemical info from source db tables}
+\title{FUNCTION_TITLE}
 \usage{
 get.chemical.info.by.source(source.db, source_table, source, file_id)
 }
@@ -20,4 +20,17 @@ database info collected
 }
 \description{
 get chemical info from source db tables
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[utils]{View}}
 }

@@ -10,14 +10,30 @@
 #' @description Convert toxval source table to DAT format for loading to DAT
 #' application
 #' @param source.db The version of toxval source to use.
-#' @param source_table The name of toxval source table to use. If a DataFrame, input data will be
-#' processing and returned without saving to file.
 #' @param source The name of toxval source to use.
+#' @param source_table The name of toxval source table to use. If a DataFrame, input data will be #' processing and returned without saving to file.
 #' @param limit Excel file grouping limit (default is max XLSX row limit)
 #' @param sample_p Percentage of records to sample down to
 #' @return Processed source table to DAT format cached and returned.
 #' @import dplyr RMySQL DBI readxl magrittr tidyr writexl
-#' @export
+#' @export 
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{slice}}, \code{\link[dplyr]{select}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[writexl]{write_xlsx}}
+#' @rdname source.table.to.DAT
+#' @importFrom dplyr rename filter slice_sample select
+#' @importFrom tidyr pivot_longer all_of
+#' @importFrom gsubfn list
+#' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
 source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample_p = NA){
   # Option to inject data directly to turn into DAT format
@@ -38,18 +54,18 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
         # Get sample count based on sample_p
         sample_nrec <<- ceiling(nrow(.) * sample_p)
       } %>%
-      filter(clowder_id != "-")
+      dplyr::filter(clowder_id != "-")
 
     # Sample down if sample_p parameter used
     if(!is.na(sample_nrec)){
       src_data = src_data %>%
         #group_by(clowder_id) %>%
-        slice_sample(n=sample_nrec)
+        dplyr::slice_sample(n=sample_nrec)
     }
   } else {
     src_data = source_table %>%
       dplyr::rename(record_id = source_hash) %>%
-      filter(clowder_id != "-")
+      dplyr::filter(clowder_id != "-")
   }
 
   # Remove columns
@@ -65,18 +81,18 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
                     "document_name", "document_path")
   # Load and transform data
   in_dat = src_data %>%
-    tidyr::pivot_longer(cols=-c(record_id, all_of(id_cols)),
+    tidyr::pivot_longer(cols=-c(record_id, tidyr::all_of(id_cols)),
                         names_to="field_name",
                         values_to="value",
                         # Convert column values to character
-                        values_transform = list(value = as.character))
+                        values_transform = gsubfn::list(value = as.character))
   # Add additional template fields not already present
   in_dat[template_cols[!template_cols %in% names(in_dat)]] <- ""
   # Replace missing value entries with empty string
   in_dat$value[is.na(in_dat$value)] = ""
   # Reorder columns to fit template order
   in_dat = in_dat %>%
-    select(dataset_name, domain_name, source_name,
+    dplyr::select(dataset_name, domain_name, source_name,
            record_id, field_name, value,
            document_id, document_name, document_path)
   # Prep export location (check and create if not present)
@@ -88,7 +104,7 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
     out_dat = split(in_dat, rep(1:ceiling(nr/limit), each=limit, length.out=nr))
     # Write output files
     for(i in seq_len(length(out_dat))){
-      writexl::write_xlsx(x=list(data=out_dat[[i]]),
+      writexl::write_xlsx(x=gsubfn::list(data=out_dat[[i]]),
                           path = paste0("Repo/DAT Input/", source_table, "_DAT_input_",i,".xlsx"))
     }
   } else {

@@ -2,8 +2,7 @@
 % Please edit documentation in R/runInsert.R
 \name{runInsert}
 \alias{runInsert}
-\title{Insert a record into a database. if auto.increment=TRUE, return the auto incremented
-primary key of the record. otherwise, return -1}
+\title{FUNCTION_TITLE}
 \usage{
 runInsert(query, db, do.halt = F, verbose = F, auto.increment.id = F)
 }
@@ -16,6 +15,8 @@ runInsert(query, db, do.halt = F, verbose = F, auto.increment.id = F)
 
 \item{verbose}{if TRUE, print diagnostic information}
 
+\item{auto.increment.id}{PARAM_DESCRIPTION, Default: F}
+
 \item{auto.increment}{if TRUE, add the auto increment primary key even if not part of the query}
 }
 \value{
@@ -24,4 +25,17 @@ Returns the database table auto incremented primary key ID
 \description{
 Insert a record into a database. if auto.increment=TRUE, return the auto incremented
 primary key of the record. otherwise, return -1
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
 }

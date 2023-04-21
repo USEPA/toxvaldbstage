@@ -21,3 +21,16 @@ None. SQL statement is run.
 \description{
 Run a SQL statement, such as an ALTER or UPDATE
 }
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
+}

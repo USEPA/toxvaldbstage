@@ -1,5 +1,5 @@
-library(RMySQL)
-library(DBI)
+# library(RMySQL)
+# library(DBI)
 #--------------------------------------------------------------------------------------
 #' set SQL connection to the database
 #' @param server SQL server on which relevant database lives

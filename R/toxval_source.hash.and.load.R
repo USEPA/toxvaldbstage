@@ -1,13 +1,28 @@
 #--------------------------------------------------------------------------------------
-#' Add the hash key to the source tables and add the new rows
+#' @description Add the hash key to the source tables and add the new rows
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param source Name of the source
 #' @param table Name of the database table
-#' @param do.reset If TRUE, delete data from the database for this source before
-#' inserting new data. Default FALSE
+#' @param do.reset If TRUE, delete data from the database for this source before #' inserting new data. Default FALSE
 #' @param do.insert If TRUE, insert data into the database, default False
 #' @param res The data frame to be processed
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[digest]{digest}}
+#'  \code{\link[dplyr]{distinct}}
+#' @rdname toxval_source.hash.and.load
+#' @export 
+#' @importFrom digest digest
+#' @importFrom dplyr distinct
 #--------------------------------------------------------------------------------------
 toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
                                         source,
@@ -21,7 +36,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
 
   non_hash_cols <- toxval.config()$non_hash_cols
 
-  if(is.element("chemical_index",names(res))) res = subset(res,select=-c(chemical_index))
+  if(generics::is.element("chemical_index",names(res))) res = subset(res,select=-c(chemical_index))
   res$source_hash = "-"
   res$parent_hash = "-"
   res$create_time = Sys.time()
@@ -35,24 +50,24 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   if(nold>0) {
     sample0 = runQuery(paste0("select * from ",table, " limit 1"),db)
     nlist = names(sample0)
-    nlist = nlist[!is.element(nlist,non_hash_cols)]
+    nlist = nlist[!generics::is.element(nlist,non_hash_cols)]
     sh0 = sample0[1,"source_hash"]
     sample = sample0[,sort(nlist)]
-    sh1 = digest(paste0(sample,collapse=""), serialize = FALSE)
+    sh1 = digest::digest(paste0(sample,collapse=""), serialize = FALSE)
     cat("test that the columns are right for the hash key: ",sh0,sh1,"\n")
     #if(sh0!=sh1) browser()
   } else {
     nlist = runQuery(paste0("desc ",table),db)[,1]
-    nlist = nlist[!is.element(nlist,non_hash_cols)]
+    nlist = nlist[!generics::is.element(nlist,non_hash_cols)]
   }
 
   #####################################################################
   cat("check the columns\n")
   #####################################################################
   nlist0 = names(res)
-  nlist0 = nlist0[!is.element(nlist0,non_hash_cols)]
-  nlist01 = nlist0[!is.element(nlist0,nlist)]
-  nlist10 = nlist[!is.element(nlist,nlist0)]
+  nlist0 = nlist0[!generics::is.element(nlist0,non_hash_cols)]
+  nlist01 = nlist0[!generics::is.element(nlist0,nlist)]
+  nlist10 = nlist[!generics::is.element(nlist,nlist0)]
   if(length(nlist01)>0) {
     cat("res has columns not in db\n")
     print(nlist01)
@@ -63,9 +78,9 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
 
   res$source_hash = "-"
   nlist1 = names(res)
-  to.remove = nlist1[!is.element(nlist1,nlist)]
-  nlist1 = nlist1[!is.element(nlist1,to.remove)]
-  to.add = nlist[!is.element(nlist,nlist1)]
+  to.remove = nlist1[!generics::is.element(nlist1,nlist)]
+  nlist1 = nlist1[!generics::is.element(nlist1,to.remove)]
+  to.add = nlist[!generics::is.element(nlist,nlist1)]
   if(length(to.add)>0) {
     cat("columns to add:",to.add,"\n")
     browser()
@@ -79,7 +94,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   # tmp = data.frame()
   for (i in 1:nrow(res)){
     row <- res.temp[i,]
-    res[i,"source_hash"] <- digest(paste0(row,collapse=""), serialize = FALSE)
+    res[i,"source_hash"] <- digest::digest(paste0(row,collapse=""), serialize = FALSE)
     if(i%%1000==0) cat(i," out of ",nrow(res),"\n")
     # tmp = rbind(tmp, data.frame(source_hash = res[i,"source_hash"],
     #                             hashcol = paste0(row,collapse="")))
@@ -105,7 +120,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
           tryCatch({runQuery(paste0("SELECT fk_source_hash as source_hash, parent_hash FROM source_audit WHERE src_tbl_name = '",
                                     table, "'"), db, do.halt=FALSE)},
                    error=function(cond){ return(NULL) })) %>%
-    distinct()
+    dplyr::distinct()
   # Convert into unique vector of hash values
   hash_check = c(hash_check$source_hash, hash_check$parent_hash) %>% unique() %>% unlist()
   shlist1 = res$source_hash

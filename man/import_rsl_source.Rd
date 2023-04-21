@@ -2,30 +2,42 @@
 % Please edit documentation in R/import_rsl_source.R
 \name{import_rsl_source}
 \alias{import_rsl_source}
-\title{Load RSL Source Info into toxval source database}
+\title{FUNCTION_TITLE}
 \usage{
-import_rsl_source(
-  db,
-  infile1a = "final_rsl_thq_combined_nov21.xlsx",
-  infile1b = "final_rsl_subchronic_nov21.xlsx",
-  infile2 = "general_info_nov_21.xlsx",
-  infile3 = "key_description_nov_21.xlsx",
-  chem.check.halt = T
-)
+import_rsl_source(db, chem.check.halt = F)
 }
 \arguments{
-\item{db}{The version of toxval into which the source info is loaded.}
+\item{db}{The version of toxval_source into which the source is loaded.}
 
-\item{infile1a}{The input file ./rsl/rsl_files/final_rsl_thq_combined_nov21.xlsx}
+\item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
 
-\item{infile1b}{The input file ./rsl/rsl_files/final_rsl_subchronic_nov21.xlsx}
+\item{infile1}{The input file ./rsl/rsl_files/rsl_thq10_nov_2022.xlsx}
 
-\item{infile2}{The input file ./rsl/rsl_files/general_info_nov_21.xlsx}
+\item{infile2}{The input file ./rsl/rsl_files/rsl_thq01_nov_2022.xlsx}
 
-\item{infile3}{The input file ./rsl/rsl_files/key_description_nov_21.xlsx}
-
-\item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+\item{infile3}{The input file ./rsl/rsl_files/rsl_subchronic_nov_2022.xlsx}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
-Load RSL Source Info into toxval source database
+Import of rsl 2022 source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[readxl]{read_excel}}
+ \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}
+ \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{bind}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}
+ \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
+ \code{\link[gsubfn]{list}}
+ \code{\link[tibble]{add_column}}
 }

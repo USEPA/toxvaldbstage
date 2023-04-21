@@ -1,8 +1,20 @@
 #-------------------------------------------------------------------------------------
+#' @#' 
 #'
-#' Function to combine output log with output message
+#' @description Function to combine output log with output message
 #' @param log_df Dataframe to which the log information will be appended
 #' @param message_df_col New message to add
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @rdname log_message
+#' @export 
 #-------------------------------------------------------------------------------------
 log_message <- function(log_df,message_df_col){
   printCurrentFunction()

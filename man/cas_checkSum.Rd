@@ -2,23 +2,22 @@
 % Please edit documentation in R/cas_checkSum.R
 \name{cas_checkSum}
 \alias{cas_checkSum}
-\title{Check CAS RN validity via checksum method}
+\title{cas_checkSum}
 \usage{
 cas_checkSum(x, checkLEN = TRUE)
 }
 \arguments{
-\item{x}{chr. Input vector of values to check. Standard CAS notation using hyphens is fine, as
-all non-digit characters are stripped for checksum calculation. Each element of \emph{x} should contain
-only one suspected CAS RN to check.}
+\item{x}{chr. Input vector of values to check. Standard CAS notation using hyphens is fine, as #' all non-digit characters are stripped for checksum calculation. Each element of \emph{x} should contain #' only one suspected CAS RN to check.}
 
-\item{checkLEN}{logi. Should the function check that the non-digit characters of \emph{x} are at least 4, but no
-more than 10 digits long? Defaults to TRUE.}
+\item{checkLEN}{logi. Should the function check that the non-digit characters of \emph{x} are at least 4, but no #' more than 10 digits long? Defaults to TRUE. #'}
 }
 \value{
 A \code{logical} vector of length \emph{x} denoting whether each \emph{x} is a valid CAS by the checksum method. \code{NA}
 input values will remain \code{NA}.
 }
 \description{
+Check CAS RN validity via checksum method
+
 For a suspected CAS RN, determine validity by calculating final digit checksum
 }
 \details{
@@ -43,5 +42,8 @@ digit checksum means that even within a set of randomly generated validly-format
 cas_good <- c("71-43-2", "18323-44-9", "7732-18-5") #benzene, clindamycin, water
 cas_bad  <- c("61-43-2", "18323-40-9", "7732-18-4") #single digit change from good
 cas_checkSum(c(cas_good, cas_bad))
+}
+\seealso{
+\code{\link[stringr]{str_detect}}, \code{\link[stringr]{str_pad}}
 }
 \concept{cas_functions}

@@ -1,10 +1,31 @@
 #--------------------------------------------------------------------------------------
-#' Import of EPA OW NPDWR source into toxval_source
+#' @#' Import of EPA OW NPDWR source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title FUNCTION_TITLE
+#' @description FUNCTION_DESCRIPTION
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
+#'  \code{\link[stringr]{str_trim}}
+#' @rdname import_source_epa_ow_npdwr
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr rename mutate across
+#' @importFrom tidyr pivot_longer separate
+#' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
 import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -40,7 +61,7 @@ import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE,
                   toxval_numeric = gsub("zero", 0, toxval_numeric),
                   toxval_numeric = gsub("(^--> )?n/a$", "-", toxval_numeric),
                   toxval_numeric = gsub(" MFL$", " million fibers per liter", toxval_numeric)) %>%
-    dplyr::mutate(across(c("toxval_type", "toxval_numeric", "toxval_units"),
+    dplyr::mutate(dplyr::across(c("toxval_type", "toxval_numeric", "toxval_units"),
                          ~stringr::str_squish(.)))
 
   # TODO Handle toxval_numeric case of 15 picocuries per Liter (pCi/L) or 5 pCi/L

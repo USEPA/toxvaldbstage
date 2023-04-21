@@ -1,9 +1,27 @@
 #--------------------------------------------------------------------------------------
-#' Load ECHA echemportal api Source into toxval_source
+#' @description Load ECHA echemportal api Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param filepath The path for all the input xlsx files ./echa_echemportal_api/echa_echemportal_api_files
-
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[utils]{type.convert}}
+#'  \code{\link[data.table]{rbindlist}}
+#' @rdname import_echa_echemportal_api_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom utils type.convert
+#' @importFrom data.table rbindlist
+
 #--------------------------------------------------------------------------------------
 import_echa_echemportal_api_source <- function(db,
                                                filepath="echa_echemportal_api/echa_echemportal_api_files",
@@ -22,7 +40,7 @@ import_echa_echemportal_api_source <- function(db,
   res <- lapply(files.list,openxlsx::read.xlsx)
   names(res) <- gsub("(.*\\/eChemPortalAPI_)(.*)(_.*)", "\\2", files.list)
   for (i in 1:length(res)) {
-    res[[i]] <- lapply(res[[i]], function(x) type.convert(as.character(x), as.is = T))
+    res[[i]] <- lapply(res[[i]], function(x) utils::type.convert(as.character(x), as.is = T))
     res[[i]] <- data.frame(res[[i]], stringsAsFactors = F)
   }
 
@@ -32,7 +50,7 @@ import_echa_echemportal_api_source <- function(db,
     res[[i]][sapply(res[[i]], function(x) all(is.na(x) == T))] <- ""
   }
 
-  res1 <- rbindlist(res, fill = TRUE, idcol = 'source_table')
+  res1 <- data.table::rbindlist(res, fill = TRUE, idcol = 'source_table')
   res1 <- data.frame(res1, stringsAsFactors = F)
   res1$Name <- enc2utf8(res1$Name)
   names(res1) <- tolower(names(res1))
@@ -48,8 +66,8 @@ import_echa_echemportal_api_source <- function(db,
   #####################################################################
   source = "ECHA eChemPortal"
   res = as.data.frame(res1)
-  res = res[!is.element(res$number,c("134895-42-8","61-76-3")),]
-  names(res)[is.element(names(res),"number")] = "casrn"
+  res = res[!generics::is.element(res$number,c("134895-42-8","61-76-3")),]
+  names(res)[generics::is.element(names(res),"number")] = "casrn"
   print(dim(res))
 
   source_prep_and_load(db,source=source,table="source_echa_echemportal_api",res=res,F,T,T)

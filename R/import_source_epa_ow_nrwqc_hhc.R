@@ -1,10 +1,30 @@
 #--------------------------------------------------------------------------------------
-#' Import of EPA OW NRWQC-HHC source into toxval_source
+#' @description Import of EPA OW NRWQC-HHC source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}
+#'  \code{\link[stringr]{str_detect}}, \code{\link[stringr]{str_trim}}
+#' @rdname import_source_epa_ow_nrwqc_hhc
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr rename mutate across rowwise
+#' @importFrom tidyr pivot_longer matches separate
+#' @importFrom stringr str_detect str_squish
 #--------------------------------------------------------------------------------------
 import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -30,7 +50,7 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
                   ) %>%
     # Pivot out toxvals
     # Use matches due to concern for unicode handling of micrograms in field name
-    tidyr::pivot_longer(matches("Human Health for the consumption of"),
+    tidyr::pivot_longer(tidyr::matches("Human Health for the consumption of"),
                         names_to = "toxval_type",
                         values_to = "toxval_numeric"
                         ) %>%
@@ -50,9 +70,9 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       name = gsub("\\(P\\)$", "", name) %>%
         stringr::str_squish(),
       # Replace all multiple and/or non-standard dashes with a standard dash
-      across(.fns = ~gsub("(--)?—", "-", .)),
+      dplyr::across(.fns = ~gsub("(--)?—", "-", .)),
       # ...and replace all greek letters "µ" with "u"
-      across(.fns = ~gsub("µ", "u", .))
+      dplyr::across(.fns = ~gsub("µ", "u", .))
       ) %>%
     # Make row-by-row adjustments
     dplyr::rowwise() %>%

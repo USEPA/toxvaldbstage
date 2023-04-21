@@ -2,7 +2,7 @@
 % Please edit documentation in R/DAT.pipe.source.audit.R
 \name{DAT.pipe.source.audit}
 \alias{DAT.pipe.source.audit}
-\title{Processes DAT QC audit information into database}
+\title{FUNCTION_TITLE}
 \usage{
 DAT.pipe.source.audit(source, db, live_df, audit_df)
 }
@@ -13,8 +13,28 @@ DAT.pipe.source.audit(source, db, live_df, audit_df)
 
 \item{live_df}{a filepath to the DAT live data to push to the 'source' table}
 
-\item{audit_df}{a filepath to the DAT audit data to push to source_audit}
+\item{audit_df}{a filepath to the DAT audit data to push to source_audit #'}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
 Processes DAT QC audit information into database
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[gsubfn]{list}}
+ \code{\link[readxl]{read_excel}}
+ \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{filter}}
+ \code{\link[tidyr]{reexports}}
+ \code{\link[writexl]{write_xlsx}}
 }

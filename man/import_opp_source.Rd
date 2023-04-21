@@ -2,9 +2,13 @@
 % Please edit documentation in R/import_opp_source.R
 \name{import_opp_source}
 \alias{import_opp_source}
-\title{Load OPP Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
-import_opp_source(db, infile = "OPP RfD.xlsx", chem.check.halt = T)
+import_opp_source(
+  db,
+  infile = "source_opp_raw_20230131.xlsx",
+  chem.check.halt = T
+)
 }
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}
@@ -13,6 +17,24 @@ import_opp_source(db, infile = "OPP RfD.xlsx", chem.check.halt = T)
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load OPP Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{mutate}}
+ \code{\link[stringr]{str_trim}}
 }

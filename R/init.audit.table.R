@@ -1,10 +1,26 @@
 #--------------------------------------------------------------------------------------
-#' Create audit table and add BEFORE UPDATE audit triggers to source_* tables
+#' @description Create audit table and add BEFORE UPDATE audit triggers to source_* tables
 #'
+#' @description Create audit table and add BEFORE UPDATE audit triggers to source_* tables
+#'
+#' @param db the name of the database
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
-#' @export
+#' @export 
+#' @param s_tbl Source table name to apply changes to
+#' @param field_lsit List of current field names in source table
+#' @title FUNCTION_TITLE
+#' @param field_list PARAM_DESCRIPTION
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @rdname init.audit.table
 #--------------------------------------------------------------------------------------
 init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   # List of ID fields not to be added to JSON of audit
@@ -80,10 +96,6 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
 }
 
 #--------------------------------------------------------------------------------------
-#' @description Function to add/modify/delete select audit columns to source table
-#' @param s_tbl Source table name to apply changes to
-#' @param field_lsit List of current field names in source table
-#' @param db the name of the database
 #--------------------------------------------------------------------------------------
 audit.update.fields <- function(s_tbl, field_list, db){
   # Update create_time to always update timestamp

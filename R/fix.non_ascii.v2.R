@@ -1,9 +1,28 @@
 #-------------------------------------------------------------------------------------
-#' Flag and fix non-ascii characters in the database
+#' @description Flag and fix non-ascii characters in the database
 #' @param df The dataframe to be processed
 #' @param The source to be fixed
 #' @return The dataframe with non ascii characters replaced with cleaned versions
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @param source PARAM_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}, \code{\link[openxlsx]{write.xlsx}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[stringi]{stri_escape_unicode}}
+#' @rdname fix.non_ascii.v2
+#' @importFrom openxlsx read.xlsx write.xlsx
+#' @importFrom gsubfn list
+#' @importFrom stringr str_trim
+#' @importFrom stringi stri_escape_unicode
 #-------------------------------------------------------------------------------------
 fix.non_ascii.v2 <- function(df,source){
   printCurrentFunction(source)
@@ -27,12 +46,12 @@ fix.non_ascii.v2 <- function(df,source){
     names(row) = c("raw","converted")
     missing = NA
     for(col in clist) {
-      non_ascii_find = list(grep("NON_ASCII", iconv(df[,col], "UTF-8", "ASCII", sub="NON_ASCII")))[[1]]
+      non_ascii_find = gsubfn::list(grep("NON_ASCII", iconv(df[,col], "UTF-8", "ASCII", sub="NON_ASCII")))[[1]]
       for(i in 1:length(non_ascii_find)) {
         tryCatch({
           n0 = df[non_ascii_find[i],col]
           n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
-          n2 = str_trim(stri_escape_unicode(n1))
+          n2 = stringr::str_trim(stringi::stri_escape_unicode(n1))
           row[1,"raw"] = n0
           row[1,"converted"] = n1
           res = rbind(res,row)

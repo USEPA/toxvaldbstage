@@ -1,28 +1,40 @@
 #-------------------------------------------------------------------------------------
-#' get chemical info from source db tables
+#' @description get chemical info from source db tables
 #' @param source.db The version of toxval source to use.
-#' @param source_table The name of toxval source table to use.
 #' @param source The name of toxval source to use.
+#' @param source_table The name of toxval source table to use.
 #' @param file_id The suffixed 5 digit identifiers specified in the file names in the folder ./chemical_mapping/source_chemical_files
 #' @return database info collected
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[utils]{View}}
+#' @rdname get.chemical.info.by.source
+#' @importFrom utils View
 #--------------------------------------------------------------------------------------
 get.chemical.info.by.source <- function(source.db,source_table,source, file_id){
   printCurrentFunction(paste(source.db,":", source_table,":",source,":", file_id))
-  
-  
+
+
   #####################################################################
   cat("extract source info \n")
   #####################################################################
-  
+
   mat = runQuery(paste0("select * from ",source_table," "), source.db)
-  
+
   name_synonyms <- c("name","NAME","Analyte.Name","Chemical.Name")
   names(mat)[names(mat) %in% name_synonyms] <- "name"
-  
+
   casrn_synonyms <- c("casrn","CASRN","Analyte.Code","CAS.Number")
   names(mat)[names(mat) %in% casrn_synonyms] <- "casrn"
-  
+
   #####################################################################
   cat("Build chemical_info file from mat\n")
   #####################################################################
@@ -35,8 +47,8 @@ get.chemical.info.by.source <- function(source.db,source_table,source, file_id){
   chemical_information$chemical_id <- paste(id_prefix, chemical_information$chemical_id, sep = "_")
   file <- paste0(toxval.config()$datapath,"source_chemical_info_files/chemical_information_for_",source,"_",Sys.Date(),".xlsx")
   #write.xlsx(chemical_information,file)
-  print(View(chemical_information))
-  
+  print(utils::View(chemical_information))
+
   chem_table_name <- paste0(source,"_2022_04_19_",file_id)
   chem_table_name <- gsub("\\s+","_",chem_table_name)
   chem_table_name <- gsub("\\.","",chem_table_name)
@@ -44,10 +56,10 @@ get.chemical.info.by.source <- function(source.db,source_table,source, file_id){
   chem_table_name <- gsub("\\)","",chem_table_name)
   chem_table_name <- tolower(chem_table_name)
   print(chem_table_name)
-  
-  
+
+
   runInsertTable(chemical_information,chem_table_name,source.db,do.halt=T,verbose=F)
-  
+
 
 }
-  
+

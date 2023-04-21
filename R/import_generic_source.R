@@ -1,10 +1,26 @@
 #--------------------------------------------------------------------------------------
-#' A generic tmpalte for adding data to toxval_source for a new source
+#' @description A generic template for adding data to toxval_source for a new source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[stringr]{str_trim}}
+#' @rdname import_generic_source
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
 import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

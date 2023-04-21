@@ -20,24 +20,23 @@ library(textclean)
 library(logr)
 
 #--------------------------------------------------------------------------------------
-#' @#'
-#' Define a set of global variables. These include the source path (datapath)
+#' @title toxval.config
+#' @description Define a set of global variables. These include the source path (datapath)
 #' and the source databases (e.g. dev_toxval_{version} and dev_toxval_source_{version})
 #' and the urls for the ACToR web services.
-#'
-#' @return Returns a set of parameters to be used throughout the package
-#' @export
-#' @title FUNCTION_TITLE
-#' @description FUNCTION_DESCRIPTION
-
 #' @details DETAILS
-#' @examples
+#' @return Returns a set of parameters to be used throughout the package
+#' @export 
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
 #' @rdname toxval.config
+#' @seealso 
+#'  \code{\link[gsubfn]{list}}
+#' @importFrom gsubfn list
 #--------------------------------------------------------------------------------------
 toxval.config <- function() {
   toxval.db <- "res_toxval_v92"
@@ -50,7 +49,7 @@ toxval.config <- function() {
   non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
                     "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version",
                     "raw_input_file")
-  retval <- list(dsstox.db=dsstox.db,
+  retval <- gsubfn::list(dsstox.db=dsstox.db,
               toxval.db=toxval.db,
               source.db=source.db,
               datapath=datapath,

@@ -2,14 +2,14 @@
 % Please edit documentation in R/toxval_source.hash.and.load.R
 \name{toxval_source.hash.and.load}
 \alias{toxval_source.hash.and.load}
-\title{Add the hash key to the source tables and add the new rows}
+\title{FUNCTION_TITLE}
 \usage{
 toxval_source.hash.and.load(
   db = "dev_toxval_source_v5",
   source,
   table,
-  do.reset = F,
-  do.insert = F,
+  do.reset = FALSE,
+  do.insert = FALSE,
   res
 )
 }
@@ -20,13 +20,29 @@ toxval_source.hash.and.load(
 
 \item{table}{Name of the database table}
 
-\item{do.reset}{If TRUE, delete data from the database for this source before
-inserting new data. Default FALSE}
+\item{do.reset}{If TRUE, delete data from the database for this source before #' inserting new data. Default FALSE}
 
-\item{do.insert}{If TRUE, insert data into the database, default TRUE}
+\item{do.insert}{If TRUE, insert data into the database, default False}
 
 \item{res}{The data frame to be processed}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Add the hash key to the source tables and add the new rows
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[digest]{digest}}
+ \code{\link[dplyr]{distinct}}
 }

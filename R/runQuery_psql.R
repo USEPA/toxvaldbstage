@@ -1,13 +1,30 @@
 #library(RPostgreSQL)
-library(DBI)
+# library(DBI)
 #--------------------------------------------------------------------------------------
-#' Runs a PSQL database query and returns a result set
+#' @description Runs a PSQL database query and returns a result set
 #'
 #' @param query a properly formatted SQL query as a string
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[RMySQL]{character(0)}}
+#'  \code{\link[RPostgreSQL]{PostgreSQL}}
+#'  \code{\link[DBI]{dbGetQuery}}
+#' @rdname runQuery_psql
+#' @importFrom RMySQL dbConnect dbDisconnect
+#' @importFrom RPostgreSQL PostgreSQL
+#' @importFrom DBI dbGetQuery
 #--------------------------------------------------------------------------------------
 runQuery_psql <- function(query,db,do.halt=T,verbose=T) {
   if(!exists("DB.PSQLSERVER")) {
@@ -32,9 +49,9 @@ runQuery_psql <- function(query,db,do.halt=T,verbose=T) {
     cat("db: ",db,"\n")
   }
   tryCatch({
-    con <- dbConnect(drv=RPostgreSQL::PostgreSQL(),user=DB.PSQLUSER,port=DB.PSQLPORT,password=DB.PSQLPASSWORD,host=DB.PSQLSERVER,dbname=db)
-    d1 <- dbGetQuery(con,query)
-    dbDisconnect(con)
+    con <- RMySQL::dbConnect(drv=RPostgreSQL::PostgreSQL(),user=DB.PSQLUSER,port=DB.PSQLPORT,password=DB.PSQLPASSWORD,host=DB.PSQLSERVER,dbname=db)
+    d1 <- DBI::dbGetQuery(con,query)
+    RMySQL::dbDisconnect(con)
     return(d1)
   })
 }

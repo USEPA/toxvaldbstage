@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_pprtv_ornl_source.R
 \name{import_pprtv_ornl_source}
 \alias{import_pprtv_ornl_source}
-\title{Load PPRTV ORNL Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_pprtv_ornl_source(
   db,
@@ -17,6 +17,22 @@ import_pprtv_ornl_source(
 
 \item{chem.check.halt}{If TRUE and there are problems with chemicals CASRN checks, halt the program}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load PPRTV ORNL Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

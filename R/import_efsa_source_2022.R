@@ -1,10 +1,32 @@
 #--------------------------------------------------------------------------------------
-#' Import of EFSA OpenFoodTox 2022 source into toxval_source
+#' @description Import of EFSA OpenFoodTox 2022 source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{recode}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
+#'  \code{\link[tidyselect]{where}}
+#' @rdname import_efsa_source_2022
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom stringr str_squish
+#' @importFrom dplyr rename mutate recode across select distinct
+#' @importFrom tidyr separate matches
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -56,13 +78,13 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   source=owner,
                   subsource=author) %>%
     # Recoding/fixing entries in study_type
-    mutate(study_type=recode(study_type,
+    dplyr::mutate(study_type=dplyr::recode(study_type,
                              "acute toxicity" = "acute",
                              "chronic/long term toxicity" = "chronic/long-term",
                              "reproduction toxicity" = "reproductive",
                              "short-term toxicity" = "short-term",
                              "study with volunteers" = "human"),
-           human_eco=recode(human_eco,
+           human_eco=dplyr::recode(human_eco,
                             "Animal (non-target species) health" = "human health",
                             "Animal (target species) health" = "human health",
                             "Ecotox (soil compartment)" = "eco",
@@ -74,14 +96,14 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
            study_duration_units = "days") %>%
     # splitting ROUTE into exposure_route and exposure_method columns
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
-    dplyr::mutate(across(where(is.character), fix.greek.symbols)) %>%
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character), fix.greek.symbols)) %>%
     # Replace superscript
-    mutate(toxval_units = gsub("³", "3", toxval_units))
+    dplyr::mutate(toxval_units = gsub("³", "3", toxval_units))
 
   # Remove unneeded ID fields from original source
   res = res %>%
-    select(-matches("_id"), -testtype_code) %>%
-    distinct()
+    dplyr::select(-tidyr::matches("_id"), -testtype_code) %>%
+    dplyr::distinct()
 
   #####################################################################
   cat("Prep and load the data\n")

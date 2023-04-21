@@ -2,7 +2,7 @@
 % Please edit documentation in R/runQuery_psql.R
 \name{runQuery_psql}
 \alias{runQuery_psql}
-\title{Runs a PSQL database query and returns a result set}
+\title{FUNCTION_TITLE}
 \usage{
 runQuery_psql(query, db, do.halt = T, verbose = T)
 }
@@ -15,6 +15,24 @@ runQuery_psql(query, db, do.halt = T, verbose = T)
 
 \item{verbose}{if TRUE, print diagnostic information}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Runs a PSQL database query and returns a result set
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[RMySQL]{character(0)}}
+ \code{\link[RPostgreSQL]{PostgreSQL}}
+ \code{\link[DBI]{dbGetQuery}}
 }

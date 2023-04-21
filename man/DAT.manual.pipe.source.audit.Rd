@@ -2,7 +2,7 @@
 % Please edit documentation in R/DAT.manual.pipe.source.audit.R
 \name{DAT.manual.pipe.source.audit}
 \alias{DAT.manual.pipe.source.audit}
-\title{Processes manually QC'd (sans-DAT) QC audit information into database}
+\title{FUNCTION_TITLE}
 \usage{
 DAT.manual.pipe.source.audit(source, db, live_df, qc_user = "Evelyn Rowan")
 }
@@ -13,8 +13,32 @@ DAT.manual.pipe.source.audit(source, db, live_df, qc_user = "Evelyn Rowan")
 
 \item{live_df}{a filepath to the DAT live data to push to the 'source' table}
 
-\item{qc_user}{The name of the user who completed the QC}
+\item{qc_user}{The name of the user who completed the QC #'}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
-Processes manually QC'd (sans-DAT) QC audit information into database
+FUNCTION_DESCRIPTION
+}
+\details{
+#' Processes manually QC'd (sans-DAT) QC audit information into database
+
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[gsubfn]{list}}
+ \code{\link[readxl]{read_excel}}
+ \code{\link[dplyr]{filter}}, \code{\link[dplyr]{bind}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{summarise}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}
+ \code{\link[stringr]{str_trim}}
+ \code{\link[utils]{View}}
+ \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}
+ \code{\link[writexl]{write_xlsx}}
 }

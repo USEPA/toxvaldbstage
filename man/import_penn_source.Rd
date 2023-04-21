@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_penn_source.R
 \name{import_penn_source}
 \alias{import_penn_source}
-\title{Load Penn Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_penn_source(db, infile = "Penn DEP Table 5a.xlsx", chem.check.halt = T)
 }
@@ -13,6 +13,24 @@ import_penn_source(db, infile = "Penn DEP Table 5a.xlsx", chem.check.halt = T)
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load Penn Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[stringr]{str_trim}}
+ \code{\link[utils]{type.convert}}
 }

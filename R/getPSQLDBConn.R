@@ -1,8 +1,18 @@
-#library(RPostgreSQL)
-library(DBI)
+# #library(RPostgreSQL)
+# library(DBI)
 #--------------------------------------------------------------------------------------
-#' Get the names the database server, user, and pass or returns error message
+#' @description Get the names the database server, user, and pass or returns error message
 #' @return print the database connection information
+#' @title FUNCTION_TITLE
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @rdname getPSQLDBConn
+#' @export 
 #--------------------------------------------------------------------------------------
 getPSQLDBConn <- function() {
   printCurrentFunction()

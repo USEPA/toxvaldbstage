@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_echa_echemportal_api_source.R
 \name{import_echa_echemportal_api_source}
 \alias{import_echa_echemportal_api_source}
-\title{Load ECHA echemportal api Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_echa_echemportal_api_source(
   db,
@@ -17,6 +17,24 @@ import_echa_echemportal_api_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load ECHA echemportal api Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[utils]{type.convert}}
+ \code{\link[data.table]{rbindlist}}
 }

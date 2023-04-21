@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_echa_echemportal_source.R
 \name{import_echa_echemportal_source}
 \alias{import_echa_echemportal_source}
-\title{Load ECHA echemportal 2020 Source into dev_toxval_source_v4.}
+\title{FUNCTION_TITLE}
 \usage{
 import_echa_echemportal_source(toxval.db, infile)
 }
@@ -11,6 +11,23 @@ import_echa_echemportal_source(toxval.db, infile)
 
 \item{infile}{The input file ./echa_echemportal/echa_echemportal_files/eChemPortal mammalian data 2020 step 3.xlsx ,build from echemportal.prep.v2.step3.R}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load ECHA echemportal 2020 Source into dev_toxval_source_v4.
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}}
 }

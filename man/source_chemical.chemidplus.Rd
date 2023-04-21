@@ -2,7 +2,7 @@
 % Please edit documentation in R/source_chemical.chemidplus.R
 \name{source_chemical.chemidplus}
 \alias{source_chemical.chemidplus}
-\title{special process to deal with source chemicals for ChemIDPlus}
+\title{FUNCTION_TITLE}
 \usage{
 source_chemical.chemidplus(
   toxval.db,
@@ -20,6 +20,8 @@ source_chemical.chemidplus(
 
 \item{source.db}{The source database version}
 
+\item{res}{PARAM_DESCRIPTION}
+
 \item{source}{The xource to be processed (ECOTOX)}
 
 \item{chem.check.halt}{If TRUE, halt if there are errors in the chemical checking}
@@ -30,6 +32,23 @@ source_chemical.chemidplus(
 
 \item{verbose}{If TRUE, output extra diagnostics information}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 special process to deal with source chemicals for ChemIDPlus
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[digest]{digest}}
+ \code{\link[openxlsx]{read.xlsx}}
 }

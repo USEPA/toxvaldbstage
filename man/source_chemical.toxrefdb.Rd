@@ -2,8 +2,7 @@
 % Please edit documentation in R/source_chemical.toxrefdb.R
 \name{source_chemical.toxrefdb}
 \alias{source_chemical.toxrefdb}
-\title{Special process to deal with source chemicals for ToxRefDB. This will put the
-chemicals into the source database source_chemical table}
+\title{FUNCTION_TITLE}
 \usage{
 source_chemical.toxrefdb(
   toxval.db,
@@ -39,4 +38,17 @@ Returns the input dataframe with the chemical_id added
 \description{
 Special process to deal with source chemicals for ToxRefDB. This will put the
 chemicals into the source database source_chemical table
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[digest]{digest}}
 }

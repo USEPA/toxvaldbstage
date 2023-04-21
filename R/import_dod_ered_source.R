@@ -1,8 +1,24 @@
 #--------------------------------------------------------------------------------------
-#' Load dod Source into toxval_source
+#' @description Load dod Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./dod/dod_files/USACE_ERDC_ERED_database_12_07_2018.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[janitor]{excel_numeric_to_date}}
+#' @rdname import_dod_ered_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom janitor excel_numeric_to_date
 #--------------------------------------------------------------------------------------
 import_dod_ered_source <- function(db,
                                    infile="USACE_ERDC_ERED_database_12_07_2018.xlsx",
@@ -14,7 +30,7 @@ import_dod_ered_source <- function(db,
   #####################################################################
 
   dod_table <- openxlsx::read.xlsx(infile,1)
-  dod_table$Date.Modified <- excel_numeric_to_date(as.numeric(as.character(dod_table$Date.Modified)), date_system = "modern")
+  dod_table$Date.Modified <- janitor::excel_numeric_to_date(as.numeric(as.character(dod_table$Date.Modified)), date_system = "modern")
   dod_table$Date.Modified <- format(dod_table$Date.Modified, format = "%d-%b-%y")
   dod_table["dod_id"] <- c(1:length(dod_table[,1]))
   dod_table <- dod_table[c("dod_id",names(dod_table[-43]))]

@@ -2,7 +2,7 @@
 % Please edit documentation in R/init.audit.table.R
 \name{init.audit.table}
 \alias{init.audit.table}
-\title{Create audit table and add BEFORE UPDATE audit triggers to source_* tables}
+\title{FUNCTION_TITLE}
 \usage{
 init.audit.table(db, do.halt = FALSE, verbose = FALSE)
 }
@@ -12,7 +12,28 @@ init.audit.table(db, do.halt = FALSE, verbose = FALSE)
 \item{do.halt}{if TRUE, halt on errors or warnings}
 
 \item{verbose}{if TRUE, print diagnostic information}
+
+\item{s_tbl}{Source table name to apply changes to}
+
+\item{field_lsit}{List of current field names in source table}
+
+\item{field_list}{PARAM_DESCRIPTION}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
 Create audit table and add BEFORE UPDATE audit triggers to source_* tables
+
+Create audit table and add BEFORE UPDATE audit triggers to source_* tables
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
 }

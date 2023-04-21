@@ -2,7 +2,6 @@
 #' Find duplicated chemicals in the source_chemical table. THis will help get rid of
 #' records that have been repalced
 #' @param db The version of toxval into which the tables are loaded.
-#' @export
 #--------------------------------------------------------------------------------------
 source_chemical.duplicates <- function(db) {
   printCurrentFunction()

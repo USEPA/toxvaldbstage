@@ -1,9 +1,29 @@
 #--------------------------------------------------------------------------------------
-#' Load HESS Source into toxval_source
+#' @description Load HESS Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./hess/hess_files/hess_6_16_21.csv, extracted by Risa Sayre(SCDCD)
 #' @param infile2 The input file ./hess/hess_files/hess_record_urls_from_clowder.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[utils]{type.convert}}
+#'  \code{\link[tidyr]{unite}}
+#'  \code{\link[stringr]{str_replace}}
+#' @rdname import_hess_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom utils type.convert
+#' @importFrom tidyr unite
+#' @importFrom stringr str_replace_all str_replace
 #--------------------------------------------------------------------------------------
 import_hess_source <- function(db,
                                infile1="hess_6_16_21.xlsx",
@@ -33,7 +53,7 @@ import_hess_source <- function(db,
   res1[fac_cols] <- lapply(res1[fac_cols], as.character)  # Convert all factors to characters
 
   # apply appropriate data types
-  res1 <- lapply(res1, function(x) type.convert(as.character(x), as.is = T))
+  res1 <- lapply(res1, function(x) utils::type.convert(as.character(x), as.is = T))
   res1 <- data.frame(res1, stringsAsFactors = F)
 
   # all na logi cols to character
@@ -67,14 +87,14 @@ import_hess_source <- function(db,
   res1[, names(res1)[ names(res1)%in% names.list]] <- lapply(res1[, names(res1)[ names(res1)%in% names.list]],
                                                              function(x) replace(x, grepl(paste0("^",names.list,";NA$", collapse="|"), x), NA))
   # combine all critical effect columns
-  res1 <- res1 %>% unite("critical_effect", names(res1)[ names(res1)%in% names.list],sep = "|", na.rm = TRUE, remove = FALSE)
+  res1 <- res1 %>% tidyr::unite("critical_effect", names(res1)[ names(res1)%in% names.list],sep = "|", na.rm = TRUE, remove = FALSE)
   # remove question marks before critical effect values
-  res1$critical_effect <- str_replace_all(res1$critical_effect, pattern = "\\?", replacement = "")
+  res1$critical_effect <- stringr::str_replace_all(res1$critical_effect, pattern = "\\?", replacement = "")
   # keep only death or death none information in critical effect
   res1$critical_effect <- gsub("(^deaths)(\\;[0-9]+)([^|]+)(.*)", "\\1\\4",res1$critical_effect)
   # remove multiple patterns(starting with semicolon, colon, comma) of sex info from critical effect
-  res1$critical_effect <- str_replace_all(res1$critical_effect, pattern = "(\\;|\\:)+\\s*[^[:alnum:]]*[0-9]+\\s*(male|female)*\\s*(female|male)*", replacement = "")
-  res1$critical_effect <- str_replace_all(res1$critical_effect, pattern = "\\,+\\s*[^[:alnum:]]*[0-9]+\\s*(male|female)*", replacement = "")
+  res1$critical_effect <- stringr::str_replace_all(res1$critical_effect, pattern = "(\\;|\\:)+\\s*[^[:alnum:]]*[0-9]+\\s*(male|female)*\\s*(female|male)*", replacement = "")
+  res1$critical_effect <- stringr::str_replace_all(res1$critical_effect, pattern = "\\,+\\s*[^[:alnum:]]*[0-9]+\\s*(male|female)*", replacement = "")
   # provide appropriate spacing between words
   res1$critical_effect <- gsub("(\\s*[a-zA-Z]{1}[a-z]+)([A-Z]{1}[a-z]*\\s*)", "\\1 \\2",res1$critical_effect)
   # provide seperaton for values within each critical effect category with commas
@@ -156,7 +176,7 @@ import_hess_source <- function(db,
   # res1$document_name <- "-"
   for (i in 1:nrow(res1)){
    #res1$document_name[i] <- gsub("(.*HESS\\\\)(.*)(\\..*)","\\2",res1$document_name[i])
-   res1$document_name[i] <- str_replace(res1$document_name[i],".docx","")
+   res1$document_name[i] <- stringr::str_replace(res1$document_name[i],".docx","")
   }
   for (i in 1:nrow(res1)){
     res1$document_name[i] <- paste(res1$document_name[i],".pdf", sep = "")
@@ -166,7 +186,7 @@ import_hess_source <- function(db,
   for(i in 1:nrow(url_from_clowder)) {
     valold <- url_from_clowder[i,2]
     valnew <- url_from_clowder[i,4]
-    res1[is.element(res1$document_name,valold),"record_url"] <- valnew
+    res1[generics::is.element(res1$document_name,valold),"record_url"] <- valnew
   }
   #print(str(res1))
   # multiple casrn per chemical, erroneous casrn

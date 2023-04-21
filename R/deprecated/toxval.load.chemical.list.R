@@ -3,7 +3,6 @@
 #' are loaded. The must have the columns casrn, name, list_name
 #' @param toxval.db The version of toxval into which the tables are loaded.
 #' @param verbose If TRUE, print debugging messages
-#' @export
 #--------------------------------------------------------------------------------------
 toxval.load.chemical.list <- function(toxval.db,verbose=T) {
   printCurrentFunction(toxval.db)

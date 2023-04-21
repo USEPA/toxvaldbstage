@@ -1,11 +1,11 @@
 #--------------------------------------------------------------------------------------
-#' Check the chemicals from a file
+#' @#' Check the chemicals from a file
 #' Names with special characters are cleaned and trimmed
 #' CASRN are fixed (dashes put in, trimmed) and check sums are calculated
 #' The output is sent to a file called chemcheck.xlsx in the source data file
 #' One option for using this is to edit the source file until no errors are found
 #'
-#' @param res0  The data frame in which chemicals names and CASRN will be replaced
+#' @param res0 The data frame in which chemicals names and CASRN will be replaced
 #' @param name.col The column name that contains the chemical names
 #' @param casrn.col The column name that contains the CARN values
 #' @param source The source to be processed. If source=NULL, process all sources
@@ -13,6 +13,28 @@
 #' @return Return a list with fixed CASRN and name and flags indicating if fixes were made:
 #' res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK
 #'
+#' @title FUNCTION_TITLE
+#' @description FUNCTION_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[stringi]{stri_escape_unicode}}
+#'  \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_trim}}
+#'  \code{\link[tidyr]{reexports}}
+#'  \code{\link[openxlsx]{write.xlsx}}
+#'  \code{\link[gsubfn]{list}}
+#' @rdname chem.check
+#' @export 
+#' @importFrom stringi stri_escape_unicode
+#' @importFrom stringr str_replace_all str_trim
+#' @importFrom tidyr contains
+#' @importFrom openxlsx write.xlsx
+#' @importFrom gsubfn list
 #--------------------------------------------------------------------------------------
 chem.check <- function(res0,
                        name.col="name",
@@ -30,13 +52,13 @@ chem.check <- function(res0,
   for(i in 1:nrow(res0)) {
     n0 = res0[i,name.col]
     n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
-    n2 = stri_escape_unicode(n1)
-    n2 = str_replace_all(n2,"\\\\'","\'")
-    n2 = str_replace_all(n2,"\r"," ")
-    n2 = str_replace_all(n2,"\n"," ")
-    n2 = str_replace_all(n2,"  "," ")
-    n2 = str_trim(n2)
-    if(is.element(source,c("Alaska DEC",
+    n2 = stringi::stri_escape_unicode(n1)
+    n2 = stringr::str_replace_all(n2,"\\\\'","\'")
+    n2 = stringr::str_replace_all(n2,"\r"," ")
+    n2 = stringr::str_replace_all(n2,"\n"," ")
+    n2 = stringr::str_replace_all(n2,"  "," ")
+    n2 = stringr::str_trim(n2)
+    if(generics::is.element(source,c("Alaska DEC",
                            "California DPH",
                            "EPA AEGL",
                            "Mass. Drinking Water Standards",
@@ -57,16 +79,16 @@ chem.check <- function(res0,
                            "Pennsylvania DEP ToxValues",
                            "EnviroTox_v2",
                            "HEAST"))) {
-      if(contains(n2,";")) {
+      if(tidyr::contains(n2,";")) {
         start = gregexpr(";",n2)[[1]][1]
-        n3 = str_trim(substr(n2,1,start-1))
+        n3 = stringr::str_trim(substr(n2,1,start-1))
         string = paste0(source," [",n2,"] [",n3,"]")
         #cat(string,"\n")
         n2 = n3
       }
-      if(contains(n2," (")) {
+      if(tidyr::contains(n2," (")) {
         start = gregexpr(" \\(",n2)[[1]][1]
-        n3 = str_trim(substr(n2,1,start-1))
+        n3 = stringr::str_trim(substr(n2,1,start-1))
         string = paste0(source," [",n2,"] [",n3,"]")
         #cat(string,"\n")
         n2 = n3
@@ -90,7 +112,7 @@ chem.check <- function(res0,
     n0 = res0[[casrn.col]][i]#  res0[i,casrn.col]
     if(!is.na(n0)) {
       n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
-      n2 = stri_escape_unicode(n1)
+      n2 = stringi::stri_escape_unicode(n1)
       n2 = fix.casrn(n2)
       cs = cas_checkSum(n2)
       if(is.na(cs)) cs = 0
@@ -128,5 +150,5 @@ chem.check <- function(res0,
   else cat("All casrn OK\n")
   if(!checksum.OK) cat("Some casrn have bad checksums\n")
   else cat("All checksums OK\n")
-  return(list(res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK))
+  return(gsubfn::list(res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK))
 }

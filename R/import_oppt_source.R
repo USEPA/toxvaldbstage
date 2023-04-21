@@ -1,8 +1,23 @@
 #--------------------------------------------------------------------------------------
-#' Load OPPT Source Info into toxval_source
+#' @#' Load OPPT Source Info into toxval_source
 #' @param db The version of toxval_source into which the source info is loaded.
 #' @param infile The input file ./oppt/oppt_files/OPPT_data_20181219.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @description FUNCTION_DESCRIPTION
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_oppt_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_oppt_source <- function(db,
                                infile="OPPT_data_20181219.xlsx",

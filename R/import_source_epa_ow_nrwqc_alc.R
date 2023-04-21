@@ -1,8 +1,28 @@
 #--------------------------------------------------------------------------------------
-#' Import of EPA OW NRWQC-ALC source into toxval_source
+#' @description Import of EPA OW NRWQC-ALC source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate_rows}}
+#' @rdname import_source_epa_ow_nrwqc_alc
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom stringr str_squish
+#' @importFrom dplyr rename rowwise mutate ungroup across case_when
+#' @importFrom tidyr pivot_longer separate matches separate_rows
 #--------------------------------------------------------------------------------------
 import_generic_source <- function(db,chem.check.halt=F) {
   printCurrentFunction(db)
@@ -34,10 +54,10 @@ import_generic_source <- function(db,chem.check.halt=F) {
     # Renaming columns
     dplyr::rename(name="Pollutant_(P_=_Priority_Pollutant)",
                   casrn="CAS_Number") %>%
-    rowwise() %>%
+    dplyr::rowwise() %>%
     # Making priority_pollutant column based on (P) in name column
-    mutate(priority_pollutant = ifelse(endsWith(name, "(P)"), "yes", "no")) %>%
-    ungroup() %>%
+    dplyr::mutate(priority_pollutant = ifelse(endsWith(name, "(P)"), "yes", "no")) %>%
+    dplyr::ungroup() %>%
     # wide to long based on toxval_type
     tidyr::pivot_longer(
       cols= c("Freshwater_CMC1_(acute)_(µg/L)",
@@ -59,8 +79,8 @@ import_generic_source <- function(db,chem.check.halt=F) {
       toxval_units = gsub("[()]", "", toxval_units),
       study_type = gsub("[()]", "", study_type)) %>%
     # replacing multiple dashes with single dash for empty columns
-    dplyr::mutate(across(matches("name|casrn|Publication_Year|toxval_numeric"),
-                         .fns = ~ case_when(
+    dplyr::mutate(dplyr::across(tidyr::matches("name|casrn|Publication_Year|toxval_numeric"),
+                         .fns = ~ dplyr::case_when(
                            . == "---" ~ "-",
                            . == "--" ~ "-",
                            . == "—" ~ "-",
@@ -70,7 +90,7 @@ import_generic_source <- function(db,chem.check.halt=F) {
                   name = gsub("\\(P[)]$", "", name) %>%
                     # Remove asterisk
                     gsub("*", "", ., fixed=TRUE),
-                  across(c("name", "casrn", "toxval_numeric"), ~stringr::str_squish(.))
+                  dplyr::across(c("name", "casrn", "toxval_numeric"), ~stringr::str_squish(.))
     ) %>%
     # Split CASRN lists into unique rows
     # https://stackoverflow.com/questions/15347282/split-delimited-strings-in-a-column-and-insert-as-new-rows

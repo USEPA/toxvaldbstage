@@ -1,9 +1,23 @@
 #--------------------------------------------------------------------------------------
-#' Load IRIS Source into toxval_source
+#' @description Load IRIS Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./iris/iris_files/IRIS_non_cancer_clean 2020-05-27.xlsx
 #' @param infile2 The input file ./iris/iris_files/IRIS_cancer_clean 2020-05-27.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_iris_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_iris_source <- function(db,
                                infile1="IRIS_non_cancer_clean 2022-10-21.xlsx",
@@ -72,14 +86,14 @@ import_iris_source <- function(db,
   res_cancer = res2[,nlist]
   for(i in 1:nrow(res_cancer)) {
     casrn <- res_cancer[i,"casrn"]
-    if(is.element(casrn,res_noncancer[,"casrn"])) {
-      temp <- res_noncancer[is.element(res_noncancer[,"casrn"],casrn),]
+    if(generics::is.element(casrn,res_noncancer[,"casrn"])) {
+      temp <- res_noncancer[generics::is.element(res_noncancer[,"casrn"],casrn),]
       url <- temp[1,"record_url"]
-      res_cancer[is.element(res_cancer[,"casrn"],casrn),"record_url"] <- url
+      res_cancer[generics::is.element(res_cancer[,"casrn"],casrn),"record_url"] <- url
     }
   }
   resall = rbind(res_noncancer,res_cancer)
-  resall = resall[!is.element(resall$casrn,c("Various","-","")),]
+  resall = resall[!generics::is.element(resall$casrn,c("Various","-","")),]
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################

@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' Load ATSDR PFAS Source files into toxval_source
+#' @description Load ATSDR PFAS Source files into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_Perfluoroalkyls_Inhalation.xlsx
 #' @param infile2 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_Perfluoroalkyls_Oral.xlsx
@@ -7,6 +7,26 @@
 #' @param infile4 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_PFOA_Oral.xlsx
 #' @param infile5 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_PFOS_Oral.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[dplyr]{reexports}}
+#'  \code{\link[utils]{type.convert}}
+#' @rdname import_atsdr_pfas_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom gsubfn list
+#' @importFrom dplyr intersect setdiff
+#' @importFrom utils type.convert
 #--------------------------------------------------------------------------------------
 import_atsdr_pfas_source <- function(db,
                                      infile1="ATSDR_Perfluoroalkyls_Inhalation.xlsx",
@@ -434,14 +454,14 @@ import_atsdr_pfas_source <- function(db,
   #####################################################################
   cat("Build combined dataframe of all atsdr pfas sources \n")
   #####################################################################
-  comb_res <- list(res3_new1,res4_new1,res5_new1,res6_new1,res7_new1)
+  comb_res <- gsubfn::list(res3_new1,res4_new1,res5_new1,res6_new1,res7_new1)
   common_cols <- Reduce(intersect, lapply(comb_res, colnames))
   reqd_cols <- c(names(res3_new1),"record_url")
   # create new_res by subsetting with the columns present in required cols
-  comb_res <- lapply(comb_res, function(x) subset(x, select = intersect(reqd_cols, colnames(x))))
+  comb_res <- lapply(comb_res, function(x) subset(x, select = dplyr::intersect(reqd_cols, colnames(x))))
   # In case any required col not being present in a data frame add that column and assign it as empty
   for ( i in 1:length(comb_res)){
-    comb_res[[i]][setdiff(reqd_cols,names(comb_res[[i]]))] <- ""
+    comb_res[[i]][dplyr::setdiff(reqd_cols,names(comb_res[[i]]))] <- ""
   }
 
   all_res <- do.call("rbind",comb_res)
@@ -449,7 +469,7 @@ import_atsdr_pfas_source <- function(db,
   all_res <- unique(all_res)
   all_res["atsdr_pfas_id"] <- c(1:length(all_res[,1]))
   all_res <- all_res[c("atsdr_pfas_id",names(all_res[-21]))]
-  all_res <- lapply(all_res, function(x) type.convert(as.character(x), as.is = T))
+  all_res <- lapply(all_res, function(x) utils::type.convert(as.character(x), as.is = T))
   all_res <- data.frame(all_res, stringsAsFactors = F)
   names(all_res) <- tolower(names(all_res))
   # assign short ref where long ref not available

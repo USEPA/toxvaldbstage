@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_lanl_source.R
 \name{import_lanl_source}
 \alias{import_lanl_source}
-\title{Load LANL Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_lanl_source(db, infile = "ESLs_R3.3.xlsx", chem.check.halt = T)
 }
@@ -13,6 +13,22 @@ import_lanl_source(db, infile = "ESLs_R3.3.xlsx", chem.check.halt = T)
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load LANL Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

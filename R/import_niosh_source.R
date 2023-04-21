@@ -1,8 +1,22 @@
 #--------------------------------------------------------------------------------------
-#' Load NIOSH Source into toxval_source
+#' @description Load NIOSH Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./niosh/niosh_files/niosh_IDLH_2020.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_niosh_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_niosh_source <- function(db,
                                 infile="niosh_IDLH_2020.xlsx",

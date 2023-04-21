@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_doe_source.R
 \name{import_doe_source}
 \alias{import_doe_source}
-\title{Load doe Source into dev_toxval_source_v4.}
+\title{FUNCTION_TITLE}
 \usage{
 import_doe_source(toxval.db, infile)
 }
@@ -11,6 +11,24 @@ import_doe_source(toxval.db, infile)
 
 \item{infile}{The input file ./doe/doe_files/Revision_29.xlsx}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load doe Source into dev_toxval_source_v4.
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[gsubfn]{list}}
+ \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{filter-joins}}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_doe_pac_source.R
 \name{import_doe_pac_source}
 \alias{import_doe_pac_source}
-\title{Load DOE Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_doe_pac_source(db, infile = "Revision_29.xlsx", chem.check.halt = F)
 }
@@ -13,6 +13,25 @@ import_doe_pac_source(db, infile = "Revision_29.xlsx", chem.check.halt = F)
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load DOE Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[gsubfn]{list}}
+ \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{filter-joins}}
+ \code{\link[tidyr]{reexports}}
 }

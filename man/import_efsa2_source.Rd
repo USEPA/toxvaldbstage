@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_efsa2_source.R
 \name{import_efsa2_source}
 \alias{import_efsa2_source}
-\title{Load efsa2 Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_efsa2_source(
   db,
@@ -17,6 +17,23 @@ import_efsa2_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load efsa2 Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[utils]{type.convert}}
 }

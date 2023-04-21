@@ -2,7 +2,7 @@
 % Please edit documentation in R/qc_prescreening_summary.R
 \name{qc_prescreening_summary}
 \alias{qc_prescreening_summary}
-\title{Runs a database query and returns a result set}
+\title{FUNCTION_TITLE}
 \usage{
 qc_prescreening_summary(src_tbl = NULL, outputDir = NULL, db = NULL)
 }
@@ -13,6 +13,25 @@ qc_prescreening_summary(src_tbl = NULL, outputDir = NULL, db = NULL)
 
 \item{db}{the name of the database}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Runs a database query and returns a result set
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[tidyr]{pivot_longer}}
+ \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{summarise}}
+ \code{\link[gsubfn]{list}}
+ \code{\link[writexl]{write_xlsx}}
 }
