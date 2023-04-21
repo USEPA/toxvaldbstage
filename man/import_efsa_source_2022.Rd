@@ -41,5 +41,4 @@ if(interactive()){
  \code{\link[stringr]{str_trim}}
  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{recode}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}
  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
- \code{\link[tidyselect]{where}}
 }

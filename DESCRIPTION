@@ -23,11 +23,24 @@ Imports:
     miniUI,
     RCurl,
     gsubfn,
-    textclean
+    textclean,
+    RPostgreSQL,
+    data.table,
+    digest,
+    httr,
+    jsonlite,
+    magrittr,
+    methods,
+    purrr, 
+    readr,
+    readxl,
+    stringi,
+    tidyselect,
+    writexl
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Suggests: 
     knitr,
     rmarkdown

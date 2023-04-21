@@ -42,5 +42,4 @@ if(interactive()){
  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}
  \code{\link[gsubfn]{list}}
  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_extract}}
- \code{\link[tidyselect]{where}}
 }

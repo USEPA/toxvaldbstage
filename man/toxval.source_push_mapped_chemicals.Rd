@@ -31,13 +31,8 @@ toxval.source_push_mapped_chemicals(
 }
 \value{
 None. Update SQL statements are executed.
-
-None. Update SQL statements are executed.
 }
 \description{
-Orchestrates the push of mapped chemical information to the selected toxval_source database.
-Uses the map_curated_chemicals() helper function to generate mapped input.
-
 Orchestrates the push of mapped chemical information to the selected toxval_source database.
 Uses the map_curated_chemicals() helper function to generate mapped input.
 }
