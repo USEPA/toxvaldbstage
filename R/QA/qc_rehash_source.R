@@ -13,9 +13,7 @@ qc_rehash_source <- function(source.table, source.name, db){
     select(-parent_hash)
 
   # Re-hash
-  non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
-                    "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version",
-                    "raw_input_file")
+  non_hash_cols <- toxval.config()$non_hash_cols
 
   db_dat = qc_rehash(in_dat=db_dat,
                      non_hash_cols=non_hash_cols,

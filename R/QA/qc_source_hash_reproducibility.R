@@ -1,9 +1,7 @@
 #' qa_source_hash_reproducibility
 #' @description QC Function to programmatically assess the reproducibility of the source_hash system
 qa_source_hash_reproducibility <- function(check.import=FALSE){
-  non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
-                    "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version",
-                    "raw_input_file")
+  non_hash_cols <- toxval.config()$non_hash_cols
 
   tblList = runQuery(query = paste0("SHOW TABLES FROM ", db),
                      db=db) %>% unlist() %>% unname() %>%

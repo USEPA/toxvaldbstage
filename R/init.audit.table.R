@@ -8,8 +8,9 @@
 #--------------------------------------------------------------------------------------
 init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   # List of ID fields not to be added to JSON of audit
-  id_list = c("source_id", "chemical_id", "parent_chemical_id", "source_hash", "parent_hash", "version", "qc_status",
-              "create_time", "created_by", "modify_time")
+  id_list = c("source_id", "chemical_id", "parent_chemical_id", "source_hash", "parent_hash", "version", "qc_status", "qc_notes",
+              "qc_flags", "create_time", "created_by", "modify_time")
+
   # Load SQL file with audit table and trigger creation queries
   audit_sql = parse_sql_file(paste0(toxval.config()$datapath,
                                     "audit_sql/toxval_source_audit_init.sql")) %T>%

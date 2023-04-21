@@ -2,14 +2,15 @@
 #' Updates the source_hash for an input dataframe
 #'
 #' @param in_dat Input dataframe to re-hash
-#' @param non_hash_cols List/vector of fields to not hash
+#' @param non_hash_cols List/vector of fields to not hash, Default: toxval.config non_hash_cols
 #' @param source.table Name of the source table in toxval_source
 #' @param source.name Name of the source in human readable format
 #' @param db the name of the database
 #' @param generic.fixes Boolean to apply generic fixes to data before rehashing, default = TRUE
 #' @export
 #--------------------------------------------------------------------------------------
-qc_rehash <- function(in_dat, non_hash_cols, source.table, source.name, db, generic.fixes=TRUE){
+qc_rehash <- function(in_dat, non_hash_cols = toxval.config()$non_hash_cols,
+                      source.table, source.name, db, generic.fixes=TRUE){
 
   if(generic.fixes){
     ###########################################################

@@ -51,11 +51,9 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
               "DAT_source_name", "source_description", "status_name", "status_description",
               "create_by", "source_name")
   # Identifiers excluded from source_hash generation
-  hash_id_list = append(id_list,
-                        c("chemical_id","parent_chemical_id", "source_id","clowder_id","document_name",
-                          "source_hash","qc_status", "parent_hash","create_time",
-                          "modify_time","created_by", "qc_notes", "qc_flags", "raw_input_file")) %>%
+  hash_id_list = append(id_list, toxval.config()$non_hash_cols) %>%
     unique()
+
   # Removing version which is part of source_hash generation
   # hash_id_list = hash_id_list[!hash_id_list %in% c("version")]
 

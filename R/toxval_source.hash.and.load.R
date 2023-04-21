@@ -19,9 +19,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   # do.insert = FALSE
   printCurrentFunction(paste(db,source,table))
 
-  non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
-                    "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version",
-                    "raw_input_file")
+  non_hash_cols <- toxval.config()$non_hash_cols
 
   if(is.element("chemical_index",names(res))) res = subset(res,select=-c(chemical_index))
   res$source_hash = "-"

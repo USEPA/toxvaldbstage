@@ -82,11 +82,10 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
               "create_by", "created_by", "source_name", "qc_changes", "qc_comments")
   # Identifiers excluded from source_hash generation
   hash_id_list = append(id_list,
-                        c("chemical_id","source_id","clowder_id","document_name",
-                          "source_hash","qc_status", "parent_hash","create_time",
-                          "modify_time","created_by", "qc_notes", "qc_flags",
-                          "qc_changes", "qc_comments")) %>%
+                        c("qc_changes", "qc_comments"),
+                        toxval.config()$non_hash_cols) %>%
     unique()
+
   # Removing version which is part of source_hash generation
   # hash_id_list = hash_id_list[!hash_id_list %in% c("version")]
 
@@ -200,11 +199,11 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
 
   # General Check
   # live %>% select(source_hash, parent_hash, qc_status, qc_flags, qc_notes, version) %>% mutate(compare = parent_hash == source_hash) %>% View()
-  
+
   # Export intermediate before push
-  writexl::write_xlsx(list(live=live, audit=audit), 
+  writexl::write_xlsx(list(live=live, audit=audit),
                       paste0(toxval.config()$datapath,"QC Pushed/", source,"_QC_push_",Sys.Date(),".xlsx"))
-  
+
   # Push live and audit table changes
   # runInsertTable(mat=audit, table="source_audit", db=db, get.id = FALSE)
   # Query to join and make updates
@@ -242,6 +241,6 @@ prep.DAT.conversion.manual <- function(in_dat, hash_id_list, source){
     # Set source_hash
     mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
     select(-pre_source_hash)
-  
+
   return(in_dat)
 }

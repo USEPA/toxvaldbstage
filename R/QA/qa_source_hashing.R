@@ -1,23 +1,21 @@
-#' Helper function to compare source_hash generation fidelity between RData 
+#' Helper function to compare source_hash generation fidelity between RData
 #' files of data pushed to database to pulls from the database. This ensures
 #' no unknown truncations, transformations, or encoding issues happen between the
 #' processes. WOrkflow inspired from qa_chemical_id_hashing.R
 qa_source_hashing <- function(){
-  
+
   qa_source_hash <- function(db,
                              source,
                              table,
                              do.reset=F,
                              do.insert=F,
                              res){
-    
-    non_hash_cols = c("old_source_hash_", "chemical_id","source_id","clowder_id","document_name","source_hash","qc_status",
-                      "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version",
-                      "raw_input_file")
-    
+
+    non_hash_cols <- toxval.config()$non_hash_cols
+
     nlist = runQuery(paste0("desc ",table),db)[,1]
     nlist = nlist[!is.element(nlist,non_hash_cols)]
-    
+
     #####################################################################
     cat("check the columns\n")
     #####################################################################
@@ -33,18 +31,18 @@ qa_source_hashing <- function(){
     to.add = nlist[!is.element(nlist,nlist1)]
 
     res.temp = res[,sort(nlist)]
-    
+
     for (i in 1:nrow(res)){
       row <- res.temp[i,]
       res[i,"source_hash"] <- digest(paste0(row,collapse=""), serialize = FALSE)
       if(i%%1000==0) cat(i," out of ",nrow(res),"\n")
     }
     return(res)
-  } 
-  
+  }
+
   #######
   # Generate comparison
-  
+
   # Get list of source tables to add triggers
   tblList = runQuery(query = paste0("SHOW TABLES FROM ", db),
                      db=db) %>% unlist() %>% unname() %>%
@@ -52,7 +50,7 @@ qa_source_hashing <- function(){
     .[grepl("source_", .)] %>%
     # Ignore those like source_audit or source_chemical
     .[!grepl("chemical|source_audit", .)]
-  
+
   for(table in tblList){
     message("Checking ", table, " - ", Sys.time())
     if(file.exists(paste0("Repo/source_hash_check/", table, ".RData"))) next
@@ -73,16 +71,16 @@ qa_source_hashing <- function(){
       filter(compare == FALSE)
     # Export if differences found
     if(nrow(compare)){
-      save(compare, file=paste0("Repo/source_hash_check/", table, ".RData"))  
+      save(compare, file=paste0("Repo/source_hash_check/", table, ".RData"))
     }
   }
-  
+
   # Load cached comparisons
   out = list.files("/ccte/home1/jwall01/toxvaldb09/Repo/source_hash_check/") %>%
     lapply(., function(table){
       load(paste0("/ccte/home1/jwall01/toxvaldb09/Repo/source_hash_check/", table))
       return(compare)
-    }) %T>% { 
+    }) %T>% {
       names(.) <- list.files("/ccte/home1/jwall01/toxvaldb09/Repo/source_hash_check/") }
 }
 
