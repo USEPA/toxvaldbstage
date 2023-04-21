@@ -2,11 +2,10 @@
 #' Map the icf master sheet hash to record source table hash
 #' @param toxval.db The version of toxval in which the data is altered.
 #' @return The database will be altered
-#' @export
 #--------------------------------------------------------------------------------------
 map.hash.record_source <- function(toxval.db, source.db){
   printCurrentFunction(toxval.db)
-  
+
   #####################################################################
   cat("Fix record_source_hash in the record source table based on values
   from CCTE_Deliverable_RefinfoSheet_Master.xlsx obtained from ICF\n")
@@ -175,7 +174,7 @@ map.hash.record_source <- function(toxval.db, source.db){
 
   cat("incorporate new record_source table with updated record_source_hash and long_ref\n")
   runInsertTable(all_records, "record_source", toxval.db, verbose)
-  
-  
-  
+
+
+
 }

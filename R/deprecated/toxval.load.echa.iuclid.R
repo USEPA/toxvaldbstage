@@ -6,49 +6,48 @@
 #' @param verbose Whether the loaded rows should be printed to the console.
 #' @param to.file If TRUE, output the data to a file for QC
 #' @param do.read If TRUE read in the data file and store in a global
-#' @export
 #--------------------------------------------------------------------------------------
 
 toxval.load.echa.iuclid <- function(toxval.db, source.db, verbose=T) {
   printCurrentFunction(toxval.db)
-  
+
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################
   source <- "ECHA IUCLID"
-  
+
   con1 <- file.path(toxval.config()$datapath,paste0(source,"_",Sys.Date(),".log"))
   con1 <- log_open(con1)
 
   con <- file(paste0(toxval.config()$datapath,source,"_",Sys.Date(),".log"))
   sink(con, append=TRUE)
   sink(con, append=TRUE, type="message")
-  
+
   #####################################################################
   cat("clean source_info by source\n")
   #####################################################################
-  import.source.info.by.source(toxval.db, source)  
+  import.source.info.by.source(toxval.db, source)
   #####################################################################
   cat("clean by source\n")
   #####################################################################
   clean.toxval.by.source(toxval.db,source)
 
-   
+
   #####################################################################
   cat("load data to res\n")
   ####################################################################
-  
+
   query <- "select * from new_echa_iuclid"
-  
+
   res <- runQuery(query,source.db,T,F)
-  res <- res[ , !(names(res) %in% c("source_id","clowder_id"))]  
+  res <- res[ , !(names(res) %in% c("source_id","clowder_id"))]
   res[is.na(res[,"document_name"]),"document_name"] <- "-"
-  
+
   #####################################################################
   cat("checks, finds and replaces non ascii characters in res with XXX\n")
   #####################################################################
   res <- fix.non_ascii(res)
-  
+
   #trims leading and trailing whitespaces from the dataframe
   res <- data.frame(lapply(res, function(x) if(class(x)=="character") trimws(x) else(x)), stringsAsFactors=F, check.names=F)
   #print(str(res))
@@ -58,7 +57,7 @@ toxval.load.echa.iuclid <- function(toxval.db, source.db, verbose=T) {
   res$source <- source
   res <- fill.toxval.defaults(toxval.db,res)
   res <- generate.originals(toxval.db,res)
-  
+
   print(dim(res))
   #####################################################################
   cat("map chemicals\n")
@@ -116,135 +115,135 @@ toxval.load.echa.iuclid <- function(toxval.db, source.db, verbose=T) {
   cat("load chemical info to chemical_list\n")
   #####################################################################
   toxval.load.chemical.list.by.source(toxval.db, source)
-  
-  
+
+
   #####################################################################
   cat("map chemicals to dsstox\n")
   #####################################################################
   map.chemical.to.dsstox.by.source(toxval.db, source)
   table.list <- c("toxval","cancer_summary","genetox_summary","genetox_details","skin_eye","chemical_list","bcfbaf")
   for(table in table.list) set.dtxsid.by.source(toxval.db,table,source)
-  
+
   # #####################################################################
   # cat("fix species by source\n")
   # #####################################################################
   # fix.species.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix species by source\n")
   #####################################################################
   fix.species.ecotox.by.source(toxval.db, source)
-  
-  
+
+
   #####################################################################
   cat("fix human_eco by source\n")
   #####################################################################
   fix.human_eco.by.source(toxval.db, source, reset = T)
-  
+
   #####################################################################
   cat("fix toxval_numeric_qualifier by source\n")
   #####################################################################
   fix.toxval_numeric_qualifier.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix exposure_route by type and source\n")
   #####################################################################
   fix.exposure_route.by.type.new.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix exposure_form by source\n")
   #####################################################################
   fix.exposure_form.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix priority_id by source\n")
   #####################################################################
   fix.priority_id.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix all.parameters(exposure_method, exposure_route, sex,strain,
       study_duration_class, study_duration_units, study_type,toxval_type,
       exposure_form, media, toxval_subtype) by source\n")
   #####################################################################
   fix.all.param.new.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix generation by source\n")
   #####################################################################
   fix.generation.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix critical_effect by source\n")
   #####################################################################
   fix.critical_effect.icf.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix units by source\n")
   #####################################################################
   fix.units.new.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix risk assessment class by source\n")
   #####################################################################
-  
+
   fix.risk_assessment_class.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fill chemical by source\n")
   #####################################################################
   fill.chemical.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("export missing rac by source\n")
   #####################################################################
   export.missing.rac.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix empty cells to hyphen by source\n")
   #####################################################################
   fix.empty.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix empty cells in record source to hyphen by source\n")
   #####################################################################
   fix.empty.record_source.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("set toxval defaults globally by source\n")
   #####################################################################
   fill.toxval.defaults.global.by.source(toxval.db, source)
-  
+
 
   #####################################################################
   cat("fix qa status by source\n")
   #####################################################################
   fix.qa_status.by.source(toxval.db, source)
-  
-  
+
+
   #####################################################################
   cat("fix hyphen cells to 'Not Specified' by source\n")
   #####################################################################
   fix.hyphen.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("set hash toxval by source\n")
   #####################################################################
   set.hash.toxval.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("set hash record_source by source\n")
   #####################################################################
   set.hash.record_source.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("map hash record_source by source\n")
   #####################################################################
   map.hash.record_source.by.source(toxval.db, source )
-  
+
   #####################################################################
   cat("perform extra steps if any\n")
   #####################################################################
-  
+
   #####################################################################
   cat("stop output log \n")
   #####################################################################
@@ -259,7 +258,7 @@ toxval.load.echa.iuclid <- function(toxval.db, source.db, verbose=T) {
 
   new_log <- log_message(output_log, output_message[,1])
   writeLines(new_log, paste0(toxval.config()$datapath,"output_log/",source,"_",Sys.Date(),".txt"))
-  
+
 
   #####################################################################
   cat("finish\n")

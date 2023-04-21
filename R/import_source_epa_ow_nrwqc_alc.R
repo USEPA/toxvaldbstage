@@ -34,10 +34,10 @@ import_generic_source <- function(db,chem.check.halt=F) {
     # Renaming columns
     dplyr::rename(name="Pollutant_(P_=_Priority_Pollutant)",
                   casrn="CAS_Number") %>%
-    rowwise() %>%
+    dplyr::rowwise() %>%
     # Making priority_pollutant column based on (P) in name column
-    mutate(priority_pollutant = ifelse(endsWith(name, "(P)"), "yes", "no")) %>%
-    ungroup() %>%
+    dplyr::mutate(priority_pollutant = ifelse(endsWith(name, "(P)"), "yes", "no")) %>%
+    dplyr::ungroup() %>%
     # wide to long based on toxval_type
     tidyr::pivot_longer(
       cols= c("Freshwater_CMC1_(acute)_(µg/L)",
@@ -59,8 +59,8 @@ import_generic_source <- function(db,chem.check.halt=F) {
       toxval_units = gsub("[()]", "", toxval_units),
       study_type = gsub("[()]", "", study_type)) %>%
     # replacing multiple dashes with single dash for empty columns
-    dplyr::mutate(across(matches("name|casrn|Publication_Year|toxval_numeric"),
-                         .fns = ~ case_when(
+    dplyr::mutate(dplyr::across(tidyr::matches("name|casrn|Publication_Year|toxval_numeric"),
+                         .fns = ~ dplyr::case_when(
                            . == "---" ~ "-",
                            . == "--" ~ "-",
                            . == "—" ~ "-",
@@ -70,7 +70,7 @@ import_generic_source <- function(db,chem.check.halt=F) {
                   name = gsub("\\(P[)]$", "", name) %>%
                     # Remove asterisk
                     gsub("*", "", ., fixed=TRUE),
-                  across(c("name", "casrn", "toxval_numeric"), ~stringr::str_squish(.))
+                  dplyr::across(c("name", "casrn", "toxval_numeric"), ~stringr::str_squish(.))
     ) %>%
     # Split CASRN lists into unique rows
     # https://stackoverflow.com/questions/15347282/split-delimited-strings-in-a-column-and-insert-as-new-rows

@@ -10,7 +10,7 @@ import_generic_source <- function(db,chem.check.halt=F) {
   source_table = "source_atsdr_mrls_2022"
   dir = paste0(toxval.config()$datapath,"atsdr_mrls_2022/atsdr_mrls_2022_files/")
   file = paste0(dir,"atsdr_mrls_2022_raw.xlsx")
-  res0 = read.xlsx(file)
+  res0 = openxlsx::read.xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -40,7 +40,7 @@ import_generic_source <- function(db,chem.check.halt=F) {
                   critical_effect=endpoint,
                   toxval_units=mrl_unit) %>%
     # Recoding/fixing entries in critical_effect
-    mutate(critical_effect=recode(critical_effect,
+    dplyr::mutate(critical_effect=dplyr::recode(critical_effect,
                                   "Body Wt." = "body weight",
                                   "Develop." = "developmental",
                                   "Endocr." = "endocrine",
@@ -59,7 +59,7 @@ import_generic_source <- function(db,chem.check.halt=F) {
                                   "Resp." = "respiratory") %>%
              tolower()) %>%
     # calculating NOAEL
-    mutate(MRL=as.numeric(MRL), 
+    dplyr::mutate(MRL=as.numeric(MRL), 
            NOAEL=MRL*total_factors) %>%
     # expanding toxval_type to include MRL and NOAEL columns
     tidyr::pivot_longer(

@@ -35,7 +35,7 @@ get.chemical.info.by.source <- function(source.db,source_table,source, file_id){
   chemical_information$chemical_id <- paste(id_prefix, chemical_information$chemical_id, sep = "_")
   file <- paste0(toxval.config()$datapath,"source_chemical_info_files/chemical_information_for_",source,"_",Sys.Date(),".xlsx")
   #write.xlsx(chemical_information,file)
-  print(View(chemical_information))
+  print(utils::View(chemical_information))
   
   chem_table_name <- paste0(source,"_2022_04_19_",file_id)
   chem_table_name <- gsub("\\s+","_",chem_table_name)

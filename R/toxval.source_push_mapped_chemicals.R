@@ -27,11 +27,11 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
 
   out = out %>%
     # Double-check chemical_id values from curation files still exist
-    filter(chemical_id %in% chem_tbl$chemical_id) %>%
+    dplyr::filter(chemical_id %in% chem_tbl$chemical_id) %>%
     # Filter out duplicates
-    group_by(chemical_id) %>%
-    filter(n()==1) %>%
-    ungroup()
+    dplyr::group_by(chemical_id) %>%
+    dplyr::filter(n()==1) %>%
+    dplyr::ungroup()
 
   # Check for duplicates
   if(nrow(out) > nrow(chem_tbl)){
@@ -40,14 +40,14 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
   }
   # Filter only to those with DTXRID values
   out = out %>%
-    filter(!is.na(dtxrid))
+    dplyr::filter(!is.na(dtxrid))
   # Fill in blanks
   out$name[is.na(out$name)] = "-"
   out$casrn[is.na(out$casrn)] = "-"
   # If not resetting, only filter to what is missing a mapping in the database
   if(!reset.mapping){
     out = out %>%
-      filter(chemical_id %in% chem_tbl$chemical_id[is.na(chem_tbl$dtxrid)])
+      dplyr::filter(chemical_id %in% chem_tbl$chemical_id[is.na(chem_tbl$dtxrid)])
   }
 
   if(!nrow(out)){
@@ -71,9 +71,9 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
       if(i%%200==0) cat(i," out of ",nrow(out),"\n")
       c_id = out$chemical_id[i]
       map = out %>%
-        filter(chemical_id == c_id) %>%
+        dplyr::filter(chemical_id == c_id) %>%
         # Only push columns that aren't NA
-        select(where(~!all(is.na(.))))
+        dplyr::select(tidyselect::where(~!all(is.na(.))))
 
       # NA values present for all columns or all but chemical_id, skip
       if(length(map) <= 1){
@@ -86,7 +86,7 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
       }
 
       varSet <- lapply(map %>%
-                         select(-chemical_id) %>%
+                         dplyr::select(-chemical_id) %>%
                          names(), function(x){
                            paste0(x, ' = "', map[[x]] %>%
                                     # Escape quotation mark double-prime for names
@@ -138,7 +138,7 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
       strsplit("_") %>% unlist()
     curated_source.index = paste0(curated_source.index[1], "_", curated_source.index[2])
     # Load required files from curation
-    c_files = list(orig_file = curated_list$jira_chemical_files[grepl(curated_source.index, curated_list$jira_chemical_files)] %>%
+    c_files = gsubfn::list(orig_file = curated_list$jira_chemical_files[grepl(curated_source.index, curated_list$jira_chemical_files)] %>%
                      paste0(curated.path, "/jira_chemical_files/", .),
                    b_file = curated_list$`BIN Files`[grepl(curated_source.index, curated_list$`BIN Files`)] %>%
                      paste0(curated.path, "/BIN Files/", .),
@@ -157,15 +157,15 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
                     name=`Query Name`,
                     casrn=`Query Casrn`,
                     dtxsid=`Top HIT DSSTox_Substance_Id`) %>%
-      distinct() %>%
-      mutate(name = gsub("\"", "", name))
+      dplyr::distinct() %>%
+      dplyr::mutate(name = gsub("\"", "", name))
     # Select and rename columns
     c_files$d_file = c_files$d_file %>%
-      select(chemical_id = Extenal_ID,
+      dplyr::select(chemical_id = Extenal_ID,
              dtxsid = DSSTox_Substance_Id,
              dtxrid = DSSTox_Source_Record_Id,
              quality=`DSSTox_QC-Level`) %>%
-      distinct()
+      dplyr::distinct()
 
     # --- Collect matches ---
     out = data.frame()
@@ -176,122 +176,122 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
           dplyr::rename(chemical_id = external_id)
       }
       tmp = c_files$orig_file %>%
-        select(chemical_id) %>%
-        left_join(c_files$d_file,
+        dplyr::select(chemical_id) %>%
+        dplyr::left_join(c_files$d_file,
                   by="chemical_id") %>%
         # Filter out ones that didn't map
-        filter(!is.na(dtxrid)) %>%
-        left_join(c_files$b_file %>%
-                    select(dtxsid, flags, `Top Hit Name`, `Top Hit Casrn`) %>%
-                    distinct(),
+        dplyr::filter(!is.na(dtxrid)) %>%
+        dplyr::left_join(c_files$b_file %>%
+                    dplyr::select(dtxsid, flags, `Top Hit Name`, `Top Hit Casrn`) %>%
+                    dplyr::distinct(),
                   by="dtxsid") %>%
         # Filter out ones that didn't map
-        filter(!is.na(dtxrid) | !is.na(flags))
+        dplyr::filter(!is.na(dtxrid) | !is.na(flags))
       # Store matches
-      out = bind_rows(out, tmp)
+      out = dplyr::bind_rows(out, tmp)
       # Remove previous matches
       c_files$orig_file = c_files$orig_file %>%
-        filter(!chemical_id %in% out$chemical_id)
+        dplyr::filter(!chemical_id %in% out$chemical_id)
     } else {
       # Remove unneeded chemical ID column
       c_files$d_file = c_files$d_file %>%
-        mutate(chemical_id = NULL) %>%
+        dplyr::mutate(chemical_id = NULL) %>%
         # Also filter out NA dtxSid values that will create false matches
         # Sacrifice not being able to map a dtxRid to records...
         # filter(!is.na(dtxsid)) %>%
-        distinct()
+        dplyr::distinct()
     }
 
     # Scenario #1 Match by clean names AND casrn
     if(all(c("cleaned_name", "cleaned_casrn") %in% names(c_files$orig_file))){
       tmp = c_files$orig_file %>%
-        select(chemical_id, cleaned_casrn, cleaned_name) %>%
-        left_join(c_files$b_file,
+        dplyr::select(chemical_id, cleaned_casrn, cleaned_name) %>%
+        dplyr::left_join(c_files$b_file,
                   by=c("cleaned_casrn"="casrn",
                        "cleaned_name"="name")) %>%
-        left_join(c_files$d_file,
+        dplyr::left_join(c_files$d_file,
                   by="dtxsid") %>%
         # Filter out ones that didn't map
-        filter(!is.na(dtxrid) | !is.na(flags))
+        dplyr::filter(!is.na(dtxrid) | !is.na(flags))
       # Store matches
-      out = bind_rows(out, tmp)
+      out = dplyr::bind_rows(out, tmp)
       # Remove previous matches
       c_files$orig_file = c_files$orig_file %>%
-        filter(!chemical_id %in% out$chemical_id)
+        dplyr::filter(!chemical_id %in% out$chemical_id)
     }
 
     if(all(c("cleaned_name") %in% names(c_files$orig_file))){
       # Scenario #2 Match by clean names only
       tmp = c_files$orig_file %>%
-        select(chemical_id, cleaned_name) %>%
-        left_join(c_files$b_file,
+        dplyr::select(chemical_id, cleaned_name) %>%
+        dplyr::left_join(c_files$b_file,
                   by=c("cleaned_name"="name")) %>%
-        left_join(c_files$d_file,
+        dplyr::left_join(c_files$d_file,
                   by="dtxsid") %>%
         # Filter out ones that didn't map
-        filter(!is.na(dtxrid) | !is.na(flags))
+        dplyr::filter(!is.na(dtxrid) | !is.na(flags))
       # Store matches
-      out = bind_rows(out, tmp)
+      out = dplyr::bind_rows(out, tmp)
       # Remove previous matches
       c_files$orig_file = c_files$orig_file %>%
-        filter(!chemical_id %in% out$chemical_id)
+        dplyr::filter(!chemical_id %in% out$chemical_id)
     }
 
     if(all(c("raw_name", "raw_casrn") %in% names(c_files$orig_file))){
       # Scenario #3 Match by raw names and casrn
       tmp = c_files$orig_file %>%
-        select(chemical_id, raw_casrn, raw_name) %>%
-        left_join(c_files$b_file,
+        dplyr::select(chemical_id, raw_casrn, raw_name) %>%
+        dplyr::left_join(c_files$b_file,
                   by=c("raw_casrn"="casrn",
                        "raw_name"="name")) %>%
-        left_join(c_files$d_file,
+        dplyr::left_join(c_files$d_file,
                   by="dtxsid") %>%
         # Filter out ones that didn't map
-        filter(!is.na(dtxrid) | !is.na(flags))
+        dplyr::filter(!is.na(dtxrid) | !is.na(flags))
       # Store matches
-      out = bind_rows(out, tmp)
+      out = dplyr::bind_rows(out, tmp)
       # Remove previous matches
       c_files$orig_file = c_files$orig_file %>%
-        filter(!chemical_id %in% out$chemical_id)
+        dplyr::filter(!chemical_id %in% out$chemical_id)
     }
 
     if(all(c("raw_name") %in% names(c_files$orig_file))){
       # Scenario #4 Match by raw names only
       tmp = c_files$orig_file %>%
-        select(chemical_id, raw_name) %>%
-        left_join(c_files$b_file,
+        dplyr::select(chemical_id, raw_name) %>%
+        dplyr::left_join(c_files$b_file,
                   by=c("raw_name"="name")) %>%
-        left_join(c_files$d_file,
+        dplyr::left_join(c_files$d_file,
                   by="dtxsid") %>%
         # Filter out ones that didn't map
-        filter(!is.na(dtxrid) | !is.na(flags))
+        dplyr::filter(!is.na(dtxrid) | !is.na(flags))
       # Store matches
-      out = bind_rows(out, tmp)
+      out = dplyr::bind_rows(out, tmp)
       # Remove previous matches
       c_files$orig_file = c_files$orig_file %>%
-        filter(!chemical_id %in% out$chemical_id)
+        dplyr::filter(!chemical_id %in% out$chemical_id)
     }
 
     # Filter out duplicate curation records if desired
     if(ignore.curation.dups){
       out = out %>%
-        filter(flags != "Unresolved Duplicates")
+        dplyr::filter(flags != "Unresolved Duplicates")
     }
 
     # Rename/select fields and return
     out %>%
-      select(chemical_id,
+      dplyr::select(chemical_id,
              casrn=`Top Hit Casrn`,
              name=`Top Hit Name`,
              dtxsid,
              dtxrid,
              quality,
              flags) %>%
-      distinct() %>%
+      dplyr::distinct() %>%
       return()
   }) %>%
     # Combine all subsets of a given source.index curation effort
-    bind_rows()
+    dplyr::bind_rows()
   message("...returning...")
   return(out)
 }

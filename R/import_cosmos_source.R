@@ -23,21 +23,21 @@ import_cosmos_source <- function(db,
   #   browser()
   # }
   cosmos_files <- openxlsx::loadWorkbook(infile1)
-  sheetNames <- sheets(cosmos_files)
+  sheetNames <- openxlsx::sheets(cosmos_files)
   for(i in 1:length(sheetNames)) {
     assign(sheetNames[i], openxlsx::readWorkbook(cosmos_files,sheet = i))
   }
 
-  res <- Filter(function(x) is(x, "data.frame"), mget(ls()))
+  res <- Filter(function(x) methods::is(x, "data.frame"), mget(ls()))
   names(res) <- tolower(names(res))
   names(res) <- paste0("cosmos_", names(res))
   names(res) <- gsub("\\s+","\\_", names(res))
   names(res) <- gsub("_-_","_",names(res))
-  res <- lapply(res, function(x) setNames(x, gsub("\\.+","\\_", names(x))))
-  res <- lapply(res, function(x) setNames(x, gsub("\\#","NO", names(x))))
-  res <- lapply(res, function(x) setNames(x, gsub("\\-","\\_", names(x))))
-  res <- lapply(res, function(x) setNames(x, gsub("%","PER", names(x))))
-  res <- lapply(res, function(x) setNames(x, gsub("\\(|\\)","", names(x))))
+  res <- lapply(res, function(x) stats::setNames(x, gsub("\\.+","\\_", names(x))))
+  res <- lapply(res, function(x) stats::setNames(x, gsub("\\#","NO", names(x))))
+  res <- lapply(res, function(x) stats::setNames(x, gsub("\\-","\\_", names(x))))
+  res <- lapply(res, function(x) stats::setNames(x, gsub("%","PER", names(x))))
+  res <- lapply(res, function(x) stats::setNames(x, gsub("\\(|\\)","", names(x))))
 
   ### create id's for each dataframe
   res[[1]]["clinical_chemistry_id"] <- c(1:length(res[[1]][,1]))
@@ -82,9 +82,9 @@ import_cosmos_source <- function(db,
   new_res <- res[[10]]
   res <- res[-10]
   res <- lapply(res, function(x) {colnames(x) <- tolower(colnames(x));x})
-  res <- lapply(res, function(x) setNames(x, gsub("test_substance_name", "name", names(x))))
-  res <- lapply(res, function(x) setNames(x, gsub("registry_number", "casrn", names(x))))
-  res <- lapply(res, function(x) setNames(x, gsub("year_report/citation", "year", names(x))))
+  res <- lapply(res, function(x) stats::setNames(x, gsub("test_substance_name", "name", names(x))))
+  res <- lapply(res, function(x) stats::setNames(x, gsub("registry_number", "casrn", names(x))))
+  res <- lapply(res, function(x) stats::setNames(x, gsub("year_report/citation", "year", names(x))))
 
   table_names <- tolower(c("cosmos_clinical_chemistry","cosmos_hematology",
                            "cosmos_neuro_fob","cosmos_organ_weight","cosmos_pathology_macro",

@@ -18,7 +18,7 @@ parse_sql_file <- function(filepath = NULL){
     .[. != ""]
 
   # Empty list to append collapsed query lines
-  clean_query = list()
+  clean_query = gsubfn::list()
   # Empty string to append query lines to for ";" checks
   tmp_query = ""
   for(i in seq_len(length(raw_query))){

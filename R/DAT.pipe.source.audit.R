@@ -13,7 +13,7 @@
 DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
 
   # Pull associated DAT files for an input source table
-  DAT_data = list(
+  DAT_data = gsubfn::list(
     live_dat = live_df %>%
       readxl::read_xlsx() %>%
       # Remove QC fields that will be repopulated in this workflow
@@ -21,7 +21,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
     audit_dat = audit_df %>%
       readxl::read_xlsx() %>%
       dplyr::rename(src_tbl_name=dataset_name) %>%
-      mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name)) %>%
+      dplyr::mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name)) %>%
       # Remove QC fields that will be repopulated in this workflow
       .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))]
   )
@@ -36,9 +36,9 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
 
   # Combine to add back missing columns (columns not QC'd)
   DAT_data$live_dat = DAT_data$live_dat %>%
-    left_join(source_data, by = c("src_record_id" = "source_hash"))
+    dplyr::left_join(source_data, by = c("src_record_id" = "source_hash"))
   DAT_data$audit_dat = DAT_data$audit_dat %>%
-    left_join(source_data, by = c("src_record_id" = "source_hash"))
+    dplyr::left_join(source_data, by = c("src_record_id" = "source_hash"))
 
   # List of ID columns for audit table (JSON conversion ignore)
   id_list = c("source_hash", "parent_hash", "version", "data_record_annotation",
@@ -66,32 +66,32 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
     # Select and rename DAT audit columns for toxval_source, calculate new source_hash
     prep.DAT.conversion(., hash_id_list=hash_id_list, source=source) %>%
     # Transform record columns into JSON
-    mutate(record = convert.audit.to.json(select(., -any_of(id_list)))) %>%
+    dplyr::mutate(record = convert.audit.to.json(dplyr::select(., -tidyr::any_of(id_list)))) %>%
     # Select only audit/ID columns and JSON record
-    select(any_of(id_list), record)
+    dplyr::select(tidyr::any_of(id_list), record)
 
   # Correct version numbers based on parent hash version in toxval_source
   v_list = runQuery(paste0("SELECT source_hash, version as parent_version FROM ",
                            audit$src_tbl_name %>% unique()), db)
   # Based on toxval_source parent_hash, increment up
   audit = audit %>%
-    left_join(v_list, by=c("parent_hash" = "source_hash")) %>%
-    mutate(audit_version = version + parent_version) %>%
-    select(-parent_version, -version)
+    dplyr::left_join(v_list, by=c("parent_hash" = "source_hash")) %>%
+    dplyr::mutate(audit_version = version + parent_version) %>%
+    dplyr::select(-parent_version, -version)
   # Based on toxval_source parent_hash, increment up
   live = live %>%
-    left_join(v_list, by=c("parent_hash" = "source_hash")) %>%
-    mutate(audit_version = version + parent_version) %>%
-    select(-parent_version, -version)
+    dplyr::left_join(v_list, by=c("parent_hash" = "source_hash")) %>%
+    dplyr::mutate(audit_version = version + parent_version) %>%
+    dplyr::select(-parent_version, -version)
 
   if(any(is.na(live$audit_version)) | any(is.na(audit$audit_version))){
     message("Error matching parent_hash back to database to correct version for ",length(which(is.na(live$audit_version)))," records...")
 
     browser()
     live = live %>%
-      filter(!is.na(audit_version))
+      dplyr::filter(!is.na(audit_version))
     audit = audit %>%
-      filter(!is.na(audit_version))
+      dplyr::filter(!is.na(audit_version))
   }
 
   # Determine qc_status - default these to fail
@@ -150,7 +150,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
   live$old_parent_chemical_id = NULL
 
   # Export intermediate before push
-  writexl::write_xlsx(list(live=live, audit=audit),
+  writexl::write_xlsx(gsubfn::list(live=live, audit=audit),
                       paste0(toxval.config()$datapath,"QC Pushed/", source,"_QC_push_",Sys.Date(),".xlsx"))
 
   # Push live and audit table changes
@@ -167,8 +167,8 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
 convert.audit.to.json <- function(in_dat){
   lapply(seq_len(nrow(in_dat)), function(row){
     in_dat[row, ] %>%
-      summarise(record = jsonlite::toJSON(.)) %>%
-      select(record)
+      dplyr::summarise(record = jsonlite::toJSON(.)) %>%
+      dplyr::select(record)
   }) %>%
     dplyr::bind_rows() %>%
     unlist() %>%
@@ -181,15 +181,15 @@ prep.DAT.conversion <- function(in_dat, hash_id_list, source){
   in_dat = in_dat %>%
     dplyr::rename(parent_hash = src_record_id) %>%
     # Remove extraneous DAT fields
-    select(-uuid, -description, -total_fields_changed, -dataset_description, -DAT_domain_name,
+    dplyr::select(-uuid, -description, -total_fields_changed, -dataset_description, -DAT_domain_name,
            -domain_description, -DAT_source_name, -source_description, -status_description) %>%
     # Alphabetize the columns to ensure consistent hashing column order
     .[, sort(colnames(.))] %>%
-    tidyr::unite("pre_source_hash", any_of(names(.)[!names(.) %in% hash_id_list]),
+    tidyr::unite("pre_source_hash", tidyr::any_of(names(.)[!names(.) %in% hash_id_list]),
                  sep="", remove = FALSE) %>%
     # Set source_hash
-    mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
-    select(-pre_source_hash)
+    dplyr::mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
+    dplyr::select(-pre_source_hash)
 
     return(in_dat)
 }

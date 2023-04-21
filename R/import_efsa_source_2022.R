@@ -56,13 +56,13 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   source=owner,
                   subsource=author) %>%
     # Recoding/fixing entries in study_type
-    mutate(study_type=recode(study_type,
+    dplyr::mutate(study_type=dplyr::recode(study_type,
                              "acute toxicity" = "acute",
                              "chronic/long term toxicity" = "chronic/long-term",
                              "reproduction toxicity" = "reproductive",
                              "short-term toxicity" = "short-term",
                              "study with volunteers" = "human"),
-           human_eco=recode(human_eco,
+           human_eco=dplyr::recode(human_eco,
                             "Animal (non-target species) health" = "human health",
                             "Animal (target species) health" = "human health",
                             "Ecotox (soil compartment)" = "eco",
@@ -74,14 +74,14 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
            study_duration_units = "days") %>%
     # splitting ROUTE into exposure_route and exposure_method columns
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
-    dplyr::mutate(across(where(is.character), fix.greek.symbols)) %>%
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character), fix.greek.symbols)) %>%
     # Replace superscript
-    mutate(toxval_units = gsub("³", "3", toxval_units))
+    dplyr::mutate(toxval_units = gsub("³", "3", toxval_units))
 
   # Remove unneeded ID fields from original source
   res = res %>%
-    select(-matches("_id"), -testtype_code) %>%
-    distinct()
+    dplyr::select(-tidyr::matches("_id"), -testtype_code) %>%
+    dplyr::distinct()
 
   #####################################################################
   cat("Prep and load the data\n")

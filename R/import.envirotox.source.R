@@ -12,7 +12,7 @@ import_envirotox_source <- function(toxval.db,infile) {
   #####################################################################
   cat("Read envirotox file sheet1(test) as res \n")
   #####################################################################
-  res <- read.xlsx(infile, 1)
+  res <- openxlsx::read.xlsx(infile, 1)
   
   #####################################################################
   cat("change colnames to lowercase and convert dots in names to underscore \n")

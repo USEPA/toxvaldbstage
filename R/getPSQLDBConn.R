@@ -1,5 +1,5 @@
-#library(RPostgreSQL)
-library(DBI)
+# #library(RPostgreSQL)
+# library(DBI)
 #--------------------------------------------------------------------------------------
 #' Get the names the database server, user, and pass or returns error message
 #' @return print the database connection information

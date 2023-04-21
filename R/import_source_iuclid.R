@@ -25,7 +25,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Load IUCLID field map
   map_orig = readxl::read_xlsx(paste0(toxval.config()$datapath,"iuclid/field_maps/iuclid_field_map.xlsx"))
   map = map_orig %>%
-    filter(oht == subf,
+    dplyr::filter(oht == subf,
            !grepl("not needed", notes))
 
   if(!nrow(map)) {
@@ -48,7 +48,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   res <- res0 %>%
   # Copy columns and rename new columns
-    dplyr::rename(all_of(tmp)) %>%
+    dplyr::rename(tidyr::all_of(tmp)) %>%
     # Split columns and name them
     tidyr::separate(., study_type, c("study_type","exposure_route"), sep=": ", fill="right", remove=FALSE)
 
@@ -59,9 +59,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$maternal_sex = "female"
     res = res %>%
       # Get all maternal and fetus fields in one field
-      tidyr::pivot_longer(cols=starts_with("fetus_") | starts_with("maternal_"),
+      tidyr::pivot_longer(cols=tidyr::starts_with("fetus_") | tidyr::starts_with("maternal_"),
                           names_to = "dev_field",
-                          values_transform = list(value=as.character)) %>%
+                          values_transform = gsubfn::list(value=as.character)) %>%
       # Split by maternal vs. fetus fields with "generation_type"
       tidyr::separate(dev_field, into=c("generation_type", "field"), sep="_", extra="merge") %>%
       # Spread out fields again, now without theif "fetus_" or "maternal_" prefixes (now stored in "generation_type")
@@ -88,14 +88,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     tidyr::separate_rows(casrn, sep=";") %>%
     tidyr::separate_rows(casrn, sep=",") %>%
     # Squish extra whitespace
-    dplyr::mutate(across(c("name", "casrn"), ~stringr::str_squish(.)))
+    dplyr::mutate(dplyr::across(c("name", "casrn"), ~stringr::str_squish(.)))
 
   # Fill "-" name and casrn with NA
   res$name[res$name == "-" | res$name == ""] = NA
   res$casrn[res$casrn == "-" | res$casrn == ""] = NA
   # Filter out incomplete cases, keep partial cases (has something for name or casrn)
   res = res %>%
-    filter(!(is.na(name) & is.na(casrn)))
+    dplyr::filter(!(is.na(name) & is.na(casrn)))
   # View(res %>% filter(is.na(name)) %>% select(name, casrn) %>% distinct())
   # View(res %>% filter(is.na(casrn)) %>% select(name, casrn) %>% distinct())
 
@@ -107,10 +107,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Continue transformations
   res = res %>%
     # Combine columns and name them
-    unite(toxval_numeric, toxval_numeric_lower, toxval_numeric_upper, na.rm = TRUE, sep='-') %>%
-    unite(toxval_qualifier, toxval_qualifier_lower, toxval_qualifier_upper, na.rm = TRUE, sep=' ') %>%
+    tidyr::unite(toxval_numeric, toxval_numeric_lower, toxval_numeric_upper, na.rm = TRUE, sep='-') %>%
+    tidyr::unite(toxval_qualifier, toxval_qualifier_lower, toxval_qualifier_upper, na.rm = TRUE, sep=' ') %>%
     #select(-matches("CrossReference.*.uuid")) %>%
-    select(-matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation"))
+    dplyr::select(-tidyr::matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation"))
 
   # Replace column value with another column value based on a condition ("other:")
   if(all(c("toxval_units", "toxval_units_other") %in% names(res))){
@@ -165,7 +165,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   # Fix Greek symbols in units
   res <- res %>%
-    dplyr::mutate(across(ends_with("_units"), ~fix.greek.symbols(.)))
+    dplyr::mutate(dplyr::across(tidyr::ends_with("_units"), ~fix.greek.symbols(.)))
 
 
   # Standardize the names

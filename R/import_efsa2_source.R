@@ -13,7 +13,7 @@ import_efsa2_source <- function(db,
   cat("Build new_efsa2 table\n")
   #####################################################################
   res <- openxlsx::read.xlsx(infile)
-  res <- lapply(res, function(x) type.convert(as.character(x),as.is = T))
+  res <- lapply(res, function(x) utils::type.convert(as.character(x),as.is = T))
   res <- data.frame(res,stringsAsFactors = F)
   res["new_efsa2_id"] <- c(1:length(res[,1]))
   res <- res[c('new_efsa2_id', names(res[-19]))]

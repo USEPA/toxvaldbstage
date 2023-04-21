@@ -2,7 +2,6 @@
 #' Fix the qa_status flag
 #' @param toxval.db The version of toxval in which the data is altered.
 #' @return The database will be altered
-#' @export
 #--------------------------------------------------------------------------------------
 fix.qa_status = function(toxval.db,reset=T){
   printCurrentFunction(toxval.db)

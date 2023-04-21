@@ -40,7 +40,7 @@ import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE,
                   toxval_numeric = gsub("zero", 0, toxval_numeric),
                   toxval_numeric = gsub("(^--> )?n/a$", "-", toxval_numeric),
                   toxval_numeric = gsub(" MFL$", " million fibers per liter", toxval_numeric)) %>%
-    dplyr::mutate(across(c("toxval_type", "toxval_numeric", "toxval_units"),
+    dplyr::mutate(dplyr::across(c("toxval_type", "toxval_numeric", "toxval_units"),
                          ~stringr::str_squish(.)))
 
   # TODO Handle toxval_numeric case of 15 picocuries per Liter (pCi/L) or 5 pCi/L

@@ -19,7 +19,7 @@ import_penn_source <- function(db,
   res_header <- res[c(3,4,5,6),]
   res_header <- unlist(res_header)
   res_header <- unname(res_header[!is.na(res_header)])
-  res_header <- gsub("\\s+", " ", str_trim(res_header))
+  res_header <- gsub("\\s+", " ", stringr::str_trim(res_header))
   h1 <- paste(res_header[c(11:14)], collapse = " ")
   h2 <- paste(res_header[c(15:18)], collapse = " ")
   h3 <- paste(res_header[c(19:20)], collapse = " ")
@@ -37,7 +37,7 @@ import_penn_source <- function(db,
   header_in_row4 <- which(!is.na(res[4,]))
   header_4 <- header_in_row4[!header_in_row4 %in% no_header_res]
   new_header[1:length(new_header) %in% header_4] <- header_val_2
-  new_header <- gsub("\\s+", " ", str_trim(new_header))
+  new_header <- gsub("\\s+", " ", stringr::str_trim(new_header))
   names(res) <- new_header
   rm(h1,h2,h3,h4,h5,k1,k2,k3,k4)
   #####################################################################
@@ -87,7 +87,7 @@ import_penn_source <- function(db,
       }
     }
   }
-  res1 <- lapply(res1, function(x) type.convert(as.character(x), as.is = T))
+  res1 <- lapply(res1, function(x) utils::type.convert(as.character(x), as.is = T))
   res1 <- data.frame(res1, stringsAsFactors = F)
   colnames(res1) <- c("penn_id","name","casrn","RfDo (mg/kg-d)",
                       "RFDo_key","CSFo (mg/kg-d)-1","CSFo_key",

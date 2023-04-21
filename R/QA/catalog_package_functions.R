@@ -1,7 +1,7 @@
 # Function to catalog list of functions used in an input directory
 catalog_package_functions <- function(pk_dir="R", exclude="deprecated"){
   # install.packages("NCmisc)
-  library(dplyr); library(NCmisc)
+  # library(dplyr); library(NCmisc)
 
   r_files = list.files(pk_dir, full.names = TRUE) %>%
     .[!grepl(paste0(exclude, collapse = "|"), .)]

@@ -6,7 +6,6 @@
 #' This function precedes toxvaldb.load.species
 #'
 #' @param toxval.db The version of the database to use
-#' @export
 #--------------------------------------------------------------------------------------
 toxvaldb.load.species <- function(toxval.db,source,restart=F,date_string="2022-05-25") { #2022-02-23
   printCurrentFunction()

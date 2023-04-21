@@ -17,18 +17,18 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   return("Should only be used to process special case of manually QC'd data without DAT")
   # Check input to ensure is list or string
   live_df = switch(typeof(live_df),
-                   "character" = list(live_df),
+                   "character" = gsubfn::list(live_df),
                    "list" = live_df)
   if(is.null(live_df)){
     return("Unsupported input live_df - must be a file path or list of filepaths")
   }
-  DAT_data = list()
+  DAT_data = gsubfn::list()
   # Load and combine input data
   DAT_data$live_dat = lapply(live_df, function(f){
     tmp = readxl::read_xlsx(f) %>%
       # Remove QC fields that will be repopulated in this workflow
       .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))] %>%
-      filter(!qc_status %in% c("fail: multiple source documents"),
+      dplyr::filter(!qc_status %in% c("fail: multiple source documents"),
              !is.na(qc_status),
              !grepl("done in 10", qc_status))
 
@@ -42,16 +42,16 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
     dplyr::bind_rows()
   # Check for duplicates between QC files
   dups = DAT_data$live_dat %>%
-    group_by(source_hash) %>%
+    dplyr::group_by(source_hash) %>%
     dplyr::summarize(n = n()) %>%
-    filter(n > 1)
+    dplyr::filter(n > 1)
   # Throw error and browse if duplicates found
   if(nrow(dups)){
     message("Duplicate source_hash values found...need to reconcile")
     DAT_data$live_dat %>%
-      filter(source_hash %in% unique(dups$source_hash)) %>%
-      arrange(source_hash) %>%
-      View()
+      dplyr::filter(source_hash %in% unique(dups$source_hash)) %>%
+      dplyr::arrange(source_hash) %>%
+      utils::View()
     browser()
   }
   # Rename for less code refactoring
@@ -68,7 +68,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
 
   # Combine to add back missing columns (columns not QC'd)
   DAT_data$live_dat = DAT_data$live_dat %>%
-    left_join(source_data, by = c("src_record_id" = "source_hash"))
+    dplyr::left_join(source_data, by = c("src_record_id" = "source_hash"))
 
   # List of ID columns for audit table (JSON conversion ignore)
   id_list = c("source_hash", "parent_hash", "version", "data_record_annotation",
@@ -117,7 +117,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   for(i in 1:dim(desc)[1]) {
     col <- desc[i,"Field"]
     type <- desc[i,"Type"]
-    if(contains(type,"varchar") || contains(type,"text")) {
+    if(tidyr::contains(type,"varchar") || tidyr::contains(type,"text")) {
       # if(verbose) cat("   enc2utf8:",col,"\n")
       x <- as.character(live[[col]])
       x[is.na(x)] <- "-"
@@ -134,7 +134,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   live = live %>%
     prep.DAT.conversion.manual(., hash_id_list=hash_id_list, source=source) %>%
     # Special case where all changes are submitted as version 2
-    mutate(version = 2,
+    dplyr::mutate(version = 2,
            created_by = qc_user,
            create_time = Sys.time(),
            src_tbl_name = source,
@@ -143,12 +143,12 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   # Subset audit fields based on non-matching source_hash and parent_hash fields
   # Need to remove case where source_hash and version is same in live and audit
   audit = live %>%
-    filter(source_hash != parent_hash)
+    dplyr::filter(source_hash != parent_hash)
   audit = audit %>%
-    filter(!hash_version_check %in% live$hash_version_check) %>%
-    select(-hash_version_check)
+    dplyr::filter(!hash_version_check %in% live$hash_version_check) %>%
+    dplyr::select(-hash_version_check)
   live = live %>%
-    select(-hash_version_check)
+    dplyr::select(-hash_version_check)
   # live %>% select(source_hash, parent_hash) %>% View()
   # Look at changes made/noted
   # audit %>% select(qc_status, qc_changes, qc_comments) %>% distinct %>% View()
@@ -158,9 +158,9 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   if(nrow(audit)){
     audit = audit %>%
       # Transform record columns into JSON
-      mutate(record = convert.audit.to.json.manual(select(., -any_of(id_list)))) %>%
+      dplyr::mutate(record = convert.audit.to.json.manual(dplyr::select(., -tidyr::any_of(id_list)))) %>%
       # Select only audit/ID columns and JSON record
-      select(any_of(id_list), record)
+      dplyr::select(tidyr::any_of(id_list), record)
   }
 
   live = live %>%
@@ -168,7 +168,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
     tidyr::separate(col="qc_status", into=c("qc_status", "qc_flags"), sep="; ", fill = "right") %>%
     # Combine qc_change and qc_comments
     tidyr::unite("qc_notes", qc_comments, qc_changes, sep="; ") %>%
-    mutate(qc_notes = qc_notes %>%
+    dplyr::mutate(qc_notes = qc_notes %>%
              gsub("NA; |; NA", "", .))
   if(nrow(audit)){
     audit = audit %>%
@@ -176,7 +176,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
       tidyr::separate(col="qc_status", into=c("qc_status", "qc_flags"), sep="; ", fill = "right") %>%
       # Combine qc_change and qc_comments
       tidyr::unite("qc_notes", qc_comments, qc_changes, sep="; ") %>%
-      mutate(qc_notes = qc_notes %>%
+      dplyr::mutate(qc_notes = qc_notes %>%
                gsub("NA; |; NA", "", .))
   }
 
@@ -201,7 +201,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   # live %>% select(source_hash, parent_hash, qc_status, qc_flags, qc_notes, version) %>% mutate(compare = parent_hash == source_hash) %>% View()
 
   # Export intermediate before push
-  writexl::write_xlsx(list(live=live, audit=audit),
+  writexl::write_xlsx(gsubfn::list(live=live, audit=audit),
                       paste0(toxval.config()$datapath,"QC Pushed/", source,"_QC_push_",Sys.Date(),".xlsx"))
 
   # Push live and audit table changes
@@ -218,8 +218,8 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
 convert.audit.to.json.manual <- function(in_dat){
   lapply(seq_len(nrow(in_dat)), function(row){
     in_dat[row, ] %>%
-      summarise(record = jsonlite::toJSON(.)) %>%
-      select(record)
+      dplyr::summarise(record = jsonlite::toJSON(.)) %>%
+      dplyr::select(record)
   }) %>%
     dplyr::bind_rows() %>%
     unlist() %>%
@@ -236,11 +236,11 @@ prep.DAT.conversion.manual <- function(in_dat, hash_id_list, source){
                            "domain_description", "DAT_source_name", "source_description", "status_description"))] %>%
     # Alphabetize the columns to ensure consistent hashing column order
     .[, sort(colnames(.))] %>%
-    tidyr::unite("pre_source_hash", any_of(names(.)[!names(.) %in% hash_id_list]),
+    tidyr::unite("pre_source_hash", tidyr::any_of(names(.)[!names(.) %in% hash_id_list]),
                  sep="", remove = FALSE) %>%
     # Set source_hash
-    mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
-    select(-pre_source_hash)
+    dplyr::mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
+    dplyr::select(-pre_source_hash)
 
   return(in_dat)
 }

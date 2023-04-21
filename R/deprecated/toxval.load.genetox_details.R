@@ -2,7 +2,6 @@
 #' Load the Genetox data from Grace
 #' @param toxval.db The database to use.
 #' @param verbose if TRUE output debug information
-#' @export
 #--------------------------------------------------------------------------------------
 toxval.load.genetox_details <- function(toxval.db, verbose=F) {
   printCurrentFunction(toxval.db)

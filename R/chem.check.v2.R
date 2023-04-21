@@ -25,12 +25,12 @@ chem.check.v2 <- function(res0,source=NULL,verbose=F) {
   for(i in 1:length(nlist)) {
     n0 = nlist[i]
     n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
-    n2 = stri_escape_unicode(n1)
-    n2 = str_replace_all(n2,"\\\\'","\'")
-    n2 = str_replace_all(n2,"\r"," ")
-    n2 = str_replace_all(n2,"\n"," ")
-    n2 = str_replace_all(n2,"  "," ")
-    n2 = str_trim(n2)
+    n2 = stringi::stri_escape_unicode(n1)
+    n2 = stringr::str_replace_all(n2,"\\\\'","\'")
+    n2 = stringr::str_replace_all(n2,"\r"," ")
+    n2 = stringr::str_replace_all(n2,"\n"," ")
+    n2 = stringr::str_replace_all(n2,"  "," ")
+    n2 = stringr::str_trim(n2)
     if(is.element(source,c("Alaska DEC",
                            "California DPH",
                            "EPA AEGL",
@@ -52,16 +52,16 @@ chem.check.v2 <- function(res0,source=NULL,verbose=F) {
                            "Pennsylvania DEP ToxValues",
                            "EnviroTox_v2",
                            "HEAST"))) {
-      if(contains(n2,";")) {
+      if(tidyr::contains(n2,";")) {
         start = gregexpr(";",n2)[[1]][1]
-        n3 = str_trim(substr(n2,1,start-1))
+        n3 = stringr::str_trim(substr(n2,1,start-1))
         string = paste0(source," [",n2,"] [",n3,"]")
         #cat(string,"\n")
         n2 = n3
       }
-      if(contains(n2," (")) {
+      if(tidyr::contains(n2," (")) {
         start = gregexpr(" \\(",n2)[[1]][1]
-        n3 = str_trim(substr(n2,1,start-1))
+        n3 = stringr::str_trim(substr(n2,1,start-1))
         string = paste0(source," [",n2,"] [",n3,"]")
         #cat(string,"\n")
         n2 = n3
@@ -86,7 +86,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=F) {
     n0 = nlist[i]
     if(!is.na(n0)) {
       n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
-      n2 = stri_escape_unicode(n1)
+      n2 = stringi::stri_escape_unicode(n1)
       n2 = fix.casrn(n2)
       cs = cas_checkSum(n2)
       if(is.na(cs)) cs = 0
@@ -124,5 +124,5 @@ chem.check.v2 <- function(res0,source=NULL,verbose=F) {
   else cat("All casrn OK\n")
   if(!checksum.OK) cat("Some casrn have bad checksums\n")
   else cat("All checksums OK\n")
-  return(list(res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK))
+  return(gsubfn::list(res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK))
 }

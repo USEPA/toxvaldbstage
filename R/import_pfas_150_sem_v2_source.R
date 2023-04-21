@@ -9,11 +9,11 @@ import_pfas_150_sem_v2_source <- function(db,
   indir = paste0(toxval.config()$datapath,"pfas_150_sem_v2/PFAS 150 SEM v2_files/")
 
   file = paste0(indir,"PFAS 150 SEM chemicals.xlsx")
-  chems = read.xlsx(file)
+  chems = openxlsx::read.xlsx(file)
   file = paste0(indir,"PFAS 150 SEM results.xlsx")
-  res = read.xlsx(file)
+  res = openxlsx::read.xlsx(file)
   file = paste0(indir,"PFAS 150 SEM HERO ID vs citation.xlsx")
-  hero = read.xlsx(file)
+  hero = openxlsx::read.xlsx(file)
 
   res[is.na(res$hero_id),"hero_id"] = -1
   res$long_ref = res$citation
@@ -105,7 +105,7 @@ import_pfas_150_sem_v2_source <- function(db,
 
   res2$hashkey = NA
   for(i in 1:nrow(res2)) {
-    hashkey = digest(paste0(res2[i,],collapse=""), serialize = FALSE)
+    hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
     res2[i,"hashkey"] = hashkey
     res[i,"hashkey"] = hashkey
   }

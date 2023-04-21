@@ -22,7 +22,7 @@ import_echa_echemportal_api_source <- function(db,
   res <- lapply(files.list,openxlsx::read.xlsx)
   names(res) <- gsub("(.*\\/eChemPortalAPI_)(.*)(_.*)", "\\2", files.list)
   for (i in 1:length(res)) {
-    res[[i]] <- lapply(res[[i]], function(x) type.convert(as.character(x), as.is = T))
+    res[[i]] <- lapply(res[[i]], function(x) utils::type.convert(as.character(x), as.is = T))
     res[[i]] <- data.frame(res[[i]], stringsAsFactors = F)
   }
 
@@ -32,7 +32,7 @@ import_echa_echemportal_api_source <- function(db,
     res[[i]][sapply(res[[i]], function(x) all(is.na(x) == T))] <- ""
   }
 
-  res1 <- rbindlist(res, fill = TRUE, idcol = 'source_table')
+  res1 <- data.table::rbindlist(res, fill = TRUE, idcol = 'source_table')
   res1 <- data.frame(res1, stringsAsFactors = F)
   res1$Name <- enc2utf8(res1$Name)
   names(res1) <- tolower(names(res1))

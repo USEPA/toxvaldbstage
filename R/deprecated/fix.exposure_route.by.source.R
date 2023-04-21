@@ -3,7 +3,6 @@
 #' @param toxval.db The version of toxval in which the data is altered.
 #' @param source The source to be processed
 #' @return The database will be altered
-#' @export
 #-------------------------------------------------------------------------------------
 fix.exposure_route.by.source <- function(toxval.db, source){
   printCurrentFunction(paste(toxval.db,":", source))

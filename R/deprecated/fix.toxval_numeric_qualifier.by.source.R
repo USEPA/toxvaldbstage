@@ -2,7 +2,6 @@
 #' Fix the toxval_numeric_qualifier by source
 #' @param toxval.db The version of toxval in which the data is altered.
 #' @return The database will be altered
-#' @export
 #--------------------------------------------------------------------------------------
 fix.toxval_numeric_qualifier.by.source <- function(toxval.db, source){
   printCurrentFunction(paste(toxval.db,":", source))

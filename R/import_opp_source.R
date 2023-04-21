@@ -66,7 +66,7 @@ import_opp_source <- function(db,
   
   resall = resall %>%
     # Fix name encoding error
-    mutate(name = gsub("&amp;", "&", name),
+    dplyr::mutate(name = gsub("&amp;", "&", name),
            # Fix excess whitespace
            casrn = stringr::str_squish(casrn))
   # resall = resall[!is.na(resall$toxval_numeric),]

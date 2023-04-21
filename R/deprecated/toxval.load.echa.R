@@ -4,11 +4,10 @@
 #' @param toxval.db The version of toxval into which the tables are loaded.
 #' @param source.db The source database to use.
 #' @param verbose Whether the loaded rows should be printed to the console.
-#' @export
 #--------------------------------------------------------------------------------------
 toxval.load.echa <- function(toxval.db, source.db, verbose=F) {
   printCurrentFunction(toxval.db)
-  
+
   #####################################################################
   cat("start output log, log files for each source can be accessed from output_log folder\n")
   #####################################################################
@@ -33,14 +32,14 @@ toxval.load.echa <- function(toxval.db, source.db, verbose=F) {
   #####################################################################
   cat("load data to res\n")
   #####################################################################
-  
+
   query <- "select * from echa2"
-  
+
   res <- runQuery(query,source.db,T,F)
   res <- res[ , !(names(res) %in% c("source_id","clowder_id"))]
   res <- res[!is.element(res[,"toxval_type"],"-"),]
   res[is.na(res[,"document_name"]),"document_name"] <- "-"
-  
+
   #print(View(res))
   res <- aggregate(source_source_id ~ ., data = res, min)
   #v8 source_source_id 1 here used -1
@@ -60,7 +59,7 @@ toxval.load.echa <- function(toxval.db, source.db, verbose=F) {
   dict_echa_tox_values$toxval_units <- gsub("(^\\d+\\.*\\d*\\s+)(\\w+.*)","\\2", dict_echa_tox_values$toxval_numeric)
   dict_echa_tox_values[grep("^ca\\.\\s*\\d+\\.*\\d*\\s*.*", dict_echa_tox_values$toxval_units), "toxval_units"] <- gsub("(^ca\\.\\s*\\d+\\.*\\d*\\s*)(\\w+.*)","\\2", dict_echa_tox_values[grep("^ca\\.\\s*\\d+\\.*\\d*\\s*.*", dict_echa_tox_values$toxval_units), "toxval_units"])
   dict_echa_tox_values$toxval_units <- gsub("(^[^[:alnum:]].*\\d+\\.*\\d*\\s+)(\\w+.*)","\\2", dict_echa_tox_values$toxval_units)
-  
+
   dict_echa_tox_values[grep("(^\\d+\\.\\d+\\.\\d+.*)",dict_echa_tox_values$toxval_units), "toxval_numeric_qualifier"] <- "-"
   dict_echa_tox_values[grep("(^\\d+\\.\\d+\\.\\d+.*)",dict_echa_tox_values$toxval_units), "toxval_numeric"] <- NA
   dict_echa_tox_values[grep("(^\\d+\\.\\d+\\.\\d+.*)",dict_echa_tox_values$toxval_units), "toxval_units"] <- gsub("(^\\d+\\.\\d+\\.\\d+\\s+)(.*)","\\2", dict_echa_tox_values[grep("(^\\d+\\.\\d+\\.\\d+.*)",dict_echa_tox_values$toxval_units), "toxval_units"])
@@ -73,32 +72,32 @@ toxval.load.echa <- function(toxval.db, source.db, verbose=F) {
   dict_echa_tox_values[grep("^per", dict_echa_tox_values$toxval_units), "toxval_units"] <- gsub("(.*\\d+\\s+)(mg.*)","\\2",dict_echa_tox_values[grep("^per", dict_echa_tox_values$toxval_units), "toxval_numeric"])
   dict_echa_tox_values[grep("\\-", dict_echa_tox_values$toxval_units), "toxval_units"] <- gsub("(.*\\d+\\s+)(.*)","\\2",dict_echa_tox_values[grep("\\-", dict_echa_tox_values$toxval_units), "toxval_numeric"])
   dict_echa_tox_values[which(is.na(dict_echa_tox_values$toxval_units)), "toxval_units"] <- "-"
-  
-  
+
+
   dict_echa_tox_values[grep("ca\\.", dict_echa_tox_values$toxval_numeric_qualifier), "toxval_numeric_qualifier"] <- "ca."
   dict_echa_tox_values[grep("\\w+\\s*\\-", dict_echa_tox_values$toxval_numeric_qualifier), "toxval_numeric_qualifier"] <- "-"
-  
+
   dict_echa_tox_values[grep("^\\d+\\.*\\d*\\s*\\w+.*",dict_echa_tox_values$toxval_numeric), "toxval_numeric"] <- gsub("(^\\d+\\.*\\d*)(\\s*\\w+.*)","\\1",dict_echa_tox_values[grep("^\\d+\\.*\\d*\\s*\\w+.*",dict_echa_tox_values$toxval_numeric), "toxval_numeric"])
   dict_echa_tox_values[grep("^[^[:alnum:]]",dict_echa_tox_values$toxval_numeric), "toxval_numeric"] <- gsub("(^[^[:alnum:]]+\\s+)(\\d+\\.*\\d*)(\\s+.*)","\\2",dict_echa_tox_values[grep("^[^[:alnum:]]",dict_echa_tox_values$toxval_numeric), "toxval_numeric"])
   dict_echa_tox_values[grep("^ca\\.",dict_echa_tox_values$toxval_numeric), "toxval_numeric"] <- gsub("(^ca\\.\\s+)(\\d+\\.*\\d*)(\\s+.*)","\\2",dict_echa_tox_values[grep("^ca\\.",dict_echa_tox_values$toxval_numeric), "toxval_numeric"])
   dict_echa_tox_values[grep("^\\w+\\s+\\w+",dict_echa_tox_values$toxval_numeric), "toxval_numeric"] <- gsub("(.*\\-\\s+[ca\\.]*\\s*)(\\d+\\.*\\d*)(\\s+.*)","\\2",dict_echa_tox_values[grep("^\\w+\\s+\\w+",dict_echa_tox_values$toxval_numeric), "toxval_numeric"])
   dict_echa_tox_values[grep("\\d+\\.\\d+\\.\\d+",dict_echa_tox_values$toxval_numeric), "toxval_numeric"] <- NA
   dict_echa_tox_values[grep("^\\w+\\)+",dict_echa_tox_values$toxval_numeric), "toxval_numeric"] <- gsub("(^\\w+\\)+\\s+\\-\\s+)(\\d+\\.*\\d*)(\\s+.*)","\\2",dict_echa_tox_values[grep("^\\w+\\)+",dict_echa_tox_values$toxval_numeric), "toxval_numeric"])
-  
+
   dict_echa_tox_values[grep("^0\\s+[^[:alnum:]]",dict_echa_tox_values$toxval_numeric), "toxval_numeric_qualifier"] <- gsub("(^0\\s+)([^[:alnum:]])(\\s+\\d+\\.*\\d*)(\\s+.*)","\\2",dict_echa_tox_values[grep("^0\\s+[^[:alnum:]]",dict_echa_tox_values$toxval_numeric), "toxval_numeric"])
   dict_echa_tox_values[grep("^0\\s+[^[:alnum:]]",dict_echa_tox_values$toxval_numeric), "toxval_numeric"] <- gsub("(^0\\s+[^[:alnum:]]\\s+)(\\d+\\.*\\d*)(\\s+.*)","\\2",dict_echa_tox_values[grep("^0\\s+[^[:alnum:]]",dict_echa_tox_values$toxval_numeric), "toxval_numeric"])
   dict_echa_tox_values$toxval_numeric <- as.numeric(dict_echa_tox_values$toxval_numeric)
   dict_echa_tox_values[grep("\\)",dict_echa_tox_values$toxval_numeric_qualifier), "toxval_numeric_qualifier"] <- "-"
-  
+
   print(View(dict_echa_tox_values))
   #runInsertTable(dict_echa_tox_values, "echa2_toxicity_value_dictionary", source.db, do.halt=T,verbose=F)
-  
+
   #names(res)[names(res) == "toxval_numeric"] <- "toxval_numeric_original"
   res$toxval_numeric_original <- res$toxval_numeric
   res$toxval_units_original <- res$toxval_numeric
   res$toxval_numeric_qualifier_original <- res$toxval_numeric
-  
-  
+
+
   for(i in 1:nrow(dict_echa_tox_values)) {
     valold <- dict_echa_tox_values[i,1]
     valnew <- dict_echa_tox_values[i,2]
@@ -195,7 +194,7 @@ toxval.load.echa <- function(toxval.db, source.db, verbose=F) {
   name.list[is.element(name.list,"species")] <- "species_original"
 
   res <- fill.toxval.defaults(toxval.db,res)
-  
+
   #####################################################################
   cat("update critical effects\n")
   #####################################################################
@@ -294,13 +293,13 @@ toxval.load.echa <- function(toxval.db, source.db, verbose=F) {
   # cat("fix species by source\n")
   # #####################################################################
   # fix.species.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix species by source\n")
   #####################################################################
   fix.species.ecotox.by.source(toxval.db, source)
-  
-  
+
+
   #####################################################################
   cat("fix human_eco by source\n")
   #####################################################################
@@ -332,12 +331,12 @@ toxval.load.echa <- function(toxval.db, source.db, verbose=F) {
       exposure_form, media, toxval_subtype) by source\n")
   #####################################################################
   fix.all.param.new.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix generation by source\n")
   #####################################################################
   fix.generation.by.source(toxval.db, source)
-  
+
   #####################################################################
   cat("fix critical_effect by source\n")
   #####################################################################
@@ -428,6 +427,6 @@ toxval.load.echa <- function(toxval.db, source.db, verbose=F) {
   #####################################################################
   cat("finish\n")
   #####################################################################
-  
+
 }
 

@@ -1,5 +1,5 @@
-library(RMySQL)
-library(DBI)
+# library(RMySQL)
+# library(DBI)
 #--------------------------------------------------------------------------------------
 #' Runs a database query and returns a result set
 #'
@@ -33,26 +33,26 @@ runQuery <- function(query=NULL,db,do.halt=T,verbose=F) {
     cat("db: ",db,"\n")
   }
   tryCatch({
-    con <- dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
-    rs <- suppressWarnings(dbSendQuery(con, query))
-    d1 <- dbFetch(rs, n = -1)
+    con <- RMySQL::dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
+    rs <- suppressWarnings(RMySQL::dbSendQuery(con, query))
+    d1 <- RMySQL::dbFetch(rs, n = -1)
     if(verbose) {
       print(d1)
-      flush.console()
+      utils::flush.console()
     }
-    dbHasCompleted(rs)
-    dbClearResult(rs)
-    dbDisconnect(con)
+    RMySQL::dbHasCompleted(rs)
+    RMySQL::dbClearResult(rs)
+    RMySQL::dbDisconnect(con)
     return(d1)
   }, warning = function(w) {
     cat("WARNING:",query,"\n")
-    dbDisconnect(con)
+    RMySQL::dbDisconnect(con)
     if(do.halt) browser()
     return(NULL)
   }, error = function(e) {
     #cat("ERROR:",query,"\n")
     cat("Error messge: ",paste0(e, collapse=" | "), "\n")
-    dbDisconnect(con)
+    RMySQL::dbDisconnect(con)
     if(do.halt) browser()
     return(NULL)
   })

@@ -2,7 +2,6 @@
 #' Process the ECHA eChemPortal data from 2020 - step 3
 #'
 #' @param do.load If TRUE, laod all of the in vivo data
-#' @export
 #--------------------------------------------------------------------------------------
 echemportal.prep.v2.step3 <- function(do.load=F) {
   printCurrentFunction()
@@ -122,9 +121,9 @@ echemportal.prep.v2.step3 <- function(do.load=F) {
     study_duration_value <- dict[i,"study_duration_value"]
     mat[is.element(mat[,"new_guideline"],guideline),"study_duration_value"] <- study_duration_value
     mat[is.element(mat[,"new_guideline"],guideline),"study_duration_units"] <- study_duration_units
-    
+
   }
-  
+
   file <- "../echa/echa_files/eChemPortal mammalian data 2020 step 3.xlsx"
   mat <- mat[,!(names(mat) == "new_guideline")]
   write.xlsx(mat,file)

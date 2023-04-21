@@ -99,7 +99,7 @@ import_atsdr_pfas_2021_source <- function(db,
   key <- res[[1]][279:291,7]
   key <- paste(key, collapse = " ")
 
-  key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
+  key_desc_table <- data.frame(unlist(stringr::str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
   key_desc <- data.frame(do.call('rbind', strsplit(as.character(key_desc_table$original_keys),'=',fixed=TRUE)), stringsAsFactors = F)
   rm(key_desc_table, key)
@@ -111,8 +111,8 @@ import_atsdr_pfas_2021_source <- function(db,
   key_desc[nrow(key_desc) + 1,] = c("HE","hematological")
   key_desc[grep("Hemato", key_desc$key),"key"] <- "Hemato"
 
-  key_desc$key <- str_trim(as.character(key_desc[,"key"]))
-  key_desc$description <- str_trim(as.character(key_desc[,"description"]))
+  key_desc$key <- stringr::str_trim(as.character(key_desc[,"key"]))
+  key_desc$description <- stringr::str_trim(as.character(key_desc[,"description"]))
 
   #### key replacements
   for(i in 1:nrow(key_desc)) {
@@ -123,21 +123,21 @@ import_atsdr_pfas_2021_source <- function(db,
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res1)){
-      res1$parameters_monitored[j] <- str_replace_all(res1$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res1$parameters_monitored[j] <- stringr::str_replace_all(res1$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res1)){
-      res1$sex[j] <- str_replace_all(res1$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res1$sex[j] <- stringr::str_replace_all(res1$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res1)){
-      res1$exposure_method[j] <- str_replace_all(res1$exposure_method[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res1$exposure_method[j] <- stringr::str_replace_all(res1$exposure_method[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
@@ -156,14 +156,14 @@ import_atsdr_pfas_2021_source <- function(db,
   short_ref_key_table$description <- "-"
 
   for (i in 1:23){
-    short_ref_key_table$description[i] <-unique(na.omit(res1[which(res1$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
+    short_ref_key_table$description[i] <-unique(stats::na.omit(res1[which(res1$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
   }
 
-  short_ref_key_table$description[24] <- unique(na.omit(res1[which(res1$short_ref %in% short_ref_key_table[24,1]),"long_ref"]))[1]
-  short_ref_key_table$description[25] <- unique(na.omit(res1[which(res1$short_ref %in% short_ref_key_table[24,1]),"long_ref"]))[2]
+  short_ref_key_table$description[24] <- unique(stats::na.omit(res1[which(res1$short_ref %in% short_ref_key_table[24,1]),"long_ref"]))[1]
+  short_ref_key_table$description[25] <- unique(stats::na.omit(res1[which(res1$short_ref %in% short_ref_key_table[24,1]),"long_ref"]))[2]
 
   for (i in 26:39){
-    short_ref_key_table$description[i] <-unique(na.omit(res1[which(res1$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
+    short_ref_key_table$description[i] <-unique(stats::na.omit(res1[which(res1$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
   }
 
   for(i in 1:nrow(short_ref_key_table)) {
@@ -252,7 +252,7 @@ import_atsdr_pfas_2021_source <- function(db,
   key <- res[[2]][15:16,7]
   key <- paste(key, collapse = " ")
 
-  key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
+  key_desc_table <- data.frame(unlist(stringr::str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
   key_desc <- data.frame(do.call('rbind', strsplit(as.character(key_desc_table$original_keys),'=',fixed=TRUE)), stringsAsFactors = F)
   rm(key_desc_table, key)
@@ -261,8 +261,8 @@ import_atsdr_pfas_2021_source <- function(db,
   key_desc[nrow(key_desc) + 1,] = c("BW","body weight")
   key_desc[grep("Bd wt", key_desc$key),"key"] <- "Bd wt"
 
-  key_desc$key <- str_trim(as.character(key_desc[,"key"]))
-  key_desc$description <- str_trim(as.character(key_desc[,"description"]))
+  key_desc$key <- stringr::str_trim(as.character(key_desc[,"key"]))
+  key_desc$description <- stringr::str_trim(as.character(key_desc[,"description"]))
 
   #### key replacements
   for(i in 1:nrow(key_desc)) {
@@ -273,14 +273,14 @@ import_atsdr_pfas_2021_source <- function(db,
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res2)){
-      res2$parameters_monitored[j] <- str_replace_all(res2$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res2$parameters_monitored[j] <- stringr::str_replace_all(res2$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res2)){
-      res2$sex[j] <- str_replace_all(res2$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res2$sex[j] <- stringr::str_replace_all(res2$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
@@ -296,7 +296,7 @@ import_atsdr_pfas_2021_source <- function(db,
   short_ref_key_table <- data.frame(short_ref_key, stringsAsFactors = "F")
   short_ref_key_table$description <- "-"
 
-  short_ref_key_table$description[1] <- unique(na.omit(res2[which(res2$short_ref %in% short_ref_key_table[1,1]),"long_ref"]))[1]
+  short_ref_key_table$description[1] <- unique(stats::na.omit(res2[which(res2$short_ref %in% short_ref_key_table[1,1]),"long_ref"]))[1]
 
   for(i in 1:nrow(short_ref_key_table)) {
     valold <- short_ref_key_table[i,1]
@@ -386,7 +386,7 @@ import_atsdr_pfas_2021_source <- function(db,
   key <- res[[3]][29,4]
   key <- paste(key, collapse = " ")
 
-  key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
+  key_desc_table <- data.frame(unlist(stringr::str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
   key_desc <- data.frame(do.call('rbind', strsplit(as.character(key_desc_table$original_keys),'=',fixed=TRUE)), stringsAsFactors = F)
   rm(key_desc_table, key)
@@ -398,8 +398,8 @@ import_atsdr_pfas_2021_source <- function(db,
   key_desc[nrow(key_desc) + 1,] = c("HE","hematological")
   key_desc[grep("Hemato", key_desc$key),"key"] <- "Hemato"
 
-  key_desc$key <- str_trim(as.character(key_desc[,"key"]))
-  key_desc$description <- str_trim(as.character(key_desc[,"description"]))
+  key_desc$key <- stringr::str_trim(as.character(key_desc[,"key"]))
+  key_desc$description <- stringr::str_trim(as.character(key_desc[,"description"]))
 
   #### key replacements
 
@@ -411,14 +411,14 @@ import_atsdr_pfas_2021_source <- function(db,
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res3)){
-      res3$parameters_monitored[j] <- str_replace_all(res3$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res3$parameters_monitored[j] <- stringr::str_replace_all(res3$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res3)){
-      res3$sex[j] <- str_replace_all(res3$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res3$sex[j] <- stringr::str_replace_all(res3$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
@@ -435,7 +435,7 @@ import_atsdr_pfas_2021_source <- function(db,
   short_ref_key_table$description <- "-"
 
   for (i in 1:2){
-    short_ref_key_table$description[i] <-unique(na.omit(res3[which(res3$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
+    short_ref_key_table$description[i] <-unique(stats::na.omit(res3[which(res3$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
   }
 
   for(i in 1:nrow(short_ref_key_table)) {
@@ -533,7 +533,7 @@ import_atsdr_pfas_2021_source <- function(db,
   key <- res[[4]][35:39,7]
   key <- paste(key, collapse = " ")
 
-  key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
+  key_desc_table <- data.frame(unlist(stringr::str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
   key_desc <- data.frame(do.call('rbind', strsplit(as.character(key_desc_table$original_keys),'=',fixed=TRUE)), stringsAsFactors = F)
   rm(key_desc_table, key)
@@ -545,8 +545,8 @@ import_atsdr_pfas_2021_source <- function(db,
   key_desc[nrow(key_desc) + 1,] = c("HE","hematological")
   key_desc[grep("Hemato", key_desc$key),"key"] <- "Hemato"
 
-  key_desc$key <- str_trim(as.character(key_desc[,"key"]))
-  key_desc$description <- str_trim(as.character(key_desc[,"description"]))
+  key_desc$key <- stringr::str_trim(as.character(key_desc[,"key"]))
+  key_desc$description <- stringr::str_trim(as.character(key_desc[,"description"]))
 
   #### key replacements
   for(i in 1:nrow(key_desc)) {
@@ -559,7 +559,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res4)){
-      res4$parameters_monitored[j] <- str_replace_all(res4$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res4$parameters_monitored[j] <- stringr::str_replace_all(res4$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
@@ -568,7 +568,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res4)){
-      res4$sex[j] <- str_replace_all(res4$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res4$sex[j] <- stringr::str_replace_all(res4$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
@@ -688,7 +688,7 @@ import_atsdr_pfas_2021_source <- function(db,
 
   # time/day
   res5[is.na(res5$study_duration_value), "duration"] <- gsub("(.*)(1 time/day)(.*)","\\1\\3",res5[is.na(res5$study_duration_value), "duration"])
-  res5[is.na(res5$study_duration_value), "study_duration_value"] <- sapply(str_extract_all(res5[is.na(res5$study_duration_value), "duration"], "\\d+"), function(x) max(as.numeric(x)))
+  res5[is.na(res5$study_duration_value), "study_duration_value"] <- sapply(stringr::str_extract_all(res5[is.na(res5$study_duration_value), "duration"], "\\d+"), function(x) max(as.numeric(x)))
   res5[res5$duration %in% grep("^GD",res5[is.na(res5$study_duration_units), "duration"], value = T), "study_duration_units"] <- "GD"
   res5[res5$duration %in% grep("day",res5[is.na(res5$study_duration_units), "duration"], value = T), "study_duration_units"] <- "day"
   res5[res5$duration %in% grep("week",res5[is.na(res5$study_duration_units), "duration"], value = T), "study_duration_units"] <- "week"
@@ -705,7 +705,7 @@ import_atsdr_pfas_2021_source <- function(db,
   key <- res[[5]][235:244,7]
   key <- paste(key, collapse = " ")
 
-  key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
+  key_desc_table <- data.frame(unlist(stringr::str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
   key_desc <- data.frame(do.call('rbind', strsplit(as.character(key_desc_table$original_keys),'=',fixed=TRUE)), stringsAsFactors = F)
   rm(key_desc_table, key)
@@ -717,8 +717,8 @@ import_atsdr_pfas_2021_source <- function(db,
   key_desc[nrow(key_desc) + 1,] = c("HE","hematological")
   key_desc[grep("Hemato", key_desc$key),"key"] <- "Hemato"
 
-  key_desc$key <- str_trim(as.character(key_desc[,"key"]))
-  key_desc$description <- str_trim(as.character(key_desc[,"description"]))
+  key_desc$key <- stringr::str_trim(as.character(key_desc[,"key"]))
+  key_desc$description <- stringr::str_trim(as.character(key_desc[,"description"]))
 
   #### key replacements
   res5$endpoint <- gsub("^\\s+|\\s+$","",res5$endpoint)
@@ -733,21 +733,21 @@ import_atsdr_pfas_2021_source <- function(db,
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res5)){
-      res5$parameters_monitored[j] <- str_replace_all(res5$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res5$parameters_monitored[j] <- stringr::str_replace_all(res5$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res5)){
-      res5$sex[j] <- str_replace_all(res5$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res5$sex[j] <- stringr::str_replace_all(res5$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res5)){
-      res5$exposure_method[j] <- str_replace_all(res5$exposure_method[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res5$exposure_method[j] <- stringr::str_replace_all(res5$exposure_method[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
@@ -769,14 +769,14 @@ import_atsdr_pfas_2021_source <- function(db,
   short_ref_key_table$description <- "-"
 
   for (i in 1:23){
-    short_ref_key_table$description[i] <-unique(na.omit(res5[which(res5$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
+    short_ref_key_table$description[i] <-unique(stats::na.omit(res5[which(res5$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
   }
 
   # no long ref corresponding to short ref
   short_ref_key_table$description[24] <- "-"
 
   for (i in 25:40){
-    short_ref_key_table$description[i] <-unique(na.omit(res5[which(res5$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
+    short_ref_key_table$description[i] <-unique(stats::na.omit(res5[which(res5$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
   }
 
   for(i in 1:nrow(short_ref_key_table)) {
@@ -858,7 +858,7 @@ import_atsdr_pfas_2021_source <- function(db,
   res6$study_duration_units_original <- res6$study_duration_value_original
 
   # extract the maximum duration value
-  res6[grep("[0-9]+",res6$duration),"study_duration_value"] <- sapply(str_extract_all(res6[grep("[0-9]+",res6$duration),"duration"], "\\d+"), function(x) max(as.numeric(x)))
+  res6[grep("[0-9]+",res6$duration),"study_duration_value"] <- sapply(stringr::str_extract_all(res6[grep("[0-9]+",res6$duration),"duration"], "\\d+"), function(x) max(as.numeric(x)))
   # Once and Single dose values
   res6[grep("^Once \\(.*\\)$|^Single dose \\(.*\\)$", res6$duration),"study_duration_value"] <- 1
   res6[grep("^Once \\(.*\\)$|^Single dose \\(.*\\)$", res6$duration),"study_duration_units"] <- "day"
@@ -887,7 +887,7 @@ import_atsdr_pfas_2021_source <- function(db,
   key <- res[[6]][206:215,7]
   key <- paste(key, collapse = " ")
 
-  key_desc_table <- data.frame(unlist(str_split(key, ";")), stringsAsFactors = F)
+  key_desc_table <- data.frame(unlist(stringr::str_split(key, ";")), stringsAsFactors = F)
   names(key_desc_table) <- "original_keys"
   key_desc <- data.frame(do.call('rbind', strsplit(as.character(key_desc_table$original_keys),'=',fixed=TRUE)), stringsAsFactors = F)
   rm(key_desc_table, key)
@@ -899,8 +899,8 @@ import_atsdr_pfas_2021_source <- function(db,
   key_desc[nrow(key_desc) + 1,] = c("HE","hematological")
   key_desc[grep("Hemato", key_desc$key),"key"] <- "Hemato"
 
-  key_desc$key <- str_trim(as.character(key_desc[,"key"]))
-  key_desc$description <- str_trim(as.character(key_desc[,"description"]))
+  key_desc$key <- stringr::str_trim(as.character(key_desc[,"key"]))
+  key_desc$description <- stringr::str_trim(as.character(key_desc[,"description"]))
 
   #### key replacements
   res6$endpoint <- gsub("^\\s+|\\s+$","",res6$endpoint)
@@ -915,19 +915,19 @@ import_atsdr_pfas_2021_source <- function(db,
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res6)){
-      res6$parameters_monitored[j] <- str_replace_all(res6$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res6$parameters_monitored[j] <- stringr::str_replace_all(res6$parameters_monitored[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
     }
   }
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res6)){
-      res6$sex[j] <- str_replace_all(res6$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res6$sex[j] <- stringr::str_replace_all(res6$sex[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
     }
   }
 
   for (i in 1:nrow(key_desc)){
     for ( j in 1:nrow(res6)){
-      res6$exposure_method[j] <- str_replace_all(res6$exposure_method[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
+      res6$exposure_method[j] <- stringr::str_replace_all(res6$exposure_method[j],paste("\\b",key_desc[,"key"],"\\b", sep  = "")[i],key_desc[,"description"][i])
 
     }
   }
@@ -950,7 +950,7 @@ import_atsdr_pfas_2021_source <- function(db,
   short_ref_key_table$description <- "-"
 
   for (i in 1:37){
-    short_ref_key_table$description[i] <-unique(na.omit(res6[which(res6$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
+    short_ref_key_table$description[i] <-unique(stats::na.omit(res6[which(res6$short_ref %in% short_ref_key_table$short_ref_key[i]),"long_ref"]))
   }
 
   for(i in 1:nrow(short_ref_key_table)) {
@@ -989,7 +989,7 @@ import_atsdr_pfas_2021_source <- function(db,
   #####################################################################
   cat("Build combined dataframe of all atsdr pfas 2021 sources \n")
   #####################################################################
-  new_res <- bind_rows(res1_new,res2_new,res3_new,res4_new,res5_new,res6_new)
+  new_res <- dplyr::bind_rows(res1_new,res2_new,res3_new,res4_new,res5_new,res6_new)
   #write.xlsx(new_res, "atsdr_pfas_2021.xlsx")
   new_res$toxval_numeric <- as.numeric(new_res$toxval_numeric)
   new_res$study_duration_value <- as.numeric(new_res$study_duration_value)

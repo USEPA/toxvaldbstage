@@ -49,7 +49,7 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
                                    "/api/files/",
                                    clowder_id_list[i],
                                    "/metadata"),
-                            add_headers(`X-API-Key`= clowder_api_key)) %>%
+                            httr::add_headers(`X-API-Key`= clowder_api_key)) %>%
         httr::content(type="text", encoding = "UTF-8") %>%
         jsonlite::fromJSON()
       # Wait between requests
@@ -59,12 +59,12 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
                                    "/api/files/",
                                    clowder_id_list[i],
                                    "/metadata.jsonld"),
-                            add_headers(`X-API-Key`= clowder_api_key)) %>%
+                            httr::add_headers(`X-API-Key`= clowder_api_key)) %>%
         httr::content(type="text", encoding = "UTF-8") %>%
         jsonlite::fromJSON() %>%
         tidyr::unnest(agent, names_sep = "agent_") %>%
         # Filter to only user added metadata
-        filter(`agentagent_@type` == "cat:user")
+        dplyr::filter(`agentagent_@type` == "cat:user")
 
       # Check if no metadata available, fill in NA fields
       if(!length(metadata) || !nrow(metadata)) {
@@ -82,10 +82,10 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
                         as.POSIXct(format="%a %B %d %H:%M:%S %Y", tz="GMT")) %>%
         # Filter to most recent metadata submission
         dplyr::filter(created_at == max(created_at)) %>%
-        dplyr::select(starts_with("content")) %>%
+        dplyr::select(tidyr::starts_with("content")) %>%
         dplyr::mutate(clowder_id = clowder_id_list[i],
                       document_name = filename$filename) %>%
-        unnest(cols="content")
+        tidyr::unnest(cols="content")
 
       # https://stackoverflow.com/questions/28548245/how-to-remove-columns-from-a-data-frame-by-data-type
       # Remove dataframe/list columns
@@ -114,9 +114,9 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
 
       # Transform records into JSON
       metadata = metadata %>%
-        mutate(clowder_metadata = convert.fields.to.json(select(., -any_of(non_json_fields)))) %>%
+        dplyr::mutate(clowder_metadata = convert.fields.to.json(dplyr::select(., -tidyr::any_of(non_json_fields)))) %>%
         # Select only non_json columns and JSON record
-        select(any_of(non_json_fields), clowder_metadata) %T>% {
+        dplyr::select(tidyr::any_of(non_json_fields), clowder_metadata) %T>% {
           names(.) <- tolower(names(.))
         }
 
@@ -143,7 +143,7 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     for(i in 1:dim(desc)[1]) {
       col <- desc[i,"Field"]
       type <- desc[i,"Type"]
-      if(contains(type,"varchar") || contains(type,"text")) {
+      if(tidyr::contains(type,"varchar") || tidyr::contains(type,"text")) {
         # if(verbose) cat("   enc2utf8:",col,"\n")
         x <- as.character(metadata_out[[col]])
         x[is.na(x)] <- "-"
@@ -194,8 +194,8 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
 convert.fields.to.json <- function(in_dat){
   lapply(seq_len(nrow(in_dat)), function(row){
     in_dat[row, ] %>%
-      summarise(record = jsonlite::toJSON(.)) %>%
-      select(record)
+      dplyr::summarise(record = jsonlite::toJSON(.)) %>%
+      dplyr::select(record)
   }) %>%
     dplyr::bind_rows() %>%
     unlist() %>%

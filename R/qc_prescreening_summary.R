@@ -27,7 +27,7 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
                                       cols = dplyr::everything(),
                                       names_to = "field",
                                       values_to = "value",
-                                      values_transform= list(value=as.character)
+                                      values_transform= gsubfn::list(value=as.character)
                                       )
   # Dataframe has 2 columns, one for all other fields, and another for their values
   # ex: author | John Doe
@@ -37,7 +37,7 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
   # Start by copying the long form data into a new dataframe "df"
   freq_df = in_data_long %>%
     # group_by creates groups in the dataframe, in our case the field,value pairs are the groups
-    group_by(field,value) %>%
+    dplyr::group_by(field,value) %>%
     # used in conjunction with the summarise funcion, we created a new column called "frequency"
     # This column holds the number of occurrences of each field,value pair.
     dplyr::summarise(frequency = n())
@@ -49,13 +49,13 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
   out_file = paste0(outputDir, "/qc_prescreening_", src_tbl, ".xlsx")
   cat("Outputing excel file as: ", out_file)
   # This saves the raw data and summary table to different sheets in the same file
-  writexl::write_xlsx(x = list('raw_data' = in_data,
+  writexl::write_xlsx(x = gsubfn::list('raw_data' = in_data,
                                'summary' = freq_df),
                       # The file name we will save as, using the inpu parameters
                       path = out_file)
 
   cat("All done! Have fun!","\n")
-  return(list('raw_data' = in_data,
+  return(gsubfn::list('raw_data' = in_data,
        'summary' = freq_df))
 }
 

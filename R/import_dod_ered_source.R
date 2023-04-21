@@ -14,7 +14,7 @@ import_dod_ered_source <- function(db,
   #####################################################################
 
   dod_table <- openxlsx::read.xlsx(infile,1)
-  dod_table$Date.Modified <- excel_numeric_to_date(as.numeric(as.character(dod_table$Date.Modified)), date_system = "modern")
+  dod_table$Date.Modified <- janitor::excel_numeric_to_date(as.numeric(as.character(dod_table$Date.Modified)), date_system = "modern")
   dod_table$Date.Modified <- format(dod_table$Date.Modified, format = "%d-%b-%y")
   dod_table["dod_id"] <- c(1:length(dod_table[,1]))
   dod_table <- dod_table[c("dod_id",names(dod_table[-43]))]

@@ -1,5 +1,5 @@
-library('dplyr')
-library('tidyr')
+# library('dplyr')
+# library('tidyr')
 #-------------------------------------------------------------------------------------
 #' Extract ACToR1 data to toxval source
 #' @param toxval.db The version of toxval source into which the tables are loaded.
@@ -16,7 +16,7 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
   cat("Extract ACToR data based on the assays listed in the input file as useme 1 \n")
   #####################################################################
 
-  assay_dict <- read.xlsx(infile)
+  assay_dict <- openxlsx::read.xlsx(infile)
   assay_dict_to_use <- assay_dict[which(assay_dict$useme == 1),]
 
   assay_test <- unique(assay_dict_to_use$assay_id)
@@ -24,7 +24,7 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
   assay_test <- assay_test[225:230]
 
 
-  actor_tables <- list()
+  actor_tables <- gsubfn::list()
   for(i in 1:length(assay_test)) {
     query <- paste0("SELECT DISTINCT f.casrn,h.name ,a.source, i.url,a.source_name_aid ,g.source_name_sid, g.source_name_cid,a.assay_id,a.description as assay_description, b.assay_component_id, a.name as assay_name,
                   b.name as assay_component_name,
@@ -72,7 +72,7 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
   names(actor_tables) <- table_names
 
   # create new columns for each value represented in assay_component_name field
-  col_names <- list()
+  col_names <- gsubfn::list()
   for (i in 1:length(table_names)){
     col_names[[i]] <- unique(unlist(lapply(actor_tables[i], '[[', "assay_component_name")))
     actor_tables[[i]][col_names[[i]]] <- NA
@@ -87,7 +87,7 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
   })
   # replace with underscore
   actor_tables <- lapply(actor_tables, function(x) {
-    x[,"assay_component_name"] <- str_replace_all(x[,"assay_component_name"],"\\s+|\\.", "_")
+    x[,"assay_component_name"] <- stringr::str_replace_all(x[,"assay_component_name"],"\\s+|\\.", "_")
     return(x)
   })
 
@@ -97,7 +97,7 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
   })
 
   actor_tables <- lapply(actor_tables, function(x) {
-    colnames(x) <- str_replace_all(colnames(x),"\\s+|\\.+", "_")
+    colnames(x) <- stringr::str_replace_all(colnames(x),"\\s+|\\.+", "_")
     return(x)
   })
 
@@ -125,9 +125,9 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
 
     # assign values represented in value_string based on substance_id and result_group to components represented in assay_component_name field
     df1 <- df_a %>%
-      group_by(substance_id,result_group) %>%
-      spread(assay_component_name, value_string) %>%
-      select(names(df_a)[!names(df_a) %in% c("assay_component_name","value_string")])
+      dplyr::group_by(substance_id,result_group) %>%
+      tidyr::spread(assay_component_name, value_string) %>%
+      dplyr::select(names(df_a)[!names(df_a) %in% c("assay_component_name","value_string")])
     df1 <- data.frame(df1,stringsAsFactors = F)
     df1 <- df1[,names(df1)[!names(df1) %in% c("assay_component_id","value_numerical")]]
 
@@ -137,9 +137,9 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
     #print(dim(df1))
     # assign values represented in value_numerical based on substance_id and result_group to components represented in assay_component_name field
     df2 <- df_b %>%
-      group_by(substance_id,result_group) %>%
-      spread(assay_component_name, value_numerical) %>%
-      select(names(df_b)[!names(df_b) %in% c("assay_component_name","value_numerical")])
+      dplyr::group_by(substance_id,result_group) %>%
+      tidyr::spread(assay_component_name, value_numerical) %>%
+      dplyr::select(names(df_b)[!names(df_b) %in% c("assay_component_name","value_numerical")])
     df2 <- data.frame(df2,stringsAsFactors = F)
     df2 <- df2[,names(df2)[!names(df2) %in% c("assay_component_id","value_string")]]
     df2 <- df2[,colSums(is.na(df2))<nrow(df2)]
@@ -157,41 +157,41 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
       if (length(names(df2)[names(df2)%in% components]) > 0 & length(names(df2)) != 0){
 
         #combine both dfs containing value string and value numerical
-        df3 <- left_join(df1,df2, by = names(df2)[names(df2)[names(df2) %in% names(df1)] != names(df2)[names(df2)%in% components]] )
+        df3 <- dplyr::left_join(df1,df2, by = names(df2)[names(df2)[names(df2) %in% names(df1)] != names(df2)[names(df2)%in% components]] )
         # aggregate based on substance_id and result_group
-        df4 <- aggregate(df3[names(df3)[!names(df3)%in% c("substance_id","result_group")]],df3[names(df3)[names(df3)%in% c("substance_id","result_group")]], function(x) paste0(unique(na.omit(x))))
+        df4 <- stats::aggregate(df3[names(df3)[!names(df3)%in% c("substance_id","result_group")]],df3[names(df3)[names(df3)%in% c("substance_id","result_group")]], function(x) paste0(unique(stats::na.omit(x))))
         # convert list datatype columns to character columns
         df4 <- df4 %>%
-          mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
+          dplyr::mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
 
-        write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
+        openxlsx::write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
 
 
 
       } else if (length(names(df2)[names(df2)%in% components]) == 0  & length(names(df2)) == 0) {
         #print(paste0("Source with no matching components in numerical table: ",names(res)[i]))
         # aggregate based on substance_id and result_group
-        df4 <- aggregate(df1[names(df1)[!names(df1)%in% c("substance_id","result_group")]],df1[names(df1)[names(df1)%in% c("substance_id","result_group")]], function(x) paste0(unique(na.omit(x))))
+        df4 <- stats::aggregate(df1[names(df1)[!names(df1)%in% c("substance_id","result_group")]],df1[names(df1)[names(df1)%in% c("substance_id","result_group")]], function(x) paste0(unique(stats::na.omit(x))))
         # convert list datatype columns to character columns
         df4 <- df4 %>%
-          mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
-        write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
+          dplyr::mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
+        openxlsx::write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
 
       } else if (length(names(df2)[names(df2)%in% components]) == 0  & length(names(df2)) != 0){
         # aggregate based on substance_id and result_group
-        df4 <- aggregate(df2[names(df2)[!names(df2)%in% c("substance_id","result_group")]],df2[names(df2)[names(df2)%in% c("substance_id","result_group")]], function(x) paste0(unique(na.omit(x))))
+        df4 <- stats::aggregate(df2[names(df2)[!names(df2)%in% c("substance_id","result_group")]],df2[names(df2)[names(df2)%in% c("substance_id","result_group")]], function(x) paste0(unique(stats::na.omit(x))))
         # convert list datatype columns to character columns
         df4 <- df4 %>%
-          mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
-        write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
+          dplyr::mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
+        openxlsx::write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
 
       } else if (length(names(df2)[names(df2)%in% components]) > 0  & length(names(df1)) == 0){
         # aggregate based on substance_id and result_group
-        df4 <- aggregate(df2[names(df2)[!names(df2)%in% c("substance_id","result_group")]],df2[names(df2)[names(df2)%in% c("substance_id","result_group")]], function(x) paste0(unique(na.omit(x))))
+        df4 <- stats::aggregate(df2[names(df2)[!names(df2)%in% c("substance_id","result_group")]],df2[names(df2)[names(df2)%in% c("substance_id","result_group")]], function(x) paste0(unique(stats::na.omit(x))))
         # convert list datatype columns to character columns
         df4 <- df4 %>%
-          mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
-        write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
+          dplyr::mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
+        openxlsx::write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
 
       }
 
@@ -215,12 +215,12 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
           }
         }
         #combine both dfs containing value string and value numerical
-        df3 <- left_join(df1,df2, by = names(df2)[!names(df2)[names(df2) %in% names(df1)] %in% names(df2)[names(df2)%in% components]] )
+        df3 <- dplyr::left_join(df1,df2, by = names(df2)[!names(df2)[names(df2) %in% names(df1)] %in% names(df2)[names(df2)%in% components]] )
         # aggregate based on substance_id and result_group
-        df4 <- aggregate(df3[names(df3)[!names(df3)%in% c("substance_id","result_group")]],df3[names(df3)[names(df3)%in% c("substance_id","result_group")]], function(x) paste0(unique(na.omit(x))))
+        df4 <- stats::aggregate(df3[names(df3)[!names(df3)%in% c("substance_id","result_group")]],df3[names(df3)[names(df3)%in% c("substance_id","result_group")]], function(x) paste0(unique(stats::na.omit(x))))
         # convert list datatype columns to character columns
         df4 <- df4 %>%
-          mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
+          dplyr::mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
 
         common_names <- split(names(df4)[grep(".*\\.x$|.*\\.y$", names(df4))], gsub('(.*)(\\.[x|y]$)', '\\1', names(df4)[grep(".*\\.x$|.*\\.y$", names(df4))], perl=TRUE))
 
@@ -232,23 +232,23 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
           }
         }
 
-        write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
+        openxlsx::write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
 
       } else if (length(names(df1)) == 0 & length(names(df2)) != 0){
         # if there are no fields in string df, aggregate based on numerical df
-        df4 <- aggregate(df2[names(df2)[!names(df2)%in% c("substance_id","result_group")]],df2[names(df2)[names(df2)%in% c("substance_id","result_group")]], function(x) paste0(unique(na.omit(x))))
+        df4 <- stats::aggregate(df2[names(df2)[!names(df2)%in% c("substance_id","result_group")]],df2[names(df2)[names(df2)%in% c("substance_id","result_group")]], function(x) paste0(unique(stats::na.omit(x))))
         # convert list datatype columns to character columns
         df4 <- df4 %>%
-          mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
-        write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
+          dplyr::mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
+        openxlsx::write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
 
       } else if (length(names(df1)) != 0 & length(names(df2)) == 0){
         # if there are no fields in numerical df, aggregate based on string df
-        df4 <- aggregate(df1[names(df1)[!names(df1)%in% c("substance_id","result_group")]],df1[names(df1)[names(df1)%in% c("substance_id","result_group")]], function(x) paste0(unique(na.omit(x))))
+        df4 <- stats::aggregate(df1[names(df1)[!names(df1)%in% c("substance_id","result_group")]],df1[names(df1)[names(df1)%in% c("substance_id","result_group")]], function(x) paste0(unique(stats::na.omit(x))))
         # convert list datatype columns to character columns
         df4 <- df4 %>%
-          mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
-        write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
+          dplyr::mutate_at(names(df4)[which(sapply(df4, class) == "list")], as.character)
+        openxlsx::write.xlsx(df4, paste0(toxval.config()$datapath,"ACToR replacements/ACToR_2021/new_ACToR_2021/new_",res1_name, ".xlsx"))
       }
 
     }

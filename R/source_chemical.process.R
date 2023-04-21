@@ -41,7 +41,7 @@ source_chemical.process <- function(db,
   if(is.na(prefix)){
     # Grab last entry to add a new prefix
     prefix = runQuery("SELECT chemprefix FROM chemical_source_index", db) %>%
-      tail(1) %>%
+      utils::tail(1) %>%
       .[1,] %>%
       gsub("ToxVal", "", .) %>%
       as.numeric() %>%
@@ -61,7 +61,7 @@ source_chemical.process <- function(db,
   ilist = seq(from=1,to=nrow(chems))
   chems$chemical_id = "-"
   for(i in 1:nrow(chems)) {
-    chems[i,"chemical_id"] = paste0(prefix,"_",digest(paste0(chems[i,c("raw_casrn","raw_name")],collapse=""), algo="xxhash64", serialize = FALSE))
+    chems[i,"chemical_id"] = paste0(prefix,"_",digest::digest(paste0(chems[i,c("raw_casrn","raw_name")],collapse=""), algo="xxhash64", serialize = FALSE))
   }
   # check for duplicates
   x = chems$chemical_id

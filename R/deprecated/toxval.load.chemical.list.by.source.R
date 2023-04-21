@@ -3,16 +3,15 @@
 #' are loaded. The must have the columns casrn, name, list_name
 #' @param toxval.db The version of toxval into which the tables are loaded.
 #' @param verbose If TRUE, print debugging messages
-#' @export
 #--------------------------------------------------------------------------------------
 toxval.load.chemical.list.by.source <- function(toxval.db,source,verbose=T) {
   printCurrentFunction(paste(toxval.db,":", source))
-  
+
   runQuery(paste0("delete from chemical_list where chemical_id in (select chemical_id from source_chemical where source='",source,"')"),toxval.db)
   chemical_lists <- paste0("chemical_lists_from_",source)
   runQuery(paste0("delete from chemical_list where chemical_id in (select chemical_id from source_chemical where source='",chemical_lists,"')"),toxval.db)
-  
-  
+
+
   dir <- "./chemicals/for_load/"
   flist <- list.files(dir)
   mat <- NULL
@@ -33,11 +32,11 @@ toxval.load.chemical.list.by.source <- function(toxval.db,source,verbose=T) {
     mat[i,"casrn"] <- fix.casrn(mat[i,"casrn"])
   }
   cat("finish fixing casrn\n");
-  
+
   cat("add the dtxsid\n");
-  
+
   source.casrn.list <- runQuery(paste0("select source_casrn from source_chemical where chemical_id in (select chemical_id from toxval where source='",source,"')"),toxval.db)
-  
+
   mat <- mat[which(mat$casrn %in% source.casrn.list$source_casrn),]
   print(dim(mat))
   casrn.list = unique(mat$casrn)

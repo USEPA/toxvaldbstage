@@ -2,7 +2,6 @@
 #' Process the ECHA eChemPortal data from 2020
 #'
 #' @param do.load If TRUE, laod all of the in vivo data
-#' @export
 #--------------------------------------------------------------------------------------
 echemportal.prep.v2 <- function(do.load=F) {
   printCurrentFunction()

@@ -38,7 +38,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     nlist = nlist[!is.element(nlist,non_hash_cols)]
     sh0 = sample0[1,"source_hash"]
     sample = sample0[,sort(nlist)]
-    sh1 = digest(paste0(sample,collapse=""), serialize = FALSE)
+    sh1 = digest::digest(paste0(sample,collapse=""), serialize = FALSE)
     cat("test that the columns are right for the hash key: ",sh0,sh1,"\n")
     #if(sh0!=sh1) browser()
   } else {
@@ -79,7 +79,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   # tmp = data.frame()
   for (i in 1:nrow(res)){
     row <- res.temp[i,]
-    res[i,"source_hash"] <- digest(paste0(row,collapse=""), serialize = FALSE)
+    res[i,"source_hash"] <- digest::digest(paste0(row,collapse=""), serialize = FALSE)
     if(i%%1000==0) cat(i," out of ",nrow(res),"\n")
     # tmp = rbind(tmp, data.frame(source_hash = res[i,"source_hash"],
     #                             hashcol = paste0(row,collapse="")))
@@ -105,7 +105,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
           tryCatch({runQuery(paste0("SELECT fk_source_hash as source_hash, parent_hash FROM source_audit WHERE src_tbl_name = '",
                                     table, "'"), db, do.halt=FALSE)},
                    error=function(cond){ return(NULL) })) %>%
-    distinct()
+    dplyr::distinct()
   # Convert into unique vector of hash values
   hash_check = c(hash_check$source_hash, hash_check$parent_hash) %>% unique() %>% unlist()
   shlist1 = res$source_hash

@@ -27,12 +27,12 @@ fix.non_ascii.v2 <- function(df,source){
     names(row) = c("raw","converted")
     missing = NA
     for(col in clist) {
-      non_ascii_find = list(grep("NON_ASCII", iconv(df[,col], "UTF-8", "ASCII", sub="NON_ASCII")))[[1]]
+      non_ascii_find = gsubfn::list(grep("NON_ASCII", iconv(df[,col], "UTF-8", "ASCII", sub="NON_ASCII")))[[1]]
       for(i in 1:length(non_ascii_find)) {
         tryCatch({
           n0 = df[non_ascii_find[i],col]
           n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
-          n2 = str_trim(stri_escape_unicode(n1))
+          n2 = stringr::str_trim(stringi::stri_escape_unicode(n1))
           row[1,"raw"] = n0
           row[1,"converted"] = n1
           res = rbind(res,row)

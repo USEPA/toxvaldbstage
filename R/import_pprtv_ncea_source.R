@@ -23,11 +23,11 @@ import_pprtv_ncea_source <- function(db,
   files.list <- files.list[! files.list %in% any_temp_files]
   files.list <- paste0( filepath, '/',files.list)
   res <- lapply(files.list,openxlsx::read.xlsx)
-  pprtv_ncea_25 <- read.csv(csvfile, header = T, sep = ",")
-  res <- c(res,list(pprtv_ncea_25))
+  pprtv_ncea_25 <- utils::read.csv(csvfile, header = T, sep = ",")
+  res <- c(res,gsubfn::list(pprtv_ncea_25))
   rm(pprtv_ncea_25)
-  pprtv_ncea_26 <- read.xlsx(scrapepath,1)
-  res <- c(res, list(pprtv_ncea_26))
+  pprtv_ncea_26 <- openxlsx::read.xlsx(scrapepath,1)
+  res <- c(res, gsubfn::list(pprtv_ncea_26))
   rm(pprtv_ncea_26)
 
   #####################################################################
@@ -49,8 +49,8 @@ import_pprtv_ncea_source <- function(db,
   }
   
   # Fix names
-  res <- lapply(res, function(x) setNames(x, gsub("\\.+","\\_", names(x))))
-  res <- lapply(res, function(x) setNames(x, gsub("\\'|\\?","", names(x))))
+  res <- lapply(res, function(x) stats::setNames(x, gsub("\\.+","\\_", names(x))))
+  res <- lapply(res, function(x) stats::setNames(x, gsub("\\'|\\?","", names(x))))
 
   #####################################################################
   cat("Subset the source list of dataframes by excluding duplicated dataframes(cancer and reference) \n")
@@ -66,7 +66,7 @@ import_pprtv_ncea_source <- function(db,
   cat("Assign appropriate data types \n")
   #####################################################################
   for (i in 1:length(res)) {
-    res[[i]] <- lapply(res[[i]], function(x) type.convert(as.character(x), as.is = T))
+    res[[i]] <- lapply(res[[i]], function(x) utils::type.convert(as.character(x), as.is = T))
     res[[i]] <- data.frame(res[[i]], stringsAsFactors = F)
   }
 
@@ -119,7 +119,7 @@ import_pprtv_ncea_source <- function(db,
     for (j in 1:ncol(Date_to_fix2[[i]])){
       if (ncol(Date_to_fix2[[i]]) != 0){
         if (names(Date_to_fix2[[i]])[j] %in% names(res[[i]])) {
-          res[[i]][,names(Date_to_fix2[[i]])[j]] <- excel_numeric_to_date(as.numeric(as.character(res[[i]][,names(Date_to_fix2[[i]])[j]])), date_system = "modern")
+          res[[i]][,names(Date_to_fix2[[i]])[j]] <- janitor::excel_numeric_to_date(as.numeric(as.character(res[[i]][,names(Date_to_fix2[[i]])[j]])), date_system = "modern")
           res[[i]][,names(Date_to_fix2[[i]])[j]] <- format(res[[i]][,names(Date_to_fix2[[i]])[j]], format = "%d-%b-%y")
         }
       }

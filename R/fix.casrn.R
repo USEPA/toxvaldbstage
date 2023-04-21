@@ -9,14 +9,14 @@
 #--------------------------------------------------------------------------------------
 fix.casrn <- function(casrn,cname="",verbose=F) {
   if(verbose) cat("input: ",cname,":",casrn,"\n")
-  if(contains(casrn,"NOCAS")) return(casrn)
+  if(tidyr::contains(casrn,"NOCAS")) return(casrn)
   doit <- T
   while(doit) {
     if(substr(casrn,1,1)=="0") casrn <- substr(casrn,2,nchar(casrn))
     else doit <- F
   }
 
-  if(!contains(casrn,"-")) {
+  if(!tidyr::contains(casrn,"-")) {
     nc <- nchar(casrn)
     ctemp <- casrn
     right <- substr(ctemp,nc,nc)

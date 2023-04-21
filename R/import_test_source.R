@@ -24,7 +24,7 @@ import_test_source <- function(db,
   res1["toxval_type"] <- c("LD50")
   res1["name"] <- "-"
 
-  chem_name <- read.csv(infile2, header = T, sep = ',', stringsAsFactors = F)
+  chem_name <- utils::read.csv(infile2, header = T, sep = ',', stringsAsFactors = F)
   #runInsertTable(chem_name,"test_map_invitrodb_chemicals",db,do.halt=T,verbose=F)
 
   map_casrn <- which(res1$CAS %in% chem_name$casn)
@@ -42,8 +42,8 @@ import_test_source <- function(db,
   colnames(res1) <- c("test_id", "casrn","name","toxval_type","toxval_numeric","toxval_numeric_qualifier",
                       "original_toxval_numeric", "toxval_units", "critical_effect", "reference", "reference_url")
 
-  open_paranthesis_effect <- which(str_count(res1$critical_effect,"\\(") == 0 & str_count(res1$critical_effect,"\\)") == 1)
-  open_paranthesis_effect2 <- grep("[^\\)]$",res1[which(str_count(res1$critical_effect,"\\(") == 0 & str_count(res1$critical_effect,"\\)") == 1),"critical_effect"])
+  open_paranthesis_effect <- which(stringr::str_count(res1$critical_effect,"\\(") == 0 & stringr::str_count(res1$critical_effect,"\\)") == 1)
+  open_paranthesis_effect2 <- grep("[^\\)]$",res1[which(stringr::str_count(res1$critical_effect,"\\(") == 0 & stringr::str_count(res1$critical_effect,"\\)") == 1),"critical_effect"])
   critical_effect_to_clean <- open_paranthesis_effect[open_paranthesis_effect2]
   res1[critical_effect_to_clean,"critical_effect"] <- gsub("\\)","",res1[critical_effect_to_clean,"critical_effect"])
   res1[is.na(res1$name),"name"] = "noname"

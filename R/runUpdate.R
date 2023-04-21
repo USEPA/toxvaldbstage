@@ -42,18 +42,18 @@ runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE
     # Push temp table of updates
     # Create a table like the source table so the COLLATE and encoding arguments match
     runQuery(paste0("CREATE TABLE z_updated_df LIKE ", table), db)
-    con <- dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
+    con <- RMySQL::dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
 
-    res = dbWriteTable(con,
+    res = RMySQL::dbWriteTable(con,
                        name="z_updated_df",
                        value=updated_df,
                        row.names=FALSE,
                        append=TRUE)
     # Enable/Disable triggers (custom global variable in triggers)
-    dbSendQuery(con, paste0("SET @TRIGGER_CHECKS = ", trigger_check))
+    RMySQL::dbSendQuery(con, paste0("SET @TRIGGER_CHECKS = ", trigger_check))
     # Send update
-    dbSendStatement(con, updateQuery)
-    dbDisconnect(con)
+    DBI::dbSendStatement(con, updateQuery)
+    RMySQL::dbDisconnect(con)
     # Drop temp table
     runStatement(query="DROP TABLE IF EXISTS z_updated_df", db=db)
     #}, warning = function(w) {

@@ -30,7 +30,7 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
                   ) %>%
     # Pivot out toxvals
     # Use matches due to concern for unicode handling of micrograms in field name
-    tidyr::pivot_longer(matches("Human Health for the consumption of"),
+    tidyr::pivot_longer(tidyr::matches("Human Health for the consumption of"),
                         names_to = "toxval_type",
                         values_to = "toxval_numeric"
                         ) %>%
@@ -50,9 +50,9 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       name = gsub("\\(P\\)$", "", name) %>%
         stringr::str_squish(),
       # Replace all multiple and/or non-standard dashes with a standard dash
-      across(.fns = ~gsub("(--)?—", "-", .)),
+      dplyr::across(.fns = ~gsub("(--)?—", "-", .)),
       # ...and replace all greek letters "µ" with "u"
-      across(.fns = ~gsub("µ", "u", .))
+      dplyr::across(.fns = ~gsub("µ", "u", .))
       ) %>%
     # Make row-by-row adjustments
     dplyr::rowwise() %>%

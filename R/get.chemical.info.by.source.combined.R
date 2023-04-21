@@ -76,11 +76,11 @@ get.chemical.info.by.source.combined <- function(source.db,source_table,source){
     # print(chem_table_name)
     #print(View(chemical_information))
     return(chemical_information)
-  }) %>% bind_rows()
+  }) %>% dplyr::bind_rows()
 
   # Add ID column
   chems = chems %>%
-    mutate(id = 1:n())
+    dplyr::mutate(id = 1:dplyr::n())
   # Insert Chemical Table for all source tables
   #runInsertTable(chemical_information,"toxval_source_chemicals",source.db,do.halt=T,verbose=F)
 

@@ -5,7 +5,6 @@
 #' @param verbose Whether the loaded rows should be printed to the console.
 #' @param log If TRUE, send output to a log file
 #' @param do.init if TRUE, read the data in from the toxrefdb database and set up the matrix
-#' @export
 #--------------------------------------------------------------------------------------
 toxval.load.toxrefdb3.1 <- function(toxval.db,source.db,log=F,do.init=F) {
   printCurrentFunction(toxval.db)

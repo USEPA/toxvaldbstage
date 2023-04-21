@@ -61,7 +61,7 @@ cas_checkSum <- function(x, checkLEN = TRUE) {
   checksum <- as.integer(substr(x_clean, nchar(x_clean), nchar(x_clean)))
 
   maxlen  <- max(nchar(x_clean), na.rm = TRUE)
-  x_clean <- str_pad(x_clean, width = maxlen, side = "left", pad = "0")
+  x_clean <- stringr::str_pad(x_clean, width = maxlen, side = "left", pad = "0")
 
   x_split <- do.call(
     cbind,

@@ -50,7 +50,7 @@ source_prep_and_load <- function(db,source,table,res,
   for(i in 1:dim(desc)[1]) {
     col <- desc[i,"Field"]
     type <- desc[i,"Type"]
-    if(contains(type,"varchar") || contains(type,"text")) {
+    if(tidyr::contains(type,"varchar") || tidyr::contains(type,"text")) {
       # if(verbose) cat("   enc2utf8:",col,"\n")
       x <- as.character(res[,col])
       x[is.na(x)] <- "-"

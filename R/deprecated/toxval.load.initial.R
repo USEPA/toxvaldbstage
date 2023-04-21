@@ -1,7 +1,6 @@
 #-------------------------------------------------------------------------------------
 #' Delete the contents of the toxval database
 #' @param toxval.db The version of toxval from which the data is deleted.
-#' @export
 #--------------------------------------------------------------------------------------
 toxval.load.initial <- function(toxval.db) {
   printCurrentFunction(toxval.db)

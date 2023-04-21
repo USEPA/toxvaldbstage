@@ -8,5 +8,5 @@ printCurrentFunction <- function(comment.string=NA) {
   cat(curcall,"\n")
   if(!is.na(comment.string))	cat(comment.string,"\n")
   cat("=========================================\n")
-  flush.console()
+  utils::flush.console()
 }

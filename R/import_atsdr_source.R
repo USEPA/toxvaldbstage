@@ -20,7 +20,7 @@ import_atsdr_source <- function(db,
   names.list <- c("source_name_sid", "casrn", "name","source_url", "data_collection", "source_name_cid", "route","duration","mrl","total_factors","endpoint", "status","date")
   res <- res[3:468,]
   names(res) <- names.list
-  res$date <- excel_numeric_to_date(as.numeric(as.character(res$date)), date_system = "modern")
+  res$date <- janitor::excel_numeric_to_date(as.numeric(as.character(res$date)), date_system = "modern")
   res$date <- format(res$date, format = "%d-%b-%Y")
 
   res = res[!is.element(res$casrn,"NOCAS"),]

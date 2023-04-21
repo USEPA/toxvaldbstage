@@ -1,5 +1,5 @@
 #library(RPostgreSQL)
-library(DBI)
+# library(DBI)
 #--------------------------------------------------------------------------------------
 #' Runs a PSQL database query and returns a result set
 #'
@@ -32,9 +32,9 @@ runQuery_psql <- function(query,db,do.halt=T,verbose=T) {
     cat("db: ",db,"\n")
   }
   tryCatch({
-    con <- dbConnect(drv=RPostgreSQL::PostgreSQL(),user=DB.PSQLUSER,port=DB.PSQLPORT,password=DB.PSQLPASSWORD,host=DB.PSQLSERVER,dbname=db)
-    d1 <- dbGetQuery(con,query)
-    dbDisconnect(con)
+    con <- RMySQL::dbConnect(drv=RPostgreSQL::PostgreSQL(),user=DB.PSQLUSER,port=DB.PSQLPORT,password=DB.PSQLPASSWORD,host=DB.PSQLSERVER,dbname=db)
+    d1 <- DBI::dbGetQuery(con,query)
+    RMySQL::dbDisconnect(con)
     return(d1)
   })
 }

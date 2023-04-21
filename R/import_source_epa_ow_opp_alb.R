@@ -40,14 +40,14 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       # Replace "NR" in casrn with "-"
       casrn = gsub("^NR$", "-", casrn),
       # Replace all greek letters "µ" with "u"
-      across(.fns = ~gsub("µ", "u", .)),
+      dplyr::across(.fns = ~gsub("µ", "u", .)),
       # Remove ">" and "<" from toxval columns...
-      across(all_of(toxval_cols), ~gsub(" *[<>] *", "", .)),
+      dplyr::across(tidyr::all_of(toxval_cols), ~gsub(" *[<>] *", "", .)),
       # ...and convert them all to numerics
-      across(all_of(toxval_cols), ~as.numeric(.))
+      dplyr::across(tidyr::all_of(toxval_cols), ~as.numeric(.))
       ) %>%
     # Pivot out toxvals
-    tidyr::pivot_longer(all_of(toxval_cols), names_to = "species",
+    tidyr::pivot_longer(tidyr::all_of(toxval_cols), names_to = "species",
                         values_to = "toxval_numeric"
     ) %>%
     # Separate "species" into "species" and "study_type" by "_"
