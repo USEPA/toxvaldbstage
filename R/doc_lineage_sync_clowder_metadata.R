@@ -1,22 +1,57 @@
 #' doc_lineage_sync_clowder_metadata
 #' Utility script to sync the Clowder metadata to the database based on Clowder ID
+#' @param source_table The source table name (e.g. source_test)
 #' @param db the name of the database
 #' @param clowder_url URL to Clowder
 #' @param clowder_api_key API key to access Clowder resources
 #' @import httr jsonlite
-doc_lineage_sync_clowder_metadata <- function(db, clowder_url, clowder_api_key){
+doc_lineage_sync_clowder_metadata <- function(source_table,
+                                              db,
+                                              clowder_url,
+                                              clowder_api_key,
+                                              batch_size = 250){
 
   # PUll Clowder ID values
-  clowder_id_list <- runQuery("SELECT distinct clowder_id FROM documents where clowder_id != '-'", db=db) %>% .[[1]]
+  if(!is.null(source_table) || !is.na(source_table)){
+    # Filter to Clowder ID values associated with a source_table
+    clowder_id_list <- runQuery(paste0("SELECT distinct clowder_id FROM documents where id in (",
+                                       "SELECT fk_doc_id FROM documents_records WHERE source_table = '", source_table, "' ",
+                                       "and clowder_id != '-')"), db) %>% .[[1]]
+  } else {
+    # Pull all to sync
+    clowder_id_list <- runQuery("SELECT distinct clowder_id FROM documents where clowder_id != '-'", db=db) %>% .[[1]]
+  }
+
   doc_tbl_names <- runQuery("SELECT * FROM documents LIMIT 1", db=db) %>%
     names() %>%
-    .[!. %in% c("id", "document_name")]
+    .[!. %in% c("id")]
 
-  message("Pulling metadata...")
-  # Loop through each Clowder ID value
-  metadata_out <- lapply(seq_len(length(clowder_id_list)), function(i){
+  # Prepare for batched updates
+  # Batch update
+  # https://www.mssqltips.com/sqlservertip/5829/update-statement-performance-in-sql-server/
+  # batchSize <- 250
+  startPosition <- 1
+  endPosition <- length(clowder_id_list)# runQuery(paste0("SELECT max(id) from documents"), db=db) %>% .[[1]]
+  incrementPosition <- batchSize
 
-      if(i%%250==0) cat("...", i," out of ",length(clowder_id_list),"\n")
+  while(startPosition <= endPosition){
+
+    message("Pulling metadata...")
+    # Loop through each Clowder ID value
+    metadata_out <- lapply(startPosition:incrementPosition, function(i){
+
+      # message("Working on file: ", clowder_id_list[i])
+      if(i %% floor(batchSize * 0.25) ==0) cat("...", i," out of ",length(startPosition:incrementPosition),"\n")
+      # Wait between requests
+      Sys.sleep(0.25)
+      # Pull filename
+      filename <- httr::GET(paste0(clowder_url,
+                                   "/api/files/",
+                                   clowder_id_list[i],
+                                   "/metadata"),
+                            add_headers(`X-API-Key`= clowder_api_key)) %>%
+        httr::content(type="text", encoding = "UTF-8") %>%
+        jsonlite::fromJSON()
       # Wait between requests
       Sys.sleep(0.25)
       # Pull metadata from API
@@ -26,10 +61,18 @@ doc_lineage_sync_clowder_metadata <- function(db, clowder_url, clowder_api_key){
                                    "/metadata.jsonld"),
                             add_headers(`X-API-Key`= clowder_api_key)) %>%
         httr::content(type="text", encoding = "UTF-8") %>%
-        jsonlite::fromJSON()
+        jsonlite::fromJSON() %>%
+        tidyr::unnest(agent, names_sep = "agent_") %>%
+        # Filter to only user added metadata
+        filter(`agentagent_@type` == "cat:user")
 
-      # Check if no metadata available
-      if(!length(metadata)) return(NULL)
+      # Check if no metadata available, fill in NA fields
+      if(!length(metadata) || !nrow(metadata)) {
+        metadata <- data.frame(clowder_id = clowder_id_list[i],
+                   document_name = filename$filename)
+        metadata[, doc_tbl_names[!doc_tbl_names %in% names(metadata)]] <- NA
+        return(metadata)
+      }
 
       metadata <- metadata %>%
         # Convert string to datetime
@@ -40,11 +83,19 @@ doc_lineage_sync_clowder_metadata <- function(db, clowder_url, clowder_api_key){
         # Filter to most recent metadata submission
         dplyr::filter(created_at == max(created_at)) %>%
         dplyr::select(starts_with("content")) %>%
-        dplyr::mutate(clowder_id = f_id) %>%
-        unnest(cols="content") %>%
-        select(-matches("md5|sha")) %>%
-        # Remove NA columns
-        .[ , colSums(is.na(.))==0]
+        dplyr::mutate(clowder_id = clowder_id_list[i],
+                      document_name = filename$filename) %>%
+        unnest(cols="content")
+
+      # https://stackoverflow.com/questions/28548245/how-to-remove-columns-from-a-data-frame-by-data-type
+      # Remove dataframe/list columns
+      df_check <- sapply(metadata, class) == "data.frame"
+      if(any(df_check)){
+        metadata <- metadata[,-which(df_check)]
+      }
+
+      # Remove NA columns
+      metadata <- metadata[ , colSums(is.na(metadata))==0]
 
       # Skip over documents without metadata of interest
       if(length(names(metadata)) == 1) return(NULL)
@@ -72,66 +123,61 @@ doc_lineage_sync_clowder_metadata <- function(db, clowder_url, clowder_api_key){
       # Add missing fields to help combine dataframe
       metadata[, doc_tbl_names[!doc_tbl_names %in% names(metadata)]] <- NA
       return(metadata)
-  }) %>%
-    # Remove NULL pulls (no metadata)
-    purrr::compact() %>%
-    dplyr::bind_rows()
+    }) %>%
+      # Remove NULL pulls (no metadata)
+      purrr::compact() %>%
+      dplyr::bind_rows()
 
-  # Replace "-" with NA
-  metadata_out[metadata_out == '-'] <- NA
+    # Replace "-" with NA
+    metadata_out[metadata_out == '-'] <- NA
 
-  # Generic fixes to encoding
-  metadata_out = fix.non_ascii.v2(metadata_out,"documents")
+    # Generic fixes to encoding
+    metadata_out = fix.non_ascii.v2(metadata_out,"documents")
 
-  #
-  # make sure all characters are in UTF8 - moved from runInsertTable.R
-  # so it is applied BEFORE hashing and loading
-  #
-  desc <- runQuery(paste0("desc ","documents"),db)
-  desc <- desc[is.element(desc[,"Field"],names(metadata_out)),]
-  for(i in 1:dim(desc)[1]) {
-    col <- desc[i,"Field"]
-    type <- desc[i,"Type"]
-    if(contains(type,"varchar") || contains(type,"text")) {
-      # if(verbose) cat("   enc2utf8:",col,"\n")
-      x <- as.character(metadata_out[[col]])
-      x[is.na(x)] <- "-"
-      x <- enc2native(x)
-      x <- iconv(x,from="latin1",to="UTF-8")
-      x <- iconv(x,from="LATIN1",to="UTF-8")
-      x <- iconv(x,from="LATIN2",to="UTF-8")
-      x <- iconv(x,from="latin-9",to="UTF-8")
-      metadata_out[[col]] <- enc2utf8(x)
+    #
+    # make sure all characters are in UTF8 - moved from runInsertTable.R
+    # so it is applied BEFORE hashing and loading
+    #
+    desc <- runQuery(paste0("desc ","documents"),db)
+    desc <- desc[is.element(desc[,"Field"],names(metadata_out)),]
+    for(i in 1:dim(desc)[1]) {
+      col <- desc[i,"Field"]
+      type <- desc[i,"Type"]
+      if(contains(type,"varchar") || contains(type,"text")) {
+        # if(verbose) cat("   enc2utf8:",col,"\n")
+        x <- as.character(metadata_out[[col]])
+        x[is.na(x)] <- "-"
+        x <- enc2native(x)
+        x <- iconv(x,from="latin1",to="UTF-8")
+        x <- iconv(x,from="LATIN1",to="UTF-8")
+        x <- iconv(x,from="LATIN2",to="UTF-8")
+        x <- iconv(x,from="latin-9",to="UTF-8")
+        metadata_out[[col]] <- enc2utf8(x)
+      }
     }
-  }
 
-  metadata_out <- metadata_out %>%
-    #https://stackoverflow.com/questions/58312873/how-to-remove-registered-trademark-and-copyright-symbols-from-a-string
-    dplyr::mutate(clowder_metadata = stringr::str_replace_all(clowder_metadata, "\\u00AE|\\u00a9|\\u2122", "") %>%
-                    # Replace unicode hyphens
-                    stringr::str_replace_all(., "\\u002D|\\u05BE|\\u1806|\\u2010|\\u2011|\\u2012|\\u2013|\\u2014|\\u2015|\\u207B|\\u208B|\\u2212|\\uFE58|\\uFE63|\\uFF0D", "-") %>%
-                    # Replace single-quote or apostrophe
-                    stringr::str_replace_all(., "\\u2019", "'") %>%
-                    stringr::str_squish())
+    metadata_out <- metadata_out %>%
+      #https://stackoverflow.com/questions/58312873/how-to-remove-registered-trademark-and-copyright-symbols-from-a-string
+      dplyr::mutate(clowder_metadata = stringr::str_replace_all(clowder_metadata, "\\u00AE|\\u00a9|\\u2122", "") %>%
+                      # Replace unicode hyphens
+                      stringr::str_replace_all(., "\\u002D|\\u05BE|\\u1806|\\u2010|\\u2011|\\u2012|\\u2013|\\u2014|\\u2015|\\u207B|\\u208B|\\u2212|\\uFE58|\\uFE63|\\uFF0D", "-") %>%
+                      # Replace single-quote or apostrophe
+                      stringr::str_replace_all(., "\\u2019", "'") %>%
+                      stringr::str_squish())
 
-  # Prepare for batched updates
-  # Batch update
-  # https://www.mssqltips.com/sqlservertip/5829/update-statement-performance-in-sql-server/
-  batchSize <- 10
-  startPosition <- 1
-  endPosition <- runQuery(paste0("SELECT max(id) from documents"), db=db) %>% .[[1]]
-  incrementPosition <- batchSize
+    # Replace "-" with NA
+    metadata_out[metadata_out == '-'] <- NA
 
-  while(startPosition <= endPosition){
     message("...Inserting new data in batch: ", batchSize, " startPosition: ", startPosition," : incrementPosition: ", incrementPosition, " at: ", Sys.time())
-
+    # Pull document IDs to update in the batch
+    batch_doc_ids <- runQuery(paste0("SELECT id FROM documents WHERE clowder_id in ('",
+                                     paste0(clowder_id_list[startPosition:incrementPosition], collapse="', '"),"')"), db=db)
     updateQuery = paste0("UPDATE documents a INNER JOIN z_updated_df b ",
                          "ON (a.clowder_id = b.clowder_id) SET ",
                          paste0("a.", names(metadata_out)[!names(metadata_out) %in% c("clowder_id")],
                                 " = b.", names(metadata_out)[!names(metadata_out) %in% c("clowder_id")],
                                 collapse = ", "),
-                         " WHERE a.id >= ", startPosition,
-                         " AND a.id <= ", incrementPosition)
+                         " WHERE a.id in (", toString(batch_doc_ids$id), ")")
 
     runUpdate(table="documents",
               updateQuery = updateQuery,
