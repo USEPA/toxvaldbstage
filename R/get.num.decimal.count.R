@@ -1,19 +1,20 @@
 #--------------------------------------------------------------------------------------
-#' @#'
-#'
-#' @return Returns a dataframe of the length of the numeric and decimal places
-#' @export
 #' @title get.num.decimal.count
 #' @description A function count the length of an input numeric and its decimal places
-
 #' @details DETAILS
-#' @examples
+#' @return Returns a dataframe of the length of the numeric and decimal places
+#' @export 
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
 #' @rdname get.num.decimal.count
+#' @param in_num PARAM_DESCRIPTION
+#' @seealso 
+#'  \code{\link[stringr]{str_count}}
+#' @importFrom stringr str_count
 #--------------------------------------------------------------------------------------
 get.num.decimal.count <- function(in_num){
 

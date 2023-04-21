@@ -2,7 +2,7 @@
 % Please edit documentation in R/source_set_defaults.R
 \name{source_set_defaults}
 \alias{source_set_defaults}
-\title{Set default value for NAs - jsut set NA to "-" for columns of type character}
+\title{FUNCTION_TITLE}
 \usage{
 source_set_defaults(res, source)
 }
@@ -16,4 +16,14 @@ Returns the input dataframe with defaults set
 }
 \description{
 Set default value for NAs - jsut set NA to "-" for columns of type character
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
 }

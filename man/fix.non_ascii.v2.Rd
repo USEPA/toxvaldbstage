@@ -2,12 +2,14 @@
 % Please edit documentation in R/fix.non_ascii.v2.R
 \name{fix.non_ascii.v2}
 \alias{fix.non_ascii.v2}
-\title{Flag and fix non-ascii characters in the database}
+\title{FUNCTION_TITLE}
 \usage{
 fix.non_ascii.v2(df, source)
 }
 \arguments{
 \item{df}{The dataframe to be processed}
+
+\item{source}{PARAM_DESCRIPTION}
 
 \item{The}{source to be fixed}
 }
@@ -16,4 +18,20 @@ The dataframe with non ascii characters replaced with cleaned versions
 }
 \description{
 Flag and fix non-ascii characters in the database
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}, \code{\link[openxlsx]{write.xlsx}}
+ \code{\link[gsubfn]{list}}
+ \code{\link[stringr]{str_trim}}
+ \code{\link[stringi]{stri_escape_unicode}}
 }

@@ -2,8 +2,7 @@
 % Please edit documentation in R/import_flex_source.R
 \name{import_flex_source}
 \alias{import_flex_source}
-\title{Load the FLEX data (old ACToR data) from files to toxval source. This will load all
-Excel file in the folder ACToR replacements/}
+\title{FUNCTION_TITLE}
 \usage{
 import_flex_source(
   db,
@@ -24,7 +23,23 @@ import_flex_source(
 
 \item{do.clean}{If true, remove data for these sources before reloading}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load the FLEX data (old ACToR data) from files to toxval source. This will load all
 Excel file in the folder ACToR replacements/
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

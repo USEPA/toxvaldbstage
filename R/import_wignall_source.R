@@ -1,9 +1,22 @@
 #--------------------------------------------------------------------------------------
-#' Load wignall Source data into dev_toxval_source_v2.
+#' @description Load wignall Source data into dev_toxval_source_v2.
 #' @param db The version of toxval into which the source info is loaded.
 #' @param infile The input file ./wignall/wignall_files/BMD_Results_2014-06-17_reviewed Mar 2018.xlsx
-#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#'
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping #'
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_wignall_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_wignall_source <- function(db,
                                   infile="BMD_Results_2014-06-17_reviewed Mar 2018 parsed.xlsx",

@@ -2,12 +2,13 @@
 % Please edit documentation in R/source_chemical.process.R
 \name{source_chemical.process}
 \alias{source_chemical.process}
-\title{Deal with the process of making the source_chemical information}
+\title{FUNCTION_TITLE}
 \usage{
 source_chemical.process(
   db,
   res,
   source,
+  table,
   chem.check.halt = FALSE,
   casrn.col = "casrn",
   name.col = "name",
@@ -21,17 +22,34 @@ source_chemical.process(
 
 \item{source}{The source to process}
 
+\item{table}{Name of the database table}
+
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 
 \item{casrn.col}{The name of the column containing the CASRN}
 
 \item{name.col}{The name ofhte column containing hte chemical name}
 
-\item{verbose}{If TRUE, write out diagnostic messages}
+\item{verbose}{If TRUE, write out diagnostic messages #'}
 }
 \value{
 Returns the original dataframe with a chemical_id appended
 }
 \description{
 Deal with the process of making the source_chemical information
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[tidyr]{unite}}
+ \code{\link[utils]{head}}
+ \code{\link[digest]{digest}}
 }

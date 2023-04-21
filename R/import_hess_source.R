@@ -1,9 +1,29 @@
 #--------------------------------------------------------------------------------------
-#' Load HESS Source into toxval_source
+#' @description Load HESS Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./hess/hess_files/hess_6_16_21.csv, extracted by Risa Sayre(SCDCD)
 #' @param infile2 The input file ./hess/hess_files/hess_record_urls_from_clowder.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[utils]{type.convert}}
+#'  \code{\link[tidyr]{unite}}
+#'  \code{\link[stringr]{str_replace}}
+#' @rdname import_hess_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom utils type.convert
+#' @importFrom tidyr unite
+#' @importFrom stringr str_replace_all str_replace
 #--------------------------------------------------------------------------------------
 import_hess_source <- function(db,
                                infile1="hess_6_16_21.xlsx",
@@ -166,7 +186,7 @@ import_hess_source <- function(db,
   for(i in 1:nrow(url_from_clowder)) {
     valold <- url_from_clowder[i,2]
     valnew <- url_from_clowder[i,4]
-    res1[is.element(res1$document_name,valold),"record_url"] <- valnew
+    res1[generics::is.element(res1$document_name,valold),"record_url"] <- valnew
   }
   #print(str(res1))
   # multiple casrn per chemical, erroneous casrn

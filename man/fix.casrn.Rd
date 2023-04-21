@@ -2,7 +2,7 @@
 % Please edit documentation in R/fix.casrn.R
 \name{fix.casrn}
 \alias{fix.casrn}
-\title{Fix a CASRN that has one of several problems}
+\title{FUNCTION_TITLE}
 \usage{
 fix.casrn(casrn, cname = "", verbose = F)
 }
@@ -18,4 +18,17 @@ the fixed CASRN
 }
 \description{
 Fix a CASRN that has one of several problems
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[tidyr]{reexports}}
 }

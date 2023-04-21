@@ -1,9 +1,24 @@
 # library("openxlsx")
 # library("stringr")
 #--------------------------------------------------------------------------------------
-#' Load ECHA Source from dev_toxval_source_v4(used in v8) saved as infile to dev_toxval_source_v4
+#' @description Load ECHA Source from dev_toxval_source_v4(used in v8) saved as infile to dev_toxval_source_v4
 #' @param toxval.db The version of toxval into which the source is loaded.
 #' @param infile The input file ./echa/echa_files/echa_raw.xlsx
+#' @title FUNCTION_TITLE
+#' @param verbose PARAM_DESCRIPTION, Default: T
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_echa_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 
 #--------------------------------------------------------------------------------------
 import_echa_source <- function(toxval.db,infile, verbose = T) {

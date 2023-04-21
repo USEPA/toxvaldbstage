@@ -2,7 +2,7 @@
 % Please edit documentation in R/source_chemical.extra.R
 \name{source_chemical.extra}
 \alias{source_chemical.extra}
-\title{special process to deal with source chemicals for extra source (cancer, genetox, skin_eye, etc)}
+\title{FUNCTION_TITLE}
 \usage{
 source_chemical.extra(
   toxval.db,
@@ -20,7 +20,11 @@ source_chemical.extra(
 
 \item{source.db}{The source database version}
 
-\item{source}{The source to be processed #' @param chem.check.halt If TRUE, halt if there are errors in the chemical checking}
+\item{res}{PARAM_DESCRIPTION}
+
+\item{source}{The source to be processed}
+
+\item{chem.check.halt}{If TRUE, halt if there are errors in the chemical checking}
 
 \item{casrn.col}{Name of the column containing the CASRN}
 
@@ -28,6 +32,22 @@ source_chemical.extra(
 
 \item{verbose}{If TRUE, output extra diagnostics information}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 special process to deal with source chemicals for extra source (cancer, genetox, skin_eye, etc)
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[digest]{digest}}
 }

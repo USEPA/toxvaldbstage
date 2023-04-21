@@ -1,9 +1,31 @@
 #--------------------------------------------------------------------------------------
-#' Load PPRTV NCEA Source Info into toxval_source
+#' @description Load PPRTV NCEA Source Info into toxval_source
 #' @param db The version of toxval_source into which the source info is loaded.
 #' @param csvfile The input csv file ./pprtv_ncea/pprtv_ncea_files/dose_reg2.csv
 #' @param scrapepath The path for new_pprtv_ncea_scrape_table file ./pprtv_ncea/PPRTV_scrape2020-04-08.xlsx
 #' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[utils]{read.table}}, \code{\link[utils]{type.convert}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[stats]{setNames}}
+#'  \code{\link[janitor]{excel_numeric_to_date}}
+#' @rdname import_pprtv_ncea_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom utils read.csv type.convert
+#' @importFrom gsubfn list
+#' @importFrom stats setNames
+#' @importFrom janitor excel_numeric_to_date
 #--------------------------------------------------------------------------------------
 import_pprtv_ncea_source <- function(db,
                                      csvfile="dose_reg2.csv",
@@ -40,14 +62,14 @@ import_pprtv_ncea_source <- function(db,
                  'study_type','study', 'tissue_gen_types','tissue_gen','dose_reg2','new_scrape_table')
 
   names(res) <- paste0("pprtv_ncea_", res_names)
-  
+
   # Handle difference between Linux and Windows file sorting (flips endpoints and endpoints_tier load order)
   if(is.null(res$pprtv_ncea_endpoints$Details)){
     names(res)[names(res) == "pprtv_ncea_endpoints"] <- "tmp_swap"
     names(res)[names(res) == "pprtv_ncea_endpoints_tier"] <- "pprtv_ncea_endpoints"
     names(res)[names(res) == "tmp_swap"] <- "pprtv_ncea_endpoints_tier"
   }
-  
+
   # Fix names
   res <- lapply(res, function(x) stats::setNames(x, gsub("\\.+","\\_", names(x))))
   res <- lapply(res, function(x) stats::setNames(x, gsub("\\'|\\?","", names(x))))
@@ -188,7 +210,7 @@ import_pprtv_ncea_source <- function(db,
 
   # # Transition to using dplyr rather than creating database tables
   # new_pprtv_ncea <- res$pprtv_ncea_assessment_study %>%
-  #   left_join(res$pprtv_ncea_assessments, 
+  #   left_join(res$pprtv_ncea_assessments,
   #             by = "Assessment_ID") %>%
   #   left_join(res$pprtv_ncea_study,
   #             by = "Study_ID") %>%
@@ -210,7 +232,7 @@ import_pprtv_ncea_source <- function(db,
   #   # exposure_method = substring_index(Route_of_Exposure,' - ',-1)
   #   tidyr::separate(Route_of_Exposure, c("exposure_route", "exposure_method"), sep = " - ", fill = "right") %>%
   #   tidyr::unite(col="raw_input_file", raw_input_file.x, raw_input_file.x.x, raw_input_file.y, raw_input_file.y.y, sep="; ")
-    
+
   new_pprtv_ncea <- runQuery(query2, db)
   print(new_pprtv_ncea[new_pprtv_ncea$casrn=="110-54-3","name"])
 
@@ -222,7 +244,7 @@ import_pprtv_ncea_source <- function(db,
   print(new_pprtv_ncea[new_pprtv_ncea$casrn=="110-54-3","name"])
 
   res = as.data.frame(new_pprtv_ncea)
-  res = res[!is.element(res$casrn,"VARIOUS"),]
+  res = res[!generics::is.element(res$casrn,"VARIOUS"),]
 
   res = subset(res,select=-c(pprtv_ncea_id))
   nlist = c("casrn","name","rfv_id","toxval_type",
@@ -234,7 +256,7 @@ import_pprtv_ncea_source <- function(db,
             "study_duration_class","study_duration_value","study_duration_units",
             "hero_id")
   names(res) = nlist
-  res[is.element(res$casrn,"64724-95-6"),"casrn"] = "64742-95-6"
+  res[generics::is.element(res$casrn,"64724-95-6"),"casrn"] = "64742-95-6"
   ###
   # Find pprtv_ncea Intermdiate tables
   tblList = runQuery(query = paste0("SHOW TABLES FROM ", db),

@@ -1,10 +1,23 @@
 #--------------------------------------------------------------------------------------
-#' Fix a CASRN that has one of several problems
+#' @description Fix a CASRN that has one of several problems
 #'
 #' @param casrn Input CASRN to be fixed
 #' @param cname An optional chemical name
 #' @param verbose if TRUE, print hte input values
 #' @return the fixed CASRN
+#' @title FUNCTION_TITLE
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[tidyr]{reexports}}
+#' @rdname fix.casrn
+#' @export 
+#' @importFrom tidyr contains
 #
 #--------------------------------------------------------------------------------------
 fix.casrn <- function(casrn,cname="",verbose=F) {

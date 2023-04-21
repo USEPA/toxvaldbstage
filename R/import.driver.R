@@ -1,9 +1,20 @@
 #--------------------------------------------------------------------------------------
-#' Function to run all import scripts to fill toxval_source
+#' @description Function to run all import scripts to fill toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
-#' @param chem.chek.halt If TRUE and there are bad chemical names or casrn,
-#' stop to look at the results in indir/chemcheck.xlsx
+#' @param chem.chek.halt If TRUE and there are bad chemical names or casrn, #' stop to look at the results in indir/chemcheck.xlsx
 #' @param do.clean If TRUE, delte data from all tables before reloading
+#' @title FUNCTION_TITLE
+#' @param chem.check.halt PARAM_DESCRIPTION, Default: FALSE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @rdname import.driver
+#' @export 
 #--------------------------------------------------------------------------------------
 import.driver <- function(db="res_toxval_source_v5",
                           chem.check.halt=FALSE,
@@ -74,7 +85,7 @@ import.driver <- function(db="res_toxval_source_v5",
   import_wignall_source(db,chem.check.halt=chem.check.halt) # Wignall
   # Trouble loading
   # import_flex_source(db,chem.check.halt=chem.check.halt) # ACTOR old sources (10)
-  
+
   import_dod_meg_source(db,chem.check.halt=chem.check.halt) # DOD MEG
   import_doe_pac_source(db,chem.check.halt=chem.check.halt) # DOE PAC
   import_envirotox_source(db,chem.check.halt=chem.check.halt) # envirotox

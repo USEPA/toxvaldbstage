@@ -2,13 +2,29 @@
 % Please edit documentation in R/printCurrentFunction.R
 \name{printCurrentFunction}
 \alias{printCurrentFunction}
-\title{Print the name of the current function}
+\title{FUNCTION_TITLE}
 \usage{
 printCurrentFunction(comment.string = NA)
 }
 \arguments{
 \item{comment.string}{An optional string to be printed}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Print the name of the current function
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[utils]{flush.console}}
 }

@@ -4,7 +4,7 @@
 # library(stringr)
 
 #--------------------------------------------------------------------------------------
-#' Load ECHA TSCA POC Source into dev_toxval_source_v4.
+#' @description Load ECHA TSCA POC Source into dev_toxval_source_v4.
 #' @param toxval.db The version of toxval into which the source is loaded.
 #' @param infile The input file ./echa3/echa3_files/TSCA_POC_Chemical_Results_081220.xlsx
 #' @param dict_toxval_units The input file ./echa3/echa3_files/toxval_units_dictionary.xlsx
@@ -15,6 +15,24 @@
 #' @param dict_study_duration The input file ./echa3/echa3_files/study_duration_dictionary.xlsx
 #' @param dict_species The input file ./echa3/echa3_files/echa3_species_dict.xlsx
 #' @param dict_critical_effects The input file ./echa3/echa3_files/critical_effect_dictionary.xlsx
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[janitor]{excel_numeric_to_date}}
+#'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_split}}
+#' @rdname import_echa3_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom janitor excel_numeric_to_date
+#' @importFrom stringr str_extract_all regex str_split
 
 #--------------------------------------------------------------------------------------
 import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval_type,dict_study_type,
@@ -153,7 +171,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   x <- unique(res1$toxval_units)
   x <- x[!is.na(x)]
 
-  x <- x[!is.element(x,dict[,1])]
+  x <- x[!generics::is.element(x,dict[,1])]
   cat("   missing values in dictionary:",length(x),"\n")
 
   if(length(x)>0) browser()
@@ -161,7 +179,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   for(i in 1:nrow(dict)) {
     valold <- dict[i,1]
     valnew <- dict[i,2]
-    res1[is.element(res1$toxval_units,valold),"toxval_units"] <- valnew
+    res1[generics::is.element(res1$toxval_units,valold),"toxval_units"] <- valnew
   }
 
 
@@ -201,7 +219,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
 
   x <- unique(res1$toxval_type)
   x <- x[!is.na(x)]
-  x <- x[!is.element(x,dict[,"toxval_type"])]
+  x <- x[!generics::is.element(x,dict[,"toxval_type"])]
   cat("   missing values in dictionary:",length(x),"\n")
 
   if(length(x)>0) browser()
@@ -209,7 +227,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   for(i in 1:nrow(dict)) {
     valold <- dict[i,"toxval_type"]
     valnew <- dict[i,"toxval_type_new"]
-    res1[is.element(res1$toxval_type,valold),"toxval_type"] <- valnew
+    res1[generics::is.element(res1$toxval_type,valold),"toxval_type"] <- valnew
   }
 
   res1[which(is.na(res1$toxval_type)|(res1$toxval_type == "")), "toxval_type"] <- "-"
@@ -246,7 +264,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   dict <- openxlsx::read.xlsx(dict_study_type)
 
   x <- unique(res1$study_type)
-  x <- x[!is.element(x,dict[,1])]
+  x <- x[!generics::is.element(x,dict[,1])]
   cat("   missing values in dictionary:",length(x),"\n")
 
   if(length(x)>0) browser()
@@ -254,7 +272,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   for(i in 1:nrow(dict)) {
     valold <- dict[i,1]
     valnew <- dict[i,2]
-    res1[is.element(res1$study_type,valold),"study_type"] <- valnew
+    res1[generics::is.element(res1$study_type,valold),"study_type"] <- valnew
   }
 
   res1[which(is.na(res1$study_type)|(res1$study_type == "")), "study_type"] <- "-"
@@ -324,7 +342,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   dict <- openxlsx::read.xlsx(dict_exposure_route)
 
   x <- unique(res1$exposure_route)
-  x <- x[!is.element(x,dict[,1])]
+  x <- x[!generics::is.element(x,dict[,1])]
 
   cat("   missing values in dictionary:",length(x),"\n")
 
@@ -333,7 +351,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   for(i in 1:nrow(dict)) {
     valold <- dict[i,1]
     valnew <- dict[i,2]
-    res1[is.element(res1$exposure_route,valold),"exposure_route"] <- valnew
+    res1[generics::is.element(res1$exposure_route,valold),"exposure_route"] <- valnew
   }
 
   res1[which(res1$exposure_method == ""),"exposure_method"] <- "-"
@@ -342,7 +360,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
 
   x <- unique(res1$exposure_method)
   x <- x[!is.na(x)]
-  x <- x[!is.element(x,dict[,1])]
+  x <- x[!generics::is.element(x,dict[,1])]
 
   cat("   missing values in dictionary:",length(x),"\n")
 
@@ -351,7 +369,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   for(i in 1:nrow(dict)) {
     valold <- dict[i,1]
     valnew <- dict[i,2]
-    res1[is.element(res1$exposure_method,valold),"exposure_method"] <- valnew
+    res1[generics::is.element(res1$exposure_method,valold),"exposure_method"] <- valnew
   }
 
   res1[which(is.na(res1$exposure_route)|(res1$exposure_route == "")), "exposure_route"] <- "-"
@@ -412,7 +430,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   x <- unique(res1$MaterialsMethods_Exposure_Duration)
   x <- x[!is.na(x)]
 
-  x <- x[!is.element(x,dict[,1])]
+  x <- x[!generics::is.element(x,dict[,1])]
 
   cat("   missing values in dictionary:",length(x),"\n")
   if(length(x)>0) browser()
@@ -420,13 +438,13 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   for(i in 1:nrow(dict)) {
     valold <- dict[i,1]
     valnew <- dict[i,2]
-    res1[is.element(res1$MaterialsMethods_Exposure_Duration,valold),"study_duration_value"] <- valnew
+    res1[generics::is.element(res1$MaterialsMethods_Exposure_Duration,valold),"study_duration_value"] <- valnew
   }
 
   for(i in 1:nrow(dict)) {
     valold <- dict[i,1]
     valnew <- dict[i,3]
-    res1[is.element(res1$MaterialsMethods_Exposure_Duration,valold),"study_duration_units"] <- valnew
+    res1[generics::is.element(res1$MaterialsMethods_Exposure_Duration,valold),"study_duration_units"] <- valnew
   }
 
   res1$study_duration_value <- as.numeric(res1$study_duration_value)
@@ -488,7 +506,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
 
   x <- unique(res1$species)
 
-  x <- x[!is.element(x,dict[,1])]
+  x <- x[!generics::is.element(x,dict[,1])]
 
   cat("   missing values in dictionary:",length(x),"\n")
   if(length(x)>0) browser()
@@ -496,7 +514,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   for(i in 1:nrow(dict)) {
     valold <- dict[i,1]
     valnew <- dict[i,2]
-    res1[is.element(res1$species,valold),"species"] <- valnew
+    res1[generics::is.element(res1$species,valold),"species"] <- valnew
   }
 
 
@@ -583,7 +601,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
 
   x <- unique(res1$critical_effect)
 
-  x <- x[!is.element(x,dict[,4])]
+  x <- x[!generics::is.element(x,dict[,4])]
 
   cat("   missing values in dictionary:",length(x),"\n")
 
@@ -592,7 +610,7 @@ import_echa3_source <- function(toxval.db,infile, dict_toxval_units, dict_toxval
   for(i in 1:nrow(dict)) {
     valold <- dict[i,4]
     valnew <- dict[i,5]
-    res1[is.element(res1$critical_effect,valold),"critical_effect"] <- valnew
+    res1[generics::is.element(res1$critical_effect,valold),"critical_effect"] <- valnew
   }
 
 

@@ -10,14 +10,30 @@
 #' @description Convert toxval source table to DAT format for loading to DAT
 #' application
 #' @param source.db The version of toxval source to use.
-#' @param source_table The name of toxval source table to use. If a DataFrame, input data will be
-#' processing and returned without saving to file.
 #' @param source The name of toxval source to use.
+#' @param source_table The name of toxval source table to use. If a DataFrame, input data will be #' processing and returned without saving to file.
 #' @param limit Excel file grouping limit (default is max XLSX row limit)
 #' @param sample_p Percentage of records to sample down to
 #' @return Processed source table to DAT format cached and returned.
 #' @import dplyr RMySQL DBI readxl magrittr tidyr writexl
-#' @export
+#' @export 
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{slice}}, \code{\link[dplyr]{select}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[writexl]{write_xlsx}}
+#' @rdname source.table.to.DAT
+#' @importFrom dplyr rename filter slice_sample select
+#' @importFrom tidyr pivot_longer all_of
+#' @importFrom gsubfn list
+#' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
 source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample_p = NA){
   # Option to inject data directly to turn into DAT format

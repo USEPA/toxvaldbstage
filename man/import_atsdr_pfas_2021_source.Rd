@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_atsdr_pfas_2021_source.R
 \name{import_atsdr_pfas_2021_source}
 \alias{import_atsdr_pfas_2021_source}
-\title{Load ATSDR PFAS 2021 Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_atsdr_pfas_2021_source(db, chem.check.halt = F)
 }
@@ -13,6 +13,25 @@ import_atsdr_pfas_2021_source(db, chem.check.halt = F)
 
 \item{indir}{The path for all the input xlsx files ./atsdr_pfas_2021/atsdr_pfas_2021_files}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load ATSDR PFAS 2021 Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[stringr]{str_split}}, \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_extract}}
+ \code{\link[stats]{na.fail}}
+ \code{\link[dplyr]{bind}}
 }

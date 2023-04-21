@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_echa3_source.R
 \name{import_echa3_source}
 \alias{import_echa3_source}
-\title{Load ECHA TSCA POC Source into dev_toxval_source_v4.}
+\title{FUNCTION_TITLE}
 \usage{
 import_echa3_source(
   toxval.db,
@@ -38,6 +38,24 @@ import_echa3_source(
 
 \item{dict_critical_effects}{The input file ./echa3/echa3_files/critical_effect_dictionary.xlsx}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load ECHA TSCA POC Source into dev_toxval_source_v4.
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[janitor]{excel_numeric_to_date}}
+ \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_split}}
 }

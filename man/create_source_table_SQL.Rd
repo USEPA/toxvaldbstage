@@ -2,8 +2,7 @@
 % Please edit documentation in R/create_source_table_SQL.R
 \name{create_source_table_SQL}
 \alias{create_source_table_SQL}
-\title{Input source data is used to generate the SQL for the source's toxval_source table.
-SQL is based off a generic SQL file}
+\title{FUNCTION_TITLE}
 \usage{
 create_source_table_SQL(source, res, db, do.halt = TRUE, verbose = FALSE)
 }
@@ -12,11 +11,29 @@ create_source_table_SQL(source, res, db, do.halt = TRUE, verbose = FALSE)
 
 \item{res}{input dataframe of source data}
 
+\item{db}{PARAM_DESCRIPTION}
+
 \item{do.halt}{if TRUE, halt on errors or warnings}
 
 \item{verbose}{if TRUE, print diagnostic information}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Input source data is used to generate the SQL for the source's toxval_source table.
 SQL is based off a generic SQL file
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[stringr]{str_trim}}
 }

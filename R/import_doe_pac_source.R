@@ -1,8 +1,28 @@
 #--------------------------------------------------------------------------------------
-#' Load DOE Source into toxval_source
+#' @description Load DOE Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./doe/doe_files/Revision_29.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{filter-joins}}
+#'  \code{\link[tidyr]{reexports}}
+#' @rdname import_doe_pac_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom gsubfn list
+#' @importFrom dplyr distinct semi_join anti_join
+#' @importFrom tidyr contains
 #--------------------------------------------------------------------------------------
 import_doe_pac_source <- function(db,
                               infile="Revision_29.xlsx",

@@ -1,9 +1,28 @@
 #--------------------------------------------------------------------------------------
-#' Load DOD MEG to toxval_source. The file to be loaded are in ./dod_meg/dod_meg_files
+#' @description Load DOD MEG to toxval_source. The file to be loaded are in ./dod_meg/dod_meg_files
 #'
 #' @param db The version of toxval_source into which the tables are loaded.
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[stats]{reshape}}
+#'  \code{\link[stringr]{word}}
+#'  \code{\link[tidyr]{reexports}}
+#' @rdname import_dod_meg_source
+#' @importFrom openxlsx read.xlsx
+#' @importFrom stats reshape
+#' @importFrom stringr word
+#' @importFrom tidyr contains
 #-------------------------------------------------------------------------------------
 import_dod_meg_source = function(db,
                              chem.check.halt=F) {

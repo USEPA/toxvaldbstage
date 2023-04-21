@@ -1,9 +1,27 @@
 #--------------------------------------------------------------------------------------
-#' Load ECHA echemportal api Source into toxval_source
+#' @description Load ECHA echemportal api Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param filepath The path for all the input xlsx files ./echa_echemportal_api/echa_echemportal_api_files
-
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[utils]{type.convert}}
+#'  \code{\link[data.table]{rbindlist}}
+#' @rdname import_echa_echemportal_api_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom utils type.convert
+#' @importFrom data.table rbindlist
+
 #--------------------------------------------------------------------------------------
 import_echa_echemportal_api_source <- function(db,
                                                filepath="echa_echemportal_api/echa_echemportal_api_files",
@@ -48,8 +66,8 @@ import_echa_echemportal_api_source <- function(db,
   #####################################################################
   source = "ECHA eChemPortal"
   res = as.data.frame(res1)
-  res = res[!is.element(res$number,c("134895-42-8","61-76-3")),]
-  names(res)[is.element(names(res),"number")] = "casrn"
+  res = res[!generics::is.element(res$number,c("134895-42-8","61-76-3")),]
+  names(res)[generics::is.element(names(res),"number")] = "casrn"
   print(dim(res))
 
   source_prep_and_load(db,source=source,table="source_echa_echemportal_api",res=res,F,T,T)

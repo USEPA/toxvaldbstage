@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_wignall_source.R
 \name{import_wignall_source}
 \alias{import_wignall_source}
-\title{Load wignall Source data into dev_toxval_source_v2.}
+\title{FUNCTION_TITLE}
 \usage{
 import_wignall_source(
   db,
@@ -15,8 +15,24 @@ import_wignall_source(
 
 \item{infile}{The input file ./wignall/wignall_files/BMD_Results_2014-06-17_reviewed Mar 2018.xlsx}
 
-\item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+\item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping #'}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
 Load wignall Source data into dev_toxval_source_v2.
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

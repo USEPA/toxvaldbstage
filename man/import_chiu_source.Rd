@@ -2,8 +2,7 @@
 % Please edit documentation in R/import_chiu_source.R
 \name{import_chiu_source}
 \alias{import_chiu_source}
-\title{Load chiu Source into dev_toxval_source_v3.
-Data from the Chiu et al. paper on RfD values}
+\title{FUNCTION_TITLE}
 \usage{
 import_chiu_source(
   db,
@@ -16,10 +15,27 @@ import_chiu_source(
 
 \item{infile}{The input file ./chiu/chiu_files/Full_RfD_databaseQAed-FINAL.xlsx}
 
-\item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,
-stop to look at the results in indir/chemcheck.xlsx}
+\item{chem.check.halt}{If TRUE and there are bad chemical names or casrn, #' stop to look at the results in indir/chemcheck.xlsx}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
-Load chiu Source into dev_toxval_source_v3.
+FUNCTION_DESCRIPTION
+}
+\details{
+#' Load chiu Source into dev_toxval_source_v3.
 Data from the Chiu et al. paper on RfD values
+
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

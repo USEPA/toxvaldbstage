@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_echa_source.R
 \name{import_echa_source}
 \alias{import_echa_source}
-\title{Load ECHA Source from dev_toxval_source_v4(used in v8) saved as infile to dev_toxval_source_v4}
+\title{FUNCTION_TITLE}
 \usage{
 import_echa_source(toxval.db, infile, verbose = T)
 }
@@ -10,7 +10,25 @@ import_echa_source(toxval.db, infile, verbose = T)
 \item{toxval.db}{The version of toxval into which the source is loaded.}
 
 \item{infile}{The input file ./echa/echa_files/echa_raw.xlsx}
+
+\item{verbose}{PARAM_DESCRIPTION, Default: T}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
 Load ECHA Source from dev_toxval_source_v4(used in v8) saved as infile to dev_toxval_source_v4
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

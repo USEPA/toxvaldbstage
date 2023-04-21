@@ -2,11 +2,7 @@
 % Please edit documentation in R/chem.check.v2.R
 \name{chem.check.v2}
 \alias{chem.check.v2}
-\title{Check the chemicals from a file
-Names with special characters are cleaned and trimmed
-CASRN are fixed (dashes put in, trimmed) and check sums are calculated
-The output is sent to a file called chemcheck.xlsx in the source data file
-One option for using this is to edit the source file until no errors are found}
+\title{FUNCTION_TITLE}
 \usage{
 chem.check.v2(res0, source = NULL, verbose = F)
 }
@@ -27,4 +23,21 @@ Names with special characters are cleaned and trimmed
 CASRN are fixed (dashes put in, trimmed) and check sums are calculated
 The output is sent to a file called chemcheck.xlsx in the source data file
 One option for using this is to edit the source file until no errors are found
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[stringi]{stri_escape_unicode}}
+ \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_trim}}
+ \code{\link[tidyr]{reexports}}
+ \code{\link[openxlsx]{write.xlsx}}
+ \code{\link[gsubfn]{list}}
 }

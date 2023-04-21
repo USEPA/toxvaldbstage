@@ -1,9 +1,28 @@
 #-------------------------------------------------------------------------------------
-#' Flag and fix non-ascii characters in the database
+#' @description Flag and fix non-ascii characters in the database
 #' @param df The dataframe to be processed
 #' @param The source to be fixed
 #' @return The dataframe with non ascii characters replaced with cleaned versions
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @param source PARAM_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}, \code{\link[openxlsx]{write.xlsx}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[stringi]{stri_escape_unicode}}
+#' @rdname fix.non_ascii.v2
+#' @importFrom openxlsx read.xlsx write.xlsx
+#' @importFrom gsubfn list
+#' @importFrom stringr str_trim
+#' @importFrom stringi stri_escape_unicode
 #-------------------------------------------------------------------------------------
 fix.non_ascii.v2 <- function(df,source){
   printCurrentFunction(source)

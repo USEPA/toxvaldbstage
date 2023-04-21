@@ -2,9 +2,7 @@
 % Please edit documentation in R/import_caloehha_source.R
 \name{import_caloehha_source}
 \alias{import_caloehha_source}
-\title{Load caloehha Source file into toxval_source
-The raw data can be exported as an Excel sheet from the web site
-https://oehha.ca.gov/chemicals, selecting the link "Export database as .CSV file"}
+\title{FUNCTION_TITLE}
 \usage{
 import_caloehha_source(
   db,
@@ -19,6 +17,26 @@ import_caloehha_source(
 
 \item{chem.check.halt}{If TRUE and there are problems with chemicals CASRN checks, halt the program}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
+Load caloehha Source file into toxval_source
+The raw data can be exported as an Excel sheet from the web site
+https://oehha.ca.gov/chemicals, selecting the link "Export database as .CSV file"
+
 This method parses that file and prepares for loading into toxval source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

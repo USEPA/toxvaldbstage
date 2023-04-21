@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_hess_source.R
 \name{import_hess_source}
 \alias{import_hess_source}
-\title{Load HESS Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_hess_source(
   db,
@@ -20,6 +20,25 @@ import_hess_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load HESS Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[utils]{type.convert}}
+ \code{\link[tidyr]{unite}}
+ \code{\link[stringr]{str_replace}}
 }

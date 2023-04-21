@@ -2,7 +2,7 @@
 % Please edit documentation in R/getPSQLDBConn.R
 \name{getPSQLDBConn}
 \alias{getPSQLDBConn}
-\title{Get the names the database server, user, and pass or returns error message}
+\title{FUNCTION_TITLE}
 \usage{
 getPSQLDBConn()
 }
@@ -11,4 +11,14 @@ print the database connection information
 }
 \description{
 Get the names the database server, user, and pass or returns error message
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
 }

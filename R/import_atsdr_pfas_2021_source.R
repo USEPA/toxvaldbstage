@@ -1,8 +1,28 @@
 #--------------------------------------------------------------------------------------
-#' Load ATSDR PFAS 2021 Source into toxval_source
+#' @description Load ATSDR PFAS 2021 Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param indir The path for all the input xlsx files ./atsdr_pfas_2021/atsdr_pfas_2021_files
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[stringr]{str_split}}, \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_extract}}
+#'  \code{\link[stats]{na.fail}}
+#'  \code{\link[dplyr]{bind}}
+#' @rdname import_atsdr_pfas_2021_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom stringr str_split str_trim str_replace_all str_extract_all
+#' @importFrom stats na.omit
+#' @importFrom dplyr bind_rows
 #--------------------------------------------------------------------------------------
 import_atsdr_pfas_2021_source <- function(db,
                                           chem.check.halt=F) {
@@ -118,7 +138,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(key_desc)) {
     valold <- key_desc[i,1]
     valnew <- key_desc[i,2]
-    res1[is.element(res1$endpoint,valold),"endpoint"] <- valnew
+    res1[generics::is.element(res1$endpoint,valold),"endpoint"] <- valnew
   }
 
   for (i in 1:nrow(key_desc)){
@@ -169,7 +189,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(short_ref_key_table)) {
     valold <- short_ref_key_table[i,1]
     valnew <- short_ref_key_table[i,2]
-    res1[is.element(res1$short_ref,valold),"long_ref"] <- valnew
+    res1[generics::is.element(res1$short_ref,valold),"long_ref"] <- valnew
   }
 
   names(res1)[names(res1) == "comments"] <- "toxval_details"
@@ -268,7 +288,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(key_desc)) {
     valold <- key_desc[i,1]
     valnew <- key_desc[i,2]
-    res2[is.element(res2$endpoint,valold),"endpoint"] <- valnew
+    res2[generics::is.element(res2$endpoint,valold),"endpoint"] <- valnew
   }
 
   for (i in 1:nrow(key_desc)){
@@ -301,7 +321,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(short_ref_key_table)) {
     valold <- short_ref_key_table[i,1]
     valnew <- short_ref_key_table[i,2]
-    res2[is.element(res2$short_ref,valold),"long_ref"] <- valnew
+    res2[generics::is.element(res2$short_ref,valold),"long_ref"] <- valnew
   }
 
   #### combine NOAEL, serious and less serious LOAEL values to create toxval_numeric and toxval_type
@@ -406,7 +426,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(key_desc)) {
     valold <- key_desc[i,1]
     valnew <- key_desc[i,2]
-    res3[is.element(res3$endpoint,valold),"endpoint"] <- valnew
+    res3[generics::is.element(res3$endpoint,valold),"endpoint"] <- valnew
   }
 
   for (i in 1:nrow(key_desc)){
@@ -441,7 +461,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(short_ref_key_table)) {
     valold <- short_ref_key_table[i,1]
     valnew <- short_ref_key_table[i,2]
-    res3[is.element(res3$short_ref,valold),"long_ref"] <- valnew
+    res3[generics::is.element(res3$short_ref,valold),"long_ref"] <- valnew
   }
 
   names(res3)[names(res3) == "comments"] <- "toxval_details"
@@ -552,7 +572,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(key_desc)) {
     valold <- key_desc[i,1]
     valnew <- key_desc[i,2]
-    res4[is.element(res4$endpoint,valold),"endpoint"] <- valnew
+    res4[generics::is.element(res4$endpoint,valold),"endpoint"] <- valnew
   }
 
   res4[which(is.na(res4$endpoint)),"endpoint"] <- "-"
@@ -726,7 +746,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(key_desc)) {
     valold <- key_desc[i,1]
     valnew <- key_desc[i,2]
-    res5[is.element(res5$endpoint,valold),"endpoint"] <- valnew
+    res5[generics::is.element(res5$endpoint,valold),"endpoint"] <- valnew
   }
 
   res5$parameters_monitored <- gsub("^\\s+|\\s+$","",res5$parameters_monitored)
@@ -782,7 +802,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(short_ref_key_table)) {
     valold <- short_ref_key_table[i,1]
     valnew <- short_ref_key_table[i,2]
-    res5[is.element(res5$short_ref,valold),"long_ref"] <- valnew
+    res5[generics::is.element(res5$short_ref,valold),"long_ref"] <- valnew
   }
 
   names(res5)[names(res5) == "comments"] <- "toxval_details"
@@ -908,7 +928,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(key_desc)) {
     valold <- key_desc[i,1]
     valnew <- key_desc[i,2]
-    res6[is.element(res6$endpoint,valold),"endpoint"] <- valnew
+    res6[generics::is.element(res6$endpoint,valold),"endpoint"] <- valnew
   }
 
   res6$parameters_monitored <- gsub("^\\s+|\\s+$","",res6$parameters_monitored)
@@ -956,7 +976,7 @@ import_atsdr_pfas_2021_source <- function(db,
   for(i in 1:nrow(short_ref_key_table)) {
     valold <- short_ref_key_table[i,1]
     valnew <- short_ref_key_table[i,2]
-    res6[is.element(res6$short_ref,valold),"long_ref"] <- valnew
+    res6[generics::is.element(res6$short_ref,valold),"long_ref"] <- valnew
   }
 
   names(res6)[names(res6) == "comments"] <- "toxval_details"

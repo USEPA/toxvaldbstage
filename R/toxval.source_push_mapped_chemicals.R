@@ -1,17 +1,41 @@
 #-------------------------------------------------------------------------------------
 #' @title toxval.source_push_mapped_chemicals
+#' @title toxval.source_push_mapped_chemicals
+#' @description Orchestrates the push of mapped chemical information to the selected toxval_source database.
+#' Uses the map_curated_chemicals() helper function to generate mapped input.
 #' @description Orchestrates the push of mapped chemical information to the selected toxval_source database.
 #' Uses the map_curated_chemicals() helper function to generate mapped input.
 #' @param db The version of toxval source database to use.
 #' @param source.index The source chemical index. Can be full or just numeric (ex. ToxVal00001 vs. 00001)
-#' @param curated.path Input path to the folder directory with expected subdirectories of
-#' 'BIN Files', 'DSSTox Files', and 'jira_chemical_files'
+#' @param source.index The source chemical index. Can be full or just numeric (ex. ToxVal00001 vs. 00001)
+#' @param curated.path Input path to the folder directory with expected subdirectories of #' 'BIN Files', 'DSSTox Files', and 'jira_chemical_files'
+#' @param curated.path Input path to the folder directory with expected subdirectories of #' 'BIN Files', 'DSSTox Files', and 'jira_chemical_files'
 #' @param ignore.curation.dups Boolean whether to match with any curated records flagged as "unresolved duplicates" (Default TRUE)
+#' @param ignore.curation.dups Boolean whether to match with any curated records flagged as "unresolved duplicates" (Default TRUE)
+#' @param match.chemical.id Boolean whether to match by provided chemical_id external identifier (Default FALSE)
 #' @param match.chemical.id Boolean whether to match by provided chemical_id external identifier (Default FALSE)
 #' @param reset.mapping Boolean whether to reset chemical mappings in source_chemical table of database
 #' @param bulk.push Boolean whether to bulk push updates, or one at a time. Default is TRUE
 #' @return None. Update SQL statements are executed.
+#' @return None. Update SQL statements are executed.
 #' @import RMySQL dplyr readxl magrittr
+#' @import RMySQL dplyr readxl magrittr
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{bind}}
+#' @rdname toxval.source_push_mapped_chemicals
+#' @export 
+#' @importFrom gsubfn list
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr rename distinct mutate select left_join filter bind_rows
 #--------------------------------------------------------------------------------------
 toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
                                                 ignore.curation.dups=TRUE, match.chemical.id=FALSE,
@@ -105,16 +129,6 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
 
 
 #-------------------------------------------------------------------------------------
-#' @title map_curated_chemicals
-#' @description Helper function to attempt to map raw/cleaned chemical information to ChemReg
-#' returned curated files.
-#' @param source.index The source chemical index. Can be full or just numeric (ex. ToxVal00001 vs. 00001)
-#' @param curated.path Input path to the folder directory with expected subdirectories of
-#' 'BIN Files', 'DSSTox Files', and 'jira_chemical_files'
-#' @param ignore.curation.dups Boolean whether to match with any curated records flagged as "unresolved duplicates" (Default TRUE)
-#' @param match.chemical.id Boolean whether to match by provided chemical_id external identifier (Default FALSE)
-#' @return Mapped chemical information based on input file directory file chemical information
-#' @import RMySQL dplyr readxl magrittr
 #--------------------------------------------------------------------------------------
 map_curated_chemicals <- function(source.index, curated.path, ignore.curation.dups = TRUE, match.chemical.id = FALSE){
   # curated.path = "Repo\\chemical_mapping\\DSSTOX_1142"

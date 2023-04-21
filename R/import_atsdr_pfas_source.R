@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' Load ATSDR PFAS Source files into toxval_source
+#' @description Load ATSDR PFAS Source files into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_Perfluoroalkyls_Inhalation.xlsx
 #' @param infile2 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_Perfluoroalkyls_Oral.xlsx
@@ -7,6 +7,26 @@
 #' @param infile4 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_PFOA_Oral.xlsx
 #' @param infile5 The input file ./atsdr_pfas/atsdr_pfas_files/ATSDR_PFOS_Oral.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[dplyr]{reexports}}
+#'  \code{\link[utils]{type.convert}}
+#' @rdname import_atsdr_pfas_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom gsubfn list
+#' @importFrom dplyr intersect setdiff
+#' @importFrom utils type.convert
 #--------------------------------------------------------------------------------------
 import_atsdr_pfas_source <- function(db,
                                      infile1="ATSDR_Perfluoroalkyls_Inhalation.xlsx",

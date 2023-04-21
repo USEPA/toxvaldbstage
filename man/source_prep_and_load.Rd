@@ -2,7 +2,7 @@
 % Please edit documentation in R/source_prep_and_load.R
 \name{source_prep_and_load}
 \alias{source_prep_and_load}
-\title{Prep the source data aand load}
+\title{FUNCTION_TITLE}
 \usage{
 source_prep_and_load(
   db,
@@ -23,14 +23,28 @@ source_prep_and_load(
 
 \item{res}{The data frame to be processed}
 
-\item{do.reset}{If TRUE, delete data from the database for this source before
-inserting new data. Default FALSE}
+\item{do.reset}{If TRUE, delete data from the database for this source before #' inserting new data. Default FALSE}
 
-\item{do.insert}{If TRUE, insert data into the database, default TRUE}
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
 
-\item{chem.check.halt}{If TRUE, stop the execution if there are errors in the
-chemical  mapping}
+\item{chem.check.halt}{If TRUE, stop the execution if there are errors in the #' chemical mapping}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
 Prep the source data aand load
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[tidyr]{reexports}}
 }

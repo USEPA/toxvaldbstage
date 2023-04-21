@@ -1,14 +1,34 @@
 #--------------------------------------------------------------------------------------
-#' Processes DAT QC audit information into database
+#' @description Processes DAT QC audit information into database
 #'
 #' @param source name of ToxVal source table audit information is associated with
 #' @param db the name of the database
 #' @param live_df a filepath to the DAT live data to push to the 'source' table
-#' @param audit_df a filepath to the DAT audit data to push to source_audit
-#'
+#' @param audit_df a filepath to the DAT audit data to push to source_audit #'
 #' @import dplyr DBI magrittr
 #'
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{filter}}
+#'  \code{\link[tidyr]{reexports}}
+#'  \code{\link[writexl]{write_xlsx}}
+#' @rdname DAT.pipe.source.audit
+#' @importFrom gsubfn list
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr rename mutate left_join select filter
+#' @importFrom tidyr any_of
+#' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
 DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
 
@@ -66,7 +86,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
     # Select and rename DAT audit columns for toxval_source, calculate new source_hash
     prep.DAT.conversion(., hash_id_list=hash_id_list, source=source) %>%
     # Transform record columns into JSON
-    dplyr::mutate(record = convert.audit.to.json(dplyr::select(., -tidyr::any_of(id_list)))) %>%
+    dplyr::mutate(record = convert.fields.to.json(dplyr::select(., -tidyr::any_of(id_list)))) %>%
     # Select only audit/ID columns and JSON record
     dplyr::select(tidyr::any_of(id_list), record)
 
@@ -161,35 +181,4 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
                        paste0("a.", names(live),  " = b.", names(live), collapse = ", ")
   )
   # runUpdate(table=source, updateQuery=updateQuery, updated_df=live, db)
-}
-
-# Combine non-ID columns from audit table into JSON format for audit storage
-convert.audit.to.json <- function(in_dat){
-  lapply(seq_len(nrow(in_dat)), function(row){
-    in_dat[row, ] %>%
-      dplyr::summarise(record = jsonlite::toJSON(.)) %>%
-      dplyr::select(record)
-  }) %>%
-    dplyr::bind_rows() %>%
-    unlist() %>%
-    unname() %>%
-    return()
-}
-
-# Select and rename DAT audit columns for toxval_source, calculate new source_hash
-prep.DAT.conversion <- function(in_dat, hash_id_list, source){
-  in_dat = in_dat %>%
-    dplyr::rename(parent_hash = src_record_id) %>%
-    # Remove extraneous DAT fields
-    dplyr::select(-uuid, -description, -total_fields_changed, -dataset_description, -DAT_domain_name,
-           -domain_description, -DAT_source_name, -source_description, -status_description) %>%
-    # Alphabetize the columns to ensure consistent hashing column order
-    .[, sort(colnames(.))] %>%
-    tidyr::unite("pre_source_hash", tidyr::any_of(names(.)[!names(.) %in% hash_id_list]),
-                 sep="", remove = FALSE) %>%
-    # Set source_hash
-    dplyr::mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
-    dplyr::select(-pre_source_hash)
-
-    return(in_dat)
 }

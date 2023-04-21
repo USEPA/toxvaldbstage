@@ -9,7 +9,7 @@ source.table.to.DAT(source.db, source_table, limit = 1e+06, sample_p = NA)
 \arguments{
 \item{source.db}{The version of toxval source to use.}
 
-\item{source_table}{The name of toxval source table to use.}
+\item{source_table}{The name of toxval source table to use. If a DataFrame, input data will be #' processing and returned without saving to file.}
 
 \item{limit}{Excel file grouping limit (default is max XLSX row limit)}
 
@@ -23,4 +23,20 @@ Processed source table to DAT format cached and returned.
 \description{
 Convert toxval source table to DAT format for loading to DAT
 application
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{slice}}, \code{\link[dplyr]{select}}
+ \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}
+ \code{\link[gsubfn]{list}}
+ \code{\link[writexl]{write_xlsx}}
 }

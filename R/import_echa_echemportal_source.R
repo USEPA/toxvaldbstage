@@ -1,8 +1,24 @@
 # library("openxlsx")
 #--------------------------------------------------------------------------------------
-#' Load ECHA echemportal 2020 Source into dev_toxval_source_v4.
+#' @description Load ECHA echemportal 2020 Source into dev_toxval_source_v4.
 #' @param toxval.db The version of toxval into which the source is loaded.
 #' @param infile The input file ./echa_echemportal/echa_echemportal_files/eChemPortal mammalian data 2020 step 3.xlsx ,build from echemportal.prep.v2.step3.R
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}}
+#' @rdname import_echa_echemportal_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom stringr str_extract_all regex
 
 #--------------------------------------------------------------------------------------
 import_echa_echemportal_source <- function(toxval.db,infile) {

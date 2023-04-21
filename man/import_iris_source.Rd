@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_iris_source.R
 \name{import_iris_source}
 \alias{import_iris_source}
-\title{Load IRIS Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_iris_source(
   db,
@@ -20,6 +20,22 @@ import_iris_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load IRIS Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

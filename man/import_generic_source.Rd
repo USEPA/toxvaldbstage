@@ -2,15 +2,41 @@
 % Please edit documentation in R/import_generic_source.R
 \name{import_generic_source}
 \alias{import_generic_source}
-\title{A generic tmpalte for adding data to toxval_source for a new source}
+\title{FUNCTION_TITLE}
 \usage{
-import_generic_source(db, chem.check.halt = F)
+import_generic_source(
+  db,
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
+)
 }
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}
 
 \item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
+
+\item{do.reset}{If TRUE, delete data from the database for this source before}
+
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
+}
+\value{
+OUTPUT_DESCRIPTION
 }
 \description{
-A generic tmpalte for adding data to toxval_source for a new source
+A generic template for adding data to toxval_source for a new source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[readxl]{read_excel}}
+ \code{\link[stringr]{str_trim}}
 }

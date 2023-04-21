@@ -1,6 +1,16 @@
 #--------------------------------------------------------------------------------------
-#' Initialize Source IUCLID Directory into subdirectory based on input files
+#' @description Initialize Source IUCLID Directory into subdirectory based on input files
 #' @return None, file directory structure generated
+#' @title FUNCTION_TITLE
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @rdname initialize_source_iuclid_directory
+#' @export 
 #
 #--------------------------------------------------------------------------------------
 initialize_source_iuclid_directory <- function() {

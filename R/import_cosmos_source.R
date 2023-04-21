@@ -1,9 +1,27 @@
 #--------------------------------------------------------------------------------------
-#' Load cosmos Source files into toxval_source
+#' @description Load cosmos Source files into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./cosmos/cosmos_files/COSMOS_DB_v1_export_2016_04_02_study_data.xlsx
 #' @param infile2 The input file ./cosmos/cosmos_files/COSMOS_DB_v1_export_2016_04_02_cosmetics_inventory.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{loadWorkbook}}, \code{\link[openxlsx]{sheets}}, \code{\link[openxlsx]{readWorkbook}}
+#'  \code{\link[methods]{is}}
+#'  \code{\link[stats]{setNames}}
+#' @rdname import_cosmos_source
+#' @export 
+#' @importFrom openxlsx loadWorkbook sheets readWorkbook
+#' @importFrom methods is
+#' @importFrom stats setNames
 #--------------------------------------------------------------------------------------
 import_cosmos_source <- function(db,
                                  infile1="COSMOS_DB_v1_export_2016_04_02_study_data.xlsx",

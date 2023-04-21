@@ -1,10 +1,34 @@
 #--------------------------------------------------------------------------------------
-#' Import of PPRTV CPHEA source into toxval_source
+#' @description Import of PPRTV CPHEA source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_extract}}
+#'  \code{\link[tidyselect]{where}}
+#' @rdname import_source_pprtv_cphea
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr mutate filter select across rename rowwise distinct
+#' @importFrom tidyr pivot_longer all_of separate replace_na
+#' @importFrom gsubfn list
+#' @importFrom stringr str_squish str_replace_all str_extract
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

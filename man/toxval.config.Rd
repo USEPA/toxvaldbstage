@@ -2,9 +2,7 @@
 % Please edit documentation in R/toxval.config.R
 \name{toxval.config}
 \alias{toxval.config}
-\title{Define a set of global variables. These include the source path (datapath)
-and the source databases (e.g. dev_toxval_{version} and dev_toxval_source_{version})
-and the urls for the ACToR web services.}
+\title{toxval.config}
 \usage{
 toxval.config()
 }
@@ -15,4 +13,17 @@ Returns a set of parameters to be used throughout the package
 Define a set of global variables. These include the source path (datapath)
 and the source databases (e.g. dev_toxval_{version} and dev_toxval_source_{version})
 and the urls for the ACToR web services.
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[gsubfn]{list}}
 }

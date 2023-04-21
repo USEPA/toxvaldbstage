@@ -1,9 +1,24 @@
 # library("openxlsx")
 # library("stringr")
 #--------------------------------------------------------------------------------------
-#' Load ECHA IUCLID Source into dev_toxval_source_v4.
+#' @description Load ECHA IUCLID Source into dev_toxval_source_v4.
 #' @param toxval.db The version of toxval into which the source is loaded.
 #' @param infile The input file ./echa_iuclid/echa_iuclid_files/echa_iuclid_v8.xlsx
+#' @title FUNCTION_TITLE
+#' @param verbose PARAM_DESCRIPTION, Default: T
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_echa_iuclid_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 
 #--------------------------------------------------------------------------------------
 import_echa_iuclid_source <- function(toxval.db,infile, verbose = T) {

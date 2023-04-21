@@ -1,8 +1,24 @@
 #--------------------------------------------------------------------------------------
-#' Load dod Source into toxval_source
+#' @description Load dod Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./dod/dod_files/USACE_ERDC_ERED_database_12_07_2018.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[janitor]{excel_numeric_to_date}}
+#' @rdname import_dod_ered_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom janitor excel_numeric_to_date
 #--------------------------------------------------------------------------------------
 import_dod_ered_source <- function(db,
                                    infile="USACE_ERDC_ERED_database_12_07_2018.xlsx",

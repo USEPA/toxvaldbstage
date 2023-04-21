@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_hawc_source.R
 \name{import_hawc_source}
 \alias{import_hawc_source}
-\title{Load HAWC Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_hawc_source(
   db,
@@ -20,8 +20,28 @@ import_hawc_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
+Load HAWC Source into toxval_source
+
 Note that the different tabs in the input sheet have different names, so these need
 to be adjusted manually for the code to work. This is a problem wit how the data
 is stored in HAWC
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{getSheetNames}}, \code{\link[openxlsx]{read.xlsx}}
+ \code{\link[stats]{aggregate}}
+ \code{\link[digest]{digest}}
 }

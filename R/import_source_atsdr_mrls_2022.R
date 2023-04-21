@@ -1,8 +1,28 @@
 #--------------------------------------------------------------------------------------
-#' Import of ATSDR MRLs 2022 source into toxval_source
+#' @description Import of ATSDR MRLs 2022 source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{recode}}
+#'  \code{\link[tidyr]{pivot_longer}}
+#' @rdname import_source_atsdr_mrls_2022
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom stringr str_squish
+#' @importFrom dplyr rename mutate recode
+#' @importFrom tidyr pivot_longer
 #--------------------------------------------------------------------------------------
 import_generic_source <- function(db,chem.check.halt=F) {
   printCurrentFunction(db)
@@ -20,7 +40,7 @@ import_generic_source <- function(db,chem.check.halt=F) {
   # database table. You do not need to add any of the generic columns
   # described in the SOP - they will get added in source_prep_and_load
   #
-  
+
   # Standardize the names
   names(res0) <- names(res0) %>%
     # Replace whitespace and periods with underscore
@@ -28,7 +48,7 @@ import_generic_source <- function(db,chem.check.halt=F) {
     gsub("[*]", "", .) %>%
     stringr::str_squish() %>%
     tolower()
-  
+
   res <- res0 %>%
     # Renaming columns
     dplyr::rename(study_type=duration_category,
@@ -59,7 +79,7 @@ import_generic_source <- function(db,chem.check.halt=F) {
                                   "Resp." = "respiratory") %>%
              tolower()) %>%
     # calculating NOAEL
-    dplyr::mutate(MRL=as.numeric(MRL), 
+    dplyr::mutate(MRL=as.numeric(MRL),
            NOAEL=MRL*total_factors) %>%
     # expanding toxval_type to include MRL and NOAEL columns
     tidyr::pivot_longer(

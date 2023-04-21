@@ -1,16 +1,37 @@
 #--------------------------------------------------------------------------------------
-#' Check the chemicals from a file
+#' @description Check the chemicals from a file
 #' Names with special characters are cleaned and trimmed
 #' CASRN are fixed (dashes put in, trimmed) and check sums are calculated
 #' The output is sent to a file called chemcheck.xlsx in the source data file
 #' One option for using this is to edit the source file until no errors are found
 #'
-#' @param res0  The data frame in which chemicals names and CASRN will be replaced
+#' @param res0 The data frame in which chemicals names and CASRN will be replaced
 #' @param source The source to be processed. If source=NULL, process all sources
 #' @param verbose If TRUE, print diagnostic messages
 #' @return Return a list with fixed CASRN and name and flags indicating if fixes were made:
 #' res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK
 #'
+#' @title FUNCTION_TITLE
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[stringi]{stri_escape_unicode}}
+#'  \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_trim}}
+#'  \code{\link[tidyr]{reexports}}
+#'  \code{\link[openxlsx]{write.xlsx}}
+#'  \code{\link[gsubfn]{list}}
+#' @rdname chem.check.v2
+#' @export 
+#' @importFrom stringi stri_escape_unicode
+#' @importFrom stringr str_replace_all str_trim
+#' @importFrom tidyr contains
+#' @importFrom openxlsx write.xlsx
+#' @importFrom gsubfn list
 #--------------------------------------------------------------------------------------
 chem.check.v2 <- function(res0,source=NULL,verbose=F) {
   printCurrentFunction(source)
@@ -31,7 +52,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=F) {
     n2 = stringr::str_replace_all(n2,"\n"," ")
     n2 = stringr::str_replace_all(n2,"  "," ")
     n2 = stringr::str_trim(n2)
-    if(is.element(source,c("Alaska DEC",
+    if(generics::is.element(source,c("Alaska DEC",
                            "California DPH",
                            "EPA AEGL",
                            "Mass. Drinking Water Standards",
@@ -75,7 +96,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=F) {
       row[1,2] = n1
       row[1,3] = n2
       ccheck = rbind(ccheck,row)
-      res0[is.element(res0[,"name"],n0),"name"] = n2
+      res0[generics::is.element(res0[,"name"],n0),"name"] = n2
       name.OK = F
     }
     if(i%%1000==0) cat(" chemcheck name: finished ",i," out of ",length(nlist),"\n")
@@ -92,7 +113,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=F) {
       if(is.na(cs)) cs = 0
       if(verbose) cat("2>>> ",n0,n1,n2,cs,"\n")
       if(n2!=n0) {
-        res0[is.element(res0$casrn,n0),"casrn"] = n2
+        res0[generics::is.element(res0$casrn,n0),"casrn"] = n2
         row[1,1] = n0
         row[1,2] = n1
         row[1,3] = n2

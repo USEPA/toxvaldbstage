@@ -1,12 +1,29 @@
 #--------------------------------------------------------------------------------------
-#' special process to deal with source chemicals for ChemIDPlus
+#' @description special process to deal with source chemicals for ChemIDPlus
 #' @param toxval.db The version of toxval into which the source info is loaded.
 #' @param source.db The source database version
 #' @param source The xource to be processed (ECOTOX)
 #' @param chem.check.halt If TRUE, halt if there are errors in the chemical checking
-#' @param casrn.col  Name of the column containing the CASRN
+#' @param casrn.col Name of the column containing the CASRN
 #' @param name.col Name of the column containing chemical names
 #' @param verbose If TRUE, output extra diagnostics information
+#' @title FUNCTION_TITLE
+#' @param res PARAM_DESCRIPTION
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[digest]{digest}}
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname source_chemical.chemidplus
+#' @export 
+#' @importFrom digest digest
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 source_chemical.chemidplus <- function(toxval.db,
                                    source.db,
@@ -54,20 +71,20 @@ source_chemical.chemidplus <- function(toxval.db,
   file = paste0(toxval.config()$datapath,"/ecotox/ecotox_files/ECOTOX chemical mapping 2022-07-21.xlsx")
   echems = openxlsx::read.xlsx(file)
   rownames(echems) = as.character(echems$casrn)
-  dsstox = DSSTOX[is.element(DSSTOX$casrn,chems$cleaned_casrn),]
+  dsstox = DSSTOX[generics::is.element(DSSTOX$casrn,chems$cleaned_casrn),]
 
   chems$dtxsid = "NODTXSID"
   for(i in 1:nrow(chems)) {
     casrn = as.character(chems[i,"raw_casrn"])
     ccasrn = chems[i,"cleaned_casrn"]
-    if(is.element(casrn,echems$casrn)) {
+    if(generics::is.element(casrn,echems$casrn)) {
       chems[i,"cleaned_name"] = echems[casrn,"name"]
       chems[i,"name"] = echems[casrn,"name"]
       chems[i,"casrn"] = ccasrn
       chems[i,"dtxsid"] = echems[casrn,"dtxsid"]
     }
     else {
-      if(is.element(ccasrn,dsstox$casrn)) {
+      if(generics::is.element(ccasrn,dsstox$casrn)) {
         chems[i,"cleaned_name"] = dsstox[ccasrn,"preferred_name"]
         chems[i,"casrn"] = ccasrn
         chems[i,"name"] = dsstox[ccasrn,"preferred_name"]
@@ -81,13 +98,13 @@ source_chemical.chemidplus <- function(toxval.db,
   for(i in 1:nrow(chems)) {
     indx=chems[i,"chemical_index"];
     cid=chems[i,"chemical_id"];
-    res[is.element(res$chemical_index,indx),"chemical_id"]=cid
+    res[generics::is.element(res$chemical_index,indx),"chemical_id"]=cid
     if(i%%1000==0) cat(" finished ",i," out of ",nrow(chems),"\n")
   }
   chems = subset(chems,select=-c(chemical_index))
   res = subset(res,select=-c(chemical_index))
   cids = runQuery(paste0("select distinct chemical_id from source_chemical where source='",source,"'"),source.db)[,1]
-  chems.new = chems[!is.element(chems$chemical_id,cids),]
+  chems.new = chems[!generics::is.element(chems$chemical_id,cids),]
   n0 = length(cids)
   n1 = nrow(chems)
   n01 = nrow(chems.new)

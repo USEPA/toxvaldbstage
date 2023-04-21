@@ -1,11 +1,35 @@
 #--------------------------------------------------------------------------------------
-#' Import of rsl 2022 source into toxval_source
+#' @description Import of rsl 2022 source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile1 The input file ./rsl/rsl_files/rsl_thq10_nov_2022.xlsx
 #' @param infile2 The input file ./rsl/rsl_files/rsl_thq01_nov_2022.xlsx
 #' @param infile3 The input file ./rsl/rsl_files/rsl_subchronic_nov_2022.xlsx
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{bind}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[tibble]{add_column}}
+#' @rdname import_rsl_source
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom stringr str_squish str_replace_all
+#' @importFrom dplyr rename filter mutate bind_rows across case_when
+#' @importFrom tidyr pivot_longer separate matches
+#' @importFrom gsubfn list
+#' @importFrom tibble add_column
 #--------------------------------------------------------------------------------------
 import_rsl_source <- function(db,chem.check.halt=F) {
   printCurrentFunction(db)

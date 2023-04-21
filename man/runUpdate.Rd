@@ -2,7 +2,7 @@
 % Please edit documentation in R/runUpdate.R
 \name{runUpdate}
 \alias{runUpdate}
-\title{Runs a database query and returns a result set}
+\title{FUNCTION_TITLE}
 \usage{
 runUpdate(
   table,
@@ -15,6 +15,8 @@ runUpdate(
 )
 }
 \arguments{
+\item{table}{PARAM_DESCRIPTION}
+
 \item{updateQuery}{a properly formatted SQL query as a string in the form of an UPDATE INNER JOIN}
 
 \item{updated_df}{a dataframe of updated data to temporarily write to database for INNER JOIN}
@@ -27,6 +29,23 @@ runUpdate(
 
 \item{trigger_check}{if FALSE, audit triggers are ignored/bypassed}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Runs a database query and returns a result set
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
+ \code{\link[DBI]{dbSendStatement}}
 }

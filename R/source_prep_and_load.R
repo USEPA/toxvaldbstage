@@ -1,14 +1,26 @@
 #--------------------------------------------------------------------------------------
-#' Prep the source data aand load
+#' @description Prep the source data aand load
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param source Name of the source
 #' @param table Name of the database table
 #' @param res The data frame to be processed
-#' @param do.reset If TRUE, delete data from the database for this source before
-#' inserting new data. Default FALSE
+#' @param do.reset If TRUE, delete data from the database for this source before #' inserting new data. Default FALSE
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @param chem.check.halt If TRUE, stop the execution if there are errors in the
-#' chemical  mapping
+#' @param chem.check.halt If TRUE, stop the execution if there are errors in the #' chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[tidyr]{reexports}}
+#' @rdname source_prep_and_load
+#' @export 
+#' @importFrom tidyr contains
 #--------------------------------------------------------------------------------------
 source_prep_and_load <- function(db,source,table,res,
                                  do.reset=FALSE, do.insert=FALSE,
@@ -29,7 +41,7 @@ source_prep_and_load <- function(db,source,table,res,
   res$source = source
   res$clowder_id = "-"
   res$parent_chemical_id = "-"
-  if(!is.element(source,c("HESS"))) res$document_name = "-"
+  if(!generics::is.element(source,c("HESS"))) res$document_name = "-"
   res$qc_status = "not determined"
 
   #####################################################################
@@ -46,7 +58,7 @@ source_prep_and_load <- function(db,source,table,res,
   # so it is applied BEFORE hashing and loading
   #
   desc <- runQuery(paste0("desc ",table),db)
-  desc <- desc[is.element(desc[,"Field"],names(res)),]
+  desc <- desc[generics::is.element(desc[,"Field"],names(res)),]
   for(i in 1:dim(desc)[1]) {
     col <- desc[i,"Field"]
     type <- desc[i,"Type"]

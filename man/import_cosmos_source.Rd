@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_cosmos_source.R
 \name{import_cosmos_source}
 \alias{import_cosmos_source}
-\title{Load cosmos Source files into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_cosmos_source(
   db,
@@ -20,6 +20,24 @@ import_cosmos_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load cosmos Source files into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{loadWorkbook}}, \code{\link[openxlsx]{sheets}}, \code{\link[openxlsx]{readWorkbook}}
+ \code{\link[methods]{is}}
+ \code{\link[stats]{setNames}}
 }

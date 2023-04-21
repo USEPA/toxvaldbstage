@@ -1,8 +1,22 @@
 #--------------------------------------------------------------------------------------
-#' Load doe_benchmarks Source into toxval_source
+#' @description Load doe_benchmarks Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./doe_benchmarks/doe_benchmarks_files/DOE_Wildlife_Benchmarks_1996.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_doe_benchmarks_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_doe_benchmarks_source <- function(db,
                                          infile="DOE_Wildlife_Benchmarks_1996.xlsx",

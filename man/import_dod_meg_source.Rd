@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_dod_meg_source.R
 \name{import_dod_meg_source}
 \alias{import_dod_meg_source}
-\title{Load DOD MEG to toxval_source. The file to be loaded are in ./dod_meg/dod_meg_files}
+\title{FUNCTION_TITLE}
 \usage{
 import_dod_meg_source(db, chem.check.halt = F)
 }
@@ -11,6 +11,25 @@ import_dod_meg_source(db, chem.check.halt = F)
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load DOD MEG to toxval_source. The file to be loaded are in ./dod_meg/dod_meg_files
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[stats]{reshape}}
+ \code{\link[stringr]{word}}
+ \code{\link[tidyr]{reexports}}
 }

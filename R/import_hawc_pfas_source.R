@@ -1,15 +1,39 @@
 #--------------------------------------------------------------------------------------
-#' Load HAWC PFAS Source into toxval_source
+#' @description Load HAWC PFAS Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param hawc_num The HAWC number being processed (e.g. 150, 430)
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{count}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}
+#'  \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[purrr]{map2}}
+#'  \code{\link[digest]{digest}}
+#' @rdname import_hawc_pfas_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom dplyr select distinct left_join arrange count mutate filter
+#' @importFrom tidyr pivot_wider unite pivot_longer separate
+#' @importFrom stringr str_squish
+#' @importFrom purrr map2_chr
+#' @importFrom digest digest
 #--------------------------------------------------------------------------------------
 import_hawc_pfas_source <- function(db,
                                         hawc_num = NULL,
                                         chem.check.halt=F) {
   printCurrentFunction(db)
-  if(is.null(hawc_num)) { 
-    stop("hawc_num parameter must have a value") 
+  if(is.null(hawc_num)) {
+    stop("hawc_num parameter must have a value")
     return()
   }
   infile1 = paste0(toxval.config()$datapath,
@@ -29,18 +53,18 @@ import_hawc_pfas_source <- function(db,
   #res_pfas3 <- lapply(res_pfas3, function(x) type.convert(as.character(x), as.is = T))
   #res_pfas3 <- data.frame(res_pfas3, stringsAsFactors = F)
   dim(res_pfas3)
-  
+
   #####################################################################
   cat("All closed empty square bracket entries to - in effects\n")
   #####################################################################
   res_pfas3$effects <- gsub("^\\[\\]$","-",res_pfas3$effects)
-  
+
   #####################################################################
   cat("Strip square brackets from beginning and end\n")
   #####################################################################
   res_pfas3$animal_group.experiment.study.searches <- gsub("\\]|\\[", "", res_pfas3$animal_group.experiment.study.searches)
   res_pfas3$animal_group.experiment.study.identifiers <- gsub("\\]|\\[", "", res_pfas3$animal_group.experiment.study.identifiers)
-  
+
   #####################################################################
   # cat("All na columns to character type\n")
   # #####################################################################
@@ -71,7 +95,7 @@ import_hawc_pfas_source <- function(db,
   #res_groups3 <- lapply(res_groups3, function(x) type.convert(as.character(x), as.is = T))
   #res_groups3 <- data.frame(res_groups3, stringsAsFactors = F)
   print(dim(res_groups3))
-  
+
   names.list <- c("assessment","name" ,"organ","NOEL","LOEL",
                   "FEL","url", "data_location",
                   "bmd","animal_group.experiment.study.id","animal_group.experiment.study.title" ,"animal_group.experiment.study.authors_short",
@@ -85,7 +109,7 @@ import_hawc_pfas_source <- function(db,
                   "animal_group.species","animal_group.strain" ,"animal_group.sex","animal_group.name","animal_group.generation",
                   "noel_names.noel","noel_names.loel")
   hawc_pfas <- res_pfas3[,names.list]
-  
+
   #####################################################################
   cat("map noel,loel, fel values and units from dose dictionary\n")
   #####################################################################
@@ -109,7 +133,7 @@ import_hawc_pfas_source <- function(db,
                        values_from = "dose") %>%
     tidyr::unite("dose", -dose_regime, -dose_units.name, -dose_units.name_n, sep=", ") %>%
     dplyr::mutate(dose = gsub(", NA", "", dose))
-  
+
   # Helper function to manage the multiple dosing weirdness but maintain value-unit pairs
   split_dose_dose_units <- function(r, before_r = TRUE){
     # Split the input strings
@@ -128,7 +152,7 @@ import_hawc_pfas_source <- function(db,
         return()
     }
   }
-  
+
   # Sort out dose value - unit pairs for regimes with multiples
   doses = dose_dict %>%
     dplyr::select(dose_regime, dose, dose_units.name) %>%
@@ -141,11 +165,11 @@ import_hawc_pfas_source <- function(db,
     dplyr::mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
            dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
     dplyr::select(-dose_dose_units)
-  
+
   # Join/fill in dose and dose_units
   hawc_pfas$doses <- doses$dose[match(hawc_pfas$animal_group.dosing_regime.id,doses$dose_regime)]
   hawc_pfas$doses_units <- doses$dose_units.name[match(hawc_pfas$animal_group.dosing_regime.id,doses$dose_regime)]
-  
+
   # Fix NOEL dict
   noel_dict = dose_dict_orig %>%
     dplyr::left_join(hawc_pfas %>%
@@ -166,7 +190,7 @@ import_hawc_pfas_source <- function(db,
     dplyr::mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
            dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
     dplyr::select(-dose_dose_units)
-  
+
   # Fix LOEL dict
   loel_dict = dose_dict_orig %>%
     dplyr::left_join(hawc_pfas %>%
@@ -187,7 +211,7 @@ import_hawc_pfas_source <- function(db,
     dplyr::mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
            dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
     dplyr::select(-dose_dose_units)
-  
+
   # Fix FEL dict
   fel_dict = dose_dict_orig %>%
     dplyr::left_join(hawc_pfas %>%
@@ -208,7 +232,7 @@ import_hawc_pfas_source <- function(db,
     dplyr::mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
            dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
     dplyr::select(-dose_dose_units)
-  
+
   # Match NOEL and LOEL values
   hawc_pfas$NOEL_values <- noel_values$dose[match(paste(hawc_pfas$animal_group.dosing_regime.id,hawc_pfas$NOEL),
                                                       paste(noel_values$dose_regime,noel_values$NOEL))]
@@ -222,9 +246,9 @@ import_hawc_pfas_source <- function(db,
                                                     paste(fel_values$dose_regime,fel_values$FEL))]
   hawc_pfas$FEL_units <-  fel_values$dose_units.name[match(paste(hawc_pfas$animal_group.dosing_regime.id,hawc_pfas$FEL),
                                                                paste(fel_values$dose_regime,fel_values$FEL))]
-  
+
   # hawc_pfas %>% filter(animal_group.dosing_regime.id == 100500837) %>% View()
-  
+
   #hawc_pfas$study_url <-  paste("https://hawcprd.epa.gov",hawc_pfas$animal_group.experiment.study.url, sep = "")
   hawc_pfas$endpoint_url <-  paste("https://hawcprd.epa.gov",hawc_pfas$url, sep = "")
   hawc_pfas$assessment_url <-  paste("https://hawcprd.epa.gov/assessment/",hawc_pfas$assessment,"/", sep = "")
@@ -240,7 +264,7 @@ import_hawc_pfas_source <- function(db,
                   "doses", "doses_units", "NOEL_values","NOEL_units","LOEL_values",
                   "LOEL_units","FEL_values","FEL_units",
                   "record_url","source_url")
-  
+
   names(hawc_pfas) <- names.list
   # Prep final
   hawc_pfas_final <- hawc_pfas[,names.list]
@@ -256,7 +280,7 @@ import_hawc_pfas_source <- function(db,
   hawc_pfas_final$source <- paste0("HAWC PFAS ", hawc_num)
   hawc_pfas_final$subsource <- ifelse(hawc_num == 150, "PFAS 150 (2020)",
                                       ifelse(hawc_num == 430, "PFAS 430 (2020)", paste0("PFAS ", hawc_num)))
-  
+
   # # Base R attempt to pivot longer for NEL, LOEL, FEL columns
   # h1 <- hawc_pfas_final[,c(1:33,35,38:39,40:42,45:49,51:52)]
   # h2 <- hawc_pfas_final[,c(1:33,34,36:37,40:42,45:49,51:52)]
@@ -293,17 +317,17 @@ import_hawc_pfas_source <- function(db,
     dplyr::mutate(toxval_type = gsub("NA", NA, toxval_type),
            toxval_numeric = gsub("NA", NA, toxval_numeric),
            toxval_units = gsub("NA", NA, toxval_units))
-  
+
   print(dim(hawc_pfas_final))
   hawc_pfas_final <- hawc_pfas_final[which(hawc_pfas_final$toxval_numeric != '-999'),]
   print(dim(hawc_pfas_final))
-  
+
   #####################################################################
   cat("Collapse duplicated that just differ by critical effect \n")
   #####################################################################
   res = hawc_pfas_final
   res2 = res[,!names(res)%in%c("critical_effect","endpoint_url_original","record_url","target")]
-  
+
   res2$hashkey = NA
   res$hashkey = NA
   for(i in 1:nrow(res2)) {

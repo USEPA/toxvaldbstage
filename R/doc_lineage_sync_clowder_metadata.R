@@ -1,10 +1,34 @@
-#' doc_lineage_sync_clowder_metadata
-#' Utility script to sync the Clowder metadata to the database based on Clowder ID
+#' @title doc_lineage_sync_clowder_metadata
+#' @description Utility script to sync the Clowder metadata to the database based on Clowder ID
 #' @param source_table The source table name (e.g. source_test)
 #' @param db the name of the database
 #' @param clowder_url URL to Clowder
 #' @param clowder_api_key API key to access Clowder resources
 #' @import httr jsonlite
+#' @param batch_size PARAM_DESCRIPTION, Default: 250
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[httr]{GET}}, \code{\link[httr]{add_headers}}, \code{\link[httr]{content}}
+#'  \code{\link[jsonlite]{toJSON, fromJSON}}
+#'  \code{\link[tidyr]{nest}}, \code{\link[tidyr]{reexports}}
+#'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{bind}}
+#'  \code{\link[purrr]{keep}}
+#'  \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_trim}}
+#' @rdname doc_lineage_sync_clowder_metadata
+#' @export 
+#' @importFrom httr GET add_headers content
+#' @importFrom jsonlite fromJSON
+#' @importFrom tidyr unnest starts_with any_of contains
+#' @importFrom dplyr filter mutate select bind_rows
+#' @importFrom purrr compact
+#' @importFrom stringr str_replace_all str_squish
 doc_lineage_sync_clowder_metadata <- function(source_table,
                                               db,
                                               clowder_url,
@@ -139,7 +163,7 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     # so it is applied BEFORE hashing and loading
     #
     desc <- runQuery(paste0("desc ","documents"),db)
-    desc <- desc[is.element(desc[,"Field"],names(metadata_out)),]
+    desc <- desc[generics::is.element(desc[,"Field"],names(metadata_out)),]
     for(i in 1:dim(desc)[1]) {
       col <- desc[i,"Field"]
       type <- desc[i,"Type"]
@@ -188,17 +212,4 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     startPosition <- startPosition + batchSize
     incrementPosition <- startPosition + batchSize - 1
   }
-}
-
-# Combine non-ID columns from audit table into JSON format for audit storage
-convert.fields.to.json <- function(in_dat){
-  lapply(seq_len(nrow(in_dat)), function(row){
-    in_dat[row, ] %>%
-      dplyr::summarise(record = jsonlite::toJSON(.)) %>%
-      dplyr::select(record)
-  }) %>%
-    dplyr::bind_rows() %>%
-    unlist() %>%
-    unname() %>%
-    return()
 }

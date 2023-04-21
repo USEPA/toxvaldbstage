@@ -1,9 +1,23 @@
 #--------------------------------------------------------------------------------------
-#' Load LANL Source into toxval_source
+#' @description Load LANL Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./lanl/lanl_files/ESLs_R3.3.xlsx
-
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_lanl_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+
 #--------------------------------------------------------------------------------------
 import_lanl_source <- function(db,
                                infile="ESLs_R3.3.xlsx",
@@ -24,7 +38,7 @@ import_lanl_source <- function(db,
                 "PB-210","NP-237","PU-238","PU-239/240","PU-241","RA-226","RA-228",
                 "NA-22","SR-90/ Y-90","TH-228","TH-229","TH-230","TH-232","H-3",
                 "U-233","U-234","U-235","U-236","U-238")
-  res = res[!is.element(res$Analyte.Code,bad.codes),]
+  res = res[!generics::is.element(res$Analyte.Code,bad.codes),]
 
   nlist = c("Analyte.Category","Analyte.Group","Analyte.Name","Analyte.Code","ESL.Medium","ESL.Receptor","No.Effect.ESL",
             "Low.Effect.ESL","Units","Minimum.ESL","ESL.ID" )

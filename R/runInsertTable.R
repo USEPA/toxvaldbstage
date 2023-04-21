@@ -1,13 +1,28 @@
 # library(RMySQL)
 # library(DBI)
 #--------------------------------------------------------------------------------------
-#' Inserts multiple rows into a database table
+#' @description Inserts multiple rows into a database table
 #'
 #' @param mat data frame containing the data, with the column names corresponding
 #' @param table name of the database table to which data will be inserted
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
+#' @title FUNCTION_TITLE
+#' @param get.id PARAM_DESCRIPTION, Default: T
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
+#' @rdname runInsertTable
+#' @export 
+#' @importFrom RMySQL dbConnect MySQL dbWriteTable dbSendQuery dbFetch dbHasCompleted dbClearResult dbDisconnect
 #--------------------------------------------------------------------------------------
 runInsertTable <- function(mat,table,db,do.halt=T,verbose=F,get.id=T) {
   if(!exists("DB.SERVER")) {

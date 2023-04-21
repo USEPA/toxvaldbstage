@@ -1,8 +1,28 @@
 #--------------------------------------------------------------------------------------
-#' Load HPVIS Source Info into toxval_source
+#' @description Load HPVIS Source Info into toxval_source
 #' @param db The version of toxval_source into which the source info is loaded.
 #' @param filepath The path for all the input xlsx files ./hpvis/hpvis_files
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[stats]{setNames}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{reexports}}
+#'  \code{\link[utils]{type.convert}}
+#' @rdname import_hpvis_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom stats setNames
+#' @importFrom dplyr mutate setdiff intersect
+#' @importFrom utils type.convert
 #--------------------------------------------------------------------------------------
 import_hpvis_source <- function(db,
                                 filepath="hpvis/hpvis_files",

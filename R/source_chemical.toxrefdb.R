@@ -1,15 +1,28 @@
 #--------------------------------------------------------------------------------------
-#' Special process to deal with source chemicals for ToxRefDB. This will put the
+#' @description Special process to deal with source chemicals for ToxRefDB. This will put the
 #' chemicals into the source database source_chemical table
 #' @param toxval.db The version of toxval into which the source info is loaded.
 #' @param source.db The source database version
-#' @param res The dataframe to which the chemical_id sill be added
 #' @param source The name of the source
+#' @param res The dataframe to which the chemical_id sill be added
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #' @param casrn.col The name of the column containing the CASRN
 #' @param name.col The name ofhte column containing hte chemical name
 #' @param verbose If TRUE, write out diagnostic messages
 #' @return Returns the input dataframe with the chemical_id added
+#' @title FUNCTION_TITLE
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[digest]{digest}}
+#' @rdname source_chemical.toxrefdb
+#' @export 
+#' @importFrom digest digest
 #--------------------------------------------------------------------------------------
 source_chemical.toxrefdb <- function(toxval.db,
                                      source.db,
@@ -54,10 +67,10 @@ source_chemical.toxrefdb <- function(toxval.db,
   chems$name = chems$cleaned_name
 
   res$chemical_id = NA
-  for(i in 1:nrow(chems)) {indx=chems[i,"chemical_index"]; cid=chems[i,"chemical_id"];res[is.element(res$chemical_index,indx),"chemical_id"]=cid}
+  for(i in 1:nrow(chems)) {indx=chems[i,"chemical_index"]; cid=chems[i,"chemical_id"];res[generics::is.element(res$chemical_index,indx),"chemical_id"]=cid}
   chems = subset(chems,select=-c(chemical_index))
   cids = runQuery(paste0("select distinct chemical_id from source_chemical where source='",source,"'"),source.db)[,1]
-  chems.new = chems[!is.element(chems$chemical_id,cids),]
+  chems.new = chems[!generics::is.element(chems$chemical_id,cids),]
   n0 = length(cids)
   n1 = nrow(chems)
   n01 = nrow(chems.new)

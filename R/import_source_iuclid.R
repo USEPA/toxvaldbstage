@@ -1,11 +1,37 @@
 #--------------------------------------------------------------------------------------
-#' A generic template for adding data to toxval_source for a new source
+#' @description A generic template for adding data to toxval_source for a new source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param subf The subfolder containing the IUCLID subsource
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{select}}
+#'  \code{\link[writexl]{write_xlsx}}
+#'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[textclean]{mgsub}}
+#' @rdname import_source_iuclid
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr filter rename mutate across select
+#' @importFrom writexl write_xlsx
+#' @importFrom tidyr all_of separate pivot_longer starts_with pivot_wider separate_rows unite matches ends_with
+#' @importFrom gsubfn list
+#' @importFrom stringr str_squish
+#' @importFrom textclean mgsub
 #--------------------------------------------------------------------------------------
 import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -203,27 +229,4 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt)
-}
-
-#--------------------------------------------------------------------------------------
-#' Load the various IUCLID subsources into ToxVal
-#' @param dir directory containing the various IUCLID subsource subdirectories
-#' @param db The version of toxval_source into which the source is loaded.
-#' @param do.insert If TRUE, insert data into the database, default TRUE
-#' @param chem.check.halt If TRUE, stop the execution if there are errors in the
-#' @return None, subsources loaded
-#--------------------------------------------------------------------------------------
-
-orchestrate_import_source_iuclid <- function(dir=paste0(toxval.config()$datapath, "iuclid")) {
-  # Loop through all subdirectories of current wd and load the source files within into ToxVal
-  subdirs <- list.files(dir, pattern="iuclid")
-
-  for (subf in subdirs) {
-    message("Pushing: ", subf)
-    import_source_iuclid(db=db,
-                         subf=subf,
-                         chem.check.halt=FALSE,
-                         do.reset=FALSE,
-                         do.insert=TRUE)
-  }
 }

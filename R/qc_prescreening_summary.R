@@ -1,10 +1,29 @@
 #--------------------------------------------------------------------------------------
-#' Runs a database query and returns a result set
+#' @description Runs a database query and returns a result set
 #'
 #' @param src_tbl a toxval source table name
 #' @param outputDir optional directory path to save output file in
 #' @param db the name of the database
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[tidyr]{pivot_longer}}
+#'  \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{summarise}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[writexl]{write_xlsx}}
+#' @rdname qc_prescreening_summary
+#' @importFrom tidyr pivot_longer
+#' @importFrom dplyr everything group_by summarise
+#' @importFrom gsubfn list
+#' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
 qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
   if(is.null(src_tbl)) stop("No source table name provided...")

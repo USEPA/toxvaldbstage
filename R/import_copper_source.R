@@ -1,8 +1,22 @@
 #--------------------------------------------------------------------------------------
-#' Load copper manufacturers Source into toxval_source
+#' @description Load copper manufacturers Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./copper/copper_files/Copper Data Entry - Final.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_copper_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_copper_source <- function(db,
                                  infile="Copper Data Entry - Final.xlsx",

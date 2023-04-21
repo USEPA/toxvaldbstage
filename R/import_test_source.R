@@ -1,9 +1,27 @@
 #--------------------------------------------------------------------------------------
-#' Load TEST Source data into toxval_source
+#' @description Load TEST Source data into toxval_source
 #' @param db The version of toxval_source into which the source info is loaded.
 #' @param infile1 The input file ./test/test_files/TEST data.xlsx
 #' @param infile2 The input file ./test/test_files/test_chemicals_invitrodb.csv to map casrn to names from prod_internal_invitrodb_v3_2.chemical
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[utils]{read.table}}
+#'  \code{\link[stringr]{str_count}}
+#' @rdname import_test_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom utils read.csv
+#' @importFrom stringr str_count
 #--------------------------------------------------------------------------------------
 import_test_source <- function(db,
                                infile1="TEST data.xlsx",

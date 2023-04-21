@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' Load HAWC Source into toxval_source
+#' @description Load HAWC Source into toxval_source
 #'
 #' Note that the different tabs in the input sheet have different names, so these need
 #' to be adjusted manually for the code to work. This is a problem wit how the data
@@ -9,6 +9,24 @@
 #' @param infile1 The input file ./hawc/hawc_files/hawc_original_12_06_21.xlsx
 #' @param infile2 The input file ./hawc/hawc_files/dose_dict.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{getSheetNames}}, \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[stats]{aggregate}}
+#'  \code{\link[digest]{digest}}
+#' @rdname import_hawc_source
+#' @export 
+#' @importFrom openxlsx getSheetNames read.xlsx
+#' @importFrom stats aggregate
+#' @importFrom digest digest
 #--------------------------------------------------------------------------------------
 import_hawc_source <- function(db,
                                infile1="hawc_original_12_06_21.xlsx",
@@ -111,10 +129,10 @@ import_hawc_source <- function(db,
   new_hawc_df_final <- new_hawc_df_final[,c("source_id",names(new_hawc_df_final[-46]))]
 
   res = new_hawc_df_final
-  res = res[!is.element(res$casrn,"NOCAS"),]
-  names(res)[is.element(names(res),"LOEL_original")] = "loel_original"
-  names(res)[is.element(names(res),"NOEL_original")] = "noel_original"
-  names(res)[is.element(names(res),"FEL_original")] = "fel_original"
+  res = res[!generics::is.element(res$casrn,"NOCAS"),]
+  names(res)[generics::is.element(names(res),"LOEL_original")] = "loel_original"
+  names(res)[generics::is.element(names(res),"NOEL_original")] = "noel_original"
+  names(res)[generics::is.element(names(res),"FEL_original")] = "fel_original"
 
   #####################################################################
   cat("Collapse duplicated that just differ by critical effect \n")

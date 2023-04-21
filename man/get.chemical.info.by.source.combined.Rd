@@ -20,3 +20,16 @@ database info collected
 get chemical info from source db tables for curation, create
 chemical table to map curated chemicals to.
 }
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[dplyr]{bind}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{context}}
+}

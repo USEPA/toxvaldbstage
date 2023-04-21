@@ -1,13 +1,36 @@
 # library('dplyr')
 # library('tidyr')
 #-------------------------------------------------------------------------------------
-#' Extract ACToR1 data to toxval source
+#' @description Extract ACToR1 data to toxval source
 #' @param toxval.db The version of toxval source into which the tables are loaded.
 #' @param infile The input file ./ACToR replacements/ACToR_2021/assay_table_hazard prioritized for use.xlsx
 #' @param filepath The path for all the input xlsx files ./ACToR replacements/ACToR_2021
 #' @param verbose Whether the loaded rows should be printed to the console.
 #' @param do.init if TRUE, read the data in from the res_actor_2021q4 database and set up the matrix
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}, \code{\link[openxlsx]{write.xlsx}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[stringr]{str_replace}}
+#'  \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate_all}}
+#'  \code{\link[tidyr]{spread}}
+#'  \code{\link[stats]{aggregate}}, \code{\link[stats]{na.fail}}
+#' @rdname import_actor_source
+#' @importFrom openxlsx read.xlsx write.xlsx
+#' @importFrom gsubfn list
+#' @importFrom stringr str_replace_all
+#' @importFrom dplyr group_by select left_join mutate_at
+#' @importFrom tidyr spread
+#' @importFrom stats aggregate na.omit
 #--------------------------------------------------------------------------------------
 import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
   printCurrentFunction(toxval.db)

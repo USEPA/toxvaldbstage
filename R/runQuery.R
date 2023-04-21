@@ -1,13 +1,28 @@
 # library(RMySQL)
 # library(DBI)
 #--------------------------------------------------------------------------------------
-#' Runs a database query and returns a result set
+#' @description Runs a database query and returns a result set
 #'
 #' @param query a properly formatted SQL query as a string
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
+#'  \code{\link[utils]{flush.console}}
+#' @rdname runQuery
+#' @importFrom RMySQL dbConnect MySQL dbSendQuery dbFetch dbHasCompleted dbClearResult dbDisconnect
+#' @importFrom utils flush.console
 #--------------------------------------------------------------------------------------
 runQuery <- function(query=NULL,db,do.halt=T,verbose=F) {
   if(is.null(query)){

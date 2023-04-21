@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_doe_benchmarks_source.R
 \name{import_doe_benchmarks_source}
 \alias{import_doe_benchmarks_source}
-\title{Load doe_benchmarks Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_doe_benchmarks_source(
   db,
@@ -17,6 +17,22 @@ import_doe_benchmarks_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load doe_benchmarks Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

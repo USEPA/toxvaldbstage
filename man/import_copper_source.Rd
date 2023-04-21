@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_copper_source.R
 \name{import_copper_source}
 \alias{import_copper_source}
-\title{Load copper manufacturers Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_copper_source(
   db,
@@ -17,6 +17,22 @@ import_copper_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load copper manufacturers Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

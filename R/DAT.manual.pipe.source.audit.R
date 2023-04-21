@@ -1,14 +1,39 @@
 #--------------------------------------------------------------------------------------
-#' Processes manually QC'd (sans-DAT) QC audit information into database
+#' @#' Processes manually QC'd (sans-DAT) QC audit information into database
 #'
 #' @param source name of ToxVal source table audit information is associated with
 #' @param db the name of the database
 #' @param live_df a filepath to the DAT live data to push to the 'source' table
-#' @param qc_user The name of the user who completed the QC
-#'
+#' @param qc_user The name of the user who completed the QC #'
 #' @import dplyr DBI magrittr
 #'
-#' @export
+#' @export 
+#' @title FUNCTION_TITLE
+#' @description FUNCTION_DESCRIPTION
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{bind}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{summarise}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[utils]{View}}
+#'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}
+#'  \code{\link[writexl]{write_xlsx}}
+#' @rdname DAT.manual.pipe.source.audit
+#' @importFrom gsubfn list
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr filter bind_rows group_by summarize arrange rename left_join mutate select
+#' @importFrom stringr str_squish
+#' @importFrom utils View
+#' @importFrom tidyr contains any_of separate unite
+#' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
 DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn Rowan") {
   # live_df = list("Repo/DAT reports/qc_update_hawc_pfas_430_hashed_20221013.xlsx",
@@ -113,7 +138,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   # }
 
   desc <- runQuery(paste0("desc ",table),db)
-  desc <- desc[is.element(desc[,"Field"],names(live)),]
+  desc <- desc[generics::is.element(desc[,"Field"],names(live)),]
   for(i in 1:dim(desc)[1]) {
     col <- desc[i,"Field"]
     type <- desc[i,"Type"]
@@ -132,7 +157,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
 
   # Prepare live values
   live = live %>%
-    prep.DAT.conversion.manual(., hash_id_list=hash_id_list, source=source) %>%
+    prep.DAT.conversion(., hash_id_list=hash_id_list, source=source) %>%
     # Special case where all changes are submitted as version 2
     dplyr::mutate(version = 2,
            created_by = qc_user,
@@ -158,7 +183,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   if(nrow(audit)){
     audit = audit %>%
       # Transform record columns into JSON
-      dplyr::mutate(record = convert.audit.to.json.manual(dplyr::select(., -tidyr::any_of(id_list)))) %>%
+      dplyr::mutate(record = convert.fields.to.json(dplyr::select(., -tidyr::any_of(id_list)))) %>%
       # Select only audit/ID columns and JSON record
       dplyr::select(tidyr::any_of(id_list), record)
   }
@@ -212,35 +237,4 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
                        paste0("a.", names(live),  " = b.", names(live), collapse = ", ")
   )
   # runUpdate(table=source, updateQuery=updateQuery, updated_df=live, db)
-}
-
-# Combine non-ID columns from audit table into JSON format for audit storage
-convert.audit.to.json.manual <- function(in_dat){
-  lapply(seq_len(nrow(in_dat)), function(row){
-    in_dat[row, ] %>%
-      dplyr::summarise(record = jsonlite::toJSON(.)) %>%
-      dplyr::select(record)
-  }) %>%
-    dplyr::bind_rows() %>%
-    unlist() %>%
-    unname() %>%
-    return()
-}
-
-# Select and rename DAT audit columns for toxval_source, calculate new source_hash
-prep.DAT.conversion.manual <- function(in_dat, hash_id_list, source){
-  in_dat = in_dat %>%
-    dplyr::rename(parent_hash = src_record_id) %>%
-    # Remove extraneous DAT fields
-    .[ , !(names(.) %in% c("uuid", "description", "total_fields_changed", "dataset_description", "DAT_domain_name",
-                           "domain_description", "DAT_source_name", "source_description", "status_description"))] %>%
-    # Alphabetize the columns to ensure consistent hashing column order
-    .[, sort(colnames(.))] %>%
-    tidyr::unite("pre_source_hash", tidyr::any_of(names(.)[!names(.) %in% hash_id_list]),
-                 sep="", remove = FALSE) %>%
-    # Set source_hash
-    dplyr::mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
-    dplyr::select(-pre_source_hash)
-
-  return(in_dat)
 }

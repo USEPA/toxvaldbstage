@@ -13,7 +13,18 @@
 #' @param verbose if TRUE, print diagnostic information
 #' @return None. SQL statement is run.
 #' @import RMySQL DBI
-#' @export
+#' @export 
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
+#' @rdname runStatement
+#' @importFrom RMySQL dbConnect MySQL dbSendQuery dbHasCompleted dbClearResult dbDisconnect
 #--------------------------------------------------------------------------------------
 runStatement <- function(query,db,do.halt=F,verbose=F) {
 

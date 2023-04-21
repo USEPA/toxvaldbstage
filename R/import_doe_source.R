@@ -1,9 +1,27 @@
 # library("openxlsx")
 # library(dplyr)
 #--------------------------------------------------------------------------------------
-#' Load doe Source into dev_toxval_source_v4.
+#' @description Load doe Source into dev_toxval_source_v4.
 #' @param toxval.db The version of toxval into which the source is loaded.
 #' @param infile The input file ./doe/doe_files/Revision_29.xlsx
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[gsubfn]{list}}
+#'  \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{filter-joins}}
+#' @rdname import_doe_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom gsubfn list
+#' @importFrom dplyr distinct semi_join anti_join
 
 #--------------------------------------------------------------------------------------
 

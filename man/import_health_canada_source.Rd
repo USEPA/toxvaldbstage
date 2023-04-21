@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_health_canada_source.R
 \name{import_health_canada_source}
 \alias{import_health_canada_source}
-\title{Load Health Canada Source Info into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_health_canada_source(
   db,
@@ -17,6 +17,22 @@ import_health_canada_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load Health Canada Source Info into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_dod_ered_source.R
 \name{import_dod_ered_source}
 \alias{import_dod_ered_source}
-\title{Load dod Source into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_dod_ered_source(
   db,
@@ -17,6 +17,23 @@ import_dod_ered_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load dod Source into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[janitor]{excel_numeric_to_date}}
 }

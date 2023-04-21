@@ -1,21 +1,19 @@
 #--------------------------------------------------------------------------------------
-#' @#'
-#'
-#' @return Returns a dataframe with all character fields edited to replace Greek symbols
-#' with alphabetic equivalents.
-#' @export
 #' @title fix.greek.symbols
 #' @description A function to check all character fields and replace Greek symbols
 #' with alphabetic equivalents.
-
+#' @return Returns a dataframe with all character fields edited to replace Greek symbols
+#' with alphabetic equivalents.
+#' @export 
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
 #' @rdname fix.greek.symbols
+#' @param df PARAM_DESCRIPTION
 #--------------------------------------------------------------------------------------
 fix.greek.symbols <- function(df) {
 

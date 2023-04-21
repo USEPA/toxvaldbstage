@@ -1,10 +1,32 @@
 #--------------------------------------------------------------------------------------
-#' Import of EFSA OpenFoodTox 2022 source into toxval_source
+#' @description Import of EFSA OpenFoodTox 2022 source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{recode}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
+#'  \code{\link[tidyselect]{where}}
+#' @rdname import_efsa_source_2022
+#' @export 
+#' @importFrom readxl read_xlsx
+#' @importFrom stringr str_squish
+#' @importFrom dplyr rename mutate recode across select distinct
+#' @importFrom tidyr separate matches
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

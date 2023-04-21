@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_test_source.R
 \name{import_test_source}
 \alias{import_test_source}
-\title{Load TEST Source data into toxval_source}
+\title{FUNCTION_TITLE}
 \usage{
 import_test_source(
   db,
@@ -20,6 +20,24 @@ import_test_source(
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
 }
+\value{
+OUTPUT_DESCRIPTION
+}
 \description{
 Load TEST Source data into toxval_source
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+\code{\link[openxlsx]{read.xlsx}}
+ \code{\link[utils]{read.table}}
+ \code{\link[stringr]{str_count}}
 }

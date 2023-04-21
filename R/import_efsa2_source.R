@@ -1,8 +1,24 @@
 #--------------------------------------------------------------------------------------
-#' Load efsa2 Source into toxval_source
+#' @description Load efsa2 Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./efsa2/efsa2_files/merge2/EFSA_combined_new.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[utils]{type.convert}}
+#' @rdname import_efsa2_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
+#' @importFrom utils type.convert
 #--------------------------------------------------------------------------------------
 import_efsa2_source <- function(db,
                                 infile="EFSA_combined_new 2022-07-19.xlsx",

@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' Load caloehha Source file into toxval_source
+#' @description Load caloehha Source file into toxval_source
 #' The raw data can be exported as an Excel sheet from the web site
 #' https://oehha.ca.gov/chemicals, selecting the link "Export database as .CSV file"
 #'
@@ -8,6 +8,20 @@
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ="../caloehha/caloehha_files/OEHHA-chemicals_2018-10-30T08-50-47.xlsx",
 #' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_caloehha_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_caloehha_source <- function(db,
                                    infile="OEHHA-chemicals_2022-06-22T13-42-44.xlsx",
@@ -101,7 +115,7 @@ import_caloehha_source <- function(db,
   names(mat) = nlist
   mat$acute_rel_units = "um/m3"
   mat$rel_8_hour_inhalation_units = "um/m3"
-  mat = mat[!is.element(mat$casrn,"n/a"),]
+  mat = mat[!generics::is.element(mat$casrn,"n/a"),]
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################

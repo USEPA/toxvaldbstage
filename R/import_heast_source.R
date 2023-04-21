@@ -1,8 +1,22 @@
 #--------------------------------------------------------------------------------------
-#' Load HEAST Source into toxval_source
+#' @description Load HEAST Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ./heast/heast_files/EPA_HEAST_Table1_ORNL for loading.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @title FUNCTION_TITLE
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples 
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso 
+#'  \code{\link[openxlsx]{read.xlsx}}
+#' @rdname import_heast_source
+#' @export 
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_heast_source <- function(db,
                                 infile="EPA_HEAST_Table1_ORNL for loading.xlsx",

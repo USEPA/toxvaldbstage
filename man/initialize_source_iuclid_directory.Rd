@@ -2,7 +2,7 @@
 % Please edit documentation in R/initialize_source_iuclid_directory.R
 \name{initialize_source_iuclid_directory}
 \alias{initialize_source_iuclid_directory}
-\title{Initialize Source IUCLID Directory into subdirectory based on input files}
+\title{FUNCTION_TITLE}
 \usage{
 initialize_source_iuclid_directory()
 }
@@ -11,4 +11,14 @@ None, file directory structure generated
 }
 \description{
 Initialize Source IUCLID Directory into subdirectory based on input files
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
 }
