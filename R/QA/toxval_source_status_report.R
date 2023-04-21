@@ -19,7 +19,7 @@ toxval_source_status_report <- function(db){
     # Filter to those named "source_*"
     .[grepl("source_", .)] %>%
     # Ignore those like source_audit or source_chemical
-    .[!grepl("chemical|source_audit|_old", .)]
+    .[!grepl("chemical|source_audit|_old|documents", .)]
 
   ################################################################################
   ### General stats
@@ -44,7 +44,8 @@ toxval_source_status_report <- function(db){
     return(tmp)
   }) %>%
     dplyr::bind_rows() %>%
-    left_join(x=chem_index, y=., by="source_table")
+    left_join(x=chem_index, y=., by="source_table") %>%
+    dplyr::mutate(across(c(n_records, n_chems), ~tidyr::replace_na(., 0)))
 
   ################################################################################
   ### Get chemical curation stats
@@ -59,7 +60,8 @@ toxval_source_status_report <- function(db){
                      dtxsid = length(unique(dtxsid))) %>%
     get_percent_summary("perc_dtxsid", "dtxsid", "total_chems") %>%
     get_percent_summary("perc_dtxrid", "dtxrid", "total_chems") %>%
-    left_join(x=chem_index, y=., by="source")
+    left_join(x=chem_index, y=., by="source") %>%
+    dplyr::mutate(across(c(-chemprefix, -source, -source_table), ~tidyr::replace_na(., 0)))
 
   ################################################################################
   ### Get QC Stats
@@ -79,14 +81,38 @@ toxval_source_status_report <- function(db){
     dplyr::bind_rows() %>%
     get_percent_summary("perc_pass", "pass", "qc_perc") %>%
     get_percent_summary("perc_fail", "fail", "qc_perc") %>%
-    left_join(x=chem_index, y=., by="source_table")
+    left_join(x=chem_index, y=., by="source_table") %>%
+    dplyr::mutate(across(c(-chemprefix, -source, -source_table), ~tidyr::replace_na(., 0)))
 
   ################################################################################
   ### Get Document Cataloging/Lineage Stats
   ################################################################################
   cat("\n...Generating document cataloging stats")
-  # TODO generate stats once the document lineage schema is established
-  doc_cat_stats = data.frame()
+  # Check all required document lineage tables are present
+  doc_lineage_check <- runQuery(query = paste0("SHOW TABLES FROM ", db),
+                                db=db) %>%
+    .[[1]] %>%
+    .[grepl("documents", .)]
+
+  doc_lineage_tbls <- c("documents", "documents_lineage", "documents_records")
+
+  doc_lineage_check <- doc_lineage_tbls[!doc_lineage_tbls %in% doc_lineage_check]
+
+  if(length(doc_lineage_check)){
+    message("Missing document lineage table: ", paste0(doc_lineage_check, collapse = ", "))
+    doc_cat_stats = data.frame()
+  } else {
+    # Generate stats once the document lineage schema is established
+    doc_cat_stats <- runQuery("SELECT source_hash, source_table FROM documents_records", db) %>%
+      distinct() %>%
+      dplyr::group_by(source_table) %>%
+      dplyr::summarise(recs_w_docs = n()) %>%
+      left_join(x=chem_index, y=., by="source_table") %>%
+      left_join(gen_stats %>% select(source_table, n_records) %>% distinct(),
+                by="source_table") %>%
+      get_percent_summary("perc_w_docs", "recs_w_docs", "n_records") %>%
+      dplyr::mutate(across(c(-chemprefix, -source, -source_table), ~tidyr::replace_na(., 0)))
+  }
 
   ################################################################################
   ### Check chemical index versus source table usage
@@ -151,8 +177,8 @@ toxval_source_status_report <- function(db){
   return(out)
 }
 
-#' get_percent_summary
-#' Helper function to calculate percentages based on input dataframe and fields
+#' @title get_percent_summary
+#' @description Helper function to calculate percentages based on input dataframe and fields
 #' @return Modified dataframe with new percentage 'col' based on 'num' divided by 'den'
 get_percent_summary <- function(df, col, num, den, n_digits=3){
   df[[col]] = round(df[[num]] / df[[den]] * 100, digits = n_digits)
