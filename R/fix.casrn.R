@@ -7,29 +7,28 @@
 #' @return the fixed CASRN
 #' @title FUNCTION_TITLE
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[tidyr]{reexports}}
 #' @rdname fix.casrn
-#' @export 
-#' @importFrom tidyr contains
+#' @export
 #
 #--------------------------------------------------------------------------------------
 fix.casrn <- function(casrn,cname="",verbose=F) {
   if(verbose) cat("input: ",cname,":",casrn,"\n")
-  if(tidyr::contains(casrn,"NOCAS")) return(casrn)
+  if(grepl("NOCAS", casrn)) return(casrn)
   doit <- T
   while(doit) {
     if(substr(casrn,1,1)=="0") casrn <- substr(casrn,2,nchar(casrn))
     else doit <- F
   }
 
-  if(!tidyr::contains(casrn,"-")) {
+  if(!grepl("-", casrn)) {
     nc <- nchar(casrn)
     ctemp <- casrn
     right <- substr(ctemp,nc,nc)

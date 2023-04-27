@@ -31,7 +31,6 @@
 #' @export
 #' @importFrom stringi stri_escape_unicode
 #' @importFrom stringr str_replace_all str_trim
-#' @importFrom tidyr contains
 #' @importFrom openxlsx write.xlsx
 #--------------------------------------------------------------------------------------
 chem.check <- function(res0,
@@ -77,14 +76,14 @@ chem.check <- function(res0,
                            "Pennsylvania DEP ToxValues",
                            "EnviroTox_v2",
                            "HEAST"))) {
-      if(tidyr::contains(n2,";")) {
+      if(grepl(";", n2)) {
         start = gregexpr(";",n2)[[1]][1]
         n3 = stringr::str_trim(substr(n2,1,start-1))
         string = paste0(source," [",n2,"] [",n3,"]")
         #cat(string,"\n")
         n2 = n3
       }
-      if(tidyr::contains(n2," (")) {
+      if(grepl(" \\(", n2)) {
         start = gregexpr(" \\(",n2)[[1]][1]
         n3 = stringr::str_trim(substr(n2,1,start-1))
         string = paste0(source," [",n2,"] [",n3,"]")

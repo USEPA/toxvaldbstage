@@ -39,7 +39,7 @@ prep_source_opp_qc_load <- function(in_file, db){
                               " = b.", names(out)[!names(out) %in% c("source_hash")],
                               collapse = ", ")
   )
-  runUpdate(table="source_opp", updateQuery=updateQuery, updated_df=out, db=db, trigger_check=FALSE)
+  # runUpdate(table="source_opp", updateQuery=updateQuery, updated_df=out, db=db)
 }
 
-# writexl::write_xlsx(out2, "qc_source_opp_push.xlsx")
+# writexl::write_xlsx(out2, "source_opp_QC_push.xlsx")

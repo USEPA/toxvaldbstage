@@ -2,25 +2,24 @@
 #' @description Select and rename DAT audit columns for toxval_source, calculate new source_hash
 #' @param in_dat PARAM_DESCRIPTION
 #' @param hash_id_list PARAM_DESCRIPTION
-#' @param source PARAM_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate}}
 #'  \code{\link[tidyr]{unite}}, \code{\link[tidyr]{reexports}}
 #'  \code{\link[purrr]{map}}
 #' @rdname prep.DAT.conversion
-#' @export 
+#' @export
 #' @importFrom dplyr rename select mutate
 #' @importFrom tidyr unite any_of
 #' @importFrom purrr map_chr
-prep.DAT.conversion <- function(in_dat, hash_id_list, source){
+prep.DAT.conversion <- function(in_dat, hash_id_list){
   in_dat = in_dat %>%
     dplyr::rename(parent_hash = src_record_id) %>%
     # Remove extraneous DAT fields
