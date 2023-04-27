@@ -70,17 +70,18 @@ toxval_source_status_report <- function(db){
   qc_stats = lapply(chem_index$source_table[!is.na(chem_index$source_table)], function(s_tbl){
     runQuery(paste0("SELECT qc_status FROM ", s_tbl), db=db) %>%
       dplyr::summarise(total_records = n(),
+                       total_qc = sum(qc_status != "not determined"),
                        pass = sum(qc_status %in% c("pass", "PASS")),
                        fail = sum(qc_status %in% c("fail", "FAIL")),
                        pending = sum(qc_status == "not determined"),
-                       qc_perc = round(sum(qc_status != "not determined") / total_records * 100, 3)
+                       qc_perc = round(total_qc / total_records * 100, 3)
                        ) %>%
       dplyr::mutate(source_table = s_tbl) %>%
       return()
   }) %>%
     dplyr::bind_rows() %>%
-    get_percent_summary("perc_pass", "pass", "qc_perc") %>%
-    get_percent_summary("perc_fail", "fail", "qc_perc") %>%
+    get_percent_summary("perc_pass", "pass", "total_qc") %>%
+    get_percent_summary("perc_fail", "fail", "total_qc") %>%
     left_join(x=chem_index, y=., by="source_table") %>%
     dplyr::mutate(across(c(-chemprefix, -source, -source_table), ~tidyr::replace_na(., 0)))
 

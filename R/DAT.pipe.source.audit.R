@@ -7,24 +7,22 @@
 #' @param audit_df a filepath to the DAT audit data to push to source_audit #'
 #' @import dplyr DBI magrittr
 #'
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
-#'  \code{\link[gsubfn]{list}}
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{filter}}
 #'  \code{\link[tidyr]{reexports}}
 #'  \code{\link[writexl]{write_xlsx}}
 #' @rdname DAT.pipe.source.audit
-#' @importFrom gsubfn list
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename mutate left_join select filter
 #' @importFrom tidyr any_of
@@ -33,7 +31,7 @@
 DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
 
   # Pull associated DAT files for an input source table
-  DAT_data = gsubfn::list(
+  DAT_data = list(
     live_dat = live_df %>%
       readxl::read_xlsx() %>%
       # Remove QC fields that will be repopulated in this workflow
@@ -170,7 +168,7 @@ DAT.pipe.source.audit <- function(source, db, live_df, audit_df) {
   live$old_parent_chemical_id = NULL
 
   # Export intermediate before push
-  writexl::write_xlsx(gsubfn::list(live=live, audit=audit),
+  writexl::write_xlsx(list(live=live, audit=audit),
                       paste0(toxval.config()$datapath,"QC Pushed/", source,"_QC_push_",Sys.Date(),".xlsx"))
 
   # Push live and audit table changes

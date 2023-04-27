@@ -19,14 +19,12 @@
 #'  }
 #' }
 #' @seealso
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{bind}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{summarise}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}
 #'  \code{\link[writexl]{write_xlsx}}
 #' @rdname DAT.manual.pipe.source.audit
-#' @importFrom gsubfn list
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr filter bind_rows group_by summarize arrange rename left_join mutate select
 #' @importFrom stringr str_squish
@@ -40,12 +38,12 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   return("Should only be used to process special case of manually QC'd data without DAT")
   # Check input to ensure is list or string
   live_df = switch(typeof(live_df),
-                   "character" = gsubfn::list(live_df),
+                   "character" = list(live_df),
                    "list" = live_df)
   if(is.null(live_df)){
     return("Unsupported input live_df - must be a file path or list of filepaths")
   }
-  DAT_data = gsubfn::list()
+  DAT_data = list()
   # Load and combine input data
   DAT_data$live_dat = lapply(live_df, function(f){
     tmp = readxl::read_xlsx(f) %>%
@@ -223,7 +221,7 @@ DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn 
   # live %>% select(source_hash, parent_hash, qc_status, qc_flags, qc_notes, version) %>% mutate(compare = parent_hash == source_hash) %>% View()
 
   # Export intermediate before push
-  writexl::write_xlsx(gsubfn::list(live=live, audit=audit),
+  writexl::write_xlsx(list(live=live, audit=audit),
                       paste0(toxval.config()$datapath,"QC Pushed/", source,"_QC_push_",Sys.Date(),".xlsx"))
 
   # Push live and audit table changes

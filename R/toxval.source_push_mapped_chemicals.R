@@ -19,12 +19,10 @@
 #'  }
 #' }
 #' @seealso
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{bind}}
 #' @rdname toxval.source_push_mapped_chemicals
 #' @export
-#' @importFrom gsubfn list
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename distinct mutate select left_join filter bind_rows
 #--------------------------------------------------------------------------------------
@@ -143,7 +141,7 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
       strsplit("_") %>% unlist()
     curated_source.index = paste0(curated_source.index[1], "_", curated_source.index[2])
     # Load required files from curation
-    c_files = gsubfn::list(orig_file = curated_list$jira_chemical_files[grepl(curated_source.index, curated_list$jira_chemical_files)] %>%
+    c_files = list(orig_file = curated_list$jira_chemical_files[grepl(curated_source.index, curated_list$jira_chemical_files)] %>%
                      paste0(curated.path, "/jira_chemical_files/", .),
                    b_file = curated_list$`BIN Files`[grepl(curated_source.index, curated_list$`BIN Files`)] %>%
                      paste0(curated.path, "/BIN Files/", .),

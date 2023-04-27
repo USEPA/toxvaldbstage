@@ -7,26 +7,24 @@
 #' @param filepath The path for all the input xlsx files ./ACToR replacements/ACToR_2021
 #' @param verbose Whether the loaded rows should be printed to the console.
 #' @param do.init if TRUE, read the data in from the res_actor_2021q4 database and set up the matrix
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}, \code{\link[openxlsx]{write.xlsx}}
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[stringr]{str_replace}}
 #'  \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate_all}}
 #'  \code{\link[tidyr]{spread}}
 #'  \code{\link[stats]{aggregate}}, \code{\link[stats]{na.fail}}
 #' @rdname import_actor_source
 #' @importFrom openxlsx read.xlsx write.xlsx
-#' @importFrom gsubfn list
 #' @importFrom stringr str_replace_all
 #' @importFrom dplyr group_by select left_join mutate_at
 #' @importFrom tidyr spread
@@ -47,7 +45,7 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
   assay_test <- assay_test[225:230]
 
 
-  actor_tables <- gsubfn::list()
+  actor_tables <- list()
   for(i in 1:length(assay_test)) {
     query <- paste0("SELECT DISTINCT f.casrn,h.name ,a.source, i.url,a.source_name_aid ,g.source_name_sid, g.source_name_cid,a.assay_id,a.description as assay_description, b.assay_component_id, a.name as assay_name,
                   b.name as assay_component_name,
@@ -95,7 +93,7 @@ import_actor_source <- function(toxval.db,infile,filepath, verbose=F) {
   names(actor_tables) <- table_names
 
   # create new columns for each value represented in assay_component_name field
-  col_names <- gsubfn::list()
+  col_names <- list()
   for (i in 1:length(table_names)){
     col_names[[i]] <- unique(unlist(lapply(actor_tables[i], '[[', "assay_component_name")))
     actor_tables[[i]][col_names[[i]]] <- NA

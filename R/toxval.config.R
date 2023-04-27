@@ -26,17 +26,15 @@ library(logr)
 #' and the urls for the ACToR web services.
 #' @details DETAILS
 #' @return Returns a set of parameters to be used throughout the package
-#' @export 
-#' @examples 
+#' @export
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
 #' @rdname toxval.config
-#' @seealso 
-#'  \code{\link[gsubfn]{list}}
-#' @importFrom gsubfn list
+#' @seealso
 #--------------------------------------------------------------------------------------
 toxval.config <- function() {
   toxval.db <- "res_toxval_v92"
@@ -49,7 +47,7 @@ toxval.config <- function() {
   non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
                     "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version",
                     "raw_input_file")
-  retval <- gsubfn::list(dsstox.db=dsstox.db,
+  retval <- list(dsstox.db=dsstox.db,
               toxval.db=toxval.db,
               source.db=source.db,
               datapath=datapath,

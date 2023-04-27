@@ -7,23 +7,21 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[utils]{read.table}}, \code{\link[utils]{type.convert}}
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[stats]{setNames}}
 #'  \code{\link[janitor]{excel_numeric_to_date}}
 #' @rdname import_pprtv_ncea_source
-#' @export 
+#' @export
 #' @importFrom openxlsx read.xlsx
 #' @importFrom utils read.csv type.convert
-#' @importFrom gsubfn list
 #' @importFrom stats setNames
 #' @importFrom janitor excel_numeric_to_date
 #--------------------------------------------------------------------------------------
@@ -46,10 +44,10 @@ import_pprtv_ncea_source <- function(db,
   files.list <- paste0( filepath, '/',files.list)
   res <- lapply(files.list,openxlsx::read.xlsx)
   pprtv_ncea_25 <- utils::read.csv(csvfile, header = T, sep = ",")
-  res <- c(res,gsubfn::list(pprtv_ncea_25))
+  res <- c(res,list(pprtv_ncea_25))
   rm(pprtv_ncea_25)
   pprtv_ncea_26 <- openxlsx::read.xlsx(scrapepath,1)
-  res <- c(res, gsubfn::list(pprtv_ncea_26))
+  res <- c(res, list(pprtv_ncea_26))
   rm(pprtv_ncea_26)
 
   #####################################################################

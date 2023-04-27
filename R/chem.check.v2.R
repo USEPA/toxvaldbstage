@@ -13,25 +13,23 @@
 #'
 #' @title FUNCTION_TITLE
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[stringi]{stri_escape_unicode}}
 #'  \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{reexports}}
 #'  \code{\link[openxlsx]{write.xlsx}}
-#'  \code{\link[gsubfn]{list}}
 #' @rdname chem.check.v2
-#' @export 
+#' @export
 #' @importFrom stringi stri_escape_unicode
 #' @importFrom stringr str_replace_all str_trim
 #' @importFrom tidyr contains
 #' @importFrom openxlsx write.xlsx
-#' @importFrom gsubfn list
 #--------------------------------------------------------------------------------------
 chem.check.v2 <- function(res0,source=NULL,verbose=F) {
   printCurrentFunction(source)
@@ -145,5 +143,5 @@ chem.check.v2 <- function(res0,source=NULL,verbose=F) {
   else cat("All casrn OK\n")
   if(!checksum.OK) cat("Some casrn have bad checksums\n")
   else cat("All checksums OK\n")
-  return(gsubfn::list(res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK))
+  return(list(res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK))
 }
