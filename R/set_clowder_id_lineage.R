@@ -36,7 +36,7 @@ set_clowder_id_lineage <- function(source_table,
   if(is.null(map_file)){
     # Switch case to load specific source document map files
     map_file = switch(source_table,
-                      "source_cal_oehha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                      "source_caloehha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                              "clowder_v3/cal_oehha_log_with_names_20221019.xlsx")),
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                         "clowder_v3/iris_document_map_2022_08_01.xlsx")),
@@ -154,7 +154,8 @@ set_clowder_id_lineage <- function(source_table,
                        db)
 
   mat <- map_file %>%
-    dplyr::filter(!clowder_id %in% pushed_docs$clowder_id) %>%
+    dplyr::filter(!clowder_id %in% pushed_docs$clowder_id,
+                  !is.na(clowder_id)) %>%
     dplyr::select(clowder_id) %>%
     # Only push unique Clowder IDs
     unique()
@@ -248,13 +249,6 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::left_join(map_file %>%
                                          dplyr::select(fk_doc_id, clowder_id, Chemical),
                                        by=c("name"="Chemical"))
-
-                    #Checking and outing cat statement
-                    res2 <- res %>%
-                      dplyr::filter(is.na(clowder_id))
-                    records_missing <- length(unique(res2$source_hash))
-                    total_records <- length(unique(res$source_hash))
-                    cat("Mapped records: ", total_records-records_missing, "| Missing: ", records_missing, "(", round(records_missing/total_records*100, 3),"%)\n")
                     # Return res
                     res
                   },
@@ -307,6 +301,204 @@ set_clowder_id_lineage <- function(source_table,
                                 by="casrn")
                     # Recombine all matches
                     res = rbind(res, res2)
+                    # Return res
+                    res
+                  },
+
+                  "source_pprtv_ornl" = {
+                    # Filter to the "_webpage_" PDF Clowder document
+                    map_file = map_file[grepl("_webpage_", map_file$document_name) &
+                                          grepl(".pdf", map_file$document_name), ]
+                    for (i in 1:nrow(res)){
+                      #Will perform matching based on casrn and chemical name fields
+                      res_cas_num = res[i,'casrn']
+                      res_chem_name = res[i,'name']
+                      #Get rid of the leading zeros added by excel
+                      res_cas_num <- sub("^0+","",res_cas_num)
+
+                      #Match first based on exact chemical name (most consistently populated in key and res)
+                      row = match(res_chem_name,map_file$chemical_name)
+                      clowder_id = map_file[row,'clowder_id']
+                      doc_name = map_file[row,'document_name']
+                      #Some chemicals have additional abbreviations in the document map. Use grep to look for
+                      #the chemical name from res is contained in the chemical name row (different than exact matching)
+                      if (is.na(clowder_id)){
+                        rows = grep(res_chem_name,map_file$chemical_name)
+                        clowder_id = map_file$clowder_id[rows[1]]
+                        document_name = map_file$document_name[rows[1]]
+                      }
+                      #Final match criteria is the casrn number. Res has all casrns but document map does not
+                      #PPRTV ORNL source listed some casrn numbers as "various" instead of specific numbers
+                      if(is.na(clowder_id)){
+                        #If didn't match from chemical name, try to match by casrn
+                        row = match(res_cas_num,map_file$casrn)
+                        clowder_id = map_file[row,'clowder_id']
+                        doc_name = map_file[row,'document_name']
+                      }
+                      #Populate clowder id and document name fields with matched info from key
+                      res[i,'clowder_id'] = clowder_id
+                      res[i,'document_name'] = doc_name
+                    }
+                    # Match for fk_doc_id field
+                    res <- res %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id),
+                                       by="clowder_id")
+                    # Return res
+                    res
+                  },
+
+                  "source_pprtv_ncea" = {
+                    res$document_name <- NULL
+                    # Match by chemical name
+                    res0 = res %>%
+                      left_join(map_file %>%
+                                  select(Chemical, clowder_id, fk_doc_id),
+                                by=c("name" = "Chemical")) %>%
+                      filter(!is.na(clowder_id))
+                    # Filter to non-matches
+                    res = res %>%
+                      filter(!name %in% res0$name)
+                    # Match by cas
+                    res1 = res %>%
+                      left_join(map_file %>%
+                                  select(CASRN, clowder_id, fk_doc_id),
+                                by= c("casrn"="CASRN")) %>%
+                      filter(!is.na(clowder_id))
+                    # Filter to non-matches
+                    res = res %>%
+                      filter(!casrn %in% res1$casrn) %>%
+                      mutate(clowder_id = NA)
+
+                    # Hardcode matching of "thiocyanate" to "thiocyanates"
+                    res$clowder_id[which(res$name == "Thiocyanate")] <- "639a2fe6e4b04f6bb14a2734"
+
+                    # Match for fk_doc_id field
+                    res <- res %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id),
+                                       by="clowder_id")
+
+                    res = rbind(res, res0, res1)
+                    # Return res
+                    res
+                  },
+
+                  "source_caloehha" = {
+                    # cut the map down to just the webpage PDF documents, no screenshots
+                    map_file <- map_file %>%
+                      filter(subDir1 == "pdf")
+                    # clear old names
+                    res$document_name = NULL
+                    # Match by chemical name first
+                    res = res %>%
+                      left_join(map_file %>%
+                                  select(Chemical, clowder_id),
+                                by=c("name" = "Chemical"))
+                    # Filter to those without a match
+                    res2 = res %>%
+                      filter(is.na(clowder_id))
+                    res = res %>%
+                      filter(!is.na(clowder_id))
+                    # Match by casrn
+                    res2 = res2 %>%
+                      select(-clowder_id) %>%
+                      left_join(map_file %>%
+                                  select(casrn=CASRN, clowder_id),
+                                by="casrn")
+                    # Recombine all matches
+                    res = rbind(res, res2)
+
+                    # Match for fk_doc_id field
+                    res <- res %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id),
+                                       by="clowder_id")
+                    # Return res
+                    res
+                  },
+
+                  "source_efsa2" = {
+                    # Update map_file so it only contains mapped clowder_id values with long_refs
+                    map_file = map_file %>%
+                      select(clowder_id, long_ref, fk_doc_id) %>%
+                      distinct() %>%
+                      filter(!is.na(clowder_id))
+                    # clear old names
+                    res$document_name <- NULL
+
+                    # match by longref
+                    res <- res %>%
+                      left_join(select(map_file, long_ref, clowder_id, fk_doc_id),
+                                by = "long_ref") %>%
+                      distinct()
+
+                    # Return res
+                    res
+                  },
+
+                  "source_pfas_150_sem_v2" = {
+                    # Update map_file so it only contains mapped clowder_id values with long_refs
+                    map_file$clowder_id[map_file$clowder_id == "-"] <- NA
+                    map_file = map_file %>%
+                      select(clowder_id, fk_doc_id, hero_id = `HERO ID`) %>%
+                      mutate(hero_id = as.character(hero_id)) %>%
+                      distinct() %>%
+                      filter(!is.na(clowder_id))
+                    # clear old names
+                    res$document_name <- NULL
+
+                    # match by longref
+                    res <- res %>%
+                      left_join(map_file,
+                                by = "hero_id") %>%
+                      distinct()
+
+                    # Return res
+                    res
+                  },
+
+                  "source_hpvis" = {
+                    res = res %>%
+                      left_join(map_file %>%
+                                  select(clowder_id, document_name, fk_doc_id),
+                                by = c("raw_input_file"="document_name"))
+                    # Return res
+                    res
+                  },
+
+                  "source_oppt" = {
+                    res$document_name = NULL
+
+                    res = res %>%
+                      left_join(map_file %>%
+                                  select(clowder_id, filename, fk_doc_id),
+                                by = c("srcf"="filename"))
+                    # Return res
+                    res
+                  },
+
+                  "source_efsa" = {
+                    res$document_name = NULL
+
+                    res = res %>%
+                      left_join(map_file %>%
+                                  filter(!is.na(clowder_id)) %>%
+                                  select(clowder_id, long_ref, fk_doc_id) %>%
+                                  distinct(),
+                                by = c("title" = "long_ref"))
+                    # Return res
+                    res
+                  },
+
+                  "source_hawc" = {
+                    # Focus only on the study id and clowder id fields for matching
+                    res <- res %>%
+                      left_join(map_file %>%
+                                  filter(!is.na(clowder_id)) %>%
+                                  select(clowder_id, fk_doc_id, animal_group.experiment.study.id) %>%
+                                  distinct(),
+                                by=c("study_id" = "animal_group.experiment.study.id"))
                     # Return res
                     res
                   },
@@ -378,6 +570,9 @@ set_clowder_id_lineage <- function(source_table,
                          by="clowder_id")
     }
   }
+
+  # Check for missing fk_doc_id matches
+  # res %>% filter(is.na(fk_doc_id)) %>% View()
 
   #Checking and outing cat statement
   res2 <- res %>%
