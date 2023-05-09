@@ -488,6 +488,7 @@ set_clowder_id <- function(res,source, map_file=NULL) {
     cat("matching for source",source,":",n2," out of ",n1," missing unique documents:",n3,"\n")
     return(res)
   }
+
   if (source == "HAWC"){
     # Focus only on the study id, clowder id and document name fields for matching
     map_cols <- map_file %>%

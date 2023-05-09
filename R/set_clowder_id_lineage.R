@@ -9,18 +9,18 @@
 #' @return Returns an updated map with newly associated toxval_source table ID values
 #' @title FUNCTION_TITLE
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
 #' @rdname set_clowder_id_lineage
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename filter select left_join mutate
 #' @importFrom tidyr separate_rows unite
@@ -36,7 +36,7 @@ set_clowder_id_lineage <- function(source_table,
   if(is.null(map_file)){
     # Switch case to load specific source document map files
     map_file = switch(source_table,
-                      "source_cal_oehha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                      "source_caloehha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                              "clowder_v3/cal_oehha_log_with_names_20221019.xlsx")),
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                         "clowder_v3/iris_document_map_2022_08_01.xlsx")),
@@ -47,8 +47,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_efsa2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                          "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx")),
                       "source_hawc_pfas_150" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                 "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx")) %>%
-                        dplyr::rename(study_name=`Study Name`),
+                                                                 "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx")),
                       "source_hawc_pfas_430" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/hawc_pfas_430_doc_map_20230120.xlsx")),
                       "source_pfas_150_sem_v2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -63,9 +62,77 @@ set_clowder_id_lineage <- function(source_table,
                                                         "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")),
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/pprtv_cphea_doc_map_lineage_jwall01.xlsx")),
-                      data.frame()
-    )
 
+                      ### Hard coded document maps
+                      "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
+                                          document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
+                      "source_atsdr" = data.frame(clowder_id="610036c7e4b01a90a3f9879c",
+                                               document_name="a6a427952aa24d5d9e1d1a229109ba7e-Agency for Toxic Substances and Disease Registry-2020.pdf"),
+                      "source_atsdr_pfas" = data.frame(clowder_id = "6238e943e4b0b18cb57ced5a",
+                                          document_name = "tp200-c2.pdf"),
+                      "source_atsdr_pfas_2021" = data.frame(clowder_id = "6238b97ae4b0b18cb57ce4f6",
+                                               document_name = "tp200.pdf"),
+                      "source_chiu" = data.frame(clowder_id = "61003953e4b01a90a3f9b6d1",
+                                    document_name = "08b44893c3ec2ed2c917bd2962aefca2-Chiu-2018-Beyond the.pdf"),
+                      "source_dod_meg" = data.frame(clowder_id = "61003ab1e4b01a90a3f9ce11",
+                                   document_name = "3606a83ea4293730c355bceca0900d9c-Anonymous-2013-Technical .pdf"),
+                      "source_doe_benchmarks" = data.frame(clowder_id = "61003756e4b01a90a3f99471",
+                                                       document_name = "ee2b2fc62d5fa7a1e025dd6a119bdd16-Sample-1996-Toxicologi.pdf"),
+                      "source_envirotox" = data.frame(clowder_id = "61f14c70e4b0ebacf2ec476c",
+                                            document_name = "Connors_2019a.pdf"),
+                      "source_epa_aegl" = data.frame(clowder_id = "61003a84e4b01a90a3f9ca2f",
+                                        document_name = "4627c891c8ea494fb8ea7846b220bd14-United States Environmental Protection Agency (USEPA)-2020-Acute Expo.pdf"),
+                      "source_opp" = data.frame(clowder_id = "63d99625e4b02a0c3a37c5d8",
+                                       document_name = "2021 Human Health Benchmarks for Pesticides_US EPA.pdf"),
+                      "source_health_canada" = data.frame(clowder_id = "61003a57e4b01a90a3f9c305",
+                                             document_name = "60683b9de75ea6aced60e004a919370b-Health Canada-2010-Part II H.pdf"),
+                      "source_niosh" = data.frame(clowder_id = "61fabd3de4b04a563fdc9b99",
+                                     document_name = "ToxValQA33091630_NIOSH_2020_ImmediatelyDangerous-(IDLH)Values.pdf"),
+                      "source_ow_dwsha" = data.frame(clowder_id = "610036ede4b01a90a3f98ae0",
+                                                           document_name = "b5ffe2b7e16578b78213213141cfc3ad-United States Environmental Protection Agency (USEPA)-2018-2018 Drink.pdf"),
+                      "source_penn_dep" = data.frame(clowder_id = "61003849e4b01a90a3f9a409",
+                                                     document_name = "3d84a7d7e81b35b4e5ac9b820558be27-Pennsylvania Department of Environmental Protection (DEP)-2012.pdf "),
+                      "source_penn" = data.frame(clowder_id = "61003849e4b01a90a3f9a409",
+                                                          document_name = "3d84a7d7e81b35b4e5ac9b820558be27-Pennsylvania Department of Environmental Protection (DEP)-2012.pdf "),
+                      "source_usgs_hbsl" = data.frame(clowder_id = "61fabdc3e4b04a563fdc9c0b",
+                                         document_name = "ToxValQA29186291_USGS_2018_Health-BasedScreening-Water-QualityData.pdf"),
+                      "source_who_ipcs" = data.frame(clowder_id = "61bb6895e4b0d5d4d1e36956",
+                                        document_name = "FAOWHO_2008_Pesticideresidues-Report2008.pdf"),
+                      "source_osha_air_limits" = data.frame(clowder_id = "61fabd47e4b04a563fdc9bb8",
+                                                     document_name = "ToxValQA29180809_OSHA_TABLEZ-1LimitsforAirContaminants.pdf"),
+                      "source_fda_cedi" = data.frame(clowder_id = "619d2972e4b0993a3937de4f",
+                                        document_name = "ToxValQA29176904_FDA_CumulativeEstimatedDailyIntake.pdf"),
+                      "source_wignall" = data.frame(clowder_id = "62b30a1ee4b07abf29f56811",
+                                       document_name = "ToxValDBQA Wignall EHP 2014.pdf"),
+                      "source_test" = data.frame(clowder_id = "6390c185e4b04f6bb149889a; 6390c185e4b04f6bb1498899",
+                                    document_name = "TEST data.xlsx; test_chemicals_invitrodb.csv"),
+                      "source_atsdr_mrls_2022" = data.frame(clowder_id="63b58958e4b04f6bb1507bf2",
+                                               document_name="ATSDR MRLs - August 2022 - H.pdf"),
+                      "source_rsl" = data.frame(clowder_id = c("61fabdc0e4b04a563fdc9bdd",
+                                                               "61fabdc0e4b04a563fdc9be1",
+                                                               "61fabdc0e4b04a563fdc9bdf"),
+                                                document_name = c("ToxValQA33099727_EPA_2021_RegionalScreeningLevels",
+                                                                  "ToxValQA33106078_EPA_2021_RegionalScreeningLevels",
+                                                                  "ToxValQA33100390_EPA_2021_RegionalScreeningLevels")),
+                      "source_hess" = {
+                        paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx") %>%
+                          readxl::read_xlsx() %>%
+                          fix.non_ascii.v2(.,"map.icf")
+                      },
+                      # No source match, return empty
+                      data.frame()
+              )
+
+    # Sources with a single document in a combined map
+    if(source_table %in% c("source_heast", "source_mass_mmcl",
+                     "source_cal_dph", "source_copper", "source_dod_ered",
+                     "source_lanl", "source_doe_pac")){
+      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                          "clowder_v3/source_single_doc_map.xlsx")) %>%
+        dplyr::rename(src_tbl = source_table) %>%
+        filter(src_tbl %in% source_table) %>%
+        select(clowder_id, document_name)
+    }
   }
 
   # Ensure clowder_id column is provided and/or standardized
@@ -87,7 +154,8 @@ set_clowder_id_lineage <- function(source_table,
                        db)
 
   mat <- map_file %>%
-    dplyr::filter(!clowder_id %in% pushed_docs$clowder_id) %>%
+    dplyr::filter(!clowder_id %in% pushed_docs$clowder_id,
+                  !is.na(clowder_id)) %>%
     dplyr::select(clowder_id) %>%
     # Only push unique Clowder IDs
     unique()
@@ -156,34 +224,362 @@ set_clowder_id_lineage <- function(source_table,
 
   # PUll source table data
   res <- runQuery(paste0("SELECT * FROM ", source_table), db=db)
-  # Custom mapping source_hash to document ID
-  # Map documents to source_hash records like normal
-  res <- switch(source_table,
 
-                "source_pprtv_cphea" = {
-                  res <- res %>%
-                    dplyr::select(source_hash, name) %>%
-                    dplyr::left_join(map_file %>%
-                                dplyr::select(fk_doc_id, clowder_id, Chemical),
-                              by=c("name"="Chemical"))
-
-                  #Checking and outing cat statement
-                  res2 <- res %>%
-                    dplyr::filter(is.na(clowder_id))
-                  records_missing <- length(unique(res2$source_hash))
-                  total_records <- length(unique(res$source_hash))
-                  cat("Mapped records: ", total_records-records_missing, "| Missing: ", records_missing, "(", round(records_missing/total_records*100, 3),"%)\n")
-                  # Return res
-                  res
-                },
-
-                # Default case
-                data.frame())
-
+  # Check if source table data has been pushed (could be empty table)
   if(!nrow(res)){
     message("...No source table data pulled...returning...")
     return()
   }
+  # Clear old mappings (if present in source table)
+  res$clowder_id = NULL
+  # Custom mapping source_hash to document ID
+
+  # Map documents to source_hash records like normal
+  if(nrow(map_file) == 1){
+    # Set the easy mappings (only 1 document)
+    res$clowder_id = map_file$clowder_id
+    res$document_name = map_file$document_name
+    cat("clowder_id and document_name set for ",source,"\n")
+  } else {
+    res <- switch(source_table,
+
+                  "source_pprtv_cphea" = {
+                    res <- res %>%
+                      dplyr::select(source_hash, name) %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id, Chemical),
+                                       by=c("name"="Chemical"))
+                    # Return res
+                    res
+                  },
+
+                  "source_hess" = {
+                    res <- res %>%
+                      left_join(map_file %>%
+                                  select(clowder_id, document_name, fk_doc_id),
+                                by="document_name")
+                    # Return res
+                    res
+                  },
+
+                  "source_rsl" = {
+                    res[,"clowder_id"] = "61fabdc0e4b04a563fdc9bdd"
+                    res[,"document_name"] = "ToxValQA33099727_EPA_2021_RegionalScreeningLevels-(TR=1E-06,THQ=1.0).pdf"
+                    res[res$risk_assessment_class=="subchronic","clowder_id"] = "61fabdc0e4b04a563fdc9be1"
+                    res[res$risk_assessment_class=="subchronic","document_name"] = "ToxValQA33106078_EPA_2021_RegionalScreeningLevels-SubchronicToxicityValues.pdf"
+                    res[res$toxval_subtype=="Thq =  1","clowder_id"] = "61fabdc0e4b04a563fdc9bdd"
+                    res[res$toxval_subtype=="Thq =  1","document_name"] = "ToxValQA33099727_EPA_2021_RegionalScreeningLevels-(TR=1E-06,THQ=1.0).pdf"
+                    res[res$toxval_subtype=="Thq =  0.1","clowder_id"] = "61fabdc0e4b04a563fdc9bdf"
+                    res[res$toxval_subtype=="Thq =  0.1","document_name"] = "ToxValQA33100390_EPA_2021_RegionalScreeningLevels-(TR=1E-06,THQ=0.1).pdf"
+                    # Match for fk_doc_id field
+                    res <- res %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id),
+                                       by="clowder_id")
+                    # Return res
+                    res
+                  },
+
+                  "source_iris" = {
+                    # cut the map down to just the webpage PDF documents, not screenshots or supplements
+                    map_file <- map_file[which(map_file$parentPath == "IRIS"),]
+                    # Match by chemical name first
+                    res = res %>%
+                      left_join(map_file %>%
+                                  select(chemical_name, clowder_id, fk_doc_id),
+                                by=c("name" = "chemical_name"))
+                    # Filter to those without a match
+                    res2 = res %>%
+                      filter(is.na(clowder_id))
+                    res = res %>%
+                      filter(!is.na(clowder_id))
+                    # Match by casrn
+                    res2 = res2 %>%
+                      select(-clowder_id, -fk_doc_id) %>%
+                      left_join(map_file %>%
+                                  select(casrn, clowder_id, fk_doc_id),
+                                by="casrn")
+                    # Recombine all matches
+                    res = rbind(res, res2)
+                    # Return res
+                    res
+                  },
+
+                  "source_pprtv_ornl" = {
+                    # Filter to the "_webpage_" PDF Clowder document
+                    map_file = map_file[grepl("_webpage_", map_file$document_name) &
+                                          grepl(".pdf", map_file$document_name), ]
+                    for (i in 1:nrow(res)){
+                      #Will perform matching based on casrn and chemical name fields
+                      res_cas_num = res[i,'casrn']
+                      res_chem_name = res[i,'name']
+                      #Get rid of the leading zeros added by excel
+                      res_cas_num <- sub("^0+","",res_cas_num)
+
+                      #Match first based on exact chemical name (most consistently populated in key and res)
+                      row = match(res_chem_name,map_file$chemical_name)
+                      clowder_id = map_file[row,'clowder_id']
+                      doc_name = map_file[row,'document_name']
+                      #Some chemicals have additional abbreviations in the document map. Use grep to look for
+                      #the chemical name from res is contained in the chemical name row (different than exact matching)
+                      if (is.na(clowder_id)){
+                        rows = grep(res_chem_name,map_file$chemical_name)
+                        clowder_id = map_file$clowder_id[rows[1]]
+                        document_name = map_file$document_name[rows[1]]
+                      }
+                      #Final match criteria is the casrn number. Res has all casrns but document map does not
+                      #PPRTV ORNL source listed some casrn numbers as "various" instead of specific numbers
+                      if(is.na(clowder_id)){
+                        #If didn't match from chemical name, try to match by casrn
+                        row = match(res_cas_num,map_file$casrn)
+                        clowder_id = map_file[row,'clowder_id']
+                        doc_name = map_file[row,'document_name']
+                      }
+                      #Populate clowder id and document name fields with matched info from key
+                      res[i,'clowder_id'] = clowder_id
+                      res[i,'document_name'] = doc_name
+                    }
+                    # Match for fk_doc_id field
+                    res <- res %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id),
+                                       by="clowder_id")
+                    # Return res
+                    res
+                  },
+
+                  "source_pprtv_ncea" = {
+                    res$document_name <- NULL
+                    # Match by chemical name
+                    res0 = res %>%
+                      left_join(map_file %>%
+                                  select(Chemical, clowder_id, fk_doc_id),
+                                by=c("name" = "Chemical")) %>%
+                      filter(!is.na(clowder_id))
+                    # Filter to non-matches
+                    res = res %>%
+                      filter(!name %in% res0$name)
+                    # Match by cas
+                    res1 = res %>%
+                      left_join(map_file %>%
+                                  select(CASRN, clowder_id, fk_doc_id),
+                                by= c("casrn"="CASRN")) %>%
+                      filter(!is.na(clowder_id))
+                    # Filter to non-matches
+                    res = res %>%
+                      filter(!casrn %in% res1$casrn) %>%
+                      mutate(clowder_id = NA)
+
+                    # Hardcode matching of "thiocyanate" to "thiocyanates"
+                    res$clowder_id[which(res$name == "Thiocyanate")] <- "639a2fe6e4b04f6bb14a2734"
+
+                    # Match for fk_doc_id field
+                    res <- res %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id),
+                                       by="clowder_id")
+
+                    res = rbind(res, res0, res1)
+                    # Return res
+                    res
+                  },
+
+                  "source_caloehha" = {
+                    # cut the map down to just the webpage PDF documents, no screenshots
+                    map_file <- map_file %>%
+                      filter(subDir1 == "pdf")
+                    # clear old names
+                    res$document_name = NULL
+                    # Match by chemical name first
+                    res = res %>%
+                      left_join(map_file %>%
+                                  select(Chemical, clowder_id),
+                                by=c("name" = "Chemical"))
+                    # Filter to those without a match
+                    res2 = res %>%
+                      filter(is.na(clowder_id))
+                    res = res %>%
+                      filter(!is.na(clowder_id))
+                    # Match by casrn
+                    res2 = res2 %>%
+                      select(-clowder_id) %>%
+                      left_join(map_file %>%
+                                  select(casrn=CASRN, clowder_id),
+                                by="casrn")
+                    # Recombine all matches
+                    res = rbind(res, res2)
+
+                    # Match for fk_doc_id field
+                    res <- res %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id),
+                                       by="clowder_id")
+                    # Return res
+                    res
+                  },
+
+                  "source_efsa2" = {
+                    # Update map_file so it only contains mapped clowder_id values with long_refs
+                    map_file = map_file %>%
+                      select(clowder_id, long_ref, fk_doc_id) %>%
+                      distinct() %>%
+                      filter(!is.na(clowder_id))
+                    # clear old names
+                    res$document_name <- NULL
+
+                    # match by longref
+                    res <- res %>%
+                      left_join(select(map_file, long_ref, clowder_id, fk_doc_id),
+                                by = "long_ref") %>%
+                      distinct()
+
+                    # Return res
+                    res
+                  },
+
+                  "source_pfas_150_sem_v2" = {
+                    # Update map_file so it only contains mapped clowder_id values with long_refs
+                    map_file$clowder_id[map_file$clowder_id == "-"] <- NA
+                    map_file = map_file %>%
+                      select(clowder_id, fk_doc_id, hero_id = `HERO ID`) %>%
+                      mutate(hero_id = as.character(hero_id)) %>%
+                      distinct() %>%
+                      filter(!is.na(clowder_id))
+                    # clear old names
+                    res$document_name <- NULL
+
+                    # match by longref
+                    res <- res %>%
+                      left_join(map_file,
+                                by = "hero_id") %>%
+                      distinct()
+
+                    # Return res
+                    res
+                  },
+
+                  "source_hpvis" = {
+                    res = res %>%
+                      left_join(map_file %>%
+                                  select(clowder_id, document_name, fk_doc_id),
+                                by = c("raw_input_file"="document_name"))
+                    # Return res
+                    res
+                  },
+
+                  "source_oppt" = {
+                    res$document_name = NULL
+
+                    res = res %>%
+                      left_join(map_file %>%
+                                  select(clowder_id, filename, fk_doc_id),
+                                by = c("srcf"="filename"))
+                    # Return res
+                    res
+                  },
+
+                  "source_efsa" = {
+                    res$document_name = NULL
+
+                    res = res %>%
+                      left_join(map_file %>%
+                                  filter(!is.na(clowder_id)) %>%
+                                  select(clowder_id, long_ref, fk_doc_id) %>%
+                                  distinct(),
+                                by = c("title" = "long_ref"))
+                    # Return res
+                    res
+                  },
+
+                  "source_hawc" = {
+                    # Focus only on the study id and clowder id fields for matching
+                    res <- res %>%
+                      left_join(map_file %>%
+                                  filter(!is.na(clowder_id)) %>%
+                                  select(clowder_id, fk_doc_id, animal_group.experiment.study.id) %>%
+                                  distinct(),
+                                by=c("study_id" = "animal_group.experiment.study.id"))
+                    # Return res
+                    res
+                  },
+
+                  # Default case, return without mapping
+                  res
+    )
+
+    # Handle HAWC PFAS 150/430
+    if(source_table %in% c("source_hawc_pfas_150","source_hawc_pfas_430")) {
+      map = map_file %>%
+        select(-fk_doc_id)
+      title2 = res$title
+      title2 = gsub("Registration dossier: |RRegistration dossier: ","", title2)
+      title2 = gsub('\\.$','',title2)
+      res$title2 = title2
+      res$title2 = tolower(str_trim(title2))
+      res$title3 = gsub("\\s*\\([^\\)]+\\)", "", res$title2)
+      for(i in 1:nrow(map)) {
+        cid = map[i,"clowder_id"]
+
+        docname = map[i,"document_name"]
+        title = map[i,"study_name"]
+        title2 = str_trim(tolower(title)) %>%
+          gsub('\\.$','',.)
+        # Remove trailing . information
+        title2b = sub('\\..*', '', title2)
+        # Remove parenthetical information and trailing . information
+        title3 = gsub("\\s*\\([^\\)]+\\)", "", title2) %>%
+          gsub('\\.$','',.)
+        # https://stackoverflow.com/questions/64656479/identical-strings-from-different-data-files-wont-match-in-r
+        title4 = iconv(title2, from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+        # Attempt various matching schemes
+        # Direct title match
+        if(any(is.element(res$title,title))){
+          res[is.element(res$title,title),"clowder_id"] = cid
+          res[is.element(res$title,title),"document_name"] = docname
+        } else if(any(is.element(res$title2,title2))){
+          res[is.element(res$title2,title2),"clowder_id"] = cid
+          res[is.element(res$title2,title2),"document_name"] = docname
+          # Removal of CASRN or other parenthetic information
+        } else if(any(is.element(res$title3,title2))){
+          res[is.element(res$title3,title2),"clowder_id"] = cid
+          res[is.element(res$title3,title2),"document_name"] = docname
+          # Title match after removing trailing "."
+        } else if(any(is.element(res$title2,title2b))){
+          res[is.element(res$title2,title2b),"clowder_id"] = cid
+          res[is.element(res$title2,title2b),"document_name"] = docname
+          # Case of incompatible encoding (UTF-8 vs. unknown)
+        } else if(any(is.element(res$title2,title4))){
+          res[is.element(res$title2,title4),"clowder_id"] = cid
+          res[is.element(res$title2,title4),"document_name"] = docname
+        }
+      }
+      # Hard coding a match due to HAWC extraction typo for a title (002 insted of 007)
+      if(source_table == "source_hawc_pfas_150"){
+        res$clowder_id[res$title == "Registration dossier: Trifluoroacetic acid (CASRN: 76-05-1): Developmental toxicity/teratogenicity: 002 Supporting | Experimental result"] = "637e5e2be4b04f6bb1425fc0"
+        res$clowder_id[res$title == "Registration dossier: Trifluoroacetic acid (CASRN: 76-05-1): Developmental toxicity/teratogenicity: 007 Supporting | Experimental result"] = "637e5e2be4b04f6bb1425fc0"
+      }
+
+      # Remove title2 and 3
+      res$title2 = NULL
+      res$title3 = NULL
+      # Match for fk_doc_id field
+      res <- res %>%
+        dplyr::left_join(map_file %>%
+                           dplyr::select(fk_doc_id, clowder_id),
+                         by="clowder_id")
+    }
+  }
+
+  # Check for missing fk_doc_id matches
+  # res %>% filter(is.na(fk_doc_id)) %>% View()
+
+  #Checking and outing cat statement
+  res2 <- res %>%
+    dplyr::filter(is.na(clowder_id))
+  records_missing <- length(unique(res2$source_hash))
+  total_records <- length(unique(res$source_hash))
+  cat("Mapped records: ", total_records-records_missing, "| Missing: ", records_missing, "(", round(records_missing/total_records*100, 3),"%)\n")
 
   # Filter documents_records to only new documents_records
   pushed_doc_records <- runQuery(paste0("SELECT source_hash, fk_doc_id FROM documents_records where source_hash in ('",
