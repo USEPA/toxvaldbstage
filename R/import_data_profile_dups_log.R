@@ -15,24 +15,37 @@ import.dup.log.info <- function(db, dups_log_file="True_Duplicate_for_DAT.xlsx")
   # Load latest log
   res0 = readxl::read_xlsx(file)
 
-  # Remove hash from duplicate if it is itself
-  # res0 <- res0 %>%
-  #   dplyr::rowwise() %>%
-  #   dplyr::mutate(dup_of_source_hash_clean = dup_of_source_hash %>%
-  #                   gsub(paste0(source_hash, ", "), "", fixed=TRUE))
+  # Separate into individual hash pairs
+  res <- res0 %>%
+    tidyr::separate_rows(dup_of_source_hash, sep=", ") %>%
+    # Remove hash from duplicate if it is itself
+    filter(source_hash != dup_of_source_hash) %>%
+    tidyr::unite(col="dup_key", source_hash, dup_of_source_hash, remove=FALSE)
 
   # Pull current database log of duplicates
   db_dups_log <- tryCatch({
-    runQuery("SELECT * FROM data_profiling_dups_log", db)
-  },
-  # Error handling (such as if table doesn't exist)
-  error = data.frame())
+    runQuery("SELECT * FROM data_profiling_dups_log", db) %>%
+      tidyr::unite(col="dup_key", source_hash, dup_of_source_hash, remove=FALSE)
+    },
+    # Error handling (such as if table doesn't exist)
+    error = data.frame()
+  )
 
+  # Filter out pairs that are already present (same dup_key pair)
   if(nrow(db_dups_log)){
-
+    res <- res %>%
+      filter(!dup_key %in% db_dups_log$dup_key)
   }
-  runInsertTable(res0,"data_profiling_dups_log",res_toxval_source_v5,do.halt=T,verbose=T)
 
+  # Only attempt insert if records present to push
+  if(nrow(res)){
+    runInsertTable(mat=res %>%
+                     select(-dup_key),
+                   table="data_profiling_dups_log",
+                   db=db,
+                   do.halt=TRUE,
+                   verbose=TRUE)
+  }
 }
 
 
