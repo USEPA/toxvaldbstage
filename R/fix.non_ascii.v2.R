@@ -3,24 +3,22 @@
 #' @param df The dataframe to be processed
 #' @param The source to be fixed
 #' @return The dataframe with non ascii characters replaced with cleaned versions
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @param source PARAM_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}, \code{\link[openxlsx]{write.xlsx}}
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[stringi]{stri_escape_unicode}}
 #' @rdname fix.non_ascii.v2
 #' @importFrom openxlsx read.xlsx write.xlsx
-#' @importFrom gsubfn list
 #' @importFrom stringr str_trim
 #' @importFrom stringi stri_escape_unicode
 #-------------------------------------------------------------------------------------
@@ -46,7 +44,7 @@ fix.non_ascii.v2 <- function(df,source){
     names(row) = c("raw","converted")
     missing = NA
     for(col in clist) {
-      non_ascii_find = gsubfn::list(grep("NON_ASCII", iconv(df[,col], "UTF-8", "ASCII", sub="NON_ASCII")))[[1]]
+      non_ascii_find = list(grep("NON_ASCII", iconv(df[,col], "UTF-8", "ASCII", sub="NON_ASCII")))[[1]]
       for(i in 1:length(non_ascii_find)) {
         tryCatch({
           n0 = df[non_ascii_find[i],col]

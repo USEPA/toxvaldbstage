@@ -10,21 +10,19 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[dplyr]{reexports}}
 #'  \code{\link[utils]{type.convert}}
 #' @rdname import_atsdr_pfas_source
-#' @export 
+#' @export
 #' @importFrom openxlsx read.xlsx
-#' @importFrom gsubfn list
 #' @importFrom dplyr intersect setdiff
 #' @importFrom utils type.convert
 #--------------------------------------------------------------------------------------
@@ -454,7 +452,7 @@ import_atsdr_pfas_source <- function(db,
   #####################################################################
   cat("Build combined dataframe of all atsdr pfas sources \n")
   #####################################################################
-  comb_res <- gsubfn::list(res3_new1,res4_new1,res5_new1,res6_new1,res7_new1)
+  comb_res <- list(res3_new1,res4_new1,res5_new1,res6_new1,res7_new1)
   common_cols <- Reduce(intersect, lapply(comb_res, colnames))
   reqd_cols <- c(names(res3_new1),"record_url")
   # create new_res by subsetting with the columns present in required cols

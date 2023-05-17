@@ -35,15 +35,13 @@ library(logr)
 #' }
 #' @rdname toxval.config
 #' @seealso
-#'  \code{\link[gsubfn]{list}}
-#' @importFrom gsubfn list
 #--------------------------------------------------------------------------------------
 toxval.config <- function() {
   toxval.db <- "res_toxval_v92"
   dsstox.db <- "ro_prod_dsstox"
   source.db <- "res_toxval_source_v5"
 
-  datapath = "/ccte/ACToR1/ToxValDB9/Repo/"
+  datapath = "Repo/"#"/ccte/ACToR1/ToxValDB9/Repo/"
   actorws.prod <- "https://actorws.epa.gov/actorws/toxval/v01/toxval_source"
   actorws.dev <- "http://ag.epa.gov:8528/actorws/toxval/v01/toxval_source"
   non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",

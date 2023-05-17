@@ -9,26 +9,24 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{bind}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[tibble]{add_column}}
 #' @rdname import_rsl_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_replace_all
 #' @importFrom dplyr rename filter mutate bind_rows across case_when
 #' @importFrom tidyr pivot_longer separate matches
-#' @importFrom gsubfn list
 #' @importFrom tibble add_column
 #--------------------------------------------------------------------------------------
 import_rsl_source <- function(db,chem.check.halt=F) {
@@ -191,7 +189,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
                   "Csat_chronic_mg/kg"),
           names_to= "toxval_type",
           values_to= "toxval_numeric",
-          values_transform = gsubfn::list(toxval_numeric = as.numeric)
+          values_transform = list(toxval_numeric = as.numeric)
   )
 
 

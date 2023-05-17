@@ -1,20 +1,18 @@
 #-------------------------------------------------------------------------------------
 #' @description Flag non ascii characters in the database
 #' @return The dataframe with non ascii characters replaced with XXX
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @param df PARAM_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
-#'  \code{\link[gsubfn]{list}}
+#' @seealso
 #' @rdname fix.non_ascii
-#' @importFrom gsubfn list
 #-------------------------------------------------------------------------------------
 
 fix.non_ascii <- function(df){
@@ -30,7 +28,7 @@ fix.non_ascii <- function(df){
   if(any(non_ascii_check==TRUE)){
     #find the non ascii characters
     for (i in 1:length(which(non_ascii_check==TRUE))){
-      non_ascii_find[i] <- gsubfn::list(grep("NON_ASCII", iconv(df[,names(df)[which(non_ascii_check==TRUE)[i]]], "UTF-8", "ASCII", sub="NON_ASCII")))
+      non_ascii_find[i] <- list(grep("NON_ASCII", iconv(df[,names(df)[which(non_ascii_check==TRUE)[i]]], "UTF-8", "ASCII", sub="NON_ASCII")))
       #cat("value with non_ascii characters:", i, "\n")
       #print( non_ascii_find[i] )
 

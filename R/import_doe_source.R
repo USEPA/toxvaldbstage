@@ -7,20 +7,18 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{filter-joins}}
 #' @rdname import_doe_source
-#' @export 
+#' @export
 #' @importFrom openxlsx read.xlsx
-#' @importFrom gsubfn list
 #' @importFrom dplyr distinct semi_join anti_join
 
 #--------------------------------------------------------------------------------------
@@ -131,7 +129,7 @@ import_doe_source <- function(toxval.db,infile) {
   names(res4) <- header_res4
   rm(res4_unit)
 
-  res <- Reduce(function(x,y) merge(x,y, all = T), gsubfn::list(res2,res3,res4))
+  res <- Reduce(function(x,y) merge(x,y, all = T), list(res2,res3,res4))
   res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1` <- as.numeric(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1`)
   res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2` <- as.numeric(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2`)
   res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3` <- as.numeric(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`)

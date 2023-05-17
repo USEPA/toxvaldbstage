@@ -2,23 +2,21 @@
 #' @description Function to parse SQL file into SQL query strings
 #' @param filepath Input SQL filepath
 #' @import stringr dplyr
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readr]{read_lines}}
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname parse_sql_file
 #' @importFrom readr read_lines
-#' @importFrom gsubfn list
 #' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
 parse_sql_file <- function(filepath = NULL){
@@ -35,7 +33,7 @@ parse_sql_file <- function(filepath = NULL){
     .[. != ""]
 
   # Empty list to append collapsed query lines
-  clean_query = gsubfn::list()
+  clean_query = list()
   # Empty string to append query lines to for ";" checks
   tmp_query = ""
   for(i in seq_len(length(raw_query))){

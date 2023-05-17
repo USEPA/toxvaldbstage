@@ -4,25 +4,23 @@
 #' @param src_tbl a toxval source table name
 #' @param outputDir optional directory path to save output file in
 #' @param db the name of the database
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[tidyr]{pivot_longer}}
 #'  \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{summarise}}
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[writexl]{write_xlsx}}
 #' @rdname qc_prescreening_summary
 #' @importFrom tidyr pivot_longer
 #' @importFrom dplyr everything group_by summarise
-#' @importFrom gsubfn list
 #' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
 qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
@@ -46,7 +44,7 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
                                       cols = dplyr::everything(),
                                       names_to = "field",
                                       values_to = "value",
-                                      values_transform= gsubfn::list(value=as.character)
+                                      values_transform= list(value=as.character)
                                       )
   # Dataframe has 2 columns, one for all other fields, and another for their values
   # ex: author | John Doe
@@ -68,13 +66,13 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
   out_file = paste0(outputDir, "/qc_prescreening_", src_tbl, ".xlsx")
   cat("Outputing excel file as: ", out_file)
   # This saves the raw data and summary table to different sheets in the same file
-  writexl::write_xlsx(x = gsubfn::list('raw_data' = in_data,
+  writexl::write_xlsx(x = list('raw_data' = in_data,
                                'summary' = freq_df),
                       # The file name we will save as, using the inpu parameters
                       path = out_file)
 
   cat("All done! Have fun!","\n")
-  return(gsubfn::list('raw_data' = in_data,
+  return(list('raw_data' = in_data,
        'summary' = freq_df))
 }
 

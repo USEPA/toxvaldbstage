@@ -16,23 +16,21 @@
 #' @param sample_p Percentage of records to sample down to
 #' @return Processed source table to DAT format cached and returned.
 #' @import dplyr RMySQL DBI readxl magrittr tidyr writexl
-#' @export 
+#' @export
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{slice}}, \code{\link[dplyr]{select}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[writexl]{write_xlsx}}
 #' @rdname source.table.to.DAT
 #' @importFrom dplyr rename filter slice_sample select
 #' @importFrom tidyr pivot_longer all_of
-#' @importFrom gsubfn list
 #' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
 source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample_p = NA){
@@ -85,7 +83,7 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
                         names_to="field_name",
                         values_to="value",
                         # Convert column values to character
-                        values_transform = gsubfn::list(value = as.character))
+                        values_transform = list(value = as.character))
   # Add additional template fields not already present
   in_dat[template_cols[!template_cols %in% names(in_dat)]] <- ""
   # Replace missing value entries with empty string
@@ -104,7 +102,7 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
     out_dat = split(in_dat, rep(1:ceiling(nr/limit), each=limit, length.out=nr))
     # Write output files
     for(i in seq_len(length(out_dat))){
-      writexl::write_xlsx(x=gsubfn::list(data=out_dat[[i]]),
+      writexl::write_xlsx(x=list(data=out_dat[[i]]),
                           path = paste0("Repo/DAT Input/", source_table, "_DAT_input_",i,".xlsx"))
     }
   } else {

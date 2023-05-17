@@ -9,27 +9,25 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{select}}
 #'  \code{\link[writexl]{write_xlsx}}
 #'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
-#'  \code{\link[gsubfn]{list}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[textclean]{mgsub}}
 #' @rdname import_source_iuclid
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr filter rename mutate across select
 #' @importFrom writexl write_xlsx
 #' @importFrom tidyr all_of separate pivot_longer starts_with pivot_wider separate_rows unite matches ends_with
-#' @importFrom gsubfn list
 #' @importFrom stringr str_squish
 #' @importFrom textclean mgsub
 #--------------------------------------------------------------------------------------
@@ -87,7 +85,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # Get all maternal and fetus fields in one field
       tidyr::pivot_longer(cols=tidyr::starts_with("fetus_") | tidyr::starts_with("maternal_"),
                           names_to = "dev_field",
-                          values_transform = gsubfn::list(value=as.character)) %>%
+                          values_transform = list(value=as.character)) %>%
       # Split by maternal vs. fetus fields with "generation_type"
       tidyr::separate(dev_field, into=c("generation_type", "field"), sep="_", extra="merge") %>%
       # Spread out fields again, now without theif "fetus_" or "maternal_" prefixes (now stored in "generation_type")
