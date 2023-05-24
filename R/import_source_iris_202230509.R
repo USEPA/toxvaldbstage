@@ -31,7 +31,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   printCurrentFunction(db)
   source = "IRIS"
   source_table = "source_iris"
-  source_version_date = as.Date("2023-05-09")
+  src_version_date = as.Date("2023-05-09")
   #####################################################################
 
   # Define helper function for cleaning up scientific notation
@@ -355,6 +355,9 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   res0 <- res0 %>%
     dplyr::select(-`EXPERIMENTAL DOSE TYPE`, -`POD VALUE`) %>%
     rbind(pod_fix)
+
+  # Add source version date
+  res0$source_version_date <- src_version_date
 
   # Fix names
   names(res0) <- names(res0) %>%
