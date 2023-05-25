@@ -60,23 +60,22 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   # Loop through each table, get fields for JSON, reparse SQL, run Statement
   for(s_tbl in tblList){
     cat("Applying audit trigger to ", s_tbl, "\n")
-    field_list = runQuery(query=paste0("SELECT * FROM ", s_tbl, " LIMIT 1"),
-                          db=db) %>%
-      names()
+    field_types = runQuery(paste0("desc ", s_tbl),db) %>%
+      # Remove ID fields (don't add to JSON record field of audit table)
+      dplyr::filter(!Field %in% id_list)
     # Update audit fields as needed
-    audit.update.fields(s_tbl=s_tbl, field_list=field_list, db=db)
-    # Remove ID fields (don't add to JSON record field of audit table)
-    field_list = field_list[!field_list %in% id_list]
+    audit.update.fields(s_tbl=s_tbl, field_list=field_types$Field, db=db)
     # Parse custom trigger for source table and fields
     # BEFORE UPDATE TRIGGER
     src_bu_audit_trigger = audit_sql$bu_audit_trigger %>%
       # Insert source table name
       gsub("source_table", s_tbl, .) %>%
       # Format JSON
-      gsub("JSON_OBJECT\\(\\)", paste0("JSON_OBJECT(",
-                                       paste0("'", field_list, "', OLD.`", field_list,
-                                              collapse="`, "),
-                                       "`)"),
+      gsub("JSON_OBJECT\\(", paste0("JSON_OBJECT(",
+                                       paste0("'", field_types$Field, "', JSON_ARRAY(OLD.`", field_types$Field,
+                                              "`, '", field_types$Type,"'",
+                                              collapse="), "),
+                                       ")"),
            .) %>%
       paste0(#"DELIMITER // \n",
              ., "\nEND;")#// DELIMITER;")

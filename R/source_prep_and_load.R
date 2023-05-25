@@ -10,16 +10,16 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[tidyr]{reexports}}
 #' @rdname source_prep_and_load
-#' @export 
+#' @export
 #' @importFrom tidyr contains
 #--------------------------------------------------------------------------------------
 source_prep_and_load <- function(db,source,table,res,
@@ -31,7 +31,8 @@ source_prep_and_load <- function(db,source,table,res,
 
   #####################################################################
   cat("Generating source table in database\n")
-  res = create_source_table_SQL(source=table, res=res, db=db)
+  res = create_source_table_SQL(source=table, res=res,
+                                src_version = res$source_version_date, db=db)
   #####################################################################
 
   #####################################################################

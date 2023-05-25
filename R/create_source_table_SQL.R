@@ -4,11 +4,12 @@
 #'
 #' @param source name of the source being processed
 #' @param res input dataframe of source data
+#' @param src_version Version date of the source
+#' @param db PARAM_DESCRIPTION
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
 #' @export
 #' @title FUNCTION_TITLE
-#' @param db PARAM_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples
@@ -22,7 +23,7 @@
 #' @rdname create_source_table_SQL
 #' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
-create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE) {
+create_source_table_SQL <- function(source, res, src_version, db, do.halt=TRUE, verbose=FALSE) {
   message("source: ", source)
   # Normalize names
   names(res) <- names(res) %>%
@@ -61,23 +62,25 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
     gsub("source_custom_fields", src_fields, .)
     #IUCLID is special because it's a nested subfolder structure
     if(grepl("iuclid", source)){
-      brio::writeLines(src_sql$snew_source,
+      writeLines(src_sql$snew_source,
                  paste0(toxval.config()$datapath,
                         "iuclid/",
                         gsub("source_iuclid_", "", source),
                         "/",
                         gsub("source_iuclid_", "", source),
                         "_MySQL/",
-                        source,
+                        source, "_",
+                        src_version,
                         ".sql"))
     } else {
-      brio::writeLines(src_sql$snew_source,
+      writeLines(src_sql$snew_source,
                  paste0(toxval.config()$datapath,
                         gsub("source_", "", source),
                         "/",
                         gsub("source_", "", source),
                         "_MySQL/",
-                        source,
+                        source, "_",
+                        src_version,
                         ".sql"))
     }
     # Export a copy
