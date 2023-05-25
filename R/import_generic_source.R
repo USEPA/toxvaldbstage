@@ -8,17 +8,17 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_generic_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
@@ -26,6 +26,8 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   printCurrentFunction(db)
   source = "name of the source"
   source_table = "source_{source}"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("YYYY-MM-DD")
   dir = paste0(toxval.config()$datapath,"{source}/{source}_files/")
   file = paste0(dir,"name of the source file.xlsx")
   res0 = readxl::read_xlsx(file)
@@ -48,7 +50,8 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
 
   res = source.specific.transformations(res0)
 
-
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################

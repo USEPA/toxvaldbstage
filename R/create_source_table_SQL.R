@@ -6,18 +6,18 @@
 #' @param res input dataframe of source data
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @param db PARAM_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname create_source_table_SQL
 #' @importFrom stringr str_squish
@@ -31,7 +31,7 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
     stringr::str_squish() %>%
     tolower()
   # PUll generic table SQL
-  src_sql = parse_sql_file(filepath = paste0(toxval.config()$datapath, "generic_toxval_source_table.sql")) %T>% {
+  src_sql = parse_sql_file(filepath = paste0(toxval.config()$datapath, "custom_sql/generic_toxval_source_table.sql")) %T>% {
     names(.) <- "snew_source"
   }
   # Split by "`" and select even indexes which are the default fields

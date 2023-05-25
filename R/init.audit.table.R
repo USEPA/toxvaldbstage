@@ -7,14 +7,14 @@
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
-#' @export 
+#' @export
 #' @param s_tbl Source table name to apply changes to
 #' @param field_lsit List of current field names in source table
 #' @title FUNCTION_TITLE
 #' @param field_list PARAM_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
@@ -25,11 +25,11 @@
 init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   # List of ID fields not to be added to JSON of audit
   id_list = c("source_id", "chemical_id", "parent_chemical_id", "source_hash", "parent_hash", "version", "qc_status", "qc_notes",
-              "qc_flags", "create_time", "created_by", "modify_time")
+              "qc_flags", "create_time", "created_by", "modify_time", "source_version_date")
 
   # Load SQL file with audit table and trigger creation queries
   audit_sql = parse_sql_file(paste0(toxval.config()$datapath,
-                                    "audit_sql/toxval_source_audit_init.sql")) %T>%
+                                    "custom_sql/toxval_source_audit_init.sql")) %T>%
     { names(.) <- c("create_audit", "bu_audit_trigger", "drop_bu_audit_trigger",
                     "bu_source_trigger", "drop_bu_source_trigger") }
 
