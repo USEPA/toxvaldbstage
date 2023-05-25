@@ -60,11 +60,13 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   # Loop through each table, get fields for JSON, reparse SQL, run Statement
   for(s_tbl in tblList){
     cat("Applying audit trigger to ", s_tbl, "\n")
-    field_types = runQuery(paste0("desc ", s_tbl),db) %>%
-      # Remove ID fields (don't add to JSON record field of audit table)
-      dplyr::filter(!Field %in% id_list)
+    field_types = runQuery(paste0("desc ", s_tbl),db)
     # Update audit fields as needed
     audit.update.fields(s_tbl=s_tbl, field_list=field_types$Field, db=db)
+
+    # Remove ID fields (don't add to JSON record field of audit table)
+    field_types <- field_types %>%
+      dplyr::filter(!Field %in% id_list)
     # Parse custom trigger for source table and fields
     # BEFORE UPDATE TRIGGER
     src_bu_audit_trigger = audit_sql$bu_audit_trigger %>%

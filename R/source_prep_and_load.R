@@ -20,7 +20,6 @@
 #'  \code{\link[tidyr]{reexports}}
 #' @rdname source_prep_and_load
 #' @export
-#' @importFrom tidyr contains
 #--------------------------------------------------------------------------------------
 source_prep_and_load <- function(db,source,table,res,
                                  do.reset=FALSE, do.insert=FALSE,
@@ -32,7 +31,7 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
   cat("Generating source table in database\n")
   res = create_source_table_SQL(source=table, res=res,
-                                src_version = res$source_version_date, db=db)
+                                src_version = res$source_version_date[1], db=db)
   #####################################################################
 
   #####################################################################
@@ -40,15 +39,16 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
   res = as.data.frame(res)
   res$source = source
-  res$clowder_id = "-"
+  # res$clowder_id = "-"
   res$parent_chemical_id = "-"
   if(!generics::is.element(source,c("HESS"))) res$document_name = "-"
   res$qc_status = "not determined"
 
-  #####################################################################
-  cat("Set the clowder_id and document name\n")
-  #####################################################################
-  res = set_clowder_id(res=res,source=source)
+  # #####################################################################
+  # cat("Set the clowder_id and document name\n")
+  # #####################################################################
+  # Removed due to document lineage schema change
+  # res = set_clowder_id(res=res,source=source)
 
   cat("General fixes to non-ascii and encoding \n")
   # Handle character fixes
@@ -63,7 +63,7 @@ source_prep_and_load <- function(db,source,table,res,
   for(i in 1:dim(desc)[1]) {
     col <- desc[i,"Field"]
     type <- desc[i,"Type"]
-    if(tidyr::contains(type,"varchar") || tidyr::contains(type,"text")) {
+    if(grepl("varchar|text", type)) {
       # if(verbose) cat("   enc2utf8:",col,"\n")
       x <- as.character(res[,col])
       x[is.na(x)] <- "-"
