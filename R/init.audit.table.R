@@ -7,14 +7,14 @@
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
-#' @export 
+#' @export
 #' @param s_tbl Source table name to apply changes to
 #' @param field_lsit List of current field names in source table
 #' @title FUNCTION_TITLE
 #' @param field_list PARAM_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
@@ -25,11 +25,11 @@
 init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   # List of ID fields not to be added to JSON of audit
   id_list = c("source_id", "chemical_id", "parent_chemical_id", "source_hash", "parent_hash", "version", "qc_status", "qc_notes",
-              "qc_flags", "create_time", "created_by", "modify_time")
+              "qc_flags", "create_time", "created_by", "modify_time", "source_version_date")
 
   # Load SQL file with audit table and trigger creation queries
   audit_sql = parse_sql_file(paste0(toxval.config()$datapath,
-                                    "audit_sql/toxval_source_audit_init.sql")) %T>%
+                                    "custom_sql/toxval_source_audit_init.sql")) %T>%
     { names(.) <- c("create_audit", "bu_audit_trigger", "drop_bu_audit_trigger",
                     "bu_source_trigger", "drop_bu_source_trigger") }
 
@@ -60,23 +60,24 @@ init.audit.table <- function(db, do.halt=FALSE, verbose=FALSE){
   # Loop through each table, get fields for JSON, reparse SQL, run Statement
   for(s_tbl in tblList){
     cat("Applying audit trigger to ", s_tbl, "\n")
-    field_list = runQuery(query=paste0("SELECT * FROM ", s_tbl, " LIMIT 1"),
-                          db=db) %>%
-      names()
+    field_types = runQuery(paste0("desc ", s_tbl),db)
     # Update audit fields as needed
-    audit.update.fields(s_tbl=s_tbl, field_list=field_list, db=db)
+    audit.update.fields(s_tbl=s_tbl, field_list=field_types$Field, db=db)
+
     # Remove ID fields (don't add to JSON record field of audit table)
-    field_list = field_list[!field_list %in% id_list]
+    field_types <- field_types %>%
+      dplyr::filter(!Field %in% id_list)
     # Parse custom trigger for source table and fields
     # BEFORE UPDATE TRIGGER
     src_bu_audit_trigger = audit_sql$bu_audit_trigger %>%
       # Insert source table name
       gsub("source_table", s_tbl, .) %>%
       # Format JSON
-      gsub("JSON_OBJECT\\(\\)", paste0("JSON_OBJECT(",
-                                       paste0("'", field_list, "', OLD.`", field_list,
-                                              collapse="`, "),
-                                       "`)"),
+      gsub("JSON_OBJECT\\(", paste0("JSON_OBJECT(",
+                                       paste0("'", field_types$Field, "', JSON_ARRAY(OLD.`", field_types$Field,
+                                              "`, '", field_types$Type,"'",
+                                              collapse="), "),
+                                       ")"),
            .) %>%
       paste0(#"DELIMITER // \n",
              ., "\nEND;")#// DELIMITER;")

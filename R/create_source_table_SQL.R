@@ -4,25 +4,26 @@
 #'
 #' @param source name of the source being processed
 #' @param res input dataframe of source data
+#' @param src_version Version date of the source
+#' @param db PARAM_DESCRIPTION
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
-#' @param db PARAM_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname create_source_table_SQL
 #' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
-create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE) {
+create_source_table_SQL <- function(source, res, src_version, db, do.halt=TRUE, verbose=FALSE) {
   message("source: ", source)
   # Normalize names
   names(res) <- names(res) %>%
@@ -31,7 +32,7 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
     stringr::str_squish() %>%
     tolower()
   # PUll generic table SQL
-  src_sql = parse_sql_file(filepath = paste0(toxval.config()$datapath, "generic_toxval_source_table.sql")) %T>% {
+  src_sql = parse_sql_file(filepath = paste0(toxval.config()$datapath, "custom_sql/generic_toxval_source_table.sql")) %T>% {
     names(.) <- "snew_source"
   }
   # Split by "`" and select even indexes which are the default fields
@@ -61,23 +62,25 @@ create_source_table_SQL <- function(source, res, db, do.halt=TRUE, verbose=FALSE
     gsub("source_custom_fields", src_fields, .)
     #IUCLID is special because it's a nested subfolder structure
     if(grepl("iuclid", source)){
-      brio::writeLines(src_sql$snew_source,
+      writeLines(src_sql$snew_source,
                  paste0(toxval.config()$datapath,
                         "iuclid/",
                         gsub("source_iuclid_", "", source),
                         "/",
                         gsub("source_iuclid_", "", source),
                         "_MySQL/",
-                        source,
+                        source, "_",
+                        src_version,
                         ".sql"))
     } else {
-      brio::writeLines(src_sql$snew_source,
+      writeLines(src_sql$snew_source,
                  paste0(toxval.config()$datapath,
                         gsub("source_", "", source),
                         "/",
                         gsub("source_", "", source),
                         "_MySQL/",
-                        source,
+                        source, "_",
+                        src_version,
                         ".sql"))
     }
     # Export a copy

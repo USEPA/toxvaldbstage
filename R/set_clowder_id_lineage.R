@@ -245,7 +245,7 @@ set_clowder_id_lineage <- function(source_table,
 
                   "source_pprtv_cphea" = {
                     res <- res %>%
-                      dplyr::select(source_hash, name) %>%
+                      dplyr::select(source_hash, source_version_date, name) %>%
                       dplyr::left_join(map_file %>%
                                          dplyr::select(fk_doc_id, clowder_id, Chemical),
                                        by=c("name"="Chemical"))
@@ -592,7 +592,7 @@ set_clowder_id_lineage <- function(source_table,
     tidyr::unite(col="pushed_docs", source_hash, fk_doc_id, remove=FALSE) %>%
     dplyr::filter(!pushed_docs %in% pushed_doc_records$pushed_docs,
            !is.na(fk_doc_id)) %>%
-    dplyr::select(source_hash, fk_doc_id)
+    dplyr::select(source_hash, source_version_date, fk_doc_id)
 
   if(nrow(mat)){
     message("...pushing ", nrow(mat), " new documents_records entries...")
