@@ -41,7 +41,7 @@ source_prep_and_load <- function(db,source,table,res,
   res$source = source
   # res$clowder_id = "-"
   res$parent_chemical_id = "-"
-  if(!generics::is.element(source,c("HESS"))) res$document_name = "-"
+  # if(!generics::is.element(source,c("HESS"))) res$document_name = "-"
   res$qc_status = "not determined"
 
   # #####################################################################
