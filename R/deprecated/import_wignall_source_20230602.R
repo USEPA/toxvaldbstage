@@ -15,7 +15,6 @@
 #' @seealso 
 #'  \code{\link[openxlsx]{read.xlsx}}
 #' @rdname import_wignall_source
-#' @export 
 #' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_wignall_source <- function(db,
