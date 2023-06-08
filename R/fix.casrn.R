@@ -3,14 +3,15 @@
 #'
 #' @param casrn Input CASRN to be fixed
 #' @param cname An optional chemical name
-#' @param verbose if TRUE, print hte input values
+#' @param verbose if TRUE, print the input values
 #' @return the fixed CASRN
-#' @title FUNCTION_TITLE
+#' @title fix.casrn
 #' @details DETAILS
 #' @examples
 #' \dontrun{
 #' if(interactive()){
-#'  #EXAMPLE1
+#'  fix.casrn("107028")
+#'  # Expected output "107-02-8"
 #'  }
 #' }
 #' @seealso
@@ -19,23 +20,11 @@
 #' @export
 #
 #--------------------------------------------------------------------------------------
-fix.casrn <- function(casrn,cname="",verbose=F) {
+fix.casrn <- function(casrn, cname="", verbose=FALSE) {
+  # verbose print input
   if(verbose) cat("input: ",cname,":",casrn,"\n")
-  if(grepl("NOCAS", casrn)) return(casrn)
-  doit <- T
-  while(doit) {
-    if(substr(casrn,1,1)=="0") casrn <- substr(casrn,2,nchar(casrn))
-    else doit <- F
-  }
 
-  if(!grepl("-", casrn)) {
-    nc <- nchar(casrn)
-    ctemp <- casrn
-    right <- substr(ctemp,nc,nc)
-    mid <- substr(ctemp,nc-2,nc-1)
-    left <- substr(ctemp,1,nc-3)
-    casrn <- paste(left,"-",mid,"-",right,sep="")
-  }
+  # Set known values first
   if(!is.na(cname)) {
     if(cname=="epsilon-Hexachlorocyclohexane (epsilon-HC)") casrn <- "6108-10-7"
     if(cname=="Captafol") casrn <- "2425-06-1"
@@ -44,6 +33,22 @@ fix.casrn <- function(casrn,cname="",verbose=F) {
     if(cname=="Dodine") casrn <- "2439-10-3"
     if(cname=="Mancozeb") casrn <- "8018-01-7"
   }
+
+  # Ignore if input contains non-numerics
+  if(!grepl("^[0-9]*$", casrn)) return(casrn)
+
+  # Account for padded string with leading 0's
+  casrn <- sub("^0+", "", casrn)
+
+  # Convert to cas format (e.g., 107028 into 107-02-8)
+  nc <- nchar(casrn)
+  ctemp <- casrn
+  right <- substr(ctemp,nc,nc)
+  mid <- substr(ctemp,nc-2,nc-1)
+  left <- substr(ctemp,1,nc-3)
+  casrn <- paste(left,"-",mid,"-",right,sep="")
+
+  # verbose print output
   if(verbose) cat("output: ",cname,":",casrn,"\n")
   return(casrn)
 }
