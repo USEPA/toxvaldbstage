@@ -4,12 +4,21 @@
 \alias{create_source_table_SQL}
 \title{FUNCTION_TITLE}
 \usage{
-create_source_table_SQL(source, res, db, do.halt = TRUE, verbose = FALSE)
+create_source_table_SQL(
+  source,
+  res,
+  src_version,
+  db,
+  do.halt = TRUE,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{source}{name of the source being processed}
 
 \item{res}{input dataframe of source data}
+
+\item{src_version}{Version date of the source}
 
 \item{db}{PARAM_DESCRIPTION}
 

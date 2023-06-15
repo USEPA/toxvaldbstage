@@ -24,6 +24,3 @@ if(interactive()){
  }
 }
 }
-\seealso{
-\code{\link[gsubfn]{list}}
-}

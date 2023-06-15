@@ -35,7 +35,6 @@ if(interactive()){
 }
 \seealso{
 \code{\link[openxlsx]{read.xlsx}}, \code{\link[openxlsx]{write.xlsx}}
- \code{\link[gsubfn]{list}}
  \code{\link[stringr]{str_replace}}
  \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate_all}}
  \code{\link[tidyr]{spread}}

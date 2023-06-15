@@ -64,7 +64,7 @@ import.driver <- function(db="res_toxval_source_v5",
   import_cosmos_source(db,chem.check.halt=chem.check.halt) # COSMOS [v1]
   import_dod_ered_source(db,chem.check.halt=chem.check.halt) # DOD ERED [v1]
   import_doe_benchmarks_source(db,chem.check.halt=chem.check.halt) # DOE Wildlife Benchmarks [v1]
-  import_efsa2_source(db,chem.check.halt=chem.check.halt)  # EFSA2
+  # import_efsa2_source(db,chem.check.halt=chem.check.halt)  # EFSA2
   import_efsa_source(db,chem.check.halt=chem.check.halt) # EFSA
   import_hawc_pfas_source(db, hawc_num=150, chem.check.halt=chem.check.halt) # HAWC PFAS 150
   import_hawc_pfas_source(db, hawc_num=430, chem.check.halt=chem.check.halt) # HAWC PFAS 430
@@ -81,7 +81,7 @@ import.driver <- function(db="res_toxval_source_v5",
   import_pprtv_ncea_source(db,chem.check.halt=chem.check.halt) # PPRTV (NCEA)
   import_pprtv_ornl_source(db,chem.check.halt=chem.check.halt) # PPRTV (ORNL)
   import_test_source(db,chem.check.halt=chem.check.halt) # TEST
-  import_wignall_source(db,chem.check.halt=chem.check.halt) # Wignall
+  # import_wignall_source(db,chem.check.halt=chem.check.halt) # Wignall
   # Trouble loading
   # import_flex_source(db,chem.check.halt=chem.check.halt) # ACTOR old sources (10)
 

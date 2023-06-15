@@ -31,7 +31,6 @@ if(interactive()){
 }
 \seealso{
 \code{\link[openxlsx]{read.xlsx}}, \code{\link[openxlsx]{write.xlsx}}
- \code{\link[gsubfn]{list}}
  \code{\link[stringr]{str_trim}}
  \code{\link[stringi]{stri_escape_unicode}}
 }

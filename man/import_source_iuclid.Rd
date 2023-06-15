@@ -44,7 +44,6 @@ if(interactive()){
  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{select}}
  \code{\link[writexl]{write_xlsx}}
  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
- \code{\link[gsubfn]{list}}
  \code{\link[stringr]{str_trim}}
  \code{\link[textclean]{mgsub}}
 }
