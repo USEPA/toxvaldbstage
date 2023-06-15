@@ -29,10 +29,12 @@
 #' @importFrom tidyr pivot_longer separate matches
 #' @importFrom tibble add_column
 #--------------------------------------------------------------------------------------
-import_rsl_source <- function(db,chem.check.halt=F) {
+import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "rsl"
   source_table = "source_rsl"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2022-11-01")
   dir = paste0(toxval.config()$datapath,"rsl/rsl_files/")
   file0 = paste0(dir,"rsl_thq10_nov_2022.xlsx")
   file1 = paste0(dir,"rsl_thq01_nov_2022.xlsx")
@@ -131,7 +133,7 @@ import_rsl_source <- function(db,chem.check.halt=F) {
   # combine res0 and res1
   res_combo_01 <- res0_0 %>%
     dplyr::bind_rows(res1_0 %>%
-                dplyr::mutate(dplyr::across(c("SFO(mg/kg-day)-1"), ~as.numeric(.))))
+                dplyr::mutate(dplyr::across(c("SFO_(mg/kg-day)-1"), ~as.numeric(.))))
 
   # rename columsn in a way that they can be separated later for other toxval column values
   res_combo_01_2 <- res_combo_01 %>%
@@ -331,29 +333,29 @@ import_rsl_source <- function(db,chem.check.halt=F) {
  res8$source <- 'RSL'
 
  # add 'EPA Regions' to "subsource" column for all 'Screening' toxval_type entries
-   res9 <- res8 %>%
-     dplyr::mutate(dplyr::across(tidyr::matches("subsource"),
-                          .fns = ~ dplyr::case_when(toxval_type =="Screening Level (Industrial Soil)" ~ "EPA Regions",
-                                             toxval_type =="Screening Level (Resident Air)" ~ "EPA Regions",
-                                             toxval_type =="Screening Level (Industrial Air)" ~ "EPA Regions",
-                                             toxval_type == "Screening Level (Tap Water)" ~ "EPA Regions",
-                                             toxval_type == "Screening Level (Resident Soil)" ~ "EPA Regions",
-                                             toxval_type == "Screening Level (MCL)" ~ "EPA Regions",
-                                             TRUE ~ .
-                          )
-                )
-     )
+ res9 <- res8 %>%
+   dplyr::mutate(dplyr::across(tidyr::matches("subsource"),
+                               .fns = ~ dplyr::case_when(toxval_type =="Screening Level (Industrial Soil)" ~ "EPA Regions",
+                                                         toxval_type =="Screening Level (Resident Air)" ~ "EPA Regions",
+                                                         toxval_type =="Screening Level (Industrial Air)" ~ "EPA Regions",
+                                                         toxval_type == "Screening Level (Tap Water)" ~ "EPA Regions",
+                                                         toxval_type == "Screening Level (Resident Soil)" ~ "EPA Regions",
+                                                         toxval_type == "Screening Level (MCL)" ~ "EPA Regions",
+                                                         TRUE ~ .
+                                                         )
+                               )
+                 )
 
   # make "risk_assessment_type" column and fill it with 'carcinogenicity' for all 'SFO', 'IUR' toxval_type entries
-   res10 <- res9 %>%
-     tibble::add_column(risk_assessment_type =  "") %>%
-     dplyr::mutate(dplyr::across(tidyr::matches("risk_assessment_type"),
-                          .fns = ~ dplyr::case_when(toxval_type =="SFO" ~ "carcinogenicity",
-                                             toxval_type =="IUR" ~ "carcinogenicity",
-                                             TRUE ~ .
-                          )
-                )
-     )
+  res10 <- res9 %>%
+    tibble::add_column(risk_assessment_type =  "") %>%
+    dplyr::mutate(dplyr::across(tidyr::matches("risk_assessment_type"),
+                                .fns = ~ dplyr::case_when(toxval_type =="SFO" ~ "carcinogenicity",
+                                                          toxval_type =="IUR" ~ "carcinogenicity",
+                                                          TRUE ~ .
+                                                          )
+                                )
+                  )
 
 
    # make "toxval_subtype" column for all 'Screening' toxval_type entries with a "cancer" risk_assessment_class
@@ -398,7 +400,9 @@ import_rsl_source <- function(db,chem.check.halt=F) {
  # relacing empty strings with NA value
  res <- replace(res10, res10=="", NA)
 
-
+# Filter out NA/blank toxval_numeric values
+ res <- res %>%
+   dplyr::filter(!is.na(toxval_numeric))
 
 
   # the final file should have column names that include "name" and "casrn"
@@ -414,8 +418,16 @@ import_rsl_source <- function(db,chem.check.halt=F) {
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source=source,table=source_table,res=res,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt)
 }
