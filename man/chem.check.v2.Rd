@@ -39,5 +39,4 @@ if(interactive()){
  \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_trim}}
  \code{\link[tidyr]{reexports}}
  \code{\link[openxlsx]{write.xlsx}}
- \code{\link[gsubfn]{list}}
 }

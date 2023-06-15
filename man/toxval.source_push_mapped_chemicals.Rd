@@ -47,7 +47,6 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[gsubfn]{list}}
- \code{\link[readxl]{read_excel}}
+\code{\link[readxl]{read_excel}}
  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{bind}}
 }

@@ -32,6 +32,5 @@ if(interactive()){
 \seealso{
 \code{\link[tidyr]{pivot_longer}}
  \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{summarise}}
- \code{\link[gsubfn]{list}}
  \code{\link[writexl]{write_xlsx}}
 }

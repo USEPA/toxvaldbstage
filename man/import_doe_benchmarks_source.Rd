@@ -7,7 +7,9 @@
 import_doe_benchmarks_source(
   db,
   infile = "DOE_Wildlife_Benchmarks_1996.xlsx",
-  chem.check.halt = F
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
 )
 }
 \arguments{
@@ -15,7 +17,11 @@ import_doe_benchmarks_source(
 
 \item{infile}{The input file ./doe_benchmarks/doe_benchmarks_files/DOE_Wildlife_Benchmarks_1996.xlsx}
 
-\item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+\item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
+
+\item{do.reset}{If TRUE, delete data from the database for this source before}
+
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
 OUTPUT_DESCRIPTION

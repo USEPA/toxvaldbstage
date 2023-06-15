@@ -34,11 +34,9 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[gsubfn]{list}}
- \code{\link[readxl]{read_excel}}
+\code{\link[readxl]{read_excel}}
  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{bind}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{summarise}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}
  \code{\link[stringr]{str_trim}}
- \code{\link[utils]{View}}
  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}
  \code{\link[writexl]{write_xlsx}}
 }

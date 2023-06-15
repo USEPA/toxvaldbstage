@@ -4,10 +4,10 @@
 \alias{DAT.pipe.source.audit}
 \title{FUNCTION_TITLE}
 \usage{
-DAT.pipe.source.audit(source, db, live_df, audit_df)
+DAT.pipe.source.audit(source_table, db, live_df, audit_df)
 }
 \arguments{
-\item{source}{name of ToxVal source table audit information is associated with}
+\item{source_table}{name of ToxVal source table audit information is associated with}
 
 \item{db}{the name of the database}
 
@@ -32,8 +32,7 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[gsubfn]{list}}
- \code{\link[readxl]{read_excel}}
+\code{\link[readxl]{read_excel}}
  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{filter}}
  \code{\link[tidyr]{reexports}}
  \code{\link[writexl]{write_xlsx}}

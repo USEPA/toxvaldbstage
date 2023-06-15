@@ -4,7 +4,7 @@
 \alias{setPSQLDBConn}
 \title{FUNCTION_TITLE}
 \usage{
-setPSQLDBConn(server, port, user, password)
+setPSQLDBConn(server, port, user, password, api_auth)
 }
 \arguments{
 \item{server}{SQL server on which relevant database lives}
@@ -14,6 +14,8 @@ setPSQLDBConn(server, port, user, password)
 \item{user}{SQL username to access database}
 
 \item{password}{SQL password corresponding to username}
+
+\item{api_auth}{API Key for CCTE API's}
 }
 \value{
 OUTPUT_DESCRIPTION

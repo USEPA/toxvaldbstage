@@ -2,16 +2,16 @@
 % Please edit documentation in R/fix.casrn.R
 \name{fix.casrn}
 \alias{fix.casrn}
-\title{FUNCTION_TITLE}
+\title{fix.casrn}
 \usage{
-fix.casrn(casrn, cname = "", verbose = F)
+fix.casrn(casrn, cname = "", verbose = FALSE)
 }
 \arguments{
 \item{casrn}{Input CASRN to be fixed}
 
 \item{cname}{An optional chemical name}
 
-\item{verbose}{if TRUE, print hte input values}
+\item{verbose}{if TRUE, print the input values}
 }
 \value{
 the fixed CASRN
@@ -25,7 +25,8 @@ DETAILS
 \examples{
 \dontrun{
 if(interactive()){
- #EXAMPLE1
+ fix.casrn("107028")
+ # Expected output "107-02-8"
  }
 }
 }

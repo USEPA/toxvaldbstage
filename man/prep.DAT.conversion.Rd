@@ -4,14 +4,12 @@
 \alias{prep.DAT.conversion}
 \title{prep.DAT.conversion}
 \usage{
-prep.DAT.conversion(in_dat, hash_id_list, source)
+prep.DAT.conversion(in_dat, hash_id_list)
 }
 \arguments{
 \item{in_dat}{PARAM_DESCRIPTION}
 
 \item{hash_id_list}{PARAM_DESCRIPTION}
-
-\item{source}{PARAM_DESCRIPTION}
 }
 \value{
 OUTPUT_DESCRIPTION

@@ -27,6 +27,5 @@ if(interactive()){
 }
 \seealso{
 \code{\link[readr]{read_lines}}
- \code{\link[gsubfn]{list}}
  \code{\link[stringr]{str_trim}}
 }
