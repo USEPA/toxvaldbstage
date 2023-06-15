@@ -40,12 +40,12 @@ set_clowder_id_lineage <- function(source_table,
                                                              "clowder_v3/cal_oehha_log_with_names_20221019.xlsx")),
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                         "clowder_v3/iris_document_map_2022_08_01.xlsx")),
-                      "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
+                      # "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                      #                                           "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
                       "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                 "clowder_v3/pprtv_ncea_document_map_01122023.xlsx")),
-                      "source_efsa2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                         "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx")),
+                      # "source_efsa2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                      #                                    "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx")),
                       "source_hawc_pfas_150" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx")),
                       "source_hawc_pfas_430" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -66,10 +66,10 @@ set_clowder_id_lineage <- function(source_table,
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                           document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
-                      "source_atsdr" = data.frame(clowder_id="610036c7e4b01a90a3f9879c",
-                                               document_name="a6a427952aa24d5d9e1d1a229109ba7e-Agency for Toxic Substances and Disease Registry-2020.pdf"),
-                      "source_atsdr_pfas" = data.frame(clowder_id = "6238e943e4b0b18cb57ced5a",
-                                          document_name = "tp200-c2.pdf"),
+                      # "source_atsdr" = data.frame(clowder_id="610036c7e4b01a90a3f9879c",
+                      #                          document_name="a6a427952aa24d5d9e1d1a229109ba7e-Agency for Toxic Substances and Disease Registry-2020.pdf"),
+                      # "source_atsdr_pfas" = data.frame(clowder_id = "6238e943e4b0b18cb57ced5a",
+                      #                     document_name = "tp200-c2.pdf"),
                       "source_atsdr_pfas_2021" = data.frame(clowder_id = "6238b97ae4b0b18cb57ce4f6",
                                                document_name = "tp200.pdf"),
                       "source_chiu" = data.frame(clowder_id = "61003953e4b01a90a3f9b6d1",
@@ -102,12 +102,12 @@ set_clowder_id_lineage <- function(source_table,
                                                      document_name = "ToxValQA29180809_OSHA_TABLEZ-1LimitsforAirContaminants.pdf"),
                       "source_fda_cedi" = data.frame(clowder_id = "619d2972e4b0993a3937de4f",
                                         document_name = "ToxValQA29176904_FDA_CumulativeEstimatedDailyIntake.pdf"),
-                      "source_wignall" = data.frame(clowder_id = "62b30a1ee4b07abf29f56811",
-                                       document_name = "ToxValDBQA Wignall EHP 2014.pdf"),
+                      # "source_wignall" = data.frame(clowder_id = "62b30a1ee4b07abf29f56811",
+                      #                  document_name = "ToxValDBQA Wignall EHP 2014.pdf"),
                       "source_test" = data.frame(clowder_id = "6390c185e4b04f6bb149889a; 6390c185e4b04f6bb1498899",
                                     document_name = "TEST data.xlsx; test_chemicals_invitrodb.csv"),
-                      "source_atsdr_mrls_2022" = data.frame(clowder_id="63b58958e4b04f6bb1507bf2",
-                                               document_name="ATSDR MRLs - August 2022 - H.pdf"),
+                      # "source_atsdr_mrls_2022" = data.frame(clowder_id="63b58958e4b04f6bb1507bf2",
+                      #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
                       "source_rsl" = data.frame(clowder_id = c("61fabdc0e4b04a563fdc9bdd",
                                                                "61fabdc0e4b04a563fdc9be1",
                                                                "61fabdc0e4b04a563fdc9bdf"),
@@ -305,48 +305,48 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
 
-                  "source_pprtv_ornl" = {
-                    # Filter to the "_webpage_" PDF Clowder document
-                    map_file = map_file[grepl("_webpage_", map_file$document_name) &
-                                          grepl(".pdf", map_file$document_name), ]
-                    for (i in 1:nrow(res)){
-                      #Will perform matching based on casrn and chemical name fields
-                      res_cas_num = res[i,'casrn']
-                      res_chem_name = res[i,'name']
-                      #Get rid of the leading zeros added by excel
-                      res_cas_num <- sub("^0+","",res_cas_num)
-
-                      #Match first based on exact chemical name (most consistently populated in key and res)
-                      row = match(res_chem_name,map_file$chemical_name)
-                      clowder_id = map_file[row,'clowder_id']
-                      doc_name = map_file[row,'document_name']
-                      #Some chemicals have additional abbreviations in the document map. Use grep to look for
-                      #the chemical name from res is contained in the chemical name row (different than exact matching)
-                      if (is.na(clowder_id)){
-                        rows = grep(res_chem_name,map_file$chemical_name)
-                        clowder_id = map_file$clowder_id[rows[1]]
-                        document_name = map_file$document_name[rows[1]]
-                      }
-                      #Final match criteria is the casrn number. Res has all casrns but document map does not
-                      #PPRTV ORNL source listed some casrn numbers as "various" instead of specific numbers
-                      if(is.na(clowder_id)){
-                        #If didn't match from chemical name, try to match by casrn
-                        row = match(res_cas_num,map_file$casrn)
-                        clowder_id = map_file[row,'clowder_id']
-                        doc_name = map_file[row,'document_name']
-                      }
-                      #Populate clowder id and document name fields with matched info from key
-                      res[i,'clowder_id'] = clowder_id
-                      res[i,'document_name'] = doc_name
-                    }
-                    # Match for fk_doc_id field
-                    res <- res %>%
-                      dplyr::left_join(map_file %>%
-                                         dplyr::select(fk_doc_id, clowder_id),
-                                       by="clowder_id")
-                    # Return res
-                    res
-                  },
+                  # "source_pprtv_ornl" = {
+                  #   # Filter to the "_webpage_" PDF Clowder document
+                  #   map_file = map_file[grepl("_webpage_", map_file$document_name) &
+                  #                         grepl(".pdf", map_file$document_name), ]
+                  #   for (i in 1:nrow(res)){
+                  #     #Will perform matching based on casrn and chemical name fields
+                  #     res_cas_num = res[i,'casrn']
+                  #     res_chem_name = res[i,'name']
+                  #     #Get rid of the leading zeros added by excel
+                  #     res_cas_num <- sub("^0+","",res_cas_num)
+                  #
+                  #     #Match first based on exact chemical name (most consistently populated in key and res)
+                  #     row = match(res_chem_name,map_file$chemical_name)
+                  #     clowder_id = map_file[row,'clowder_id']
+                  #     doc_name = map_file[row,'document_name']
+                  #     #Some chemicals have additional abbreviations in the document map. Use grep to look for
+                  #     #the chemical name from res is contained in the chemical name row (different than exact matching)
+                  #     if (is.na(clowder_id)){
+                  #       rows = grep(res_chem_name,map_file$chemical_name)
+                  #       clowder_id = map_file$clowder_id[rows[1]]
+                  #       document_name = map_file$document_name[rows[1]]
+                  #     }
+                  #     #Final match criteria is the casrn number. Res has all casrns but document map does not
+                  #     #PPRTV ORNL source listed some casrn numbers as "various" instead of specific numbers
+                  #     if(is.na(clowder_id)){
+                  #       #If didn't match from chemical name, try to match by casrn
+                  #       row = match(res_cas_num,map_file$casrn)
+                  #       clowder_id = map_file[row,'clowder_id']
+                  #       doc_name = map_file[row,'document_name']
+                  #     }
+                  #     #Populate clowder id and document name fields with matched info from key
+                  #     res[i,'clowder_id'] = clowder_id
+                  #     res[i,'document_name'] = doc_name
+                  #   }
+                  #   # Match for fk_doc_id field
+                  #   res <- res %>%
+                  #     dplyr::left_join(map_file %>%
+                  #                        dplyr::select(fk_doc_id, clowder_id),
+                  #                      by="clowder_id")
+                  #   # Return res
+                  #   res
+                  # },
 
                   "source_pprtv_ncea" = {
                     res$document_name <- NULL
@@ -418,24 +418,24 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
 
-                  "source_efsa2" = {
-                    # Update map_file so it only contains mapped clowder_id values with long_refs
-                    map_file = map_file %>%
-                      select(clowder_id, long_ref, fk_doc_id) %>%
-                      distinct() %>%
-                      filter(!is.na(clowder_id))
-                    # clear old names
-                    res$document_name <- NULL
-
-                    # match by longref
-                    res <- res %>%
-                      left_join(select(map_file, long_ref, clowder_id, fk_doc_id),
-                                by = "long_ref") %>%
-                      distinct()
-
-                    # Return res
-                    res
-                  },
+                  # "source_efsa2" = {
+                  #   # Update map_file so it only contains mapped clowder_id values with long_refs
+                  #   map_file = map_file %>%
+                  #     select(clowder_id, long_ref, fk_doc_id) %>%
+                  #     distinct() %>%
+                  #     filter(!is.na(clowder_id))
+                  #   # clear old names
+                  #   res$document_name <- NULL
+                  #
+                  #   # match by longref
+                  #   res <- res %>%
+                  #     left_join(select(map_file, long_ref, clowder_id, fk_doc_id),
+                  #               by = "long_ref") %>%
+                  #     distinct()
+                  #
+                  #   # Return res
+                  #   res
+                  # },
 
                   "source_pfas_150_sem_v2" = {
                     # Update map_file so it only contains mapped clowder_id values with long_refs

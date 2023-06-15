@@ -6,19 +6,18 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{recode}}
 #'  \code{\link[tidyr]{pivot_longer}}
 #' @rdname import_source_atsdr_mrls_2022
-#' @export 
 #' @importFrom openxlsx read.xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr rename mutate recode
