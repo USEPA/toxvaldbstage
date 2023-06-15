@@ -6,17 +6,16 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[janitor]{excel_numeric_to_date}}
 #' @rdname import_atsdr_source
-#' @export 
 #' @importFrom openxlsx read.xlsx
 #' @importFrom janitor excel_numeric_to_date
 #--------------------------------------------------------------------------------------
