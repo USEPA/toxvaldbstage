@@ -57,6 +57,9 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
     ) %>%
     # Clean up variables
     dplyr::mutate(
+      # add toxval_units and media column
+      toxval_units = "ug/L",
+      media = "freshwater",
       # Replace "NR" in casrn with "-"
       casrn = gsub("^NR$", "-", casrn),
       # Replace all greek letters "µ" with "u"
@@ -75,6 +78,8 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
                     sep = "_", extra = "merge", fill = "right", remove = FALSE
     )
 
+  res$toxval_type <- with(res, ifelse(species == "Office of Water  Aquatic Life Criteria", "Office of Water Aquatic Life Criteria", "OPP Aquatic Life Benchmarks"))
+  
   # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
