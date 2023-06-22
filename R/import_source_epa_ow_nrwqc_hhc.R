@@ -101,16 +101,20 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   res <- within(res, toxval_numeric[name == 'Methylmercury' & toxval_numeric=='0.3 mg/kg'] <- '0.3')
   res <- within(res, toxval_units[name == 'Methylmercury' & toxval_numeric=='0.3'] <- 'mg/kg')
   
-  # drop rows that are Total, dash
-  # this way drops the pH row as well
-  res <- res[res$toxval_numeric != "Total" & res$toxval_numeric != "-", ] 
+  # make toxval_numeric dash values NA 
+  res$toxval_numeric[which(res$toxval_numeric == "-")] <- NA
+  # drop toxval_numeric Total values
+  res <- res[res$toxval_numeric != "Total",] 
+  # drop rows with NA for toxval_numeric
+  res <- res[!(is.na(res$toxval_numeric)), ]  
+  # drop pH row since it is not a chemical
+  res <- res[res$name != "pH",] 
+  
   # Fix scientific notation issue
   res = res %>%
     # Add rowwise so mutate can vectorize the parse_scientific function
     dplyr::rowwise() %>%
     dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric))
-  # drop rows with NA for toxval_numeric
-  res <- res[!(is.na(res$toxval_numeric)), ]  
   
   
 
