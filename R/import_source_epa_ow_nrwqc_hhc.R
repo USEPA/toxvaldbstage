@@ -78,6 +78,41 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
     dplyr::rowwise() %>%
     # Apply fix.casrn() to non-NA elements of res0$casrn
     dplyr::mutate(casrn = ifelse(is.na(casrn), casrn, fix.casrn(casrn)))
+  
+  # Define helper function for cleaning up scientific notation
+  parse_scientific <- function(s) {
+    # Handle scientific notation conversion (either 10's or e notation)
+    if(grepl("[Xx]", s) && grepl("^[0-9]+\\.?[0-9]* ?[Xx] ?10\\^.*$", s)){
+      mantissa <- as.numeric(gsub(" ?[Xx].*", "", s))
+      exponent <- as.numeric(gsub(".*\\^", "", s))
+      return(mantissa * 10^exponent)
+    } else if(grepl("[eE]", s) && grepl("^(-?[0-9]*)\\.?[0-9]+[eE]?[-\\+]?[0-9]+$", s)){
+      mantissa <- as.numeric(gsub(" ?[eE].*", "", s))
+      exponent <- as.numeric(gsub(".*?[eE]", "", s))
+      return(mantissa * 10^exponent)
+    }
+    return(suppressWarnings(as.numeric(s)))
+  }
+  
+  
+  # fix Asbestos and Methlymercury because they have their toxval_units with their numeric
+  res <- within(res, toxval_numeric[name == 'Asbestos' & toxval_numeric=='7 million fibers/L'] <- '7000000')
+  res <- within(res, toxval_units[name == 'Asbestos' & toxval_numeric=='7000000'] <- 'fibers/L')
+  res <- within(res, toxval_numeric[name == 'Methylmercury' & toxval_numeric=='0.3 mg/kg'] <- '0.3')
+  res <- within(res, toxval_units[name == 'Methylmercury' & toxval_numeric=='0.3'] <- 'mg/kg')
+  
+  # drop rows that are Total, dash
+  # this way drops the pH row as well
+  res <- res[res$toxval_numeric != "Total" & res$toxval_numeric != "-", ] 
+  # Fix scientific notation issue
+  res = res %>%
+    # Add rowwise so mutate can vectorize the parse_scientific function
+    dplyr::rowwise() %>%
+    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric))
+  # drop rows with NA for toxval_numeric
+  res <- res[!(is.na(res$toxval_numeric)), ]  
+  
+  
 
   # Standardize the names
   names(res) <- names(res) %>%
