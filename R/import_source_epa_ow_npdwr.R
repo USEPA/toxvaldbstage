@@ -59,18 +59,40 @@ import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE,
                   toxval_numeric = gsub(" as of \\d\\d/\\d\\d/\\d\\d$|^none -+ ",
                                         "", toxval_numeric),
                   toxval_numeric = gsub("zero", 0, toxval_numeric),
-                  toxval_numeric = gsub("(^--> )?n/a$", "-", toxval_numeric),
+                  toxval_numeric = gsub("(^--> )?n/a$", "N/A", toxval_numeric),
                   toxval_numeric = gsub(" MFL$", " million fibers per liter", toxval_numeric)) %>%
     dplyr::mutate(dplyr::across(c("toxval_type", "toxval_numeric", "toxval_units"),
-                         ~stringr::str_squish(.)))
-
-  # TODO Handle toxval_numeric case of 15 picocuries per Liter (pCi/L) or 5 pCi/L
-  # TODO Handle toxval_numeric case of 30 ug/L
-  # TODO Handle toxval_numeric case of 4 millirems per year
-  # TODO Handle toxval_numeric case of 7 million fibers per liter or 7 million fibers per liter (MFL)
-  # TODO Handle toxval_numeric case of MRDL=
-  # TODO Handle toxval_numeric case of TT; Action Level=0.015 or TT; Action Level=1.3
-  # TODO Handle toxval_numeric case of TT (TBD if keeping or filtering out)
+                         ~stringr::str_squish(.))) %>%
+    dplyr::rename(critical_effect="Potential Health Effects from Long-Term Exposure Above the MCL (unless specified as short-term)")
+    
+  # Drop rows with subsource type as Microorganisms or Radionuclides
+  # Drop rows with toxval_numeric TT/-/NA
+    res <- subset(res0, subsource_type!="Microorganisms" & subsource_type!="Radionuclides") 
+    res <- subset(res0, toxval_numeric!="TT; Action Level=1.3" & toxval_numeric!="TT; Action Level=0.015"
+                  & toxval_numeric!= "TT" & toxval_numeric!="-" & toxval_numeric!="NA" & toxval_numeric!="N/A") 
+  # Fixing toxval_numeric values that have the units with them (split into numeric and units)
+   res <- within(res, toxval_units[toxval_numeric=='7 million fibers per liter'] <- 'MFL')
+   res <- within(res, toxval_numeric[toxval_numeric=='7 million fibers per liter'] <- '7')
+   res <- within(res, toxval_units[toxval_numeric=='7 million fibers per liter (MFL)'] <- 'MFL')
+   res <- within(res, toxval_numeric[toxval_numeric=='7 million fibers per liter (MFL)'] <- '7')
+   res <- within(res, toxval_units[toxval_numeric=='15 picocuries per Liter (pCi/L)'] <- 'pCi/L')
+   res <- within(res, toxval_numeric[toxval_numeric=='15 picocuries per Liter (pCi/L)'] <- '15')
+   res <- within(res, toxval_units[toxval_numeric=='5 pCi/L'] <- 'pCi/L')
+   res <- within(res, toxval_numeric[toxval_numeric=='5 pCi/L'] <- '5')
+   res <- within(res, toxval_units[toxval_numeric=='30 ug/L'] <- 'ug/L')
+   res <- within(res, toxval_numeric[toxval_numeric=='30 ug/L'] <- '30')
+   res <- within(res, toxval_units[toxval_numeric=='4 millirems per year'] <- 'millirems per year')
+   res <- within(res, toxval_numeric[toxval_numeric=='4 millirems per year'] <- '4')
+   # Fixing toxval_numeric values that have toxval_types in them (split into numeric and toxval_type)
+   res <- within(res, toxval_type[toxval_numeric=='MRDLG=4'] <- 'MRDLG')
+   res <- within(res, toxval_numeric[toxval_numeric=='MRDLG=4'] <- '4')
+   res <- within(res, toxval_type[toxval_numeric=='MRDL=4.0'] <- 'MRDL')
+   res <- within(res, toxval_numeric[toxval_numeric=='MRDL=4.0'] <- '4')
+   res <- within(res, toxval_type[toxval_numeric=='MRDL=0.8'] <- 'MRDL')
+   res <- within(res, toxval_numeric[toxval_numeric=='MRDL=0.8'] <- '0.8')
+   res <- within(res, toxval_type[toxval_numeric=='MRDLG=0.8'] <- 'MRDLG')
+   res <- within(res, toxval_numeric[toxval_numeric=='MRDLG=0.8'] <- '0.8')
+   
 
   # Standardize the names
   names(res0) <- names(res0) %>%
