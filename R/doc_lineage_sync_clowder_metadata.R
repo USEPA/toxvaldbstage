@@ -8,13 +8,13 @@
 #' @param batch_size PARAM_DESCRIPTION, Default: 250
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[httr]{GET}}, \code{\link[httr]{add_headers}}, \code{\link[httr]{content}}
 #'  \code{\link[jsonlite]{toJSON, fromJSON}}
 #'  \code{\link[tidyr]{nest}}, \code{\link[tidyr]{reexports}}
@@ -22,10 +22,10 @@
 #'  \code{\link[purrr]{keep}}
 #'  \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_trim}}
 #' @rdname doc_lineage_sync_clowder_metadata
-#' @export 
+#' @export
 #' @importFrom httr GET add_headers content
 #' @importFrom jsonlite fromJSON
-#' @importFrom tidyr unnest starts_with any_of contains
+#' @importFrom tidyr unnest starts_with any_of
 #' @importFrom dplyr filter mutate select bind_rows
 #' @importFrom purrr compact
 #' @importFrom stringr str_replace_all str_squish
@@ -53,10 +53,10 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
   # Prepare for batched updates
   # Batch update
   # https://www.mssqltips.com/sqlservertip/5829/update-statement-performance-in-sql-server/
-  # batchSize <- 250
+  # batch_size <- 250
   startPosition <- 1
   endPosition <- length(clowder_id_list)# runQuery(paste0("SELECT max(id) from documents"), db=db) %>% .[[1]]
-  incrementPosition <- batchSize
+  incrementPosition <- batch_size
 
   while(startPosition <= endPosition){
 
@@ -65,7 +65,7 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     metadata_out <- lapply(startPosition:incrementPosition, function(i){
 
       # message("Working on file: ", clowder_id_list[i])
-      if(i %% floor(batchSize * 0.25) ==0) cat("...", i," out of ",length(startPosition:incrementPosition),"\n")
+      if(i %% floor(batch_size * 0.25) ==0) cat("...", i," out of ",length(startPosition:incrementPosition),"\n")
       # Wait between requests
       Sys.sleep(0.25)
       # Pull filename
@@ -167,7 +167,7 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     for(i in 1:dim(desc)[1]) {
       col <- desc[i,"Field"]
       type <- desc[i,"Type"]
-      if(tidyr::contains(type,"varchar") || tidyr::contains(type,"text")) {
+      if(grepl("varchar|text", type)) {
         # if(verbose) cat("   enc2utf8:",col,"\n")
         x <- as.character(metadata_out[[col]])
         x[is.na(x)] <- "-"
@@ -192,7 +192,7 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     # Replace "-" with NA
     metadata_out[metadata_out == '-'] <- NA
 
-    message("...Inserting new data in batch: ", batchSize, " startPosition: ", startPosition," : incrementPosition: ", incrementPosition, " at: ", Sys.time())
+    message("...Inserting new data in batch: ", batch_size, " startPosition: ", startPosition," : incrementPosition: ", incrementPosition, " at: ", Sys.time())
     # Pull document IDs to update in the batch
     batch_doc_ids <- runQuery(paste0("SELECT id FROM documents WHERE clowder_id in ('",
                                      paste0(clowder_id_list[startPosition:incrementPosition], collapse="', '"),"')"), db=db)
@@ -209,7 +209,7 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
               db=db,
               trigger_check = FALSE)
 
-    startPosition <- startPosition + batchSize
-    incrementPosition <- startPosition + batchSize - 1
+    startPosition <- startPosition + batch_size
+    incrementPosition <- startPosition + batch_size - 1
   }
 }

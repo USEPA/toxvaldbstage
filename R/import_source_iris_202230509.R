@@ -247,11 +247,13 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                      "toxval_type",
                      "toxval_numeric",
                      "toxval_units")) %>%
-    dplyr::rename(critical_effect = critical_effect_tumor_type,
+    dplyr::rename(iris_chemical_id = `CHEMICAL ID`,
+                  critical_effect = critical_effect_tumor_type,
                   assessment_type = type,
                   endpoint = `PRINCIPAL CRITICAL EFFECT SYSTEM`,
-                  study_type = DURATION,
-                  study_reference = `STUDY CITATION`)
+                  risk_assessment_duration = DURATION,
+                  study_reference = `STUDY CITATION`) %>%
+    dplyr::mutate(toxval_units = fix.greek.symbols(toxval_units))
 
   # Check joins (identified issue with float/double versus character toxval_numeric join)
   # tmp <- chem_details %>%
@@ -286,7 +288,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   # Species list to attempt string matches
   species_list <- list(dog=list("dog", "dogs"),
-                       human=list("human", "humans"),
+                       human=list("human", "humans", "occupational", "epidemiology", "epidemiological", "epidemiologic"),
                        mouse=list("mouse", "mice", "mouses"),
                        `monkey`=list("nonhuman primate", "monkey", "primate", "monkies", "monkeys",
                                      "rhesus monkeys (macaca mulatta)", "rhesus monkeys",
@@ -294,7 +296,8 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        rat=list("rat", "rats"),
                        rabbit = list("rabbit", "rabbits"),
                        `guinea pig` = list("guinea pig", "guinea pigs"),
-                       frog = list("frog", "frogs")
+                       frog = list("frog", "frogs"),
+                       hen = list("hen")
   ) %>% unlist() %>%
     paste0(collapse="|")
 
@@ -317,6 +320,9 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                     paste0(collapse="; "))
   # Fill in missing with "-"
   res0$species_original[res0$species_original %in% c("", "NA")] <- "-"
+  # Set occupational or epidemilog* studies to human species
+  res0$species_original[grepl("occupation|epidemiolog", res0$species_original)] <- "human"
+  # res0 %>% select(`PRINCIPAL STUDY`, species_original) %>% distinct() %>% View()
   res0$sex_original[res0$sex_original %in% c("", "NA")] <- "-"
 
   # Transform/relabel `EXPERIMENTAL DOSE TYPE` into a toxval_type with POD as the toxval_numeric/units
