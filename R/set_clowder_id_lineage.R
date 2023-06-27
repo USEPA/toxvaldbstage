@@ -39,7 +39,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_caloehha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                              "clowder_v3/cal_oehha_log_with_names_20221019.xlsx")),
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                        "clowder_v3/iris_document_map_2022_08_01.xlsx")),
+                                                        "clowder_v3/source_iris_doc_map_2023-05-09.xlsx")),
                       # "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                           "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
                       "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -280,7 +280,7 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
 
-                  "source_iris" = {
+                  "source_iris_2022-10-21" = {
                     # cut the map down to just the webpage PDF documents, not screenshots or supplements
                     map_file <- map_file[which(map_file$parentPath == "IRIS"),]
                     # Match by chemical name first
@@ -305,6 +305,18 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
 
+                  "source_iris" = {
+                    # Special case where all records are linked to all mapped files
+                    res$clowder_id <- map_file$clowder_id %>% toString()
+                    res = res %>%
+                      tidyr::separate_rows(clowder_id, sep = ", ") %>%
+                      dplyr::mutate(clowder_id = stringr::str_squish(clowder_id)) %>%
+                      dplyr::left_join(map_file %>%
+                                  dplyr::select(clowder_id, fk_doc_id),
+                                by="clowder_id") %>%
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+                    res
+                  },
                   # "source_pprtv_ornl" = {
                   #   # Filter to the "_webpage_" PDF Clowder document
                   #   map_file = map_file[grepl("_webpage_", map_file$document_name) &
