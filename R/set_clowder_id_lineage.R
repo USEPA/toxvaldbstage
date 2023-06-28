@@ -108,12 +108,8 @@ set_clowder_id_lineage <- function(source_table,
                                     document_name = "TEST data.xlsx; test_chemicals_invitrodb.csv"),
                       # "source_atsdr_mrls_2022" = data.frame(clowder_id="63b58958e4b04f6bb1507bf2",
                       #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
-                      "source_rsl" = data.frame(clowder_id = c("61fabdc0e4b04a563fdc9bdd",
-                                                               "61fabdc0e4b04a563fdc9be1",
-                                                               "61fabdc0e4b04a563fdc9bdf"),
-                                                document_name = c("ToxValQA33099727_EPA_2021_RegionalScreeningLevels",
-                                                                  "ToxValQA33106078_EPA_2021_RegionalScreeningLevels",
-                                                                  "ToxValQA33100390_EPA_2021_RegionalScreeningLevels")),
+                      "source_rsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                              "clowder_v3/source_rsl_doc_map_2022-11-01.xlsx")),
                       "source_hess" = {
                         paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx") %>%
                           readxl::read_xlsx() %>%
@@ -263,19 +259,9 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_rsl" = {
-                    res[,"clowder_id"] = "61fabdc0e4b04a563fdc9bdd"
-                    res[,"document_name"] = "ToxValQA33099727_EPA_2021_RegionalScreeningLevels-(TR=1E-06,THQ=1.0).pdf"
-                    res[res$risk_assessment_class=="subchronic","clowder_id"] = "61fabdc0e4b04a563fdc9be1"
-                    res[res$risk_assessment_class=="subchronic","document_name"] = "ToxValQA33106078_EPA_2021_RegionalScreeningLevels-SubchronicToxicityValues.pdf"
-                    res[res$toxval_subtype=="Thq =  1","clowder_id"] = "61fabdc0e4b04a563fdc9bdd"
-                    res[res$toxval_subtype=="Thq =  1","document_name"] = "ToxValQA33099727_EPA_2021_RegionalScreeningLevels-(TR=1E-06,THQ=1.0).pdf"
-                    res[res$toxval_subtype=="Thq =  0.1","clowder_id"] = "61fabdc0e4b04a563fdc9bdf"
-                    res[res$toxval_subtype=="Thq =  0.1","document_name"] = "ToxValQA33100390_EPA_2021_RegionalScreeningLevels-(TR=1E-06,THQ=0.1).pdf"
-                    # Match for fk_doc_id field
                     res <- res %>%
-                      dplyr::left_join(map_file %>%
-                                         dplyr::select(fk_doc_id, clowder_id),
-                                       by="clowder_id")
+                      left_join(map_file,
+                                by=c("raw_input_file"="document_name"))
                     # Return res
                     res
                   },
