@@ -58,7 +58,7 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   study_type="endpointpath",
                   critical_effect="effect",
                   toxval_type="endpoint",
-                  media="organ(tissue)",
+                  tissue="organ(tissue)",
                   strain="strain",
                   species="test_organisms_(species)",
                   toxval_numeric="value_meanvalue",
@@ -79,12 +79,18 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     tidyr::separate(route_of_administration, c("exposure_route", "exposure_method"),
                     sep=" ", fill="right", extra = "merge", remove=FALSE)
 
+    # Omit blank rows
+  res <- res[rowSums(is.na(res)) != ncol(res), ]  
+  
   # Check route_of_administration splitting
   # View(res %>% select(route_of_administration, exposure_route, exposure_method) %>% distinct())
   # TODO Check critical_effect encoded arrow symbol notation
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
+  
+  # Make records distinct
+  res <- res %>% distinct()
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
