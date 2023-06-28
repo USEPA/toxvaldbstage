@@ -106,6 +106,8 @@ set_clowder_id_lineage <- function(source_table,
                       #                  document_name = "ToxValDBQA Wignall EHP 2014.pdf"),
                       "source_test" = data.frame(clowder_id = "6390c185e4b04f6bb149889a; 6390c185e4b04f6bb1498899",
                                     document_name = "TEST data.xlsx; test_chemicals_invitrodb.csv"),
+                      "source_atsdr_mrls" = data.frame(clowder_id="649c5e23e4b00be57315594c",
+                                               document_name="ATSDR MRLs - April 2023 - H.pdf"),
                       # "source_atsdr_mrls_2022" = data.frame(clowder_id="63b58958e4b04f6bb1507bf2",
                       #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
                       "source_rsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -235,7 +237,8 @@ set_clowder_id_lineage <- function(source_table,
     # Set the easy mappings (only 1 document)
     res$clowder_id = map_file$clowder_id
     res$document_name = map_file$document_name
-    cat("clowder_id and document_name set for ",source,"\n")
+    res$fk_doc_id = map_file$fk_doc_id
+    cat("clowder_id and document_name set for ",source_table,"\n")
   } else {
     res <- switch(source_table,
 
