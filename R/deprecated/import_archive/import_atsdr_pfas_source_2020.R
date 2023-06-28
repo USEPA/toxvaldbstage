@@ -21,7 +21,6 @@
 #'  \code{\link[dplyr]{reexports}}
 #'  \code{\link[utils]{type.convert}}
 #' @rdname import_atsdr_pfas_source
-#' @export
 #' @importFrom openxlsx read.xlsx
 #' @importFrom dplyr intersect setdiff
 #' @importFrom utils type.convert

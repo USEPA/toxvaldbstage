@@ -31,6 +31,3 @@ if(interactive()){
  }
 }
 }
-\seealso{
-\code{\link[utils]{View}}
-}

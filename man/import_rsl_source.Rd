@@ -4,7 +4,12 @@
 \alias{import_rsl_source}
 \title{FUNCTION_TITLE}
 \usage{
-import_rsl_source(db, chem.check.halt = F)
+import_rsl_source(
+  db,
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
+)
 }
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}
@@ -38,6 +43,5 @@ if(interactive()){
  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}
  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{bind}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}
  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
- \code{\link[gsubfn]{list}}
  \code{\link[tibble]{add_column}}
 }

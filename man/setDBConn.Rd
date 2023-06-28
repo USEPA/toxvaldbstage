@@ -4,7 +4,7 @@
 \alias{setDBConn}
 \title{FUNCTION_TITLE}
 \usage{
-setDBConn(server = "ccte-mysql-res.epa.gov", user, password)
+setDBConn(server = "ccte-mysql-res.epa.gov", user, password, api_auth)
 }
 \arguments{
 \item{server}{SQL server on which relevant database lives}
@@ -12,6 +12,8 @@ setDBConn(server = "ccte-mysql-res.epa.gov", user, password)
 \item{user}{SQL username to access database}
 
 \item{password}{SQL password corresponding to username}
+
+\item{api_auth}{API Key for CCTE API's}
 }
 \value{
 OUTPUT_DESCRIPTION

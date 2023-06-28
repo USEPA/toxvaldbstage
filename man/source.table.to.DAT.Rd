@@ -37,6 +37,5 @@ if(interactive()){
 \seealso{
 \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{slice}}, \code{\link[dplyr]{select}}
  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}
- \code{\link[gsubfn]{list}}
  \code{\link[writexl]{write_xlsx}}
 }

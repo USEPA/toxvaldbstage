@@ -16,7 +16,6 @@
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[utils]{type.convert}}
 #' @rdname import_efsa2_source
-#' @export 
 #' @importFrom openxlsx read.xlsx
 #' @importFrom utils type.convert
 #--------------------------------------------------------------------------------------

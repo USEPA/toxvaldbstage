@@ -29,6 +29,5 @@ if(interactive()){
 }
 \seealso{
 \code{\link[openxlsx]{read.xlsx}}
- \code{\link[gsubfn]{list}}
  \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{filter-joins}}
 }

@@ -39,7 +39,6 @@ if(interactive()){
 \seealso{
 \code{\link[openxlsx]{read.xlsx}}
  \code{\link[utils]{read.table}}, \code{\link[utils]{type.convert}}
- \code{\link[gsubfn]{list}}
  \code{\link[stats]{setNames}}
  \code{\link[janitor]{excel_numeric_to_date}}
 }
