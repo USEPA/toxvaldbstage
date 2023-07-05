@@ -38,6 +38,11 @@ set_clowder_id_lineage <- function(source_table,
     map_file = switch(source_table,
                       "source_caloehha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                              "clowder_v3/cal_oehha_log_with_names_20221019.xlsx")),
+                      "source_cosmos" = { readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                 "clowder_v3/cosmos_document_map_05162023.xlsx"),
+                                                            guess_max=21474836) %>%
+                          filter(!is.na(clowder_id))
+                        },
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                         "clowder_v3/source_iris_doc_map_2023-05-09.xlsx")),
                       # "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -507,6 +512,18 @@ set_clowder_id_lineage <- function(source_table,
                                   distinct(),
                                 by=c("study_id" = "animal_group.experiment.study.id"))
                     # Return res
+                    res
+                  },
+
+                  "source_cosmos" = {
+                    res <- res %>%
+                      dplyr::left_join(map_file %>%
+                                  dplyr::select(-source, -new_hash),
+                                by = c("name", "casrn", "study_type", "species", "study_reference", "year")
+                                ) %>%
+                      dplyr::select(source_hash, fk_doc_id, clowder_id, source_version_date) %>%
+                      dplyr::distinct()
+
                     res
                   },
 
