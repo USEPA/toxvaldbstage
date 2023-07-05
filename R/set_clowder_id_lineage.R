@@ -131,6 +131,12 @@ set_clowder_id_lineage <- function(source_table,
         filter(src_tbl %in% source_table) %>%
         select(clowder_id, document_name)
     }
+
+    # IUCLID sources in a combined map
+    if(grepl("iuclid", source_table)){
+      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                          "clowder_v3/source_echa_iuclid_doc_map.xlsx"))
+    }
   }
 
   # Ensure clowder_id column is provided and/or standardized
@@ -569,6 +575,14 @@ set_clowder_id_lineage <- function(source_table,
         dplyr::left_join(map_file %>%
                            dplyr::select(fk_doc_id, clowder_id),
                          by="clowder_id")
+    }
+
+    # Handle IUCLID case
+    if(grepl("iuclid", source_table)){
+      res <- res %>%
+        dplyr::left_join(map_file %>%
+                           dplyr::select(fk_doc_id, clowder_id, source_table),
+                         by = c("source"="source_table"))
     }
   }
 
