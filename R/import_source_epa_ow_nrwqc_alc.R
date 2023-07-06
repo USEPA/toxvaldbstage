@@ -117,7 +117,7 @@ import_source_epa_ow_nrwqc_alc <- function(db,chem.check.halt=FALSE, do.reset=FA
   source_prep_and_load(db=db,
                        source=source,
                        table=source_table,
-                       res=res0,
+                       res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt)
