@@ -26,7 +26,7 @@
 #' @importFrom tidyr pivot_longer matches separate
 #' @importFrom stringr str_detect str_squish
 #--------------------------------------------------------------------------------------
-import_generic_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_epa_ow_nrwqc_hhc <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "EPA OW NRWQC-HHC"
   source_table = "source_epa_ow_nrwqc_hhc"
