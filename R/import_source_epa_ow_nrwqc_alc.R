@@ -24,7 +24,7 @@
 #' @importFrom dplyr rename rowwise mutate ungroup across case_when
 #' @importFrom tidyr pivot_longer separate matches separate_rows
 #--------------------------------------------------------------------------------------
-import_source_epa_ow_nrwqc_alc <- function(db,chem.check.halt=F) {
+import_source_epa_ow_nrwqc_alc <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "EPA OW NRWQC-ALC"
   source_table = "source_epa_ow_nrwqc_alc"
