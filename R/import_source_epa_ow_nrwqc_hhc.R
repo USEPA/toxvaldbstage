@@ -8,28 +8,30 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[stringr]{str_detect}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_source_epa_ow_nrwqc_hhc
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename mutate across rowwise
 #' @importFrom tidyr pivot_longer matches separate
 #' @importFrom stringr str_detect str_squish
 #--------------------------------------------------------------------------------------
-import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_generic_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "EPA OW NRWQC-HHC"
   source_table = "source_epa_ow_nrwqc_hhc"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2023-02-28")
   dir = paste0(toxval.config()$datapath,"epa_ow_nrwqc_hhc/epa_ow_nrwqc_hhc_files/")
   file = paste0(dir,"source_epa_ow_nrwqc_hhc_20230228.xlsx")
   res0 = readxl::read_xlsx(file)
@@ -42,6 +44,22 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   # database table. You do not need to add any of the generic columns
   # described in the SOP - they will get added in source_prep_and_load
   #
+
+  # Define helper function for cleaning up scientific notation
+  parse_scientific <- function(s) {
+    # Handle scientific notation conversion (either 10's or e notation)
+    if(grepl("[Xx]", s) && grepl("^[0-9]+\\.?[0-9]* ?[Xx] ?10\\^.*$", s)){
+      mantissa <- as.numeric(gsub(" ?[Xx].*", "", s))
+      exponent <- as.numeric(gsub(".*\\^", "", s))
+      return(mantissa * 10^exponent)
+    } else if(grepl("[eE]", s) && grepl("^(-?[0-9]*)\\.?[0-9]+[eE]?[-\\+]?[0-9]+$", s)){
+      mantissa <- as.numeric(gsub(" ?[eE].*", "", s))
+      exponent <- as.numeric(gsub(".*?[eE]", "", s))
+      return(mantissa * 10^exponent)
+    }
+    return(suppressWarnings(as.numeric(s)))
+  }
+
   # Load and clean source
   res <- res0 %>%
     # Rename colums
@@ -58,7 +76,7 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
     tidyr::separate(toxval_type, c("toxval_type", "toxval_units"),
                     sep = "  \\(", extra = "merge", fill = "right", remove = FALSE
                     ) %>%
-    # TODO: additional separation and renaming of toxval_type TBD
+    # Additional separation and renaming of toxval_type
     # Tidy up variables
     dplyr::mutate(
       # Remove trailing paren from toxval_units
@@ -72,51 +90,59 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       # Replace all multiple and/or non-standard dashes with a standard dash
       dplyr::across(.fns = ~gsub("(--)?—", "-", .)),
       # ...and replace all greek letters "µ" with "u"
-      dplyr::across(.fns = ~gsub("µ", "u", .))
+      dplyr::across(where(is.character), fix.greek.symbols)
       ) %>%
     # Make row-by-row adjustments
     dplyr::rowwise() %>%
     # Apply fix.casrn() to non-NA elements of res0$casrn
-    dplyr::mutate(casrn = ifelse(is.na(casrn), casrn, fix.casrn(casrn)))
-  
-  # Define helper function for cleaning up scientific notation
-  parse_scientific <- function(s) {
-    # Handle scientific notation conversion (either 10's or e notation)
-    if(grepl("[Xx]", s) && grepl("^[0-9]+\\.?[0-9]* ?[Xx] ?10\\^.*$", s)){
-      mantissa <- as.numeric(gsub(" ?[Xx].*", "", s))
-      exponent <- as.numeric(gsub(".*\\^", "", s))
-      return(mantissa * 10^exponent)
-    } else if(grepl("[eE]", s) && grepl("^(-?[0-9]*)\\.?[0-9]+[eE]?[-\\+]?[0-9]+$", s)){
-      mantissa <- as.numeric(gsub(" ?[eE].*", "", s))
-      exponent <- as.numeric(gsub(".*?[eE]", "", s))
-      return(mantissa * 10^exponent)
-    }
-    return(suppressWarnings(as.numeric(s)))
-  }
-  
-  
+    dplyr::mutate(casrn = ifelse(is.na(casrn), casrn, fix.casrn(casrn))) %>%
+    dplyr::ungroup()
+
   # fix Asbestos and Methlymercury because they have their toxval_units with their numeric
-  res <- within(res, toxval_numeric[name == 'Asbestos' & toxval_numeric=='7 million fibers/L'] <- '7000000')
-  res <- within(res, toxval_units[name == 'Asbestos' & toxval_numeric=='7000000'] <- 'fibers/L')
-  res <- within(res, toxval_numeric[name == 'Methylmercury' & toxval_numeric=='0.3 mg/kg'] <- '0.3')
-  res <- within(res, toxval_units[name == 'Methylmercury' & toxval_numeric=='0.3'] <- 'mg/kg')
-  
-  # make toxval_numeric dash values NA 
-  res$toxval_numeric[which(res$toxval_numeric == "-")] <- NA
+  res$toxval_numeric[res$name == 'Asbestos' & res$toxval_numeric=='7 million fibers/L'] <- '7000000'
+  res$toxval_units[res$name == 'Asbestos' & res$toxval_numeric=='7000000'] <- 'fibers/L'
+  res$toxval_numeric[res$name == 'Methylmercury' & res$toxval_numeric=='0.3 mg/kg'] <- '0.3'
+  res$toxval_units[res$name == 'Methylmercury' & res$toxval_numeric=='0.3'] <- 'mg/kg'
+
+  # Chemicals with range values
+  chem_toxval_numeric_range <- unique(res$name[grepl("[0-9]+-[0-9]+", res$toxval_numeric)])
+  # Handle splitting of range groups
+  res_range <- res %>%
+    filter(name %in% chem_toxval_numeric_range)
+  # Remove range ranges
+  res <- res %>%
+    dplyr::filter(!name %in% res_range$name) %>%
+    dplyr::mutate(toxval_subtype = NA)
+
+  # Split cancer slope upper and lower
+  res_range <- res_range %>%
+    tidyr::separate(toxval_numeric,
+                    c("cancer slope lower", "cancer slope upper"),
+                    sep="-") %>%
+    tidyr::pivot_longer(c("cancer slope lower", "cancer slope upper"),
+                        names_to = "toxval_subtype",
+                        values_to = "toxval_numeric") %>%
+    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric))
+
+  # Recombine range splits
+  res <- rbind(res, res_range)
+
+  # make toxval_numeric dash values NA
+  res$toxval_numeric[res$toxval_numeric == "-"] <- NA
   # drop toxval_numeric Total values
-  res <- res[res$toxval_numeric != "Total",] 
-  # drop rows with NA for toxval_numeric
-  res <- res[!(is.na(res$toxval_numeric)), ]  
+  res <- res[res$toxval_numeric != "Total",]
   # drop pH row since it is not a chemical
-  res <- res[res$name != "pH",] 
-  
+  res <- res[res$name != "pH",]
+
   # Fix scientific notation issue
   res = res %>%
     # Add rowwise so mutate can vectorize the parse_scientific function
     dplyr::rowwise() %>%
-    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric))
-  
-  
+    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric)) %>%
+    dplyr::ungroup()
+
+  # drop rows with NA for toxval_numeric
+  res <- res[!(is.na(res$toxval_numeric)), ]
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -125,6 +151,8 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
