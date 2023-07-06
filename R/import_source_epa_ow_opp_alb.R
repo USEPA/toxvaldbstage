@@ -8,28 +8,30 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}
 #'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_source_epa_ow_opp_alb
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename mutate across
 #' @importFrom tidyr all_of pivot_longer separate
 #' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
-import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_epa_ow_opp_alb <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "EPA OW OPP-ALB"
   source_table = "source_epa_ow_opp_alb"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2023-02-28")
   dir = paste0(toxval.config()$datapath,"epa_ow_opp_alb/epa_ow_opp_alb_files/")
   file = paste0(dir,"source_epa_ow_opp_alb_20230228.xlsx")
   res0 = readxl::read_xlsx(file)
@@ -57,10 +59,13 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
     ) %>%
     # Clean up variables
     dplyr::mutate(
+      # add toxval_units and media column
+      toxval_units = "ug/L",
+      media = "freshwater",
       # Replace "NR" in casrn with "-"
       casrn = gsub("^NR$", "-", casrn),
       # Replace all greek letters "µ" with "u"
-      dplyr::across(.fns = ~gsub("µ", "u", .)),
+      dplyr::across(where(is.character), fix.greek.symbols),
       # Remove ">" and "<" from toxval columns...
       dplyr::across(tidyr::all_of(toxval_cols), ~gsub(" *[<>] *", "", .)),
       # ...and convert them all to numerics
@@ -75,6 +80,10 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
                     sep = "_", extra = "merge", fill = "right", remove = FALSE
     )
 
+  # Set toxval_type based on species
+  res$toxval_type <- ifelse(res$species == "Office of Water  Aquatic Life Criteria",
+                            "Office of Water Aquatic Life Criteria", "OPP Aquatic Life Benchmarks")
+
   # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
@@ -82,6 +91,8 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
