@@ -48,6 +48,16 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
   }) %>%
     dplyr::bind_rows()
 
+  #####################################################################
+  cat("Do any non-generic steps to get the data ready \n")
+  #####################################################################
+  #
+  # the final file should have column names that include "name" and "casrn"
+  # additionally, the names in res need to match names in the source
+  # database table. You do not need to add any of the generic columns
+  # described in the SOP - they will get added in source_prep_and_load
+  #
+
   res = res0 %>%
     # Rename toxval names
     dplyr::rename(name = `Common name`,
@@ -58,15 +68,21 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
                   toxval_type = "LD50",
                   toxval_units = "mg/kg",
                   risk_assessment_class = "TBD",
-                  toxval_numeric_qualifier = "=",
                   exposure_route = "TBD",
                   name = name %>%
                     # Remove [ISO] from chemical name
-                    gsub("\\[ISO\\]", "", .)) %>%
-    # TODO insert toxval_numeric_qualitifer from toxval_numeric (e.g., >, <)
-    # toxval_numeric_qualifier (=, >, <, >=)
+                    gsub("\\[ISO\\]|\\[ISO\\*\\]|\\[\\(ISO\\)\\]|\\[ISO\\(\\*\\)\\]|\\[C\\]", "", .) %>%
+                    stringr::str_squish(),
+                  # toxval_numeric_qualitifer from toxval_numeric (=, >, <, >=)
+                  toxval_numeric_qualifier = toxval_numeric %>%
+                    # gsub("[0-9+]|-|[A-Za-z]|\\.", "", .) %>%
+                    # Remove numerics, range, and decimals
+                    gsub("[0-9+]|-|\\.", "", .) %>%
+                    stringr::str_squish() %>%
+                    # Replace "≥" with ">="
+                    gsub("\u2265", ">=", .)) %>%
     # replace key abbreviated values with text values using dictionary
-    dplyr::mutate(dplyr::across(c("Chem type", "Phys state", "Main use"),
+    dplyr::mutate(dplyr::across(c("Chem type", "Main use"),
                                             # Dictionary for Chem type
                   .fns = ~ dplyr::case_when(`.` == "AS" ~ "Arsenic compound",
                                             `.` == "BP" ~ "Bipyridylium derivative",
@@ -109,25 +125,46 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
                                             `.` == "RP" ~ "repellant",
                                             `.` == "-S" ~ "applied to soil: not used with herbicides or plant growth regulators",
                                             `.` == "SY" ~ "synergist",
+                                            `.` == "I-S" ~ "insecticide applied to soil: not used with herbicides or plant growth regulators",
+                                            `.` == "F-S" ~ "fungicide, other than for seed treatment applied to soil: not used with herbicides or plant growth regulators",
+                                            `.` == "AC,I,N" ~ "acaricide, insecticide, nematocide",
+                                            `.` == "N,I" ~ "nematocide, insecticide",
+                                            `.` == "AC,MT" ~ "acaricide, miticide",
+                                            `.` == "I-S,H" ~ "insecticide applied to soil: not used with herbicides or plant growth regulators, herbicide",
+                                            `.` == "I,F,H" ~ "insecticide, fungicide, other than for seed treatment, herbicide",
+                                            `.` == "F,M" ~ "fungicide, molluscicide",
+                                            `.` == "I,MT" ~ "insecticide, miticide",
+                                            `.` == "FM,H,I,N" ~ "fumigant, herbicide, insecticide, nematocide",
+                                            `.` == "AC,F" ~ "acaricide, fungicide, other than for seed treatment",
+                                            `.` == "I,L" ~ "insecticide, larvicide",
+                                            `.` == "F,FST" ~ "fungicide, other than for seed treatment, fungicide, for seed treatment",
+                                            `.` == "B-S" ~ "bacteriostat (soil) applied to soil: not used with herbicides or plant growth regulators",
+                                            `.` == "I,AC" ~ "insecticide, acaricide",
+                                            `.` == "F,I" ~ "fungicide, insecticide",
                                             TRUE ~ `.`
                                             )
                   )
+                ) %>%
+    dplyr::mutate(dplyr::across(c("Phys state"),
+                                # Dictionary for Chem type
+                                .fns = ~ dplyr::case_when(
+                                                          # Physical state dictionary
+                                                          `.` == "S" ~ "Active ingredient is Solid, including waxes",
+                                                          `.` == "L" ~ "Active ingredient is Liquid, including solids with a melting point below 50 Celsius",
+                                                          `.` == "Oil" ~ "Active ingredient is oily liquid",
+                                                          `.` == "oil" ~ "Active ingredient is oily liquid",
+                                                          TRUE ~ `.`
+                                                          )
+                                )
                   )
 
 
-
-  # Fill qualifier NA with "="
-  res$toxval_numeric_qualifier[is.na(res$toxval_numeric_qualifier)] = "="
-
-  #####################################################################
-  cat("Do any non-generic steps to get the data ready \n")
-  #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
+  # Fill qualifier NA or empty string with "="
+  res$toxval_numeric_qualifier[is.na(res$toxval_numeric_qualifier) | res$toxval_numeric_qualifier == ""] = "="
+  # Remove qualitifer from toxval_numeric
+  res$toxval_numeric = res$toxval_numeric %>%
+    gsub(paste0(unique(res$toxval_numeric_qualifier), collapse = "|"), "", .) %>%
+    stringr::str_squish()
 
   # Standardize the names
   names(res0) <- names(res0) %>%
@@ -135,8 +172,6 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
-
-  res = source.specific.transformations(res0)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
