@@ -171,8 +171,8 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
     gsub(paste0(c(unique(res$toxval_numeric_qualifier), "\u2265"), collapse = "|"), "", .) %>%
     stringr::str_squish()
   # From document: "Dermal LD50 values are indicated with the letter D.
-  res$exposure_route[grepl("D", res$toxval_numeric_qualifier)] <- "Dermal"
-  res$toxval_numeric_qualifier[res$toxval_numeric_qualifier == "c"] <- "A value within a wider than usual range, adopted for classification purposes"
+  res$exposure_route[grepl("D", res$toxval_numeric_qualifier)] <- "dermal"
+  res$toxval_numeric_qualifier[res$toxval_numeric_qualifier %in% c("c", "C")] <- "A value within a wider than usual range, adopted for classification purposes"
   # Remove dermal qualifier
   res$toxval_numeric_qualifier = res$toxval_numeric_qualifier %>%
     gsub("D", "", .)
