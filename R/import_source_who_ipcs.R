@@ -33,7 +33,7 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
   res0_sheets <- readxl::excel_sheets(file) %>%
     .[grepl("^Table", .)]
   table_names <- readxl::read_xlsx(file, sheet="table_names")
-  res0_caption_key <- readxl::read_xlsx(file, sheet="caption_key")
+  # res0_caption_key <- readxl::read_xlsx(file, sheet="caption_key")
   res0 <- lapply(res0_sheets, function(s){
     tmp <- readxl::read_xlsx(file, sheet=s) %>%
       dplyr::mutate(table_name = table_names$name[table_names$table == s])
@@ -61,14 +61,18 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
   res = res0 %>%
     # Rename toxval names
     dplyr::rename(name = `Common name`,
-                  cas = `CAS no`,
+                  casrn = `CAS no`,
                   toxval_numeric = `LD50_mg/kg`) %>%
+    # Remove records that reference another record (duplicate)
+    dplyr::filter(!grepl("see ", name)) %>%
     dplyr::mutate(subsource = "Pesticide Classification 2019",
                   source_url = "https://www.who.int/publications/i/item/9789240005662",
                   toxval_type = "LD50",
                   toxval_units = "mg/kg",
-                  risk_assessment_class = "TBD",
-                  exposure_route = "TBD",
+                  risk_assessment_class = "acute",
+                  study_type = "acute",
+                  # From document: "Oral route values are used unless..."
+                  exposure_route = "oral",
                   name = name %>%
                     # Remove [ISO] from chemical name
                     gsub("\\[ISO\\]|\\[ISO\\*\\]|\\[\\(ISO\\)\\]|\\[ISO\\(\\*\\)\\]|\\[C\\]", "", .) %>%
@@ -80,7 +84,10 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
                     gsub("[0-9+]|-|\\.", "", .) %>%
                     stringr::str_squish() %>%
                     # Replace "≥" with ">="
-                    gsub("\u2265", ">=", .)) %>%
+                    gsub("\u2265", ">=", .),
+                  Remarks = Remarks %>%
+                    gsub("LD_\\{50\\}", "LD50", .) %>%
+                    stringr::str_squish()) %>%
     # replace key abbreviated values with text values using dictionary
     dplyr::mutate(dplyr::across(c("Chem type", "Main use"),
                                             # Dictionary for Chem type
@@ -159,15 +166,21 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
                   )
 
 
-  # Fill qualifier NA or empty string with "="
-  res$toxval_numeric_qualifier[is.na(res$toxval_numeric_qualifier) | res$toxval_numeric_qualifier == ""] = "="
   # Remove qualitifer from toxval_numeric
   res$toxval_numeric = res$toxval_numeric %>%
-    gsub(paste0(unique(res$toxval_numeric_qualifier), collapse = "|"), "", .) %>%
+    gsub(paste0(c(unique(res$toxval_numeric_qualifier), "\u2265"), collapse = "|"), "", .) %>%
     stringr::str_squish()
+  # From document: "Dermal LD50 values are indicated with the letter D.
+  res$exposure_route[grepl("D", res$toxval_numeric_qualifier)] <- "Dermal"
+  res$toxval_numeric_qualifier[res$toxval_numeric_qualifier == "c"] <- "A value within a wider than usual range, adopted for classification purposes"
+  # Remove dermal qualifier
+  res$toxval_numeric_qualifier = res$toxval_numeric_qualifier %>%
+    gsub("D", "", .)
+  # Fill qualifier NA or empty string with "="
+  res$toxval_numeric_qualifier[is.na(res$toxval_numeric_qualifier) | res$toxval_numeric_qualifier == ""] = "="
 
   # Standardize the names
-  names(res0) <- names(res0) %>%
+  names(res) <- names(res) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
