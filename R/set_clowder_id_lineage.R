@@ -211,6 +211,8 @@ set_clowder_id_lineage <- function(source_table,
       dplyr::select(clowder_id, parent_clowder_id, parent_flag, fk_doc_id) %>%
       # Only those with a parent
       dplyr::filter(!is.na(parent_clowder_id)) %>%
+      #Separate rows for the parent_clowder_id with multiple document linkages
+      tidyr::separate_rows("parent_clowder_id","parent_flag",sep = ",") %<%
       # Split parent_clowder_id list (provided as semicolon separated list)
       tidyr::separate_rows(parent_clowder_id, parent_flag, sep="; ", convert=TRUE) %>%
       # Filter out NA split parent fields
@@ -526,6 +528,17 @@ set_clowder_id_lineage <- function(source_table,
 
                     res
                   },
+                  "source_opp" = {
+                    #Select relevant columns from document map and rename when necessary
+                    map_file <- select(map_file, "Chemical", "uuid","subDir2") %>%
+                      rename("clowder_id" = "uuid")%>%
+                      rename("document_name"="subDir2")
+                    #Perform a left join on chemical names to match clowder ids and document names
+                    res <- subset(res, select = -c(clowder_id,document_name))
+                    res <- left_join(res1, map_file, by = c("name"= "Chemical"))
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  }
 
                   # Default case, return without mapping
                   res
