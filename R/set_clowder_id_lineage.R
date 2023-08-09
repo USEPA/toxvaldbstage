@@ -87,8 +87,8 @@ set_clowder_id_lineage <- function(source_table,
                                             document_name = "Connors_2019a.pdf"),
                       "source_epa_aegl" = data.frame(clowder_id = "61003a84e4b01a90a3f9ca2f",
                                         document_name = "4627c891c8ea494fb8ea7846b220bd14-United States Environmental Protection Agency (USEPA)-2020-Acute Expo.pdf"),
-                      "source_opp" = data.frame(clowder_id = "63d99625e4b02a0c3a37c5d8",
-                                       document_name = "2021 Human Health Benchmarks for Pesticides_US EPA.pdf"),
+                      "source_opp" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                              "clowder_v3/epa_opp_doc_lineage_mmille16.xlsx")),
                       "source_health_canada" = data.frame(clowder_id = "61003a57e4b01a90a3f9c305",
                                              document_name = "60683b9de75ea6aced60e004a919370b-Health Canada-2010-Part II H.pdf"),
                       "source_niosh" = data.frame(clowder_id = "61fabd3de4b04a563fdc9b99",
@@ -211,8 +211,12 @@ set_clowder_id_lineage <- function(source_table,
       dplyr::select(clowder_id, parent_clowder_id, parent_flag, fk_doc_id) %>%
       # Only those with a parent
       dplyr::filter(!is.na(parent_clowder_id)) %>%
+      #Separate rows for the parent_clowder_id with multiple document linkages
+      tidyr::separate_rows("parent_clowder_id","parent_flag",sep = ",") %>%
       # Split parent_clowder_id list (provided as semicolon separated list)
       tidyr::separate_rows(parent_clowder_id, parent_flag, sep="; ", convert=TRUE) %>%
+      # Fix split columns extra whitespace
+      dplyr::mutate(across(where(is.character), ~stringr::str_squish(.))) %>%
       # Filter out NA split parent fields
       dplyr::filter(!is.na(parent_clowder_id)) %>%
       # Map document ID values from database by Clowder ID
@@ -524,6 +528,15 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(source_hash, fk_doc_id, clowder_id, source_version_date) %>%
                       dplyr::distinct()
 
+                    res
+                  },
+                  "source_opp" = {
+                    #Perform a left join on chemical names to match clowder ids and document names
+                    res <- res %>%
+                      left_join(map_file %>%
+                                  dplyr::select(name = Chemical, clowder_id, filename, fk_doc_id),
+                                by = "name")
+                    #Return the mapped res with document names and clowder ids
                     res
                   },
 
