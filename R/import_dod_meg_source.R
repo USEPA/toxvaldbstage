@@ -3,17 +3,17 @@
 #'
 #' @param db The version of toxval_source into which the tables are loaded.
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[stats]{reshape}}
 #'  \code{\link[stringr]{word}}
@@ -25,7 +25,7 @@
 #' @importFrom tidyr contains
 #-------------------------------------------------------------------------------------
 import_dod_meg_source = function(db,
-                             chem.check.halt=F) {
+                                 chem.check.halt=F) {
   printCurrentFunction(db)
 
   #Air-long-term
@@ -109,10 +109,12 @@ import_dod_meg_source = function(db,
   mat[,5]=as.numeric(mat[,5])
   mat$subsource = iconv(mat$subsource, "UTF-8", "ASCII", sub = "")
   names(mat)[4:5] = c("meg_type", "toxval_numeric")
-  mask = vector(length=nrow(mat),mode="integer")
-  mask[] = 1
-  for(i in 1:nrow(mat)) if(tidyr::contains(mat[i,"casrn"],"ACToR")) mask[i] = 0
-  mat = mat[mask==1,]
+  mat = mat %>%
+    dplyr::filter(!grepl("ACToR", casrn))
+  # mask = vector(length=nrow(mat),mode="integer")
+  # mask[] = 1
+  # for(i in 1:nrow(mat)) if(tidyr::contains(mat[i,"casrn"],"ACToR")) mask[i] = 0
+  # mat = mat[mask==1,]
 
   #####################################################################
   cat("Prep and load the data\n")
