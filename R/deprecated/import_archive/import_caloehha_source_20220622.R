@@ -11,19 +11,18 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #' @rdname import_caloehha_source
-#' @export 
 #' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
-import_caloehha_source <- function(db,
+import_caloehha_source_20220622 <- function(db,
                                    infile="OEHHA-chemicals_2022-06-22T13-42-44.xlsx",
                                    chem.check.halt=F) {
   printCurrentFunction(db)
