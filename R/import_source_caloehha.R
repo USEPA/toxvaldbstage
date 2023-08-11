@@ -24,14 +24,31 @@
 #' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
-    printCurrentFunction(db)
-    source="Cal OEHHA"
-    source_table = "source_caloehha"
-    # Date provided by the source or the date the data was extracted
-    src_version_date = as.Date("2023-08-10")
-    dir = paste0(toxval.config()$datapath,"caloehha/caloehha_files/")
-    file = paste0(dir,"OEHHA-chemicals_2023-08-10T12-44-00.xlsx")
-    res0 = readxl::read_xlsx(file)
+  printCurrentFunction(db)
+  source="Cal OEHHA"
+  source_table = "source_caloehha"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2023-08-10")
+  dir = paste0(toxval.config()$datapath,"caloehha/caloehha_files/")
+  file = paste0(dir,"OEHHA-chemicals_2023-08-10T12-44-00.xlsx")
+  res0 = readxl::read_xlsx(file# ,
+                           # Col types specified to better handle the date fields
+                           # which(grepl("Revision", names(res0)))
+                           # Unfortunately, this doesn't help since year is presented
+                           # as just a year (e.g., 2008) and full date like "7/1/2014"
+                           # col_types = c(rep("text", 8),
+                           #               "date", # 9
+                           #               rep("text", 5),
+                           #               "date", # 15
+                           #               "text",
+                           #               "date", # 17
+                           #               rep("text", 10),
+                           #               "date", # 28
+                           #               rep("text", 4),
+                           #               "date", # 33
+                           #               rep("text", 18)
+                           #               )
+                           )
 
   #####################################################################
   cat("Build original_caloehha table from source file\n")
@@ -128,6 +145,10 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     }
 
 
+    # TODO Incorporate additional "year" columns from the "Last Revisions" columns
+
+    # TODO Better handling of year fields where conversion to text (e.g., 6/10/2023) converted to a numeric
+
     # TODO handle before exponent fix: mcl, phg, nsrl_inhalation, nsrl_oral, madl_oral_reprotox
 
     # TODO handle exponent strings
@@ -172,7 +193,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       dplyr::ungroup()
 
     # Realign by toxval_type
-    res$year = 2023
+    res$year = "2023"
     res[,c("critical_effect", "species_original")] = "-"
     res$study_duration_class <- "chronic"
 
