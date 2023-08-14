@@ -41,16 +41,16 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   #
 
   # Load all files and combine
-  res0 <- lapply(list.files(dir, full.names = TRUE), function(f){
+  res0 <- lapply(list.files(dir, full.names = TRUE, pattern = ".xlsx"), function(f){
     readxl::read_xlsx(f) %>%
       # Rename chemical name field
       dplyr::rename(name = chemical_name) %>%
       # Set dose to character across files
       dplyr::mutate(dplyr::across(c("dose_value"), ~as.character(.))) %>%
       # Pivot except for curated fields
-      tidyr::pivot_longer(-c("name", "sex", "species", "strain",
+      tidyr::pivot_longer(-c("name", "casrn", "sex", "species", "strain",
                              "administration_route", "study_duration_value",
-                             "study_duration_units", "dose_value", "dose_units",
+                             "study_duration_units", "dose_vehicle", "dose_value", "dose_units",
                              "table_title", "ntp_study_identifier", "url"),
                           names_to = "field_name",
                           values_to = "field_value")
