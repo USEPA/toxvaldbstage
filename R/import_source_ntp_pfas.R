@@ -53,24 +53,28 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                              "study_duration_units", "dose_vehicle", "dose_value", "dose_units",
                              "table_title", "ntp_study_identifier", "url"),
                           names_to = "field_name",
-                          values_to = "field_value")
+                          values_to = "critical_effect_direction")
   }) %>%
     dplyr::bind_rows()
 
   res = res0 %>%
-    # TODO Split field_name fields into appropriate fields by "-"
-    # May need to group separate and recombine dataframes...
-    tidyr::separate(field_name, into = c("critical_effect", "media"), sep = "-",
+    # Split into critical effect class and critical effect
+    tidyr::separate(field_name, into = c("critical_effect_class", "critical_effect"), sep = "-",
                     extra="merge", fill="right") %>%
     # Split dose notes
     tidyr::separate(dose_value, into = c("dose_value", "notes"), sep = "-",
                     extra="merge", fill="right") %>%
     # Remove excess whitespace from splits
-    dplyr::mutate(dplyr::across(c("critical_effect", "media",
+    dplyr::mutate(dplyr::across(c("critical_effect", "critical_effect_class",
                                   "dose_value", "notes"), ~stringr::str_squish(.)),
-                  dose_value = as.numeric(dose_value))
+                  dose_value = as.numeric(dose_value),
+                  toxval_type = NA)
 
-    # Standardize the names
+  # Set toxval_type
+  res$toxval_type[grepl("increase|decrease", res$critical_effect_direction, ignore.case = TRUE)] <- "LOEL"
+  res$toxval_type[grepl("no effect", res$critical_effect_direction, ignore.case = TRUE)] <- "NOEL"
+
+  # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
