@@ -31,24 +31,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   src_version_date = as.Date("2023-08-10")
   dir = paste0(toxval.config()$datapath,"caloehha/caloehha_files/")
   file = paste0(dir,"OEHHA-chemicals_2023-08-10T12-44-00.xlsx")
-  res0 = readxl::read_xlsx(file# ,
-                           # Col types specified to better handle the date fields
-                           # which(grepl("Revision", names(res0)))
-                           # Unfortunately, this doesn't help since year is presented
-                           # as just a year (e.g., 2008) and full date like "7/1/2014"
-                           # col_types = c(rep("text", 8),
-                           #               "date", # 9
-                           #               rep("text", 5),
-                           #               "date", # 15
-                           #               "text",
-                           #               "date", # 17
-                           #               rep("text", 10),
-                           #               "date", # 28
-                           #               rep("text", 4),
-                           #               "date", # 33
-                           #               rep("text", 18)
-                           #               )
-                           )
+  res0 = readxl::read_xlsx(file)
 
   #####################################################################
   cat("Build original_caloehha table from source file\n")
@@ -65,6 +48,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                    acute_rel_severity = "Severity",
                    acute_rel_year = "Last Acute REL Revision",
                    rel_8_hour_inhalation = "8-Hour Inhalation REL (ug/m3)",
+                   rel_8_hour_inhalation_year = "Last 8-Hour REL Revision",
                    chronic_inhalation_rel = "Chronic Inhalation REL (ug/m3)",
                    # chronic_oral_rel = "Chronic oral REL",
                    # chronic_oral_rel_units = "Chronic oral REL units",
@@ -80,11 +64,13 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                    cancer_potency_year = "Last Cancer Potency Revision",
                    phg_year = "Last PHG Revision",
                    madl_nsrl_year = "Last NSRL/MADL Revision",
-                   chrd_year = "Last chRD revision")
+                   chrd_year = "Last chRD revision",
+                   notification_level = "Notification Level (ug/L)"
+                   )
 
     res = res0 %>%
       dplyr::rename(dplyr::all_of(rename_list)) %>%
-      dplyr::select(dplyr::all_of(names(rename_list))) %>%
+      # dplyr::select(dplyr::all_of(names(rename_list))) %>%
       # Unit fields from old field names
       dplyr::mutate(inhalation_unit_risk_units = "(ug/m3)-1",
                     inhalation_slope_factor_units = "(mg/kg-day)-1",
@@ -93,18 +79,24 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                     rel_8_hour_inhalation_units = "ug/m3",
                     chronic_inhalation_rel_units = "ug/m3",
                     mcl_units = "mg/L",
-                    phg_units = "mg/L") %>%
+                    phg_units = "mg/L",
+                    notification_level_units = "ug/L") %>%
       dplyr::distinct() %>%
       dplyr::mutate(dplyr::across(where(is.character), ~na_if(., "--")),
                     dplyr::across(where(is.character), ~na_if(., "n/a")),
-                    dplyr::across(where(is.character), ~na_if(., "N/A")))
+                    dplyr::across(where(is.character), ~na_if(., "N/A"))) %>%
+      # Separate casrn lists
+      tidyr::separate_rows(casrn, sep = "; ")
 
     # Fix greek symbols
     res = res %>%
       dplyr::mutate(dplyr::across(c(rel_8_hour_inhalation, chronic_inhalation_rel,
                                     nsrl_inhalation, nsrl_oral, madl_inhalation_reprotox,
                                     madl_oral_reprotox),
-                                  ~gsub("\u00c2\u00b5", "u", .)))
+                                  ~gsub("\u00c2\u00b5", "u", .)),
+                    casrn = casrn %>%
+                      gsub("\u00e2\u20ac\u017d", "", .),
+                    name = fix.greek.symbols(name))
 
     # Split chronic_inhalation_rel into chronic_oral_rel with units
     res = res %>%
@@ -144,16 +136,67 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       }
     }
 
+    # Better handling of year fields where conversion to text (e.g., 6/10/2023) converted to a numeric
+    res = res %>%
+      dplyr::mutate(dplyr::across(dplyr::contains("year"), ~as.character(.)),
+                    dplyr::across(dplyr::contains("year"),
+                                  .fns = ~ dplyr::case_when(
+                                    # Fix Year
+                                    .=="44050" ~ "8/7/2020",
+                                    .=="42621" ~ "9/8/2016",
+                                    .=="41821" ~ "Jul-14",
+                                    .=="42787" ~ "2/21/2017",
+                                    .=="44804" ~ "8/31/2022",
+                                    .=="43714" ~ "9/6/2019",
+                                    .=="42459" ~ "3/30/2016",
+                                    .=="42457" ~ "3/28/2016",
+                                    .=="39783" ~ "12/1/2008",
+                                    .=="39052" ~ "12/1/2006",
+                                    .=="38096" ~ "4/19/2004",
+                                    .=="38525" ~ "6/22/2005",
+                                    .=="36777" ~ "9/8/2000",
+                                    .=="28460" ~ "Dec-77",
+                                    .=="42461" ~ "4/1/2016",
+                                    .=="39356" ~ "Oct-07",
+                                    .=="38687" ~ "Dec-05",
+                                    .=="40330" ~ "Jun-10",
+                                    .=="39173" ~ "Apr-07",
+                                    .=="38869" ~ "Jun-06",
+                                    .=="43224" ~ "5/4/2018",
+                                    TRUE ~ .
+                                    )
+                                  )
+                    )
 
-    # TODO Incorporate additional "year" columns from the "Last Revisions" columns
+    # Clean before exponent fix: mcl, phg, nsrl_inhalation, nsrl_oral
+    # # Remove comma, text, and parenthetic values
+    res = res %>%
+      dplyr::mutate(mcl = mcl %>%
+                      gsub(",|for total chromium|\\s*\\([^\\)]+\\)", "", .) %>%
+                      gsub("as nitrogen|fibers/day", "", .) %>%
+                      stringr::str_squish(),
+                    phg =  phg %>%
+                      gsub(",|for total chromium|\\s*\\([^\\)]+\\)", "", .) %>%
+                      gsub("as nitrogen|fibers/day", "", .) %>%
+                      stringr::str_squish(),
+                    nsrl_inhalation =  nsrl_inhalation %>%
+                      gsub(",|for total chromium|\\s*\\([^\\)]+\\)", "", .) %>%
+                      gsub("as nitrogen|fibers/day", "", .) %>%
+                      stringr::str_squish(),
+                    nsrl_oral = nsrl_oral %>%
+                      gsub(",|for total chromium|\\s*\\([^\\)]+\\)", "", .) %>%
+                      gsub("as nitrogen|fibers/day", "", .) %>%
+                      stringr::str_squish()
+                    )
 
-    # TODO Better handling of year fields where conversion to text (e.g., 6/10/2023) converted to a numeric
+    # Handle madl_oral_reprotox and madl_inhalation_reprotox cleaning
+    # 56, or 170 as 32% pesticidal formulation
+    # Chemical by chemical basis
+    # 17000 (dermal) or 700 (oral); 6700 (dermal)
 
-    # TODO handle before exponent fix: mcl, phg, nsrl_inhalation, nsrl_oral, madl_oral_reprotox
-
-    # TODO handle exponent strings
+    # Handle exponent strings
     field_list <- c("inhalation_unit_risk", "inhalation_slope_factor", "oral_slope_factor", "rel_8_hour_inhalation",
-                    "mcl", "phg", "nsrl_inhalation", "nsrl_oral", "chrfd")
+                    "mcl", "phg", "nsrl_inhalation", "nsrl_oral", "chrfd", "notification level")
 
     # Define helper function for cleaning up scientific notation
     cal_oehha_parse_scientific <- function(s) {
@@ -196,6 +239,8 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     res$year = "2023"
     res[,c("critical_effect", "species_original")] = "-"
     res$study_duration_class <- "chronic"
+    res$target_organ = "-"
+    res$serverity = "-"
 
     res <- lapply(c("inhalation_unit_risk", "inhalation_slope_factor",
                      "oral_slope_factor",
@@ -247,8 +292,9 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
 
                      # Special cases by toxval_type
                      if(f_name == "acute_rel"){
-                       tmp$critical_effect = paste0(res$acute_rel_critical_effect,"|",res$acute_rel_target_organ,"|",res$acute_rel_severity) %>%
-                         gsub("NA|NA|NA", NA, .)
+                       tmp$critical_effect = res$acute_rel_critical_effect
+                       tmp$target_organ =  res$acute_rel_target_organ
+                       tmp$serverity =  res$acute_rel_severity
                        tmp$year = res$acute_rel_year
                        tmp$species_original = res$acute_rel_species
                        tmp$study_duration_class = "acute"
@@ -259,8 +305,8 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                      } else if(f_name == "chronic_inhalation_rel"){
                        tmp$toxval_subtype = "chronic inhalation REL"
                      } else if(f_name == "chronic_oral_rel"){
-                       tmp$critical_effect = paste0(res$chronic_rel_critical_effect,"|",res$chronic_rel_target_organ) %>%
-                         gsub("NA|NA", NA, .)
+                       tmp$critical_effect = res$chronic_rel_critical_effect
+                       tmp$target_organ = res$chronic_rel_target_organ
                        tmp$toxval_subtype = "chronic oral REL"
                      } else if(f_name == "phg"){
                        tmp$toxval_type = "OEHHA PHG"
@@ -278,7 +324,9 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                    }) %>%
       dplyr::bind_rows() %>%
       # Filter out toxval_numeric NA values
-      dplyr::filter(!is.na(toxval_numeric))
+      dplyr::filter(!is.na(toxval_numeric)) %>%
+      # Clean up excess whitespace for all character fields
+      dplyr::mutate(across(where(is.character), ~stringr::str_squish(.)))
 
 ##########################################################################################################
 
