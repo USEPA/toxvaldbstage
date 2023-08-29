@@ -79,7 +79,27 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
   cat("Do the chemical checking\n")
   #####################################################################
-  res = source_chemical.process(db,res,source,table,chem.check.halt,casrn.col="casrn",name.col="name")
+  # res = source_chemical.process(db,res,source,table,chem.check.halt,casrn.col="casrn",name.col="name")
+
+  # Process and curate the distinct chemical entries (saves processing time and resources)
+  chem_map = source_chemical.process(db=db,
+                                    res=res %>%
+                                      dplyr::select(casrn, name) %>%
+                                      dplyr::distinct(),
+                                    source=source,
+                                    table=table,
+                                    chem.check.halt=chem.check.halt,
+                                    casrn.col="casrn",name.col="name",
+                                    verbose=verbose)
+
+  # Map back chemical information to all records
+  res <- res %>%
+    left_join(chem_map %>%
+                dplyr::select(-chemical_index),
+              by = c("name", "casrn"))
+
+  # Remove intermediate
+  rm(chem_map)
 
   #####################################################################
   cat("Set the default values for missing data\n")

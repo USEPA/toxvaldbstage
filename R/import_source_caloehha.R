@@ -186,8 +186,22 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                     nsrl_oral = nsrl_oral %>%
                       gsub(",|for total chromium|\\s*\\([^\\)]+\\)", "", .) %>%
                       gsub("as nitrogen|fibers/day", "", .) %>%
+                      stringr::str_squish(),
+                    # Just parenthetic removal for now...
+                    notification_level = notification_level %>%
+                      gsub("\\s*\\([^\\)]+\\)|, or at the lowest level that can be reliably detected with available technologies", "", .) %>%
                       stringr::str_squish()
                     )
+
+    # Handle notification_level cleaning
+    # View(res %>% select(name, notification_level, notification_level_units) %>% distinct() %>% filter(!is.na(notification_level)))
+    res <- res %>%
+      # Split entries with semicolon separated lists by duration class
+      tidyr::separate_rows(notification_level, sep = "; ") %>%
+      tidyr::separate(notification_level, into=c("study_duration_class", "notification_level"),
+                      sep = ": ",
+                      fill="left", extra="merge") %>%
+      dplyr::mutate(study_duration_class = tolower(study_duration_class))
 
     # Handle madl_oral_reprotox and madl_inhalation_reprotox cleaning
     # 56, or 170 as 32% pesticidal formulation
@@ -196,7 +210,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
 
     # Handle exponent strings
     field_list <- c("inhalation_unit_risk", "inhalation_slope_factor", "oral_slope_factor", "rel_8_hour_inhalation",
-                    "mcl", "phg", "nsrl_inhalation", "nsrl_oral", "chrfd", "notification level")
+                    "mcl", "phg", "nsrl_inhalation", "nsrl_oral", "chrfd", "notification_level")
 
     # Define helper function for cleaning up scientific notation
     cal_oehha_parse_scientific <- function(s) {
@@ -238,7 +252,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     # Realign by toxval_type
     res$year = "2023"
     res[,c("critical_effect", "species_original")] = "-"
-    res$study_duration_class <- "chronic"
+    res$study_duration_class[is.na(res$study_duration_class)] <- "chronic"
     res$target_organ = "-"
     res$serverity = "-"
 
@@ -249,7 +263,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                      "mcl", "phg",
                      "nsrl_inhalation", "nsrl_oral",
                      "madl_inhalation_reprotox", "madl_oral_reprotox",
-                     "chrfd"),
+                     "chrfd", "notification_level"),
                    function(f_name){
                      tmp = res %>%
                        dplyr::select(name, casrn,
@@ -319,6 +333,8 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                      } else if(f_name == "chrfd"){
                        tmp$toxval_type = "RfD"
                        tmp$toxval_subtype = "Child RfD"
+                     } else if(f_name == "notification_level"){
+                       tmp$toxval_type = "OEHHA notification level"
                      }
                      return(tmp)
                    }) %>%
