@@ -96,7 +96,10 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                                   ~gsub("\u00c2\u00b5", "u", .)),
                     casrn = casrn %>%
                       gsub("\u00e2\u20ac\u017d", "", .),
-                    name = fix.greek.symbols(name))
+                    name = fix.greek.symbols(name) %>%
+                      # Special case for p-Chloro-Î±,Î±,Î±-trifluorotoluene (para-Chlorobenzo trifluoride, PCBTF)
+                      # Actually supposed to be alphas, so replacing with "a"
+                      gsub("\u00ce\u00b1", "a", .))
 
     # Split chronic_inhalation_rel into chronic_oral_rel with units
     res = res %>%
@@ -187,6 +190,12 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                       gsub(",|for total chromium|\\s*\\([^\\)]+\\)", "", .) %>%
                       gsub("as nitrogen|fibers/day", "", .) %>%
                       stringr::str_squish(),
+                    madl_inhalation_reprotox = madl_inhalation_reprotox %>%
+                      gsub(",", "", .) %>%
+                      stringr::str_squish(),
+                    acute_rel = acute_rel %>%
+                      gsub(",", "", .) %>%
+                      stringr::str_squish(),
                     # Just parenthetic removal for now...
                     notification_level = notification_level %>%
                       gsub("\\s*\\([^\\)]+\\)|, or at the lowest level that can be reliably detected with available technologies", "", .) %>%
@@ -203,10 +212,12 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                       fill="left", extra="merge") %>%
       dplyr::mutate(study_duration_class = tolower(study_duration_class))
 
-    # Handle madl_oral_reprotox and madl_inhalation_reprotox cleaning
-    # 56, or 170 as 32% pesticidal formulation
-    # Chemical by chemical basis
-    # 17000 (dermal) or 700 (oral); 6700 (dermal)
+    # Handle madl_oral_reprotox cleaning
+    # Cyanide - 10 (hydrogen cyanide), 19 (sodium cyanide), 25 (potassium cyanide)
+    # Di(2-ethylhexyl)phthalate - 410 (adult); 58 (infant boys, age 29 days to 24 months); 20 (neonatal infant boys, age 0 to 28 days)
+    # Disodium Cyanodithioimidocarbonate - 56, or 170 as 32% pesticidal formulation
+    # Ethyl Dipropylthiocarbamate - 700 (oral); 6700 (dermal)
+    # N-Methylpyrrolidone - 17000 (dermal)
 
     # Handle exponent strings
     field_list <- c("inhalation_unit_risk", "inhalation_slope_factor", "oral_slope_factor", "rel_8_hour_inhalation",
@@ -265,11 +276,13 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                      "madl_inhalation_reprotox", "madl_oral_reprotox",
                      "chrfd", "notification_level"),
                    function(f_name){
+                     message("...working on ", f_name)
                      tmp = res %>%
                        dplyr::select(name, casrn,
                                      year, critical_effect, species_original, study_duration_class,
                                      toxval_numeric = !!f_name,
-                                     toxval_units = !!paste0(f_name, "_units")) %>%
+                                     toxval_units = !!paste0(f_name, "_units"),
+                                     `Human Data`) %>%
                        dplyr::mutate(toxval_type = ifelse(f_name %in% c("inhalation_unit_risk"),
                                                           "cancer unit risk",
                                                           ifelse(f_name %in% c("inhalation_slope_factor", "oral_slope_factor"),
@@ -301,8 +314,19 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                                                              "oral",
                                                              "TBD")
                                                )
-                       ),
-                       toxval_numeric = as.numeric(toxval_numeric))
+                       ))
+
+                     tryCatch({
+                       tmp$toxval_numeric = as.numeric(tmp$toxval_numeric)
+                     },
+                     warning = function(e) {
+                       # Only stop for unknown cases
+                       if(!f_name %in% c("madl_oral_reprotox")){
+                         stop(paste0("Found toxval_numeric case to handle for: ", f_name))
+                       }
+                    })
+
+                     tmp$toxval_numeric = suppressWarnings(as.numeric(tmp$toxval_numeric))
 
                      # Special cases by toxval_type
                      if(f_name == "acute_rel"){
