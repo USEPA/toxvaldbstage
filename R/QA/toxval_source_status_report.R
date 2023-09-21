@@ -55,9 +55,16 @@ toxval_source_status_report <- function(db){
   ### Get chemical curation stats
   ################################################################################
   cat("\n...Generating chemical curation stats")
-  src_chem <- runQuery("SELECT source, dtxsid, dtxrid FROM source_chemical", db=db)
-
-  chem_stats <- src_chem %>%
+  chem_stats = lapply(chem_index$source_table[!is.na(chem_index$source_table)], function(s_tbl){
+    # Check if table exists
+    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
+    if(!nrow(s_check)) return(NULL)
+    # Pull source_chemical data for existing table by chemical_id
+    runQuery(paste0("SELECT source, dtxsid, dtxrid FROM source_chemical ",
+                             "WHERE chemical_id in (SELECT chemical_id FROM ", s_tbl, ")"), db) %>%
+      return()
+  }) %>%
+    dplyr::bind_rows() %>%
     dplyr::group_by(source) %>%
     dplyr::summarise(total_chems = n(),
                      dtxrid = length(unique(dtxrid)),
