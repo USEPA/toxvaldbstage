@@ -119,7 +119,9 @@ toxval_source_status_report <- function(db){
     doc_cat_stats = data.frame()
   } else {
     # Generate stats once the document lineage schema is established
-    doc_cat_stats <- runQuery("SELECT distinct source_hash, source_table FROM documents_records", db)
+    # Filter out the placeholder document for "clowder_id = '-'"
+    doc_cat_stats <- runQuery(paste0("SELECT distinct source_hash, source_table FROM documents_records WHERE ",
+                                     "fk_doc_id != 1127"), db)
 
     # Filter to only source_hash values in the source tables (can be orphan linkages due to archived tables not
     # updated in the document_records table...)
