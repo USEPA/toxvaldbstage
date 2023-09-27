@@ -67,6 +67,8 @@ set_clowder_id_lineage <- function(source_table,
                                                         "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")),
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/pprtv_cphea_doc_map_lineage_jwall01.xlsx")),
+                      "source_who_jecfa" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                      "clowder_v3/source_who_jecfa_document_map_20230920.csv")),
 
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
@@ -539,7 +541,15 @@ set_clowder_id_lineage <- function(source_table,
                     #Return the mapped res with document names and clowder ids
                     res
                   },
-
+                  "source_who_jecfa" = {
+                    #Perform a left join on chemical names to match the chemical ids (the last part of the url)
+                    res <- res %>%
+                      left_join(map_file %>%
+                                  dplyr::select(name = Chemical, clowder_id, filename, fk_doc_id),
+                                by = "basename(URL)")
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  },
                   # Default case, return without mapping
                   res
     )
