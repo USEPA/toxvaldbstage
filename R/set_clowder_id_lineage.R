@@ -67,7 +67,7 @@ set_clowder_id_lineage <- function(source_table,
                                                         "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")),
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/pprtv_cphea_doc_map_lineage_jwall01.xlsx")),
-                      "source_who_jecfa" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                      "source_who_jecfa" = readr::read_csv(paste0(toxval.config()$datapath,
                                                                       "clowder_v3/source_who_jecfa_document_map_20230920.csv")),
 
                       ### Hard coded document maps
