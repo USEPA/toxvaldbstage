@@ -67,6 +67,10 @@ set_clowder_id_lineage <- function(source_table,
                                                         "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")),
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/pprtv_cphea_doc_map_lineage_jwall01.xlsx")),
+                      "source_who_jecfa" = readr::read_csv(paste0(toxval.config()$datapath,
+                                                                      "clowder_v3/source_who_jecfa_document_map_20230920.csv")),
+                      "source_epa_ow_npdwr" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                      "clowder_v3/source_epa_ow_npdwr_document_map.xlsx")),
 
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
@@ -113,8 +117,6 @@ set_clowder_id_lineage <- function(source_table,
                                     document_name = "TEST data.xlsx; test_chemicals_invitrodb.csv"),
                       "source_atsdr_mrls" = data.frame(clowder_id="649c5e23e4b00be57315594c",
                                                document_name="ATSDR MRLs - April 2023 - H.pdf"),
-                      "source_epa_ow_npdwr" = data.frame(clowder_ir = "63fe2640e4b08a6b39323215",
-                                                         document_name = "EPA OW NPDWR_National Primary Drinking Water Regulations_US EPA_20230228.pdf"),
                       # "source_atsdr_mrls_2022" = data.frame(clowder_id="63b58958e4b04f6bb1507bf2",
                       #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
                       "source_rsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -538,6 +540,23 @@ set_clowder_id_lineage <- function(source_table,
                       left_join(map_file %>%
                                   dplyr::select(name = Chemical, clowder_id, filename, fk_doc_id),
                                 by = "name")
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  },
+                  "source_who_jecfa" = {
+                    #Perform a left join on chemical names to match the chemical ids (the last part of the url)
+                    res <- res %>%
+                      left_join(map_file %>%
+                                  dplyr::select(name = Chemical, clowder_id, filename, fk_doc_id),
+                                by = "basename(URL)")
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  },
+                  "source_epa_ow_npdwr" = {
+                    #Perform a cross join between  res and map_file
+                    res <- res %>%
+                      cross_join(map_file) %>%
+                                  dplyr::select(name, clowder_id, document_name, fk_doc_id, source_hash)
                     #Return the mapped res with document names and clowder ids
                     res
                   },
