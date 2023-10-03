@@ -553,10 +553,11 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
                   "source_epa_ow_npdwr" = {
-                    #Perform a cross join between  res and map_file
+                    # All source_hash records associated to all documents (1 extraction, 1 origin)
                     res <- res %>%
-                      cross_join(map_file) %>%
-                                  dplyr::select(name, clowder_id, document_name, fk_doc_id, source_hash)
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::select(clowder_id, fk_doc_id))
                     #Return the mapped res with document names and clowder ids
                     res
                   },
