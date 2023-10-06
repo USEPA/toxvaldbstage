@@ -71,6 +71,9 @@ set_clowder_id_lineage <- function(source_table,
                                                                       "clowder_v3/source_who_jecfa_document_map_20230920.csv")),
                       "source_epa_ow_npdwr" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                       "clowder_v3/source_epa_ow_npdwr_document_map.xlsx")),
+                      "source_epa_ow_nrwqc_hhc" = readr::read_csv(paste0(toxval.config()$datapath,
+                                                                       "clowder_v3/source_epa_ow-nrwqc-hhc_document_map.csv"),
+                                                                  col_types = readr::cols()),
 
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
@@ -561,7 +564,26 @@ set_clowder_id_lineage <- function(source_table,
                     #Return the mapped res with document names and clowder ids
                     res
                   },
+                  "source_epa_ow_nrwqc_hhc" = {
+                    # Perform a left join on chemical names to match chemical names
+                    # Match to origin docs (some do not have origin docs)
+                    res <- res %>%
+                      dplyr::select(source_hash, source_version_date, name) %>%
+                      dplyr::left_join(map_file %>%
+                                  dplyr::select(name, clowder_id, fk_doc_id),
+                                by = "name")
 
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date, name) %>%
+                      merge(map_file %>%
+                              dplyr::filter(is.na(name)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    res = rbind(res, tmp)
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  },
                   # Default case, return without mapping
                   res
     )
