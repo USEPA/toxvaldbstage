@@ -212,12 +212,151 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                       fill="left", extra="merge") %>%
       dplyr::mutate(study_duration_class = tolower(study_duration_class))
 
+
     # Handle madl_oral_reprotox cleaning
     # Cyanide - 10 (hydrogen cyanide), 19 (sodium cyanide), 25 (potassium cyanide)
     # Di(2-ethylhexyl)phthalate - 410 (adult); 58 (infant boys, age 29 days to 24 months); 20 (neonatal infant boys, age 0 to 28 days)
     # Disodium Cyanodithioimidocarbonate - 56, or 170 as 32% pesticidal formulation
     # Ethyl Dipropylthiocarbamate - 700 (oral); 6700 (dermal)
     # N-Methylpyrrolidone - 17000 (dermal)
+    # Sodium dimethyldithiocarbamate fix - 23, or 58 as 40% pesticidal formulation (not certain)
+
+    # None of these should cause any issues, even if these records aren't in the table
+
+    # Print out current violators
+    flagged <- ifelse(grepl("\\(", res$madl_oral_reprotox), res$madl_oral_reprotox, NA)
+    flagged[complete.cases(flagged)]
+    flagged <- ifelse(grepl(";", res$madl_oral_reprotox), res$madl_oral_reprotox, NA)
+    flagged[complete.cases(flagged)]
+
+    # Disodium Cyanodithioimidocarbonate fix
+    res <- res %>%
+      dplyr::mutate(madl_oral_reprotox=ifelse(madl_oral_reprotox == "56, or 170 as 32% pesticidal formulation", "56", madl_oral_reprotox))
+
+    # Sodium dimethyldithiocarbamate fix
+    res <- res %>%
+      dplyr::mutate(madl_oral_reprotox=ifelse(madl_oral_reprotox == "23, or 58 as 40% pesticidal formulation", "23", madl_oral_reprotox))
+
+    # Di(2-ethylhexyl)phthalate split
+    res$population = NA
+    row_to_split <- res %>%
+      filter(madl_oral_reprotox == "410 (adult); 58 (infant boys, age 29 days to 24 months); 20 (neonatal infant boys, age 0 to 28 days)")
+    split_rows <- row_to_split %>%
+      separate_rows(madl_oral_reprotox, sep = "; ") %>%
+      separate(madl_oral_reprotox, into = c("madl_oral_reprotox", "population"), sep= " \\(") %>%
+      mutate(
+        population = gsub("\\)", "", population)
+      )
+
+    # Remove data from all but one record that would be duplicated when normalized to toxval
+    for (i in 1:nrow(split_rows)){
+      if (split_rows$madl_oral_reprotox[i] %in% c(58,20)){
+        split_rows$inhalation_unit_risk[i] = NA
+        split_rows$inhalation_slope_factor[i] = NA
+        split_rows$oral_slope_factor[i] = NA
+        split_rows$acute_rel[i] = NA
+        split_rows$rel_8_hour_inhalation[i] = NA
+        split_rows$chronic_inhalation_rel[i] = NA
+        split_rows$mcl[i] = NA
+        split_rows$phg[i] = NA
+        split_rows$nsrl_inhalation[i] = NA
+        split_rows$nsrl_oral[i] = NA
+        split_rows$madl_inhalation_reprotox[i] = NA
+        split_rows$chrfd[i] = NA
+        split_rows$notification_level[i] = NA
+      }
+    }
+
+    if (nrow(split_rows) > 0){
+      res <- res %>%
+        filter(!madl_oral_reprotox %in% "410 (adult); 58 (infant boys, age 29 days to 24 months); 20 (neonatal infant boys, age 0 to 28 days)")
+      res <- bind_rows(res, split_rows)
+    }
+
+    # Cyanide split
+    row_to_split <- res %>%
+      filter(madl_oral_reprotox == "10 (hydrogen cyanide), 19 (sodium cyanide), 25 (potassium cyanide)")
+
+    # Split rows adopt type of cyanide but other resulting records maintain general Cyanide name
+    replacement <- row_to_split %>%
+      mutate(madl_oral_reprotox = NA)
+    split_rows <- row_to_split %>%
+      separate_rows(madl_oral_reprotox, sep = ", ") %>%
+      separate(madl_oral_reprotox, into = c("madl_oral_reprotox", "name"), sep= " \\(") %>%
+      mutate(
+        name = gsub("\\)", "", name)
+      )
+    split_rows <- split_rows %>%
+      mutate(
+        name = str_to_title(name)
+      )
+
+    # Remove data from all but one record that would be duplicated when normalized to toxval
+    for (i in 1:nrow(split_rows)){
+      if (split_rows$madl_oral_reprotox[i] %in% c(10,19,25)){
+        split_rows$inhalation_unit_risk[i] = NA
+        split_rows$inhalation_slope_factor[i] = NA
+        split_rows$oral_slope_factor[i] = NA
+        split_rows$acute_rel[i] = NA
+        split_rows$rel_8_hour_inhalation[i] = NA
+        split_rows$chronic_inhalation_rel[i] = NA
+        split_rows$mcl[i] = NA
+        split_rows$phg[i] = NA
+        split_rows$nsrl_inhalation[i] = NA
+        split_rows$nsrl_oral[i] = NA
+        split_rows$madl_inhalation_reprotox[i] = NA
+        split_rows$chrfd[i] = NA
+        split_rows$notification_level[i] = NA
+      }
+    }
+    split_rows <- rbind(split_rows, replacement)
+
+    if (nrow(split_rows) > 0){
+      res <- res %>%
+        filter(!madl_oral_reprotox %in% "10 (hydrogen cyanide), 19 (sodium cyanide), 25 (potassium cyanide)")
+      res <- bind_rows(res, split_rows)
+    }
+
+    # Ethyl Dipropylthiocarbamate split
+    res$madl_dermal_reprotox = NA
+    res$madl_dermal_reprotox_units = NA
+
+    row_to_change <- res %>%
+      filter(madl_oral_reprotox == "700 (oral); 6700 (dermal)")
+    row_to_change <- row_to_change %>%
+      dplyr::mutate(madl_dermal_reprotox = 6700)
+    row_to_change <- row_to_change %>%
+      dplyr::mutate(madl_oral_reprotox = 700)
+    row_to_change <- row_to_change %>%
+      dplyr::mutate(madl_dermal_reprotox_units = madl_oral_reprotox_units)
+
+    if (nrow(row_to_change) > 0){
+      res <- res %>%
+        filter(!madl_oral_reprotox %in% "700 (oral); 6700 (dermal)")
+      res <- rbind(res, row_to_change)
+    }
+
+    # N-Methylpyrrolidone - 17000 (dermal)
+    row_to_change <- res %>%
+      filter(madl_oral_reprotox == "17000 (dermal)")
+    row_to_change <- row_to_change %>%
+      dplyr::mutate(madl_dermal_reprotox=ifelse(madl_oral_reprotox=="17000 (dermal)", 17000, NA))
+    row_to_change <- row_to_change %>%
+      dplyr::mutate(madl_oral_reprotox=ifelse(madl_oral_reprotox == "17000 (dermal)", NA, madl_oral_reprotox))
+    row_to_change <- row_to_change %>%
+      dplyr::mutate(madl_dermal_reprotox_units=ifelse(madl_dermal_reprotox==17000, madl_oral_reprotox_units, NA))
+
+    if (nrow(row_to_change) > 0){
+      res <- res %>%
+        filter(!madl_oral_reprotox %in% "17000 (dermal)")
+      res <- bind_rows(res, row_to_change)
+    }
+
+    # Small check for remaining parentheses or semicolons in this column
+    flagged <- ifelse(grepl("\\(", res$madl_oral_reprotox), res$madl_oral_reprotox, NA)
+    flagged[complete.cases(flagged)]
+    flagged <- ifelse(grepl(";", res$madl_oral_reprotox), res$madl_oral_reprotox, NA)
+    flagged[complete.cases(flagged)]
 
     # Handle exponent strings
     field_list <- c("inhalation_unit_risk", "inhalation_slope_factor", "oral_slope_factor", "rel_8_hour_inhalation",
@@ -274,6 +413,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                      "mcl", "phg",
                      "nsrl_inhalation", "nsrl_oral",
                      "madl_inhalation_reprotox", "madl_oral_reprotox",
+                     "madl_dermal_reprotox",
                      "chrfd", "notification_level"),
                    function(f_name){
                      message("...working on ", f_name)
@@ -310,9 +450,12 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                                                "inhalation",
                                                ifelse(grepl("oral|acute_rel", f_name),
                                                       "oral",
-                                                      ifelse(f_name %in% c("mcl", "phg", "chrfd"),
-                                                             "oral",
-                                                             "TBD")
+                                                      ifelse(grepl("dermal", f_name),
+                                                            "dermal",
+                                                            ifelse(f_name %in% c("mcl", "phg", "chrfd"),
+                                                                  "oral",
+                                                                  "TBD")
+                                                      )
                                                )
                        ))
 
@@ -332,7 +475,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                      if(f_name == "acute_rel"){
                        tmp$critical_effect = res$acute_rel_critical_effect
                        tmp$target_organ =  res$acute_rel_target_organ
-                       tmp$serverity =  res$acute_rel_severity
+                       tmp$severity =  res$acute_rel_severity
                        tmp$year = res$acute_rel_year
                        tmp$species_original = res$acute_rel_species
                        tmp$study_duration_class = "acute"
@@ -353,12 +496,20 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                        tmp$toxval_subtype = "-"
                      } else if(grepl("madl", f_name)){
                        tmp$toxval_type = "OEHHA MADL"
-                       tmp$toxval_subtype = "-"
+                       tmp$toxval_subtype = ifelse(is.na(res$population), "-", res$population)
                      } else if(f_name == "chrfd"){
                        tmp$toxval_type = "RfD"
                        tmp$toxval_subtype = "Child RfD"
                      } else if(f_name == "notification_level"){
                        tmp$toxval_type = "OEHHA notification level"
+                       # Set study_type and exposure_route for OEHHA notification level
+                       tmp$exposure_route = "oral"
+                       # Replace toxval type already set?
+                       tmp$toxval_type = "drinking water quality guideline"
+                       tmp$study_type = "chronic"
+                     } else if(f_name == "madl_dermal_reprotox"){
+                       tmp$exposure_route = "dermal"
+                       tmp$toxval_type = "madl_dermal_reprotox"
                      }
                      return(tmp)
                    }) %>%
