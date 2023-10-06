@@ -72,10 +72,11 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_ow_npdwr" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                       "clowder_v3/source_epa_ow_npdwr_document_map.xlsx")),
                       "source_epa_ow_nrwqc_hhc" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                       "clowder_v3/source_epa_ow-nrwqc-hhc_document_map.csv")),
+                                                                         "clowder_v3/source_epa_ow-nrwqc-hhc_document_map.csv"),
+                                                                  readr::cols()),
                       "source_epa_ow_nrwqc_alc" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                         "clowder_v3/source_epa_ow_nrwqc_alc_document_map_20231004.csv")),
-
+                                                                         "clowder_v3/source_epa_ow_nrwqc_alc_document_map_20231004.csv"),
+                                                                  readr::cols()),
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                           document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -567,10 +568,21 @@ set_clowder_id_lineage <- function(source_table,
                   },
                   "source_epa_ow_nrwqc_hhc" = {
                     # Perform a left join on chemical names to match chemical names
+                    # Match to origin docs (some do not have origin docs)
                     res <- res %>%
-                      left_join(map_file %>%
-                                  dplyr::select(name, clowder_id, filename = subDir2, fk_doc_id),
-                                by = "name")
+                      dplyr::select(source_hash, source_version_date, name) %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(name, clowder_id, fk_doc_id),
+                                       by = "name")
+
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date, name) %>%
+                      merge(map_file %>%
+                              dplyr::filter(is.na(name)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    res = rbind(res, tmp)
                     #Return the mapped res with document names and clowder ids
                     res
                   },
@@ -591,8 +603,8 @@ set_clowder_id_lineage <- function(source_table,
                     res2 <- res %>%
                       dplyr::select(name, source_hash, source_version_date, source) %>%
                       merge(extraction_docs %>%
-                                  dplyr::select(name = chemical, clowder_id, filename, fk_doc_id, source),
-                                by = "source")
+                              dplyr::select(name = chemical, clowder_id, filename, fk_doc_id, source),
+                            by = "source")
                     res2 <- res2 %>%
                       select(name = name.x, source_hash, source_version_date, clowder_id, filename, fk_doc_id)
                     # Combine the two associated dataframes back into res
