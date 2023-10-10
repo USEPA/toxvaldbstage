@@ -74,7 +74,9 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_ow_nrwqc_hhc" = readr::read_csv(paste0(toxval.config()$datapath,
                                                                          "clowder_v3/source_epa_ow-nrwqc-hhc_document_map.csv"),
                                                                   col_types = readr::cols()),
-
+                      "source_epa_ow_nrwqc_alc" = readr::read_csv(paste0(toxval.config()$datapath,
+                                                                         "clowder_v3/source_epa_ow_nrwqc_alc_document_map_20231004.csv"),
+                                                                  col_types = readr::cols()),
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                                        document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -581,6 +583,33 @@ set_clowder_id_lineage <- function(source_table,
                               dplyr::select(clowder_id, fk_doc_id))
 
                     res = rbind(res, tmp)
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  },
+                  "source_epa_ow_nrwqc_alc" = {
+                    # associates each origin document to specific record
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+                    # Perform a left join on chemical names to match chemical names
+                    res1 <- res %>%
+                      dplyr::select(name, source_hash, source_version_date) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(name = chemical, clowder_id, fk_doc_id),
+                                       by = "name") %>%
+                      dplyr::select(-name)
+                    # associates each record to the extraction document
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+
+                    # Perform a left join on chemical names to match chemical names
+                    res2 <- res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine the two associated dataframes back into res
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
                     #Return the mapped res with document names and clowder ids
                     res
                   },
