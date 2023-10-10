@@ -223,7 +223,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
 
     # None of these should cause any issues, even if these records aren't in the table
 
-    # Print out current violators
+    # Print out current violators within madl_oral_reprotox
     flagged <- ifelse(grepl("\\(", res$madl_oral_reprotox), res$madl_oral_reprotox, NA)
     flagged[complete.cases(flagged)]
     flagged <- ifelse(grepl(";", res$madl_oral_reprotox), res$madl_oral_reprotox, NA)
@@ -318,6 +318,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     }
 
     # Ethyl Dipropylthiocarbamate split
+    # Create columns to handle dermal cases
     res$madl_dermal_reprotox = NA
     res$madl_dermal_reprotox_units = NA
 
@@ -504,7 +505,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                        tmp$toxval_type = "OEHHA notification level"
                        # Set study_type and exposure_route for OEHHA notification level
                        tmp$exposure_route = "oral"
-                       # Replace toxval type already set?
+                       # Replace toxval type that is already set within else if?
                        tmp$toxval_type = "drinking water quality guideline"
                        tmp$study_type = "chronic"
                      } else if(f_name == "madl_dermal_reprotox"){
