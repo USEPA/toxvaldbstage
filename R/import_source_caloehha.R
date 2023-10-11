@@ -224,140 +224,137 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     # None of these should cause any issues, even if these records aren't in the table
 
     # Print out current violators within madl_oral_reprotox
+    # View(res %>% select(madl_oral_reprotox) %>% unique(), "before_madl_oral_fixes")
     flagged <- ifelse(grepl("\\(", res$madl_oral_reprotox), res$madl_oral_reprotox, NA)
-    flagged[complete.cases(flagged)]
+    flagged[stats::complete.cases(flagged)]
     flagged <- ifelse(grepl(";", res$madl_oral_reprotox), res$madl_oral_reprotox, NA)
-    flagged[complete.cases(flagged)]
+    flagged[stats::complete.cases(flagged)]
 
     # Disodium Cyanodithioimidocarbonate fix
-    res <- res %>%
-      dplyr::mutate(madl_oral_reprotox=ifelse(madl_oral_reprotox == "56, or 170 as 32% pesticidal formulation", "56", madl_oral_reprotox))
+    res$madl_oral_reprotox[!is.na(res$madl_oral_reprotox) &
+                             res$madl_oral_reprotox == "56, or 170 as 32% pesticidal formulation"] = "56"
+    # res <- res %>%
+    #   dplyr::mutate(madl_oral_reprotox=ifelse(madl_oral_reprotox == "56, or 170 as 32% pesticidal formulation", "56", madl_oral_reprotox))
 
     # Sodium dimethyldithiocarbamate fix
-    res <- res %>%
-      dplyr::mutate(madl_oral_reprotox=ifelse(madl_oral_reprotox == "23, or 58 as 40% pesticidal formulation", "23", madl_oral_reprotox))
+    res$madl_oral_reprotox[!is.na(res$madl_oral_reprotox) &
+                             res$madl_oral_reprotox == "23, or 58 as 40% pesticidal formulation"] = "23"
+    # res <- res %>%
+    #   dplyr::mutate(madl_oral_reprotox=ifelse(madl_oral_reprotox == "23, or 58 as 40% pesticidal formulation", "23", madl_oral_reprotox))
 
     # Di(2-ethylhexyl)phthalate split
-    res$population = NA
     row_to_split <- res %>%
-      filter(madl_oral_reprotox == "410 (adult); 58 (infant boys, age 29 days to 24 months); 20 (neonatal infant boys, age 0 to 28 days)")
+      dplyr::filter(madl_oral_reprotox == "410 (adult); 58 (infant boys, age 29 days to 24 months); 20 (neonatal infant boys, age 0 to 28 days)")
     split_rows <- row_to_split %>%
-      separate_rows(madl_oral_reprotox, sep = "; ") %>%
-      separate(madl_oral_reprotox, into = c("madl_oral_reprotox", "population"), sep= " \\(") %>%
-      mutate(
-        population = gsub("\\)", "", population)
+      tidyr::separate_rows(madl_oral_reprotox, sep = "; ") %>%
+      tidyr::separate(madl_oral_reprotox, into = c("madl_oral_reprotox", "toxval_subtype"), sep= " \\(") %>%
+      dplyr::mutate(
+        toxval_subtype = gsub("\\)", "", toxval_subtype)
       )
 
     # Remove data from all but one record that would be duplicated when normalized to toxval
-    for (i in 1:nrow(split_rows)){
-      if (split_rows$madl_oral_reprotox[i] %in% c(58,20)){
-        split_rows$inhalation_unit_risk[i] = NA
-        split_rows$inhalation_slope_factor[i] = NA
-        split_rows$oral_slope_factor[i] = NA
-        split_rows$acute_rel[i] = NA
-        split_rows$rel_8_hour_inhalation[i] = NA
-        split_rows$chronic_inhalation_rel[i] = NA
-        split_rows$mcl[i] = NA
-        split_rows$phg[i] = NA
-        split_rows$nsrl_inhalation[i] = NA
-        split_rows$nsrl_oral[i] = NA
-        split_rows$madl_inhalation_reprotox[i] = NA
-        split_rows$chrfd[i] = NA
-        split_rows$notification_level[i] = NA
-      }
-    }
+    # for (i in 1:nrow(split_rows)){
+    #   if (split_rows$madl_oral_reprotox[i] %in% c(58,20)){
+    #     split_rows$inhalation_unit_risk[i] = NA
+    #     split_rows$inhalation_slope_factor[i] = NA
+    #     split_rows$oral_slope_factor[i] = NA
+    #     split_rows$acute_rel[i] = NA
+    #     split_rows$rel_8_hour_inhalation[i] = NA
+    #     split_rows$chronic_inhalation_rel[i] = NA
+    #     split_rows$mcl[i] = NA
+    #     split_rows$phg[i] = NA
+    #     split_rows$nsrl_inhalation[i] = NA
+    #     split_rows$nsrl_oral[i] = NA
+    #     split_rows$madl_inhalation_reprotox[i] = NA
+    #     split_rows$chrfd[i] = NA
+    #     split_rows$notification_level[i] = NA
+    #   }
+    # }
 
     if (nrow(split_rows) > 0){
       res <- res %>%
-        filter(!madl_oral_reprotox %in% "410 (adult); 58 (infant boys, age 29 days to 24 months); 20 (neonatal infant boys, age 0 to 28 days)")
-      res <- bind_rows(res, split_rows)
+        dplyr::filter(!madl_oral_reprotox %in% "410 (adult); 58 (infant boys, age 29 days to 24 months); 20 (neonatal infant boys, age 0 to 28 days)")
+      res <- dplyr::bind_rows(res, split_rows)
     }
 
     # Cyanide split
     row_to_split <- res %>%
-      filter(madl_oral_reprotox == "10 (hydrogen cyanide), 19 (sodium cyanide), 25 (potassium cyanide)")
+      dplyr::filter(madl_oral_reprotox == "10 (hydrogen cyanide), 19 (sodium cyanide), 25 (potassium cyanide)")
 
     # Split rows adopt type of cyanide but other resulting records maintain general Cyanide name
+    # Replacement for Cyanide to have "NA" value
     replacement <- row_to_split %>%
-      mutate(madl_oral_reprotox = NA)
+      dplyr::mutate(madl_oral_reprotox = NA)
     split_rows <- row_to_split %>%
-      separate_rows(madl_oral_reprotox, sep = ", ") %>%
-      separate(madl_oral_reprotox, into = c("madl_oral_reprotox", "name"), sep= " \\(") %>%
-      mutate(
-        name = gsub("\\)", "", name)
-      )
-    split_rows <- split_rows %>%
-      mutate(
-        name = str_to_title(name)
+      tidyr::separate_rows(madl_oral_reprotox, sep = ", ") %>%
+      tidyr::separate(madl_oral_reprotox, into = c("madl_oral_reprotox", "name"), sep= " \\(") %>%
+      dplyr::mutate(
+        name = gsub("\\)", "", name) %>%
+          stringr::str_to_title()
       )
 
     # Remove data from all but one record that would be duplicated when normalized to toxval
-    for (i in 1:nrow(split_rows)){
-      if (split_rows$madl_oral_reprotox[i] %in% c(10,19,25)){
-        split_rows$inhalation_unit_risk[i] = NA
-        split_rows$inhalation_slope_factor[i] = NA
-        split_rows$oral_slope_factor[i] = NA
-        split_rows$acute_rel[i] = NA
-        split_rows$rel_8_hour_inhalation[i] = NA
-        split_rows$chronic_inhalation_rel[i] = NA
-        split_rows$mcl[i] = NA
-        split_rows$phg[i] = NA
-        split_rows$nsrl_inhalation[i] = NA
-        split_rows$nsrl_oral[i] = NA
-        split_rows$madl_inhalation_reprotox[i] = NA
-        split_rows$chrfd[i] = NA
-        split_rows$notification_level[i] = NA
-      }
-    }
-    split_rows <- rbind(split_rows, replacement)
+    # for (i in 1:nrow(split_rows)){
+    #   if (split_rows$madl_oral_reprotox[i] %in% c(10,19,25)){
+    #     split_rows$inhalation_unit_risk[i] = NA
+    #     split_rows$inhalation_slope_factor[i] = NA
+    #     split_rows$oral_slope_factor[i] = NA
+    #     split_rows$acute_rel[i] = NA
+    #     split_rows$rel_8_hour_inhalation[i] = NA
+    #     split_rows$chronic_inhalation_rel[i] = NA
+    #     split_rows$mcl[i] = NA
+    #     split_rows$phg[i] = NA
+    #     split_rows$nsrl_inhalation[i] = NA
+    #     split_rows$nsrl_oral[i] = NA
+    #     split_rows$madl_inhalation_reprotox[i] = NA
+    #     split_rows$chrfd[i] = NA
+    #     split_rows$notification_level[i] = NA
+    #   }
+    # }
+    split_rows <- dplyr::bind_rows(split_rows, replacement)
 
     if (nrow(split_rows) > 0){
       res <- res %>%
-        filter(!madl_oral_reprotox %in% "10 (hydrogen cyanide), 19 (sodium cyanide), 25 (potassium cyanide)")
-      res <- bind_rows(res, split_rows)
+        dplyr::filter(!madl_oral_reprotox %in% "10 (hydrogen cyanide), 19 (sodium cyanide), 25 (potassium cyanide)")
+      res <- dplyr::bind_rows(res, split_rows)
     }
 
     # Ethyl Dipropylthiocarbamate split
     # Create columns to handle dermal cases
-    res$madl_dermal_reprotox = NA
-    res$madl_dermal_reprotox_units = NA
+    # res$madl_dermal_reprotox = NA
+    # res$madl_dermal_reprotox_units = NA
 
     row_to_change <- res %>%
-      filter(madl_oral_reprotox == "700 (oral); 6700 (dermal)")
-    row_to_change <- row_to_change %>%
-      dplyr::mutate(madl_dermal_reprotox = 6700)
-    row_to_change <- row_to_change %>%
-      dplyr::mutate(madl_oral_reprotox = 700)
-    row_to_change <- row_to_change %>%
-      dplyr::mutate(madl_dermal_reprotox_units = madl_oral_reprotox_units)
+      dplyr::filter(madl_oral_reprotox == "700 (oral); 6700 (dermal)") %>%
+      dplyr::mutate(madl_dermal_reprotox = "6700",
+                    madl_oral_reprotox = "700",
+                    madl_dermal_reprotox_units = madl_oral_reprotox_units)
 
     if (nrow(row_to_change) > 0){
       res <- res %>%
-        filter(!madl_oral_reprotox %in% "700 (oral); 6700 (dermal)")
-      res <- rbind(res, row_to_change)
+        dplyr::filter(!madl_oral_reprotox %in% "700 (oral); 6700 (dermal)")
+      res <- dplyr::bind_rows(res, row_to_change)
     }
 
     # N-Methylpyrrolidone - 17000 (dermal)
     row_to_change <- res %>%
-      filter(madl_oral_reprotox == "17000 (dermal)")
-    row_to_change <- row_to_change %>%
-      dplyr::mutate(madl_dermal_reprotox=ifelse(madl_oral_reprotox=="17000 (dermal)", 17000, NA))
-    row_to_change <- row_to_change %>%
-      dplyr::mutate(madl_oral_reprotox=ifelse(madl_oral_reprotox == "17000 (dermal)", NA, madl_oral_reprotox))
-    row_to_change <- row_to_change %>%
-      dplyr::mutate(madl_dermal_reprotox_units=ifelse(madl_dermal_reprotox==17000, madl_oral_reprotox_units, NA))
+      filter(madl_oral_reprotox == "17000 (dermal)") %>%
+      dplyr::mutate(madl_dermal_reprotox = "17000",
+                    madl_oral_reprotox=NA,
+                    madl_dermal_reprotox_units=madl_oral_reprotox_units)
 
     if (nrow(row_to_change) > 0){
       res <- res %>%
-        filter(!madl_oral_reprotox %in% "17000 (dermal)")
-      res <- bind_rows(res, row_to_change)
+        dplyr::filter(!madl_oral_reprotox %in% "17000 (dermal)")
+      res <- dplyr::bind_rows(res, row_to_change)
     }
 
     # Small check for remaining parentheses or semicolons in this column
     flagged <- ifelse(grepl("\\(", res$madl_oral_reprotox), res$madl_oral_reprotox, NA)
-    flagged[complete.cases(flagged)]
+    flagged[stats::complete.cases(flagged)]
     flagged <- ifelse(grepl(";", res$madl_oral_reprotox), res$madl_oral_reprotox, NA)
-    flagged[complete.cases(flagged)]
+    flagged[stats::complete.cases(flagged)]
+    # View(res %>% select(madl_oral_reprotox) %>% unique(), "after_madl_oral_fixes")
 
     # Handle exponent strings
     field_list <- c("inhalation_unit_risk", "inhalation_slope_factor", "oral_slope_factor", "rel_8_hour_inhalation",
@@ -405,7 +402,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     res[,c("critical_effect", "species_original")] = "-"
     res$study_duration_class[is.na(res$study_duration_class)] <- "chronic"
     res$target_organ = "-"
-    res$serverity = "-"
+    res$severity = "-"
 
     res <- lapply(c("inhalation_unit_risk", "inhalation_slope_factor",
                      "oral_slope_factor",
@@ -497,7 +494,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                        tmp$toxval_subtype = "-"
                      } else if(grepl("madl", f_name)){
                        tmp$toxval_type = "OEHHA MADL"
-                       tmp$toxval_subtype = ifelse(is.na(res$population), "-", res$population)
+                       tmp$toxval_subtype = ifelse(is.na(res$toxval_subtype), "-", res$toxval_subtype)
                      } else if(f_name == "chrfd"){
                        tmp$toxval_type = "RfD"
                        tmp$toxval_subtype = "Child RfD"
@@ -518,7 +515,12 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       # Filter out toxval_numeric NA values
       dplyr::filter(!is.na(toxval_numeric)) %>%
       # Clean up excess whitespace for all character fields
-      dplyr::mutate(across(where(is.character), ~stringr::str_squish(.)))
+      dplyr::mutate(across(where(is.character), ~stringr::str_squish(.)),
+                    severity = severity %>%
+                      gsub("*", "", ., fixed=TRUE) %>%
+                      tolower()) %>%
+      # Fix severity
+      dplyr::distinct()
 
 ##########################################################################################################
 
