@@ -35,6 +35,7 @@ import_hawc_source <- function(db,
   printCurrentFunction(db)
   source = "HAWC"
 
+
   infile1 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile1)
   infile2 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile2)
 
@@ -102,9 +103,10 @@ import_hawc_source <- function(db,
   new_hawc_df$FEL_units <-  s[match(paste(new_hawc_df$animal_group.dosing_regime.id,new_hawc_df$FEL),paste(s$dose_regime,s$dose_group_id)),"name"]
   #s_new <- unique(s[,c("dose_regime","dose_group_id","dose")])
   #doses<- stats::aggregate(dose ~ dose_regime + dose_group_id, data = s_new, toString)
-
   # Changed doses field to use dose_dict that results from hawc_pfas script logic
+
   new_hawc_df$doses <-  dose_dict[match(new_hawc_df$animal_group.dosing_regime.id,dose_dict$dose_regime),"dose"]
+  #colnames(new_hawc_df)[which(names(new_hawc_df) == "doses$dose")] <- "doses"
 
   fac_cols <- sapply(new_hawc_df, is.factor)                          # Identify all factor columns
   new_hawc_df[fac_cols] <- lapply(new_hawc_df[fac_cols], as.character)  # Convert all factors to characters
