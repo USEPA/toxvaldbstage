@@ -35,7 +35,6 @@ import_hawc_source <- function(db,
   printCurrentFunction(db)
   source = "HAWC"
 
-
   infile1 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile1)
   infile2 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile2)
 
@@ -106,7 +105,10 @@ import_hawc_source <- function(db,
   # Changed doses field to use dose_dict that results from hawc_pfas script logic
 
   new_hawc_df$doses <-  dose_dict[match(new_hawc_df$animal_group.dosing_regime.id,dose_dict$dose_regime),"dose"]
-  #colnames(new_hawc_df)[which(names(new_hawc_df) == "doses$dose")] <- "doses"
+  # fix nested df in doses column issue
+  corrected_column <- new_hawc_df$doses
+  new_hawc_df$doses <- corrected_column$dose
+
 
   fac_cols <- sapply(new_hawc_df, is.factor)                          # Identify all factor columns
   new_hawc_df[fac_cols] <- lapply(new_hawc_df[fac_cols], as.character)  # Convert all factors to characters
