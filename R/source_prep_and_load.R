@@ -7,6 +7,7 @@
 #' @param do.reset If TRUE, delete data from the database for this source before #' inserting new data. Default FALSE
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @param chem.check.halt If TRUE, stop the execution if there are errors in the #' chemical mapping
+#' @param verbose If TRUE, write out diagnostic messages #'
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
@@ -23,7 +24,7 @@
 #--------------------------------------------------------------------------------------
 source_prep_and_load <- function(db,source,table,res,
                                  do.reset=FALSE, do.insert=FALSE,
-                                 chem.check.halt=FALSE){
+                                 chem.check.halt=FALSE, verbose=FALSE){
   printCurrentFunction(paste(db,"\n",source,":",table))
 
   chem.check.halt = FALSE
