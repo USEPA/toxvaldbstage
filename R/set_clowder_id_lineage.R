@@ -44,7 +44,7 @@ set_clowder_id_lineage <- function(source_table,
                           filter(!is.na(clowder_id))
                       },
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_iris_doc_map_2023-05-09.xlsx")),
+                                                               "clowder_v3/source_iris_2023_document_map_20231017.xlsx")),
                       # "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                           "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
                       "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -60,7 +60,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_hpvis" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                 "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx")),
                       "source_oppt" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_oppt_doc_map_20221206.xlsx")),
+                                                               "clowder_v3/source_oppt_doc_map_20231017.xlsx")),
                       "source_efsa" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/source_efsa_matched_mmille16_09212022.xlsx")),
                       "source_hawc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -80,6 +80,9 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_ow_opp_alb" = readr::read_csv(paste0(toxval.config()$datapath,
                                                                          "clowder_v3/source_epa_ow_opp_alb_document_map.csv"),
                                                                   col_types = readr::cols()),
+                      "source_atsdr_mrls" = readr::read_csv(paste0(toxval.config()$datapath,
+                                                                       "clowder_v3/source_astdr_mrls_2023_document_map_20231012.csv"),
+                                                                col_types = readr::cols()),
 
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
@@ -98,8 +101,8 @@ set_clowder_id_lineage <- function(source_table,
                                                            document_name = "doe_wildlife_benchmarks_1996_tm86r3.pdf"),
                       "source_envirotox" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_envirotox_doc_map_20231010.xlsx")),
-                      "source_epa_aegl" = data.frame(clowder_id = "65299926e4b045b9ff79ebe3",
-                                                     document_name = "compiled_epa_aegls_update_27jul2018.pdf"),
+                      "source_epa_aegl" = data.frame(clowder_id = "61003a84e4b01a90a3f9ca2f",
+                                                     document_name = "4627c891c8ea494fb8ea7846b220bd14-United States Environmental Protection Agency (USEPA)-2020-Acute Expo.pdf"),
                       "source_opp" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/epa_opp_doc_lineage_mmille16.xlsx")),
                       "source_health_canada" = data.frame(clowder_id = "61003a57e4b01a90a3f9c305",
@@ -124,8 +127,8 @@ set_clowder_id_lineage <- function(source_table,
                       #                  document_name = "ToxValDBQA Wignall EHP 2014.pdf"),
                       "source_test" = data.frame(clowder_id = "6390c185e4b04f6bb149889a; 6390c185e4b04f6bb1498899",
                                                  document_name = "TEST data.xlsx; test_chemicals_invitrodb.csv"),
-                      "source_atsdr_mrls" = data.frame(clowder_id="649c5e23e4b00be57315594c",
-                                                       document_name="ATSDR MRLs - April 2023 - H.pdf"),
+                      #"source_atsdr_mrls" = data.frame(clowder_id="649c5e23e4b00be57315594c",
+                      #                                 document_name="ATSDR MRLs - April 2023 - H.pdf"),
                       # "source_atsdr_mrls_2022" = data.frame(clowder_id="63b58958e4b04f6bb1507bf2",
                       #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
                       "source_rsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -321,17 +324,32 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
-
                   "source_iris" = {
-                    # Special case where all records are linked to all mapped files
-                    res$clowder_id <- map_file$clowder_id %>% toString()
-                    res = res %>%
-                      tidyr::separate_rows(clowder_id, sep = ", ") %>%
-                      dplyr::mutate(clowder_id = stringr::str_squish(clowder_id)) %>%
-                      dplyr::left_join(map_file %>%
-                                         dplyr::select(clowder_id, fk_doc_id),
-                                       by="clowder_id") %>%
-                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+                    # associates each origin document to specific record
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+                    # Perform a left join on chemical names to match chemical names
+                    res1 <- res %>%
+                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(iris_chemical_id = chem_id, clowder_id, fk_doc_id),
+                                       by = "iris_chemical_id")
+
+                    # associates each record to the extraction document
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+
+                    # Perform a left join on chemical names to match chemical names
+                    res2 <- res %>%
+                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine the two associated data frames back into res
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+
+                    #Return the mapped res with document names and clowder ids
                     res
                   },
                   # "source_pprtv_ornl" = {
@@ -498,11 +516,29 @@ set_clowder_id_lineage <- function(source_table,
 
                   "source_oppt" = {
                     res$document_name = NULL
+                    # Associates origin documents to records based on filename
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
 
-                    res = res %>%
-                      left_join(map_file %>%
+                    res1 <- res %>%
+                      select(source_hash, source_version_date, srcf) %>%
+                      left_join(origin_docs %>%
                                   select(clowder_id, filename, fk_doc_id),
                                 by = c("srcf"="filename"))
+
+                    # Associates extraction document to all records
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+
+                    res2 <- res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id, "srcf" = filename))
+
+                    # Combines both associations back into one data frame
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+
                     # Return res
                     res
                   },
@@ -651,6 +687,208 @@ set_clowder_id_lineage <- function(source_table,
                     # Combine the two associated dataframes back into res
                     res <- rbind(res1, res2) %>%
                       dplyr::arrange(source_hash)
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  },
+                  "source_atsdr_mrls" = {
+                    # associates each origin document to specific record
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+                    # Chemical names in res and origin docs were in two different cases, changing
+                    # the case so that we can merge on chemical name
+                    origin_docs$`Chemical Name` <- toupper(origin_docs$`Chemical Name`)
+                    # One record in res wasn't fully upper case, so had to make it upper
+                    res$name <- toupper(res$name)
+                    # Separate groups into individual chemical names
+                    origin_docs <- origin_docs %>%
+                      mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, ", ")) %>%
+                      unnest(cols = c('Chemical Name'))
+                    origin_docs <- origin_docs %>%
+                      mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, " & ")) %>%
+                      unnest(cols = c('Chemical Name'))
+                    origin_docs <- origin_docs %>%
+                      mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, " AND ")) %>%
+                      unnest(cols = c('Chemical Name'))
+
+                    # Perform a left join on chemical names to match chemical names
+                    res1 <- res %>%
+                      dplyr::select(name, source_hash, source_version_date) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(name = "Chemical Name", clowder_id, fk_doc_id),
+                                       by = "name")
+
+                    # associates each record to the extraction document
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+
+                    # Perform a left join on chemical names to match chemical names
+                    res2 <- res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id, name = "Chemical Name"))
+
+                    # Combine the two associated dataframes back into res
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+
+                    # Hard code some of the origin doc merges using grep
+                    for (i in 1:nrow(res)){
+                      clowder_id <- res[i,'clowder_id']
+                      res_chem_name <- res[i,'name']
+                      if (is.na(clowder_id)){
+                        # Hard codes clowder_ids for barium group chemicals
+                        if (grepl("BARIUM", res_chem_name, fixed = TRUE)){
+                          rows <- grep("BARIUM", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for 2-BUTOXYETHANOL group chemicals
+                        if (grepl("2-BUTOXYETHANOL", res_chem_name, fixed = TRUE)){
+                          rows <- grep("2-BUTOXYETHANOL", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)[1]
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for CHROMIUM group chemicals
+                        if (grepl("CHROMIUM", res_chem_name, fixed = TRUE)){
+                          rows <- grep("CHROMIUM", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for CYANIDE group chemicals
+                        if (grepl("CYANIDE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("CYANIDE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for ddd group chemicals
+                        if (grepl("DDD", res_chem_name, fixed = TRUE)){
+                          rows <- grep("DDD", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for ddt group chemicals
+                        if (grepl("DDT", res_chem_name, fixed = TRUE)){
+                          rows <- grep("DDT", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for dde group chemicals
+                        if (grepl("DDE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("DDE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for dichlorobenzene group chemicals
+                        if (grepl("DICHLOROBENZENE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("DICHLOROBENZENE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for 1,2-DICHLOROETHENE group chemicals
+                        if (grepl("1,2-DICHLOROETHENE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("1,2-DICHLOROETHENE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for DICHLOROPROPENE group chemicals
+                        if (grepl("DICHLOROPROPENE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("DICHLOROPROPENE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for DINITROTOLUENE group chemicals
+                        if (grepl("DINITROTOLUENE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("DINITROTOLUENE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for FLUORIDE group chemicals
+                        if (grepl("FLUORIDE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("FLUORIDE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)[1]
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for HEXACHLOROCYCLOHEXANE group chemicals
+                        if (grepl("HEXACHLOROCYCLOHEXANE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("HEXACHLOROCYCLOHEXANE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for PBDEs group chemicals
+                        if (grepl("PBDES", res_chem_name, fixed = TRUE)){
+                          rows <- grep("PBDES", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for CHLOROPHENOL group chemicals
+                        if (grepl("CHLOROPHENOL", res_chem_name, fixed = TRUE)){
+                          rows <- grep("CHLOROPHENOL", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)[1]
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for TIN group chemicals
+                        if (grepl("TIN", res_chem_name, fixed = TRUE)){
+                          rows <- grep("TIN", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for URANIUM group chemicals
+                        if (grepl("URANIUM", res_chem_name, fixed = TRUE)){
+                          rows <- grep("URANIUM", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for HYDRAZINES group chemicals
+                        if (grepl("HYDRAZINE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("HYDRAZINE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)[2]
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for CHLORODIBENZOFURAN group chemicals
+                        if (grepl("CHLORODIBENZOFURAN", res_chem_name, fixed = TRUE)){
+                          rows <- grep("CHLORODIBENZOFURAN", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for PHOSPHATE group chemicals
+                        if (grepl("PHOSPHATE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("PHOSPHATE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for XYLENES group chemicals
+                        if (grepl("XYLENES", res_chem_name, fixed = TRUE)){
+                          rows <- grep("XYLENES", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for PHOSPHORUS group chemicals
+                        if (grepl("PHOSPHORUS", res_chem_name, fixed = TRUE)){
+                          rows <- grep("PHOSPHORUS", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for IONIZING RADIATION group chemicals
+                        if (grepl("IONIZING RADIATION", res_chem_name, fixed = TRUE)){
+                          rows <- grep("IONIZING RADIATION", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for MANGANESE group chemicals
+                        if (grepl("MANGANESE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("MANGANESE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                        # Hard codes clowder_ids for METHYLENEDIPHENYL DIISOCYANATE group chemicals
+                        if (grepl("METHYLENEDIPHENYL DIISOCYANATE", res_chem_name, fixed = TRUE)){
+                          rows <- grep("METHYLENEDIPHENYL DIISOCYANATE", origin_docs$`Chemical Name`,
+                                       fixed = TRUE)
+                          res[i, 'clowder_id'] <- origin_docs[rows, 'clowder_id']
+                        }
+                      }
+                    }
+
                     #Return the mapped res with document names and clowder ids
                     res
                   },
