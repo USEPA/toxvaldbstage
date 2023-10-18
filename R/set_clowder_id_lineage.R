@@ -44,7 +44,7 @@ set_clowder_id_lineage <- function(source_table,
                           filter(!is.na(clowder_id))
                       },
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_iris_doc_map_2023-05-09.xlsx")),
+                                                               "clowder_v3/source_iris_2023_document_map_20231017.xlsx")),
                       # "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                           "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
                       "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -299,41 +299,56 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
 
-                  "source_iris_2022-10-21" = {
-                    # cut the map down to just the webpage PDF documents, not screenshots or supplements
-                    map_file <- map_file[which(map_file$parentPath == "IRIS"),]
-                    # Match by chemical name first
-                    res = res %>%
-                      left_join(map_file %>%
-                                  select(chemical_name, clowder_id, fk_doc_id),
-                                by=c("name" = "chemical_name"))
-                    # Filter to those without a match
-                    res2 = res %>%
-                      filter(is.na(clowder_id))
-                    res = res %>%
-                      filter(!is.na(clowder_id))
-                    # Match by casrn
-                    res2 = res2 %>%
-                      select(-clowder_id, -fk_doc_id) %>%
-                      left_join(map_file %>%
-                                  select(casrn, clowder_id, fk_doc_id),
-                                by="casrn")
-                    # Recombine all matches
-                    res = rbind(res, res2)
-                    # Return res
-                    res
-                  },
-
+                  # "source_iris_2022-10-21" = {
+                  #   # cut the map down to just the webpage PDF documents, not screenshots or supplements
+                  #   map_file <- map_file[which(map_file$parentPath == "IRIS"),]
+                  #   # Match by chemical name first
+                  #   res = res %>%
+                  #     left_join(map_file %>%
+                  #                 select(chemical_name, clowder_id, fk_doc_id),
+                  #               by=c("name" = "chemical_name"))
+                  #   # Filter to those without a match
+                  #   res2 = res %>%
+                  #     filter(is.na(clowder_id))
+                  #   res = res %>%
+                  #     filter(!is.na(clowder_id))
+                  #   # Match by casrn
+                  #   res2 = res2 %>%
+                  #     select(-clowder_id, -fk_doc_id) %>%
+                  #     left_join(map_file %>%
+                  #                 select(casrn, clowder_id, fk_doc_id),
+                  #               by="casrn")
+                  #   # Recombine all matches
+                  #   res = rbind(res, res2)
+                  #   # Return res
+                  #   res
+                  # },
                   "source_iris" = {
-                    # Special case where all records are linked to all mapped files
-                    res$clowder_id <- map_file$clowder_id %>% toString()
-                    res = res %>%
-                      tidyr::separate_rows(clowder_id, sep = ", ") %>%
-                      dplyr::mutate(clowder_id = stringr::str_squish(clowder_id)) %>%
-                      dplyr::left_join(map_file %>%
-                                         dplyr::select(clowder_id, fk_doc_id),
-                                       by="clowder_id") %>%
-                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+                    # associates each origin document to specific record
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+                    # Perform a left join on chemical names to match chemical names
+                    res1 <- res %>%
+                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(iris_chemical_id = chem_id, clowder_id, fk_doc_id),
+                                       by = "iris_chemical_id")
+
+                    # associates each record to the extraction document
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+
+                    # Perform a left join on chemical names to match chemical names
+                    res2 <- res %>%
+                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine the two associated data frames back into res
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+
+                    #Return the mapped res with document names and clowder ids
                     res
                   },
                   # "source_pprtv_ornl" = {
