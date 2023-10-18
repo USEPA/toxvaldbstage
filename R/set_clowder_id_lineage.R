@@ -80,7 +80,9 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_ow_opp_alb" = readr::read_csv(paste0(toxval.config()$datapath,
                                                                          "clowder_v3/source_epa_ow_opp_alb_document_map.csv"),
                                                                   col_types = readr::cols()),
-
+                      "source_atsdr_mrls" = readr::read_csv(paste0(toxval.config()$datapath,
+                                                                       "clowder_v3/source_astdr_mrls_2023_document_map_20231012.csv"),
+                                                                col_types = readr::cols()),
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                                        document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -98,8 +100,8 @@ set_clowder_id_lineage <- function(source_table,
                                                            document_name = "doe_wildlife_benchmarks_1996_tm86r3.pdf"),
                       "source_envirotox" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_envirotox_doc_map_20231010.xlsx")),
-                      "source_epa_aegl" = data.frame(clowder_id = "65299926e4b045b9ff79ebe3",
-                                                     document_name = "compiled_epa_aegls_update_27jul2018.pdf"),
+                      "source_epa_aegl" = data.frame(clowder_id = "61003a84e4b01a90a3f9ca2f",
+                                                     document_name = "4627c891c8ea494fb8ea7846b220bd14-United States Environmental Protection Agency (USEPA)-2020-Acute Expo.pdf"),
                       "source_opp" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/epa_opp_doc_lineage_mmille16.xlsx")),
                       "source_health_canada" = data.frame(clowder_id = "61003a57e4b01a90a3f9c305",
@@ -124,8 +126,8 @@ set_clowder_id_lineage <- function(source_table,
                       #                  document_name = "ToxValDBQA Wignall EHP 2014.pdf"),
                       "source_test" = data.frame(clowder_id = "6390c185e4b04f6bb149889a; 6390c185e4b04f6bb1498899",
                                                  document_name = "TEST data.xlsx; test_chemicals_invitrodb.csv"),
-                      "source_atsdr_mrls" = data.frame(clowder_id="649c5e23e4b00be57315594c",
-                                                       document_name="ATSDR MRLs - April 2023 - H.pdf"),
+                      #"source_atsdr_mrls" = data.frame(clowder_id="649c5e23e4b00be57315594c",
+                      #                                 document_name="ATSDR MRLs - April 2023 - H.pdf"),
                       # "source_atsdr_mrls_2022" = data.frame(clowder_id="63b58958e4b04f6bb1507bf2",
                       #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
                       "source_rsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -651,6 +653,75 @@ set_clowder_id_lineage <- function(source_table,
                     # Combine the two associated dataframes back into res
                     res <- rbind(res1, res2) %>%
                       dplyr::arrange(source_hash)
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  },
+                  "source_atsdr_mrls" = {
+                    # associates each origin document to specific record
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+                    # Chemical names in res and origin docs were in two different cases, changing
+                    # the case so that we can merge on chemical name
+                    origin_docs$`Chemical Name` <- toupper(origin_docs$`Chemical Name`)
+                    # One record in res wasn't fully upper case, so had to make it upper
+                    res$name <- toupper(res$name)
+
+                    # Separate chemical name lists
+                    origin_docs = origin_docs %>%
+                      tidyr::separate_rows(`Chemical Name`, sep=", ") %>%
+                      tidyr::separate_rows(`Chemical Name`, sep=" & ") %>%
+                      tidyr::separate_rows(`Chemical Name`, sep=" AND ")
+
+                    # Separate groups into individual chemical names
+                    # origin_docs <- origin_docs %>%
+                    #   mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, ", ")) %>%
+                    #   unnest(cols = c('Chemical Name'))
+                    # origin_docs <- origin_docs %>%
+                    #   mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, " & ")) %>%
+                    #   unnest(cols = c('Chemical Name'))
+                    # origin_docs <- origin_docs %>%
+                    #   mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, " AND ")) %>%
+                    #   unnest(cols = c('Chemical Name'))
+
+                    # Perform a left join on chemical names to match chemical names
+                    res1 <- res %>%
+                      dplyr::select(name, source_hash, source_version_date) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(name = "Chemical Name", clowder_id, fk_doc_id),
+                                       by = "name")
+
+                    # Hard code matches with grep for chemical name
+                    unmatched_names = c("BARIUM", "2-BUTOXYETHANOL", "CHROMIUM", "CYANIDE",
+                                        "DDD", "DDT", "DDE", "DICHLOROBENZENE", "1,2-DICHLOROETHENE",
+                                        "DICHLOROPROPENE", "DINITROTOLUENE", "FLUORIDE",
+                                        "HEXACHLOROCYCLOHEXANE", "PBDES", "CHLOROPHENOL", "TIN",
+                                        "URANIUM", "HYDRAZINE", "CHLORODIBENZOFURAN", "PHOSPHATE",
+                                        "XYLENES", "PHOSPHORUS", "IONIZING RADIATION", "MANGANESE",
+                                        "METHYLENEDIPHENYL DIISOCYANATE")
+
+                    # Find matches for those missing matches with grep name to chemical name
+                    for(u_name in unmatched_names){
+                      origin_replace = unique(origin_docs$clowder_id[grep(paste0("^", u_name), origin_docs$`Chemical Name`)])
+                      # if(length(origin_replace) > 1) stop("origin_replace too long")
+                      # if(length(origin_replace) == 0) stop("No replacement")
+                      res1$clowder_id[grep(u_name, res1$name)] = origin_replace
+                      res1$fk_doc_id[grep(u_name, res1$name)] = unique(origin_docs$fk_doc_id[origin_docs$clowder_id %in% origin_replace])
+                    }
+
+                    # associates each record to the extraction document
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+
+                    # Perform a left join on chemical names to match chemical names
+                    res2 <- res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id, name = "Chemical Name"))
+
+                    # Combine the two associated dataframes back into res
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+
                     #Return the mapped res with document names and clowder ids
                     res
                   },
