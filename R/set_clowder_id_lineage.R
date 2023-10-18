@@ -299,30 +299,30 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
 
-                  "source_iris_2022-10-21" = {
-                    # cut the map down to just the webpage PDF documents, not screenshots or supplements
-                    map_file <- map_file[which(map_file$parentPath == "IRIS"),]
-                    # Match by chemical name first
-                    res = res %>%
-                      left_join(map_file %>%
-                                  select(chemical_name, clowder_id, fk_doc_id),
-                                by=c("name" = "chemical_name"))
-                    # Filter to those without a match
-                    res2 = res %>%
-                      filter(is.na(clowder_id))
-                    res = res %>%
-                      filter(!is.na(clowder_id))
-                    # Match by casrn
-                    res2 = res2 %>%
-                      select(-clowder_id, -fk_doc_id) %>%
-                      left_join(map_file %>%
-                                  select(casrn, clowder_id, fk_doc_id),
-                                by="casrn")
-                    # Recombine all matches
-                    res = rbind(res, res2)
-                    # Return res
-                    res
-                  },
+                  # "source_iris_2022-10-21" = {
+                  #   # cut the map down to just the webpage PDF documents, not screenshots or supplements
+                  #   map_file <- map_file[which(map_file$parentPath == "IRIS"),]
+                  #   # Match by chemical name first
+                  #   res = res %>%
+                  #     left_join(map_file %>%
+                  #                 select(chemical_name, clowder_id, fk_doc_id),
+                  #               by=c("name" = "chemical_name"))
+                  #   # Filter to those without a match
+                  #   res2 = res %>%
+                  #     filter(is.na(clowder_id))
+                  #   res = res %>%
+                  #     filter(!is.na(clowder_id))
+                  #   # Match by casrn
+                  #   res2 = res2 %>%
+                  #     select(-clowder_id, -fk_doc_id) %>%
+                  #     left_join(map_file %>%
+                  #                 select(casrn, clowder_id, fk_doc_id),
+                  #               by="casrn")
+                  #   # Recombine all matches
+                  #   res = rbind(res, res2)
+                  #   # Return res
+                  #   res
+                  # },
                   "source_iris" = {
                     # associates each origin document to specific record
                     origin_docs <- map_file %>%
@@ -680,7 +680,7 @@ set_clowder_id_lineage <- function(source_table,
                     origin_docs$`Chemical Name` <- toupper(origin_docs$`Chemical Name`)
                     # One record in res wasn't fully upper case, so had to make it upper
                     res$name <- toupper(res$name)
-                    
+
                     # Separate chemical name lists
                     origin_docs = origin_docs %>%
                       tidyr::separate_rows(`Chemical Name`, sep=", ") %>%
@@ -697,7 +697,7 @@ set_clowder_id_lineage <- function(source_table,
                     # origin_docs <- origin_docs %>%
                     #   mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, " AND ")) %>%
                     #   unnest(cols = c('Chemical Name'))
-                    
+
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
                       dplyr::select(name, source_hash, source_version_date) %>%
