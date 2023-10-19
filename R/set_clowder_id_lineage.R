@@ -849,4 +849,13 @@ set_clowder_id_lineage <- function(source_table,
   } else {
     message("...no new documents_records entries to push...moving on...")
   }
+
+  # Update document_type
+  set_clowder_doc_type(source_table=source_table,
+                       clowder_url=clowder_url,
+                       clowder_api_key=clowder_api_key,
+                       source.db=db,
+                       clowder_id_list=res %>%
+                         dplyr::select(clowder_id) %>%
+                         dplyr::distinct())
 }
