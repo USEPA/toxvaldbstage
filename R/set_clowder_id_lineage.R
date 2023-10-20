@@ -83,7 +83,8 @@ set_clowder_id_lineage <- function(source_table,
                       "source_atsdr_mrls" = readr::read_csv(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_astdr_mrls_2023_document_map_20231012.csv"),
                                                                 col_types = readr::cols()),
-
+                      "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/source_ntp_pfas_doc_map_20231019.xlsx")),
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                                        document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -250,8 +251,9 @@ set_clowder_id_lineage <- function(source_table,
                    get.id = FALSE,
                    db=db)
   }
-
-  # PUll source table data
+################################################################################
+### PUll source table data
+################################################################################
   res <- runQuery(paste0("SELECT * FROM ", source_table), db=db)
 
   # Check if source table data has been pushed (could be empty table)
@@ -789,6 +791,23 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Combine origin and extraction document associations
                     res = rbind(res, tmp)
+
+                    # Return res
+                    res
+                  },
+                  "source_ntp_pfas" = {
+                    # Associate records based off of ntp_study_identifier
+                    res = res %>%
+                      dplyr::select(ntp_study_identifier, source_hash, source_version_date) %>%
+                      dplyr::left_join(map_file %>%
+                                         # Create map_file column with NTP Study Identifier from file name
+                                         # Based on what's in the NTP PFAS source data
+                                         dplyr::mutate(ntp_study_identifier = stringr::str_extract(subDir3,
+                                                                                                   paste0(unique(res$ntp_study_identifier),
+                                                                                                          collapse="|"))) %>%
+                                         dplyr::select(fk_doc_id, clowder_id, ntp_study_identifier),
+                                       by = "ntp_study_identifier") %>%
+                      dplyr::select(-ntp_study_identifier)
 
                     # Return res
                     res
