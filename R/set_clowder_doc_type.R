@@ -30,7 +30,7 @@ set_clowder_doc_type <- function(source_table=NULL,
                                  source.db=NULL,
                                  ds_id=NULL,
                                  clowder_id_list=NULL) {
-
+  printCurrentFunction(source_table)
   if(!is.null(clowder_id_list)){
     cat("\nUsing input clowder_id_list...")
     doc_list = clowder_id_list
