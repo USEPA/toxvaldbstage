@@ -62,7 +62,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_oppt" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/source_oppt_doc_map_20231017.xlsx")),
                       "source_efsa" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_efsa_matched_mmille16_09212022.xlsx")),
+                                                               "clowder_v3/source_efsa_20231018.xlsx"), col_types = "text"),
                       "source_hawc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")),
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -545,12 +545,24 @@ set_clowder_id_lineage <- function(source_table,
                   "source_efsa" = {
                     res$document_name = NULL
 
-                    res = res %>%
+                    res <- res %>%
+                      dplyr::select(source_hash, title, source_version_date) %>%
                       left_join(map_file %>%
-                                  filter(!is.na(clowder_id)) %>%
+                                  #filter(!is.na(clowder_id)) %>%
                                   select(clowder_id, long_ref, fk_doc_id) %>%
                                   distinct(),
                                 by = c("title" = "long_ref"))
+
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(is.na(name)) %>%
+                              dplyr::select(clowder_id, "title" = long_ref, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res, tmp)
+
                     # Return res
                     res
                   },
