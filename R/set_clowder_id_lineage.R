@@ -299,31 +299,30 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
-
-                  #"source_iris_2022-10-21" = {
-                  #  # cut the map down to just the webpage PDF documents, not screenshots or supplements
-                  #  map_file <- map_file[which(map_file$parentPath == "IRIS"),]
-                  #  # Match by chemical name first
-                  #  res = res %>%
-                  #    left_join(map_file %>%
-                  #                select(chemical_name, clowder_id, fk_doc_id),
-                  #              by=c("name" = "chemical_name"))
-                  #  # Filter to those without a match
-                  #  res2 = res %>%
-                  #    filter(is.na(clowder_id))
-                  #  res = res %>%
-                  #    filter(!is.na(clowder_id))
-                  #  # Match by casrn
-                  #  res2 = res2 %>%
-                  #    select(-clowder_id, -fk_doc_id) %>%
-                  #    left_join(map_file %>%
-                  #                select(casrn, clowder_id, fk_doc_id),
-                  #              by="casrn")
-                  #  # Recombine all matches
-                  #  res = rbind(res, res2)
-                  #  # Return res
-                  #  res
-                  #},
+                  # "source_iris_2022-10-21" = {
+                  #   # cut the map down to just the webpage PDF documents, not screenshots or supplements
+                  #   map_file <- map_file[which(map_file$parentPath == "IRIS"),]
+                  #   # Match by chemical name first
+                  #   res = res %>%
+                  #     left_join(map_file %>%
+                  #                 select(chemical_name, clowder_id, fk_doc_id),
+                  #               by=c("name" = "chemical_name"))
+                  #   # Filter to those without a match
+                  #   res2 = res %>%
+                  #     filter(is.na(clowder_id))
+                  #   res = res %>%
+                  #     filter(!is.na(clowder_id))
+                  #   # Match by casrn
+                  #   res2 = res2 %>%
+                  #     select(-clowder_id, -fk_doc_id) %>%
+                  #     left_join(map_file %>%
+                  #                 select(casrn, clowder_id, fk_doc_id),
+                  #               by="casrn")
+                  #   # Recombine all matches
+                  #   res = rbind(res, res2)
+                  #   # Return res
+                  #   res
+                  # },
                   "source_iris" = {
                     # associates each origin document to specific record
                     origin_docs <- map_file %>%
@@ -678,7 +677,8 @@ set_clowder_id_lineage <- function(source_table,
                   "source_epa_ow_opp_alb" = {
                     # associates each origin document to specific record
                     origin_docs <- map_file %>%
-                      dplyr::filter(is.na(parent_flag))
+                      dplyr::filter(is.na(parent_flag)) %>%
+                      fix.non_ascii.v2(source=source_table)
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
                       dplyr::select(name, source_hash, source_version_date) %>%
@@ -753,7 +753,7 @@ set_clowder_id_lineage <- function(source_table,
                       res1$clowder_id[grep(u_name, res1$name)] = origin_replace
                       res1$fk_doc_id[grep(u_name, res1$name)] = unique(origin_docs$fk_doc_id[origin_docs$clowder_id %in% origin_replace])
                     }
-
+                    
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
                       dplyr::filter(!is.na(parent_flag))
@@ -880,4 +880,14 @@ set_clowder_id_lineage <- function(source_table,
   } else {
     message("...no new documents_records entries to push...moving on...")
   }
+
+  # Update document_type
+  set_clowder_doc_type(source_table=source_table,
+                       clowder_url=clowder_url,
+                       clowder_api_key=clowder_api_key,
+                       source.db=db,
+                       ds_id = "5e31dc1e99323f93a9f5cec0",
+                       clowder_id_list=res %>%
+                         dplyr::select(clowder_id) %>%
+                         dplyr::distinct())
 }
