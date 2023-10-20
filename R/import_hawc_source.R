@@ -31,9 +31,14 @@
 import_hawc_source <- function(db,
                                infile1="hawc_original_12_06_21.xlsx",
                                infile2="dose_dict.xlsx",
-                               chem.check.halt=T) {
+                               chem.check.halt=FALSE,
+                               do.reset=FALSE,
+                               do.insert=FALSE) {
   printCurrentFunction(db)
   source = "HAWC"
+  source_table = "source_hawc"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2021-12-06")
 
   infile1 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile1)
   infile2 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile2)
@@ -72,7 +77,7 @@ import_hawc_source <- function(db,
     dplyr::distinct()
   res_dose3[] = lapply(res_dose3, as.character)
   dose_dict <- res_dose3 %>%
-    dplyr::arrange(dose_regime, name, dose)
+    dplyr::arrange(dose_regime, dose_group_id, name, dose)
   dose_dict_orig = dose_dict
   # Get counts of dose entries per dose_regime - units pairs
   dose_dict = dose_dict %>%
@@ -198,8 +203,24 @@ import_hawc_source <- function(db,
   res = res2
   cat(nrow(res),"\n")
 
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="HAWC",table="source_hawc",res=res,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt)
 }
+
