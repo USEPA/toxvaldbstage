@@ -23,7 +23,7 @@
 #--------------------------------------------------------------------------------------
 source_prep_and_load <- function(db,source,table,res,
                                  do.reset=FALSE, do.insert=FALSE,
-                                 chem.check.halt=FALSE){
+                                 chem.check.halt=FALSE, verbose=FALSE){
   printCurrentFunction(paste(db,"\n",source,":",table))
 
   chem.check.halt = FALSE
