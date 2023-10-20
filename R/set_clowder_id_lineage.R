@@ -60,7 +60,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_hpvis" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                 "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx")),
                       "source_oppt" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_oppt_doc_map_20221206.xlsx")),
+                                                               "clowder_v3/source_oppt_doc_map_20231017.xlsx")),
                       "source_efsa" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/source_efsa_matched_mmille16_09212022.xlsx")),
                       "source_hawc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -83,6 +83,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_atsdr_mrls" = readr::read_csv(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_astdr_mrls_2023_document_map_20231012.csv"),
                                                                 col_types = readr::cols()),
+
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                                        document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -298,7 +299,6 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
-
                   # "source_iris_2022-10-21" = {
                   #   # cut the map down to just the webpage PDF documents, not screenshots or supplements
                   #   map_file <- map_file[which(map_file$parentPath == "IRIS"),]
@@ -515,11 +515,29 @@ set_clowder_id_lineage <- function(source_table,
 
                   "source_oppt" = {
                     res$document_name = NULL
+                    # Associates origin documents to records based on filename
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
 
-                    res = res %>%
-                      left_join(map_file %>%
+                    res1 <- res %>%
+                      select(source_hash, source_version_date, srcf) %>%
+                      left_join(origin_docs %>%
                                   select(clowder_id, filename, fk_doc_id),
                                 by = c("srcf"="filename"))
+
+                    # Associates extraction document to all records
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+
+                    res2 <- res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id, "srcf" = filename))
+
+                    # Combines both associations back into one data frame
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+
                     # Return res
                     res
                   },
@@ -723,7 +741,7 @@ set_clowder_id_lineage <- function(source_table,
                       res1$clowder_id[grep(u_name, res1$name)] = origin_replace
                       res1$fk_doc_id[grep(u_name, res1$name)] = unique(origin_docs$fk_doc_id[origin_docs$clowder_id %in% origin_replace])
                     }
-
+                    
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
                       dplyr::filter(!is.na(parent_flag))
