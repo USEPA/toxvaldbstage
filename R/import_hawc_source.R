@@ -12,18 +12,18 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{getSheetNames}}, \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[stats]{aggregate}}
 #'  \code{\link[digest]{digest}}
 #' @rdname import_hawc_source
-#' @export 
+#' @export
 #' @importFrom openxlsx getSheetNames read.xlsx
 #' @importFrom stats aggregate
 #' @importFrom digest digest
@@ -31,12 +31,18 @@
 import_hawc_source <- function(db,
                                infile1="hawc_original_12_06_21.xlsx",
                                infile2="dose_dict.xlsx",
-                               chem.check.halt=T) {
+                               chem.check.halt=FALSE,
+                               do.reset=FALSE,
+                               do.insert=FALSE) {
   printCurrentFunction(db)
   source = "HAWC"
+  source_table = "source_hawc"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2021-12-06")
 
   infile1 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile1)
   infile2 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile2)
+
   #####################################################################
   cat("Build original_hawc table \n")
   #####################################################################
@@ -65,6 +71,31 @@ import_hawc_source <- function(db,
   #runInsertTable(s,"hawc_dose_dictionary",db,do.halt=T,verbose=F)
   #print(str(s))
 
+  # Imported dose dictionary logic from import_hawc_pfas_source to address dose_group_id
+  res_dose3 <- openxlsx::read.xlsx(infile2) %>%
+    dplyr::select(dose_regime, dose_group_id, dose, name) %>%
+    dplyr::distinct()
+  res_dose3[] = lapply(res_dose3, as.character)
+  dose_dict <- res_dose3 %>%
+    dplyr::arrange(dose_regime, dose_group_id, name, dose)
+  dose_dict_orig = dose_dict
+  # Get counts of dose entries per dose_regime - units pairs
+  dose_dict = dose_dict %>%
+    dplyr::select(dose_regime, name, dose) %>%
+    dplyr::distinct() %>%
+    #group_by() %>%
+    dplyr::count(dose_regime, name) %>%
+    dplyr::mutate(name_n = paste0("(", n, ") ", name)) %>%
+    dplyr::select(-n) %>%
+    dplyr::left_join(dose_dict, by=c("dose_regime", "name")) %>%
+    # Combine doses by regime unit groups
+    tidyr::pivot_wider(id_cols = c("dose_regime", "name", "name_n"),
+                       names_from = "dose_group_id",
+                       values_from = "dose") %>%
+    tidyr::unite("dose", -dose_regime, -name, -name_n, sep=", ") %>%
+    dplyr::mutate(dose = gsub(", NA", "", dose))
+
+
   #####################################################################
   cat("map hawc original with dose dictionary \n")
   #####################################################################
@@ -74,9 +105,16 @@ import_hawc_source <- function(db,
   new_hawc_df$LOEL_units <-  s[match(paste(new_hawc_df$animal_group.dosing_regime.id,new_hawc_df$LOEL),paste(s$dose_regime,s$dose_group_id)),"name"]
   new_hawc_df$FEL_values <- s[match(paste(new_hawc_df$animal_group.dosing_regime.id,new_hawc_df$FEL),paste(s$dose_regime,s$dose_group_id)),"dose"]
   new_hawc_df$FEL_units <-  s[match(paste(new_hawc_df$animal_group.dosing_regime.id,new_hawc_df$FEL),paste(s$dose_regime,s$dose_group_id)),"name"]
-  s_new <- unique(s[,c("dose_regime","dose")])
-  doses<- stats::aggregate(dose ~ dose_regime, data = s_new, toString)
-  new_hawc_df$doses <-  doses[match(new_hawc_df$animal_group.dosing_regime.id,doses$dose_regime),"dose"]
+  #s_new <- unique(s[,c("dose_regime","dose_group_id","dose")])
+  #doses<- stats::aggregate(dose ~ dose_regime + dose_group_id, data = s_new, toString)
+  # Changed doses field to use dose_dict that results from hawc_pfas script logic
+
+  new_hawc_df$doses <-  dose_dict[match(new_hawc_df$animal_group.dosing_regime.id,dose_dict$dose_regime),"dose"]
+  # fix nested df in doses column issue
+  corrected_column <- new_hawc_df$doses
+  new_hawc_df$doses <- corrected_column$dose
+
+
   fac_cols <- sapply(new_hawc_df, is.factor)                          # Identify all factor columns
   new_hawc_df[fac_cols] <- lapply(new_hawc_df[fac_cols], as.character)  # Convert all factors to characters
   new_hawc_df$endpoint_url <-  paste("https://hawcproject.org",new_hawc_df$url, sep = "")
@@ -165,8 +203,24 @@ import_hawc_source <- function(db,
   res = res2
   cat(nrow(res),"\n")
 
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="HAWC",table="source_hawc",res=res,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt)
 }
+

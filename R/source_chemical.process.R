@@ -41,7 +41,7 @@ source_chemical.process <- function(db,
   #####################################################################
   # res$chemical_index = paste(res[,casrn.col],res[,name.col])
   res = res %>%
-    tidyr::unite(col="chemical_index", casrn.col, name.col, sep=" ", remove=FALSE)
+    tidyr::unite(col="chemical_index", all_of(c(casrn.col, name.col)), sep=" ", remove=FALSE)
   # result = chem.check(res,name.col=name.col,casrn.col=casrn.col,verbose=verbose,source)
   result = chem.check.v2(res0=res, source=source, verbose=verbose)
   if(chem.check.halt) if(!result$name.OK || !result$casrn.OK || !result$checksum.OK) browser()
