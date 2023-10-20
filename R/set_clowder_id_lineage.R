@@ -647,7 +647,8 @@ set_clowder_id_lineage <- function(source_table,
                   "source_epa_ow_opp_alb" = {
                     # associates each origin document to specific record
                     origin_docs <- map_file %>%
-                      dplyr::filter(is.na(parent_flag))
+                      dplyr::filter(is.na(parent_flag)) %>%
+                      fix.non_ascii.v2(source=source_table)
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
                       dplyr::select(name, source_hash, source_version_date) %>%
@@ -855,6 +856,7 @@ set_clowder_id_lineage <- function(source_table,
                        clowder_url=clowder_url,
                        clowder_api_key=clowder_api_key,
                        source.db=db,
+                       ds_id = "5e31dc1e99323f93a9f5cec0",
                        clowder_id_list=res %>%
                          dplyr::select(clowder_id) %>%
                          dplyr::distinct())
