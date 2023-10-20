@@ -753,7 +753,7 @@ set_clowder_id_lineage <- function(source_table,
                       res1$clowder_id[grep(u_name, res1$name)] = origin_replace
                       res1$fk_doc_id[grep(u_name, res1$name)] = unique(origin_docs$fk_doc_id[origin_docs$clowder_id %in% origin_replace])
                     }
-                    
+
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
                       dplyr::filter(!is.na(parent_flag))
@@ -774,10 +774,10 @@ set_clowder_id_lineage <- function(source_table,
                   "source_epa_aegl" = {
                     res <- res %>%
                       dplyr::select(name, casrn, source_hash, source_version_date) %>%
-                      left_join(map_file %>%
+                      dplyr::left_join(map_file %>%
                                   #filter(!is.na(clowder_id)) %>%
-                                  select("casrn" = casn, clowder_id, fk_doc_id) %>%
-                                  distinct(),
+                                    dplyr::select("casrn" = casn, clowder_id, fk_doc_id) %>%
+                                    dplyr::distinct(),
                                 by = "casrn")
 
                     # Match to extraction doc
