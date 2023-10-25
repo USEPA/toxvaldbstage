@@ -119,9 +119,9 @@ toxval_source_status_report <- function(db){
     doc_cat_stats = data.frame()
   } else {
     # Generate stats once the document lineage schema is established
-    # Filter out the placeholder document for "clowder_id = '-'"
-    doc_cat_stats <- runQuery(paste0("SELECT distinct source_hash, source_table FROM documents_records WHERE ",
-                                     "fk_doc_id != 1127"), db)
+    doc_cat_stats <- runQuery(paste0("SELECT distinct a.source_hash, a.source_table, b.document_type ",
+                                     "FROM documents_records a ",
+                                     "LEFT JOIN documents b on a.fk_doc_id = b.id"), db)
 
     # Filter to only source_hash values in the source tables (can be orphan linkages due to archived tables not
     # updated in the document_records table...)
@@ -140,14 +140,15 @@ toxval_source_status_report <- function(db){
 
     # Summarize
     doc_cat_stats = doc_cat_stats %>%
-      dplyr::group_by(source_table) %>%
+      dplyr::group_by(source_table, document_type) %>%
       dplyr::summarise(recs_w_docs = n()) %>%
       dplyr::ungroup() %>%
       left_join(x=chem_index, y=., by="source_table") %>%
       left_join(gen_stats %>% select(source_table, n_records) %>% distinct(),
                 by="source_table") %>%
       get_percent_summary(col="perc_w_docs", num="recs_w_docs", den="n_records") %>%
-      dplyr::mutate(across(c(-chemprefix, -source, -source_table), ~tidyr::replace_na(., 0)))
+      dplyr::mutate(across(c(-chemprefix, -source, -source_table, -source_status, -document_type), ~tidyr::replace_na(., 0))) %>%
+      dplyr::arrange(source, document_type)
   }
 
   ################################################################################
