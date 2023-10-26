@@ -4,6 +4,7 @@
 #' @param db the name of the database
 #' @param clowder_url URL to Clowder
 #' @param clowder_api_key API key to access Clowder resources
+#' @param dsID Clowder Dataset ID
 #' @import httr jsonlite
 #' @param batch_size PARAM_DESCRIPTION, Default: 250
 #' @return OUTPUT_DESCRIPTION
@@ -33,10 +34,11 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
                                               db,
                                               clowder_url,
                                               clowder_api_key,
-                                              batch_size = 250){
+                                              batch_size = 100,
+                                              dsID = "5e31dc1e99323f93a9f5cec0"){
 
   # PUll Clowder ID values
-  if(!is.null(source_table) || !is.na(source_table)){
+  if(!is.null(source_table) && !is.na(source_table)){
     # Filter to Clowder ID values associated with a source_table
     clowder_id_list <- runQuery(paste0("SELECT distinct clowder_id FROM documents where id in (",
                                        "SELECT fk_doc_id FROM documents_records WHERE source_table = '", source_table, "' ",
@@ -50,6 +52,9 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     names() %>%
     .[!. %in% c("id")]
 
+  ds_file_list <- clowder_get_dataset_files(dsID, clowder_url, clowder_api_key) %>%
+    dplyr::rename(document_name=filename)
+
   # Prepare for batched updates
   # Batch update
   # https://www.mssqltips.com/sqlservertip/5829/update-statement-performance-in-sql-server/
@@ -60,97 +65,35 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
 
   while(startPosition <= endPosition){
 
-    message("Pulling metadata...")
+    # Filter/get file names with dataset API
+    file_info = ds_file_list %>%
+      dplyr::filter(clowder_id %in% clowder_id_list[startPosition:incrementPosition])
+
+    message("Pulling metadata...", startPosition, " to ", incrementPosition)
     # Loop through each Clowder ID value
-    metadata_out <- lapply(startPosition:incrementPosition, function(i){
+    metadata_out <- clowder_get_file_metadata(fileID = clowder_id_list[startPosition:incrementPosition], clowder_url, clowder_api_key)
 
-      # message("Working on file: ", clowder_id_list[i])
-      if(i %% floor(batch_size * 0.25) ==0) cat("...", i," out of ",length(startPosition:incrementPosition),"\n")
-      # Wait between requests
-      Sys.sleep(0.25)
-      # Pull filename
-      filename <- httr::GET(paste0(clowder_url,
-                                   "/api/files/",
-                                   clowder_id_list[i],
-                                   "/metadata"),
-                            httr::add_headers(`X-API-Key`= clowder_api_key)) %>%
-        httr::content(type="text", encoding = "UTF-8") %>%
-        jsonlite::fromJSON()
-      # Wait between requests
-      Sys.sleep(0.25)
-      # Pull metadata from API
-      metadata <- httr::GET(paste0(clowder_url,
-                                   "/api/files/",
-                                   clowder_id_list[i],
-                                   "/metadata.jsonld"),
-                            httr::add_headers(`X-API-Key`= clowder_api_key)) %>%
-        httr::content(type="text", encoding = "UTF-8") %>%
-        jsonlite::fromJSON() %>%
-        tidyr::unnest(agent, names_sep = "agent_") %>%
-        # Filter to only user added metadata
-        dplyr::filter(`agentagent_@type` == "cat:user")
+    metadata = metadata_out %>%
+      dplyr::left_join(file_info, by="clowder_id")
+    # Normalize names
+    names(metadata) = tolower(names(metadata))
+    # Get fields not to convert to JSON in documents clowder_metadata
+    non_json_fields <- names(metadata) %>%
+      tolower() %>%
+      .[. %in% doc_tbl_names]
 
-      # Check if no metadata available, fill in NA fields
-      if(!length(metadata) || !nrow(metadata)) {
-        metadata <- data.frame(clowder_id = clowder_id_list[i],
-                   document_name = filename$filename)
-        metadata[, doc_tbl_names[!doc_tbl_names %in% names(metadata)]] <- NA
-        return(metadata)
+    # TODO Continue editing to new metadata pull approach
+    # Combine with file_info to get document_name field
+    # Transform records into JSON
+    metadata = metadata %>%
+      dplyr::mutate(clowder_metadata = convert.fields.to.json(dplyr::select(., -tidyr::any_of(non_json_fields)))) %>%
+      # Select only non_json columns and JSON record
+      dplyr::select(tidyr::any_of(non_json_fields), clowder_metadata) %T>% {
+        names(.) <- tolower(names(.))
       }
 
-      metadata <- metadata %>%
-        # Convert string to datetime
-        # as.POSIXct("Wed Nov 23 18:22:04 2023",
-        #            format="%a %B %d %H:%M:%S %Y", tz="GMT")
-        dplyr::mutate(created_at = gsub(" GMT ", "", created_at) %>%
-                        as.POSIXct(format="%a %B %d %H:%M:%S %Y", tz="GMT")) %>%
-        # Filter to most recent metadata submission
-        dplyr::filter(created_at == max(created_at)) %>%
-        dplyr::select(tidyr::starts_with("content")) %>%
-        dplyr::mutate(clowder_id = clowder_id_list[i],
-                      document_name = filename$filename) %>%
-        tidyr::unnest(cols="content")
-
-      # https://stackoverflow.com/questions/28548245/how-to-remove-columns-from-a-data-frame-by-data-type
-      # Remove dataframe/list columns
-      df_check <- sapply(metadata, class) == "data.frame"
-      if(any(df_check)){
-        metadata <- metadata[,-which(df_check)]
-      }
-
-      # Remove NA columns
-      metadata <- metadata[ , colSums(is.na(metadata))==0]
-
-      # Skip over documents without metadata of interest
-      if(length(names(metadata)) == 1) return(NULL)
-
-      # Replace empty strings with NA
-      metadata[metadata == ''] <- NA
-      metadata[metadata == '-'] <- NA
-
-      # Get fields not to convert to JSON in documents clowder_metadata
-      non_json_fields <- names(metadata) %>%
-        tolower() %>%
-        .[. %in% doc_tbl_names]
-      # Pick them out of the metadata field names
-      non_json_fields <- names(metadata)[grepl(paste0(non_json_fields, collapse="|"),
-                                               names(metadata), ignore.case = TRUE)]
-
-      # Transform records into JSON
-      metadata = metadata %>%
-        dplyr::mutate(clowder_metadata = convert.fields.to.json(dplyr::select(., -tidyr::any_of(non_json_fields)))) %>%
-        # Select only non_json columns and JSON record
-        dplyr::select(tidyr::any_of(non_json_fields), clowder_metadata) %T>% {
-          names(.) <- tolower(names(.))
-        }
-
-      # Add missing fields to help combine dataframe
-      metadata[, doc_tbl_names[!doc_tbl_names %in% names(metadata)]] <- NA
-      return(metadata)
-    }) %>%
-      # Remove NULL pulls (no metadata)
-      purrr::compact() %>%
-      dplyr::bind_rows()
+    # Add missing fields to help combine dataframe
+    metadata[, doc_tbl_names[!doc_tbl_names %in% names(metadata)]] <- NA
 
     # Replace "-" with NA
     metadata_out[metadata_out == '-'] <- NA
@@ -212,4 +155,65 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     startPosition <- startPosition + batch_size
     incrementPosition <- startPosition + batch_size - 1
   }
+}
+
+clowder_get_file_metadata <- function(fileID, baseurl, apiKey){
+  # Rest between requests
+  Sys.sleep(0.25)
+
+  # Format URL for request
+  url = paste0(baseurl, "/api/files/metadata.jsonld?id=",
+               # Combine multiple file ID values if provided
+               paste0(fileID, collapse="&id="),
+               "&?limit=0")
+  # Pull metadata for input files
+  metadata = httr::GET(
+    url=url,
+    httr::accept_json(),
+    httr::content_type_json(),
+    # Use API Key for authorization
+    httr::add_headers(`X-API-Key` = apiKey),
+    encode = "json"
+  ) %>%
+    httr::content()
+
+  # Format data to return (combine across multiple metadata submissions)
+  lapply(metadata, function(f){
+    lapply(f, function(ff){
+      ff %>%
+        purrr::pluck("content") %>%
+        purrr::compact() %>%
+        data.frame() %>%
+        tidyr::unnest(cols=c()) %>%
+        dplyr::mutate(dplyr::across(dplyr::everything(), ~as.character(.)))
+    }) %>%
+      dplyr::bind_cols()
+  }) %>%
+    dplyr::bind_rows() %>%
+    dplyr::mutate(clowder_id = fileID) %>%
+    return()
+}
+
+clowder_get_dataset_files <- function(dsID, baseurl, apiKey){
+  # Rest between requests
+  Sys.sleep(0.25)
+  # Pull all Clowder Files from input dataset
+  c_files_list = httr::GET(
+    paste0(baseurl, "/api/datasets/", dsID,"/listAllFiles?limit=0"),
+    httr::accept_json(),
+    httr::content_type_json(),
+    # Use API Key for authorization
+    httr::add_headers(`X-API-Key` = apiKey),
+    encode = "json"
+  ) %>%
+    httr::content()
+  # Format data
+  c_files_list = lapply(c_files_list, function(f){
+    f %>%
+      data.frame() %>%
+      tidyr::unnest(cols=c())
+  }) %>%
+    dplyr::bind_rows() %>%
+    dplyr::select(clowder_id = id, `folders.name`, filename) %>%
+    return()
 }
