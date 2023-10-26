@@ -8,6 +8,7 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @param chem.check.halt If TRUE, stop the execution if there are errors in the #' chemical mapping
 #' @param verbose If TRUE, write out diagnostic messages #'
+#' @param hashing_cols Optional list of columns to use for generating source_hash
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
@@ -24,7 +25,8 @@
 #--------------------------------------------------------------------------------------
 source_prep_and_load <- function(db,source,table,res,
                                  do.reset=FALSE, do.insert=FALSE,
-                                 chem.check.halt=FALSE, verbose=FALSE){
+                                 chem.check.halt=FALSE, verbose=FALSE,
+                                 hashing_cols = NULL){
   printCurrentFunction(paste(db,"\n",source,":",table))
 
   chem.check.halt = FALSE
@@ -112,5 +114,5 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
   toxval_source.hash.and.load(db=db, source=source,table=table,
                               do.reset=do.reset, do.insert=do.insert,
-                              res=res)
+                              res=res, hashing_cols = hashing_cols)
 }

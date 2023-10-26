@@ -7,20 +7,21 @@
 #' @param do.reset If TRUE, delete data from the database for this source before #' inserting new data. Default FALSE
 #' @param do.insert If TRUE, insert data into the database, default False
 #' @param res The data frame to be processed
+#' @param hashing_cols Optional list of columns to use for generating source_hash
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[digest]{digest}}
 #'  \code{\link[dplyr]{distinct}}
 #' @rdname toxval_source.hash.and.load
-#' @export 
+#' @export
 #' @importFrom digest digest
 #' @importFrom dplyr distinct
 #--------------------------------------------------------------------------------------
@@ -29,7 +30,8 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
                                         table,
                                         do.reset=FALSE,
                                         do.insert=FALSE,
-                                        res) {
+                                        res,
+                                        hashing_cols=NULL) {
   # Testing purposes hardcoding insert False
   # do.insert = FALSE
   printCurrentFunction(paste(db,source,table))
@@ -46,34 +48,38 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   #####################################################################
   cat("Build the hash key \n")
   #####################################################################
-  nold = runQuery(paste0("select count(*) from ",table),db)
-  if(nold>0) {
-    sample0 = runQuery(paste0("select * from ",table, " limit 1"),db)
-    nlist = names(sample0)
-    nlist = nlist[!generics::is.element(nlist,non_hash_cols)]
-    sh0 = sample0[1,"source_hash"]
-    sample = sample0[,sort(nlist)]
-    sh1 = digest::digest(paste0(sample,collapse=""), serialize = FALSE)
-    cat("test that the columns are right for the hash key: ",sh0,sh1,"\n")
-    #if(sh0!=sh1) browser()
-  } else {
-    nlist = runQuery(paste0("desc ",table),db)[,1]
-    nlist = nlist[!generics::is.element(nlist,non_hash_cols)]
-  }
+  if(is.null(hashing_cols)){
+    nold = runQuery(paste0("select count(*) from ",table),db)
+    if(nold>0) {
+      sample0 = runQuery(paste0("select * from ",table, " limit 1"),db)
+      nlist = names(sample0)
+      nlist = nlist[!generics::is.element(nlist,non_hash_cols)]
+      sh0 = sample0[1,"source_hash"]
+      sample = sample0[,sort(nlist)]
+      sh1 = digest::digest(paste0(sample,collapse=""), serialize = FALSE)
+      cat("test that the columns are right for the hash key: ",sh0,sh1,"\n")
+      #if(sh0!=sh1) browser()
+    } else {
+      nlist = runQuery(paste0("desc ",table),db)[,1]
+      nlist = nlist[!generics::is.element(nlist,non_hash_cols)]
+    }
 
-  #####################################################################
-  cat("check the columns\n")
-  #####################################################################
-  nlist0 = names(res)
-  nlist0 = nlist0[!generics::is.element(nlist0,non_hash_cols)]
-  nlist01 = nlist0[!generics::is.element(nlist0,nlist)]
-  nlist10 = nlist[!generics::is.element(nlist,nlist0)]
-  if(length(nlist01)>0) {
-    cat("res has columns not in db\n")
-    print(nlist01)
-    cat("db has columns not in res\n")
-    print(nlist10)
-    browser()
+    #####################################################################
+    cat("check the columns\n")
+    #####################################################################
+    nlist0 = names(res)
+    nlist0 = nlist0[!generics::is.element(nlist0,non_hash_cols)]
+    nlist01 = nlist0[!generics::is.element(nlist0,nlist)]
+    nlist10 = nlist[!generics::is.element(nlist,nlist0)]
+    if(length(nlist01)>0) {
+      cat("res has columns not in db\n")
+      print(nlist01)
+      cat("db has columns not in res\n")
+      print(nlist10)
+      browser()
+    }
+  } else {
+    nlist = hashing_cols
   }
 
   res$source_hash = "-"
@@ -91,25 +97,37 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
   } else cat("no columns need to be added\n")
   res.temp = res[,sort(nlist)]
 
-  # tmp = data.frame()
-  for (i in 1:nrow(res)){
-    row <- res.temp[i,]
-    res[i,"source_hash"] <- digest::digest(paste0(row,collapse=""), serialize = FALSE)
-    if(i%%1000==0) cat(i," out of ",nrow(res),"\n")
-    # tmp = rbind(tmp, data.frame(source_hash = res[i,"source_hash"],
-    #                             hashcol = paste0(row,collapse="")))
+  if(is.null(hashing_cols)){
+    # Old hashing system
+    for (i in 1:nrow(res)){
+      row <- res.temp[i,]
+      res[i,"source_hash"] <- digest::digest(paste0(row,collapse=""), serialize = FALSE)
+      if(i%%1000==0) cat(i," out of ",nrow(res),"\n")
+    }
+  } else {
+    # New hashing system (2023/10/26)
+    # Vectorized hash instead of for-loop
+    # Different from previous in that Date columns aren't converted to numerics
+    cat("Using vectorized hashing! \n")
+    res.temp = res %>%
+      tidyr::unite(hash_col, all_of(sort(names(.)[names(.) %in% hashing_cols])), sep="") %>%
+      dplyr::rowwise() %>%
+      dplyr::mutate(source_hash = paste0("ToxVal_", digest(hash_col, serialize = FALSE))) %>%
+      dplyr::ungroup()
+    res$source_hash = res.temp$source_hash
+
+    # Check for immediate duplicate hashes
+    dup_hashes = res %>%
+      dplyr::group_by(source_hash) %>%
+      dplyr::summarise(n = dplyr::n()) %>%
+      dplyr::filter(n > 1)
+
+    # Stop if duplicate source_hash values present
+    if(nrow(dup_hashes)){
+      stop("Duplicate source_hash values present in res...")
+    }
   }
-  # Vectorized hash instead of for-loop
-  # Different from previous in that Date columns aren't converted to numerics
-  # cat("Using vectorized hashing! \n")
-  # res.temp = res %>%
-  #   tidyr::unite(hash_col, all_of(sort(names(.)[!names(.) %in% non_hash_cols])), sep="") %>%
-  #   dplyr::rowwise() %>%
-  #   dplyr::mutate(#hashcol = paste0(all_of(sort(names(.)[!names(.) %in% non_hash_cols])),
-  #                 #                 collapse=""),
-  #                 source_hash = digest(hash_col, serialize = FALSE)) %>%
-  #   dplyr::ungroup()
-  # res$source_hash = res.temp$source_hash
+
   #####################################################################
   cat("See what is new \n")
   #####################################################################
