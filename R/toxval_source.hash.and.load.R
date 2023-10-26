@@ -79,7 +79,8 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
       browser()
     }
   } else {
-    nlist = hashing_cols
+    nlist = runQuery(paste0("desc ",table),db)[,1]
+    nlist = hashing_cols[hashing_cols %in% nlist]
   }
 
   res$source_hash = "-"
@@ -121,9 +122,11 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
       dplyr::group_by(source_hash) %>%
       dplyr::summarise(n = dplyr::n()) %>%
       dplyr::filter(n > 1)
-
+    # res %>% filter(source_hash == "ToxVal_1612dd1200de3751846c110f5c2cf026") %>% select(all_of(hashing_cols)) %>% View()
     # Stop if duplicate source_hash values present
     if(nrow(dup_hashes)){
+      cat("Duplicate source_hash values present in res...\n")
+      browser()
       stop("Duplicate source_hash values present in res...")
     }
   }

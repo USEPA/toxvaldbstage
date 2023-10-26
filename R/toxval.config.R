@@ -45,7 +45,7 @@ toxval.config <- function() {
   actorws.prod <- "https://actorws.epa.gov/actorws/toxval/v01/toxval_source"
   actorws.dev <- "http://ag.epa.gov:8528/actorws/toxval/v01/toxval_source"
 
-  hashing_cols = c('toxval_type', 'toxval_subtype', 'toxval_numeric', 'toxval_units',
+  hashing_cols = c('name', 'casrn', 'toxval_type', 'toxval_subtype', 'toxval_numeric', 'toxval_units',
                    'toxval_numeric_qualifier', 'study_type', 'study_duration_class',
                    'study_duration_qualifier', 'study_duration_value', 'study_duration_units',
                    'species', 'strain', 'sex', 'critical_effect', 'population',
@@ -61,6 +61,7 @@ toxval.config <- function() {
               datapath=datapath,
               actorws.prod=actorws.prod,
               actorws.dev=actorws.dev,
-              non_hash_cols=non_hash_cols)
+              non_hash_cols=non_hash_cols,
+              hashing_cols=hashing_cols)
   retval
 }
