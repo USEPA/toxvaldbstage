@@ -72,7 +72,8 @@ toxval_source_status_report <- function(db){
     get_percent_summary("perc_dtxsid", "dtxsid", "total_chems") %>%
     get_percent_summary("perc_dtxrid", "dtxrid", "total_chems") %>%
     left_join(x=chem_index, y=., by="source") %>%
-    dplyr::mutate(across(c(-chemprefix, -source, -source_table), ~tidyr::replace_na(., 0)))
+    dplyr::mutate(across(c("total_chems", "dtxrid", "dtxsid", "perc_dtxsid", "perc_dtxrid"),
+                         ~tidyr::replace_na(., 0)))
 
   ################################################################################
   ### Get QC Stats
@@ -98,7 +99,7 @@ toxval_source_status_report <- function(db){
     get_percent_summary("perc_pass", "pass", "total_qc") %>%
     get_percent_summary("perc_fail", "fail", "total_qc") %>%
     left_join(x=chem_index, y=., by="source_table") %>%
-    dplyr::mutate(across(c(-chemprefix, -source, -source_table), ~tidyr::replace_na(., 0)))
+    dplyr::mutate(across(c(-chemprefix, -source, -source_table, -source_status), ~tidyr::replace_na(., 0)))
 
   ################################################################################
   ### Get Document Cataloging/Lineage Stats
