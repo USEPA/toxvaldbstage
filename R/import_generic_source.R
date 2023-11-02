@@ -41,6 +41,8 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   # described in the SOP - they will get added in source_prep_and_load
   #
 
+  res = source.specific.transformations(res0)
+
   # Standardize the names
   names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
@@ -48,7 +50,8 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  res = source.specific.transformations(res0)
+  # Fill blank hashing cols
+  res0[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res0)]] <- "-"
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
@@ -61,7 +64,8 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
                        res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
 
 
