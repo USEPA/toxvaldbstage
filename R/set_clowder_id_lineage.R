@@ -134,11 +134,13 @@ set_clowder_id_lineage <- function(source_table,
                       #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
                       "source_rsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/source_rsl_doc_map_2022-11-01.xlsx")),
-                      "source_hess" = {
+                      "source_hess_20210616" = {
                         paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx") %>%
                           readxl::read_xlsx() %>%
                           fix.non_ascii.v2(.,"map.icf")
                       },
+                      "source_hess" = data.frame(clowder_id = "652d6ad3e4b045b9ff7a35de",
+                                                     document_name = "hess_20230517_fixed.xlsx"),
                       # No source match, return empty
                       data.frame()
     )
@@ -285,14 +287,14 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
 
-                  "source_hess" = {
-                    res <- res %>%
-                      left_join(map_file %>%
-                                  select(clowder_id, document_name, fk_doc_id),
-                                by="document_name")
-                    # Return res
-                    res
-                  },
+                  #"source_hess" = {
+                  #  res <- res %>%
+                  #    left_join(map_file %>%
+                  #                select(clowder_id, document_name, fk_doc_id),
+                  #              by="document_name")
+                  #  # Return res
+                  #  res
+                  #},
 
                   "source_rsl" = {
                     res <- res %>%
