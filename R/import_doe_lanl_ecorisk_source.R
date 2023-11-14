@@ -1,9 +1,11 @@
 #--------------------------------------------------------------------------------------
-#' @description Load DOE LANL ECORISK Source into toxval_source
+#' @description Import doe_lanl_ecorisk source into ToxVal
+#'
 #' @param db The version of toxval_source into which the source is loaded.
-#' @param infile The input file ./doe_lanl_ecorisk/doe_lanl_ecorisk_files/ESLs_R3.3.xlsx
-#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#' @title FUNCTION_TITLE
+#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @param do.reset If TRUE, delete data from the database for this source before
+#' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title import_doe_lanl_ecorisk_source
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples
@@ -13,22 +15,30 @@
 #'  }
 #' }
 #' @seealso
-#'  \code{\link[openxlsx]{read.xlsx}}
-#' @rdname import_doe_lanl_ecorisk_source
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_trim}}
+#'  \code{\link[tidyr]{pivot_longer}}
+#' @rdname import_generic_source
 #' @export
-#' @importFrom openxlsx read.xlsx
-
-#--------------------------------------------------------------------------------------
-import_doe_lanl_ecorisk_source <- function(db,
-                               infile="ESLs_R3.3.xlsx",
-                               chem.check.halt=T)  {
+#' @importFrom readxl read_xlsx
+#' @importFrom stringr str_squish str_trim
+#' @importFrom tidyr pivot_longer
+#' ---------------------------------------------------
+import_doe_lanl_ecorisk_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  infile = paste0(toxval.config()$datapath,"doe_lanl_ecorisk/doe_lanl_ecorisk_files/",infile)
+  source = "doe_lanl_ecorisk"
+  source_table = "source_{source}"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2022-09-01")
+  dir = paste0(toxval.config()$datapath,"{source}/{source}_files/")
+  
+  file = paste0(dir,"ESLs_R4.3.xlsx")
+  
+  res = readxl::read_xlsx(file)
   #####################################################################
-  cat("Build original_doe_lanl_ecorisk_table \n")
-  #####################################################################
-  res <- openxlsx::read.xlsx( infile ,1,colNames = T)
-
+  cat("Build original_doe_lanl_ecorisk_table\n")
+  
+  # Handle bad codes
   bad.codes = c("AL","SB","AS","BA","BE",
                 "B","CD","CL(-1)","CR","CR(+6)","CO","CU",
                 "CN(-1)","F(-1)","FE","PB","LI","MN","HGI",
@@ -38,22 +48,77 @@ import_doe_lanl_ecorisk_source <- function(db,
                 "PB-210","NP-237","PU-238","PU-239/240","PU-241","RA-226","RA-228",
                 "NA-22","SR-90/ Y-90","TH-228","TH-229","TH-230","TH-232","H-3",
                 "U-233","U-234","U-235","U-236","U-238")
-  res = res[!generics::is.element(res$Analyte.Code,bad.codes),]
-
-  nlist = c("Analyte.Category","Analyte.Group","Analyte.Name","Analyte.Code","ESL.Medium","ESL.Receptor","No.Effect.ESL",
-            "Low.Effect.ESL","Units","Minimum.ESL","ESL.ID" )
-  nlist = c("category","group","name","casrn","medium","species","noesl","loesl","toxval_units","minimum_esl","esl_id" )
+  res = res[!generics::is.element(res$`Analyte Code`, bad.codes),]
+  
+  # Rename columns (column names are mixed up)
+  nlist = c("Analyte Category","Analyte Group","Analyte Name","Analyte Code","ESL Medium","ESL Receptor","No Effect ESL",
+            "Low Effect ESL","Units","Minimum ESL","ESL ID" )
   names(res) = nlist
-  res1 = res[,c("category","group","name","casrn","medium","species","noesl","toxval_units","esl_id" )]
-  res2 = res[,c("category","group","name","casrn","medium","species","loesl","toxval_units","esl_id" )]
-  res1$toxval_type = "No Effect ESL"
-  res2$toxval_type = "Low Effect ESL"
-  nlist = c("category","group","name","casrn","medium","species","toxval_numeric","toxval_units","esl_id","toxval_type")
-  names(res1) = nlist
-  names(res2) = nlist
-  resall = rbind(res1,res2)
+  
+  # Add new columns as needed but retain original columns
+  res$`name` <- res$`Analyte Name`
+  res$`casrn` <- res$`Analyte Code`
+  res$`toxval_units` <- res$`Units`
+  res$`species` <- res$`ESL Receptor`
+  
+  # Pivot to add toxval_type and toxval_numeric
+  res <- res %>%
+    pivot_longer(cols = c('No Effect ESL',
+                          'Low Effect ESL'),
+                 names_to = 'toxval_type',
+                 values_to = 'toxval_numeric'
+    )
+  
+  # Add empty columns
+  res$`toxval_subtype` <- NA
+  res$`toxval_numeric_qualifier` <- NA
+  res$`study_type` <- NA
+  res$`study_duration_value` <- NA
+  res$`study_duration_units` <- NA
+  res$`strain` <- NA
+  res$`sex` <- NA
+  res$`critical_effect` <- NA
+  res$`population` <- NA
+  res$`exposure_route` <- NA
+  res$`exposure_method` <- NA
+  res$`exposure_form` <- NA
+  res$`lifestage` <- NA
+  res$`generation` <- NA
+  res$`year` <- NA
+  
+  # Code pulled into import from load file (toxval.load.doe.lanl.ecorisk.R, 51-62)
+  res$species <-  gsub("(.*)(\\([^\\(].*)", "\\1", res$species)
+  res$species = str_trim(res$species)
+  # End load file code
+  #####################################################################
+  #
+  # the final file should have column names that include "name" and "casrn"
+  # additionally, the names in res need to match names in the source
+  # database table. You do not need to add any of the generic columns
+  # described in the SOP - they will get added in source_prep_and_load
+  #
+
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="DOE LANL ECORISK",table="source_doe_lanl_ecorisk",res=resall,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt)
 }
+
+
+
+
