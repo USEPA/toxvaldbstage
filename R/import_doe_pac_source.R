@@ -1,9 +1,8 @@
-#--------------------------------------------------------------------------------------
 #' @description Load DOE Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
-#' @param infile The input file ./doe/doe_files/Revision_29.xlsx
+#' @param infile The input file ./doe/doe_files/source_doe_pac_oct_2023.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#' @title FUNCTION_TITLE
+#' @title import_doe_pac_source
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples
@@ -13,171 +12,275 @@
 #'  }
 #' }
 #' @seealso
-#'  \code{\link[openxlsx]{read.xlsx}}
-#'  \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{filter-joins}}
-#'  \code{\link[tidyr]{reexports}}
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_extract}}
 #' @rdname import_doe_pac_source
 #' @export
-#' @importFrom openxlsx read.xlsx
-#' @importFrom dplyr distinct semi_join anti_join
-#' @importFrom tidyr contains
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr mutate filter select across rename rowwise distinct
+#' @importFrom tidyr pivot_longer all_of separate replace_na
+#' @importFrom stringr str_squish str_replace_all str_extract
 #--------------------------------------------------------------------------------------
 import_doe_pac_source <- function(db,
-                              infile="Revision_29.xlsx",
-                              chem.check.halt=F) {
+                                  infile="source_doe_pac_oct_2023.xlsx",
+                                  chem.check.halt=FALSE,
+                                  do.reset=FALSE,
+                                  do.insert=FALSE) {
   printCurrentFunction(db)
-  infile = paste0(toxval.config()$datapath,"doe_pac/doe_pac_files/",infile)
-  #####################################################################
-  cat("Build new_doe_table by combining data from all four sheets from input file \n")
-  #####################################################################
-  res1 <- openxlsx::read.xlsx(infile,1, rows = 4:3149, colNames = F )
-  res1$original_molecular_weight_MW <- res1$X4
-  res1$X4 <- gsub("\\-.*", "", res1$X4)
-  res1$X4 <- gsub("(~)", "", res1$X4)
-  res1$X4 <- gsub("\\s+$", "", res1$X4)
+  source = "doe_pac"
+  source_table = "source_{source}"
 
-  non_numeric_mw <- grep("(kDa)", res1$X4, value = T)
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2023-10-01")
+
+  dir = paste0(toxval.config()$datapath,"{source}/{source}_files/")
+  
+  file = paste0(dir, infile)
+  
+  # NOTE: Information on REC TEELS sheet is redundant (included on Input sheet)
+  # RELEVANT SOURCE TEXT: "Table 2 PACs by Chemical Name is a list of the same
+  # PAC values as presented in Table 1, but only shows the PACs and Source for
+  # the PACs values. They are presented in either ppm or mg/m³."
+  res0 <- readxl::read_xlsx(file, sheet=1, range="A4:V3149", col_names=FALSE)
+
+  #####################################################################
+  cat("Build new_doe_table\n")
+
+  # Extract header  
+  header <- readxl::read_xlsx(file, sheet=1, range="A1:V2", col_names=FALSE)
+  header <- unlist(header)
+  header <- unname(header[!is.na(header)])
+  
+  # Add original column names
+  names(res0)[1:10] = header[1:10]
+  
+  # Vapor pressure
+  names(res0)[11] = paste0(header[11], ",", header[12])
+  names(res0)[12] = paste0(header[11], ",", header[13])
+  
+  names(res0)[13:14] = header[14:15]
+  
+  # PAC values
+  names(res0)[15] = paste0(header[16], ",", header[17])
+  names(res0)[16] = paste0(header[16], ",", header[18])
+  names(res0)[17] = paste0(header[16], ",", header[19])
+  
+  names(res0)[18:19] = header[20:21]
+  
+  # PAC dates
+  names(res0)[20] = paste0(header[22], ",", header[23])
+  names(res0)[21] = paste0(header[22], ",", header[24])
+  names(res0)[22] = paste0(header[22], ",", header[25])
+  
+  # Remove excess formatting
+  names(res0) <- gsub("\\\r","",names(res0))
+  names(res0)[8] <- gsub("\n"," ",names(res0)[8])
+  names(res0) <- gsub("\n","",names(res0))
+  names(res0) <- gsub("  "," ",names(res0))
+  names(res0) <- gsub("  "," ",names(res0))
+  
+  # Remove artifacts from weight column
+  # If weight is shown in a range, then record only the lower weight
+  res0$`Molecular Weight (MW)` <- gsub("\\-.*", "", res0$`Molecular Weight (MW)`)
+  res0$`Molecular Weight (MW)` <- gsub("(~)", "", res0$`Molecular Weight (MW)`)
+  res0$`Molecular Weight (MW)` <- gsub("\\s+$", "", res0$`Molecular Weight (MW)`)
+  
+  # Handle non-numeric values in Molecular Weight Column
+  non_numeric_mw <- grep("(kDa)", res0$`Molecular Weight (MW)`, value = T)
   non_numeric_val <- gsub("(kDa)", "", non_numeric_mw)
   non_numeric_val <- gsub("\\s+$", "", non_numeric_val)
   non_numeric_val <- as.numeric(non_numeric_val)
-  for (i in 1: length(non_numeric_val)){
-    non_numeric_val[i] <- non_numeric_val[i] * 1000
-  }
-
-  res1$X4[res1$X4 %in% non_numeric_mw] <- non_numeric_val
-  res1$X4 <- as.numeric(res1$X4)
-
-  header_res1 <- openxlsx::read.xlsx(infile,1, rows = 1:3, colNames = F )
-  header_res1 <- unlist(header_res1)
-  header_res1 <- unname(header_res1[!is.na(header_res1)])
-  header_res1[12] <-  paste0(header_res1[11], ",",header_res1[12])
-  header_res1[13] <-  paste0(header_res1[11], ",",header_res1[13])
-  header_res1 <-  header_res1[-11]
-  header_res1[16] <-  paste0(header_res1[15], ",",header_res1[16])
-  header_res1[17] <-  paste0(header_res1[15], ",",header_res1[17])
-  header_res1[18] <-  paste0(header_res1[15], ",",header_res1[18])
-  header_res1 <-  header_res1[-15]
-  header_res1[c(2,3)]<- c("Chemical Name", "CASRN")
-  names(res1)[1:17] <- header_res1
-  res1 <- res1[,c(names(res1[1:4]), names(res1[18]), names(res1[5:17]))]
-
-  res2 <- openxlsx::read.xlsx(infile,2, rows = 4:3149, colNames = F )
-  key_pac1 <- grep("[*]",res2$X4, value = T)
+  non_numeric_val <- 1000 * non_numeric_val
+  
+  res0$`Molecular Weight (MW)`[res0$`Molecular Weight (MW)` %in% non_numeric_mw] <- non_numeric_val
+  res0$`Molecular Weight (MW)` <- as.numeric(res0$`Molecular Weight (MW)`)
+  
+  # Handle PAC-1
+  key_pac1 <- grep("[*]", res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1`, value = T)
   pac1_val <- gsub("[*]", "", key_pac1)
   pac1_key <- gsub("[^*]", "", key_pac1)
-  res2$pac1_keys[res2$X4 %in% key_pac1] <- pac1_key
-  res2$X4[res2$X4 %in% key_pac1] <- pac1_val
-
-  key_pac2 <- grep("[*]",res2$X5, value = T)
+  res0$pac1_keys[res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1` %in% key_pac1] <- pac1_key
+  res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1`[res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1` %in% key_pac1] <- pac1_val
+  res0$pac1_keys <- NULL
+  
+  # Handle PAC-2
+  key_pac2 <- grep("[*]", res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2`, value = T)
   pac2_val <- gsub("[*]", "", key_pac2)
   pac2_key <- gsub("[^*]", "", key_pac2)
-  res2$pac2_keys[res2$X5 %in% key_pac2] <- pac2_key
-  res2$X5[res2$X5 %in% key_pac2] <- pac2_val
-
-  key_pac3 <- grep("[*]",res2$X6, value = T)
+  res0$pac2_keys[res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2` %in% key_pac2] <- pac2_key
+  res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2`[res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2` %in% key_pac2] <- pac2_val
+  res0$pac2_keys <- NULL
+  
+  # Handle PAC-3
+  key_pac3 <- grep("[*]", res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`, value = T)
   pac3_val <- gsub("[*]", "", key_pac3)
   pac3_key <- gsub("[^*]", "", key_pac3)
-  res2$pac3_keys[res2$X6 %in% key_pac3] <- pac3_key
-  res2$X6[res2$X6 %in% key_pac3] <- pac3_val
+  res0$pac3_keys[res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3` %in% key_pac3] <- pac3_key
+  res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`[res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3` %in% key_pac3] <- pac3_val
+  res0$pac3_keys <- NULL
 
-  header_res2 <- openxlsx::read.xlsx(infile,2, rows = 1:3, colNames = F )
-  header_res2 <- unlist(header_res2)
-  header_res2 <- unname(header_res2[!is.na(header_res2)])
-  header_res2[5] <-  paste0(header_res2[4], ",",header_res2[5])
-  header_res2[6] <-  paste0(header_res2[4], ",",header_res2[6])
-  header_res2[7] <-  paste0(header_res2[4], ",",header_res2[7])
-  header_res2 <-  header_res2[-4]
-  header_res2 <- gsub("[\n]","-", header_res2)
-  names(res2)[1:8] <- header_res2
-  names(res2) <- gsub("\\\r","",names(res2))
-  res2 <- res2[,c("No.","Chemical Name","CASRN","PACs based on AEGLs, ERPGs, or TEELs,PAC-1",
-                  "pac1_keys", "PACs based on AEGLs, ERPGs, or TEELs,PAC-2","pac2_keys",
-                  "PACs based on AEGLs, ERPGs, or TEELs,PAC-3","pac3_keys",
-                  "Source of PACs-PAC-1, PAC-2, PAC-3","Units")]
+  # Ensure that PAC columns are numeric
+  res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1` <- as.numeric(res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1`)
+  res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2` <- as.numeric(res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2`)
+  res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3` <- as.numeric(res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`)
+  
+  # Set significant figures to 3 for PAC columns
+  res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1` <- signif(res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1`, digits = 3)
+  res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2` <- signif(res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2`, digits = 3)
+  res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3` <- signif(res0$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`, digits = 3)
+  
+  # Fix BP column
+  names(res0)[10] = gsub(" @ 760 mm Hg unless indicated", "", names(res0)[10])
+  res0$`BP (°C)`[is.na(res0$`BP (°C)`)] <- 760
+  
+  # Fix SP column
+  names(res0)[13] = gsub(" @ 25°C unless indicated", "", names(res0)[13])
+  res0$`SG`[is.na(res0$`SG`)] <- 25
 
-  res3 <- openxlsx::read.xlsx(infile,3, rows = 4:3149, colNames = F )
-  header_res3 <- openxlsx::read.xlsx(infile,3, rows = 1:3, colNames = F )
-  header_res3 <- unlist(header_res3)
-  header_res3 <- unname(header_res3[!is.na(header_res3)])
-  header_res3[5] <-  paste0(header_res3[4], ",",header_res3[5])
-  header_res3[6] <-  paste0(header_res3[4], ",",header_res3[6])
-  header_res3[7] <-  paste0(header_res3[4], ",",header_res3[7])
-  header_res3 <-  header_res3[-4]
-  names(res3) <- header_res3
+  # Add new column names while maintaining original columns/names
+  # Add name column - copy of Chemical Compound column
+  res0$`name` = res0$`Chemical Compound`
+  
+  # Add casrn column - copy of CAS Number (CASRN) column
+  res0$`casrn` = res0$`CAS Number (CASRN)`
+  
+  # Add toxval_type and toxval_numeric columns
+  res0 <- res0 %>%
+    pivot_longer(cols = c('PACs based on AEGLs, ERPGs, or TEELs,PAC-1',
+                          'PACs based on AEGLs, ERPGs, or TEELs,PAC-2',
+                          'PACs based on AEGLs, ERPGs, or TEELs,PAC-3'),
+                 names_to = 'toxval_type',
+                 values_to = 'toxval_numeric'
+                 )
+  
+  # Add toxval_subtype column (empty)
+  res0$`toxval_subtype` <- NA
+  
+  # Add toxval_units column - copy of "Units" column
+  res0$`toxval_units` = res0$`Units`
+  
+  # Add toxval_numeric_qualifier column (empty)
+  res0$`toxval_numeric_qualifier` <- NA
+  
+  # Add study_type column - hardcode as "acute"
+  res0$`study_type` <- "acute"
+  
+  # Add study_duration_value column (empty)
+  res0$`study_duration_value` <- NA
+  
+  # Add study_duration_units column (empty)
+  res0$`study_duration_units` <- NA
+  
+  # Add species column
+  # Species list to attempt string matches
+  species_list <- list(dog=list("dog", "dogs"),
+                       human=list("human", "humans", "occupational", "epidemiology", "epidemiological", "epidemiologic"),
+                       mouse=list("mouse", "mice", "mouses"),
+                       `monkey`=list("nonhuman primate", "monkey", "primate", "monkies", "monkeys",
+                                     "rhesus monkeys (macaca mulatta)", "rhesus monkeys",
+                                     "cynomolgus monkeys (macaca fascicularis)"),
+                       rat=list("rat", "rats"),
+                       rabbit = list("rabbit", "rabbits"),
+                       `guinea pig` = list("guinea pig", "guinea pigs"),
+                       frog = list("frog", "frogs"),
+                       hen = list("hen")
+  ) %>% unlist() %>%
+    paste0(collapse="|")
+  
+  res0 <- res0 %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(species = `Source of PACsPAC-1, PAC-2, PAC-3` %>%
+                    tolower() %>%
+                    # Extract species from `Source of PACsPAC-1, PAC-2, PAC-3`
+                    stringr::str_extract_all(., species_list) %>%
+                    unlist() %>%
+                    unique() %>%
+                    paste0(collapse="; "))
+  # Fill in missing with "-"
+  res0$species[res0$species %in% c("", "NA")] <- "-"
+  # Set occupational or epidemilog* studies to human species
+  res0$species[grepl("occupation|epidemiolog", res0$species)] <- "human"
+  # res0 %>% select(`PRINCIPAL STUDY`, species_original) %>% distinct() %>% View()
+  
+  # Add strain column (empty)
+  res0$`strain` <- NA
+  
+  # Add sex column (empty)
+  res0$`sex` <- NA
+  
+  # Add critical_effect column (empty)
+  res0$`critical_effect` <- NA
+  
+  # Add population column (empty)
+  res0$`population` <- NA
+  
+  # Add exposure_route column - hardcode as "inhalation"
+  res0$`exposure_route` <- "inhalation"
+  
+  # Add exposure_method column (empty)
+  res0$`exposure_method` <- NA
+  
+  # Add exposure_form column (empty)
+  res0$`exposure_form` <- NA
+  
+  # Add media column (empty)
+  res0$`media` <- NA
+  
+  # Add lifestage column (empty)
+  res0$`lifestage` <- NA
+  
+  # Add generation column (empty)
+  res0$`generation` <- NA
+  
+  # Add year column - from "Last Revised" first
+  res0$`year` <- format(as.Date(res0$`PAC-TEEL Derivation/Review/Revision Dates,Last Revised`, format="%m/%d/%y"),"%y")
+  
+  # If no Last Revised, then use Last Reviewed
+  res0 <- within(res0, {
+    val <- is.na(year)
+    year[val] <- format(as.Date(`PAC-TEEL Derivation/Review/Revision Dates,Last Reviewed`[val], format="%m/%d/%y"),"%y")
+  })
+  
+  # If no Last Reviewed, then use Originally Derived
+  res0 <- within(res0, {
+    val <- is.na(year)
+    year[val] <- format(as.Date(`PAC-TEEL Derivation/Review/Revision Dates,Originally Derived`[val], format="%m/%d/%y"),"%y")
+  })
+  res0$`val` <- NULL
+  
+  #####################################################################
 
-  res4 <- openxlsx::read.xlsx(infile,4, rows = 4:3149, colNames = F )
-  header_res4 <- openxlsx::read.xlsx(infile,4, rows = 1:3, colNames = F )
-  header_res4 <- unlist(header_res4)
-  header_res4 <- unname(header_res4[!is.na(header_res4)])
-  res4_unit<- gsub(".*\\(|\\)$","", header_res4[4])
-  res4[,7] <- rep(res4_unit, nrow(res4))
-  header_res4[4] <-  gsub("\\s\\(.*\\)", "", header_res4[4])
-  header_res4[5] <-  paste0(header_res4[4], ",",header_res4[5])
-  header_res4[6] <-  paste0(header_res4[4], ",",header_res4[6])
-  header_res4[7] <-  paste0(header_res4[4], ",",header_res4[7])
-  header_res4 <-  header_res4[-4]
-  header_res4 <- c(header_res4, "Units")
-  names(res4) <- header_res4
-  rm(res4_unit)
+  #
+  # the final file should have column names that include "name" and "casrn"
+  # additionally, the names in res need to match names in the source
+  # database table. You do not need to add any of the generic columns
+  # described in the SOP - they will get added in source_prep_and_load
+  #
 
-  res <- Reduce(function(x,y) merge(x,y, all = T), list(res2,res3,res4))
-  res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1` <- as.numeric(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1`)
-  res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2` <- as.numeric(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2`)
-  res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3` <- as.numeric(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`)
+  # Standardize the names
+  names(res0) <- names(res0) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
 
-  res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1` <- signif(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-1`, digits = 3)
-  res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2` <- signif(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-2`, digits = 3)
-  res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`<- signif(res$`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`, digits = 3)
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
 
-  new_res <- res %>% dplyr::distinct(`Chemical Name`,CASRN, `PACs based on AEGLs, ERPGs, or TEELs,PAC-1`,
-                              `PACs based on AEGLs, ERPGs, or TEELs,PAC-2`,`PACs based on AEGLs, ERPGs, or TEELs,PAC-3`,Units,
-                              `Source of PACs-PAC-1, PAC-2, PAC-3`, .keep_all = T)
-
-  no_source_res <- new_res[is.na(new_res$`Source of PACs-PAC-1, PAC-2, PAC-3`),]
-
-  source_res <- new_res[!is.na(new_res$`Source of PACs-PAC-1, PAC-2, PAC-3`),]
-
-  source_res1 <- source_res[,c(2:7)]
-  no_source_res1 <- no_source_res[,c(2:7)]
-  uniq_vals <- dplyr::semi_join(source_res1,no_source_res1, by = c("Chemical Name", "CASRN", "PACs based on AEGLs, ERPGs, or TEELs,PAC-1",
-                                                            "PACs based on AEGLs, ERPGs, or TEELs,PAC-2", "PACs based on AEGLs, ERPGs, or TEELs,PAC-3",
-                                                            "Units"))
-  new_no_source_res <- dplyr::anti_join(no_source_res, uniq_vals, by = c("Chemical Name","CASRN", "PACs based on AEGLs, ERPGs, or TEELs,PAC-1",
-                                                                  "PACs based on AEGLs, ERPGs, or TEELs,PAC-2","PACs based on AEGLs, ERPGs, or TEELs,PAC-3","Units"))
-  new_res2 <- merge(new_no_source_res, source_res, all = T )
-
-  new_res1 <- merge(res1, new_res2, by = c('Chemical Name','CASRN'))
-  names(new_res1) <- c("name","casrn","rownames_res1", "new_molecular_weight_MW","original_molecular_weight_MW","Units_of_Original_Limits",
-                       "ppm_to_mg/m3","Molecular_Formula_MF","State_at_25_degree_C","MP_or_FP_in_degree_C",
-                       "BP_in_degree_C_at_760_mm_Hg_unless_indicated","Vapor_Pressure_mm_Hg", "Vapor_Pressure-T_in_degree_C",
-                       "SG_at_25_degree_C_unless_indicated","LEL_ppm","PAC-TEEL_Originally_Derived",
-                       "PAC-TEEL_Last_Reviewed", "PAC-TEEL_Last_Revised","rownames_new_res2",
-                       "PAC_1","PAC_2","PAC_3", "toxval_units", "pac1_keys","pac2_keys",
-                       "pac3_keys","Source_of_PACs-PAC-1_PAC-2_PAC-3")
-  new_res1 <- new_res1[,c(-3,-19)]
-  new_res1["doe_id"] <- c(1:dim(new_res1)[1])
-  new_res1 <- new_res1[c("doe_id",names(new_res1[1:18]), names(new_res1[22]),names(new_res1[19]),names(new_res1[23]),
-                         names(new_res1[20]),names(new_res1[24]), names(new_res1[21]), names(new_res1[25]))]
-
-  names(new_res1) = c("doe_id","name",
-                      "casrn","mw",
-                      "original_mw","original_units",
-                      "ppm_to_mg/m3","mol_formula",
-                      "state_at_25C","mp",
-                      "bp","vp",
-                      "vp_temp","sg",
-                      "lel_ppm","pac_teel_original",
-                      "pac_teel_last_reviewed","pac_teel_last_revised",
-                      "pac_1","pac1_keys",
-                      "pac_2","pac2_keys",
-                      "pac_3","pac3_keys",
-                      "toxval_units","pac_source")
-  mask = vector(length=nrow(new_res1),mode="integer")
-  mask[] = 1
-  for(i in 1:nrow(new_res1)) if(tidyr::contains(new_res1[i,"casrn"],"z-")) mask[i] = 0
-  new_res1 = new_res1[mask==1,]
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="DOE Protective Action Criteria",table="source_doe_pac",res=new_res1,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt)
 }
+
+
+
+
