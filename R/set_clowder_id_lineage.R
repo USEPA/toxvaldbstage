@@ -71,18 +71,17 @@ set_clowder_id_lineage <- function(source_table,
                                                                   "clowder_v3/source_who_jecfa_document_map_20230920.csv")),
                       "source_epa_ow_npdwr" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_epa_ow_npdwr_document_map.xlsx")),
-                      "source_epa_ow_nrwqc_hhc" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                         "clowder_v3/source_epa_ow-nrwqc-hhc_document_map.csv"),
-                                                                  col_types = readr::cols()),
+                      "source_epa_ow_nrwqc_hhc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                           "clowder_v3/source_epa_ow-nrwqc-hhc_document_map_20231108.xlsx")),
                       "source_epa_ow_nrwqc_alc" = readr::read_csv(paste0(toxval.config()$datapath,
                                                                          "clowder_v3/source_epa_ow_nrwqc_alc_document_map_20231004.csv"),
                                                                   col_types = readr::cols()),
                       "source_epa_ow_opp_alb" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                         "clowder_v3/source_epa_ow_opp_alb_document_map.csv"),
-                                                                  col_types = readr::cols()),
-                      "source_atsdr_mrls" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                       "clowder_v3/source_astdr_mrls_2023_document_map_20231012.csv"),
+                                                                       "clowder_v3/source_epa_ow_opp_alb_document_map.csv"),
                                                                 col_types = readr::cols()),
+                      "source_atsdr_mrls" = readr::read_csv(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/source_astdr_mrls_2023_document_map_20231012.csv"),
+                                                            col_types = readr::cols()),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20231019.xlsx")),
                       ### Hard coded document maps
@@ -140,7 +139,7 @@ set_clowder_id_lineage <- function(source_table,
                           fix.non_ascii.v2(.,"map.icf")
                       },
                       "source_hess" = data.frame(clowder_id = "652d6ad3e4b045b9ff7a35de",
-                                                     document_name = "hess_20230517_fixed.xlsx"),
+                                                 document_name = "hess_20230517_fixed.xlsx"),
                       # No source match, return empty
                       data.frame()
     )
@@ -253,9 +252,9 @@ set_clowder_id_lineage <- function(source_table,
                    get.id = FALSE,
                    db=db)
   }
-################################################################################
-### PUll source table data
-################################################################################
+  ################################################################################
+  ### PUll source table data
+  ################################################################################
   res <- runQuery(paste0("SELECT * FROM ", source_table), db=db)
 
   # Check if source table data has been pushed (could be empty table)
@@ -779,10 +778,10 @@ set_clowder_id_lineage <- function(source_table,
                     res <- res %>%
                       dplyr::select(name, casrn, source_hash, source_version_date) %>%
                       dplyr::left_join(map_file %>%
-                                  #filter(!is.na(clowder_id)) %>%
-                                    dplyr::select("casrn" = casn, clowder_id, fk_doc_id) %>%
-                                    dplyr::distinct(),
-                                by = "casrn")
+                                         #filter(!is.na(clowder_id)) %>%
+                                         dplyr::select("casrn" = casn, clowder_id, fk_doc_id) %>%
+                                         dplyr::distinct(),
+                                       by = "casrn")
 
                     # Match to extraction doc
                     tmp = res %>%
