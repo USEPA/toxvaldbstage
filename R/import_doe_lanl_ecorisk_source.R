@@ -24,22 +24,37 @@
 #' @importFrom stringr str_squish str_trim
 #' @importFrom tidyr pivot_longer
 #' ---------------------------------------------------
-import_doe_lanl_ecorisk_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "doe_lanl_ecorisk"
-  source_table = "source_{source}"
+  source_table = "source_doe_lanl_ecorisk"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2022-09-01")
-  dir = paste0(toxval.config()$datapath,"{source}/{source}_files/")
-  
+  dir = paste0(toxval.config()$datapath,"doe_lanl_ecorisk/doe_lanl_ecorisk_files/")
+
   file = paste0(dir,"ESLs_R4.3.xlsx")
-  
-  res = readxl::read_xlsx(file)
+
+  res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Build original_doe_lanl_ecorisk_table\n")
-  
-  # Handle bad codes
-  bad.codes = c("AL","SB","AS","BA","BE",
+
+  # Rename fields due to file error with shifted columns
+  rename_map = c("Analyte Group"="Analyte Group",
+                 "Analyte Code"="Analyte Name",
+                 "Analyte Name"="Analyte Code",
+                 "Analyte CAS"="ESL Medium",
+                 "ESL Medium"="ESL Receptor",
+                 "ESL Receptor"="No Effect ESL",
+                 "No Effect ESL"="Low Effect ESL",
+                 "Low Effect ESL"="Units",
+                 "Units"="Minimum ESL",
+                 "Minimum ESL"="Note",
+                 "ESL ID"="ESL ID")
+  res = res0 %>%
+    dplyr::rename(all_of(rename_map))
+
+  # Handle bad casrn values
+  bad.casrn = c("AL","SB","AS","BA","BE",
                 "B","CD","CL(-1)","CR","CR(+6)","CO","CU",
                 "CN(-1)","F(-1)","FE","PB","LI","MN","HGI",
                 "HGM","MO","NI","ClO4(-1)","SE","AG","SR",
@@ -48,55 +63,37 @@ import_doe_lanl_ecorisk_source <- function(db,chem.check.halt=FALSE, do.reset=FA
                 "PB-210","NP-237","PU-238","PU-239/240","PU-241","RA-226","RA-228",
                 "NA-22","SR-90/ Y-90","TH-228","TH-229","TH-230","TH-232","H-3",
                 "U-233","U-234","U-235","U-236","U-238")
-  res = res[!generics::is.element(res$`Analyte Code`, bad.codes),]
-  
-  # Rename columns (column names are mixed up)
-  nlist = c("Analyte Category","Analyte Group","Analyte Name","Analyte Code","ESL Medium","ESL Receptor","No Effect ESL",
-            "Low Effect ESL","Units","Minimum ESL","ESL ID" )
-  names(res) = nlist
-  
-  # Add new columns as needed but retain original columns
-  res$`name` <- res$`Analyte Name`
-  res$`casrn` <- res$`Analyte Code`
-  res$`toxval_units` <- res$`Units`
-  res$`species` <- res$`ESL Receptor`
-  
+  # Set bad casrn values as "-"
+  res$`Analyte CAS`[res$`Analyte CAS` %in% bad.casrn] = "-"
+
+  # Add new toxval columns as needed but retain original columns
+  res = res %>%
+    dplyr::mutate(
+      name =`Analyte Name`,
+      casrn = `Analyte Code`,
+      toxval_units = Units,
+      media = `ESL Medium` %>%
+        tolower(),
+      species = `ESL Receptor` %>%
+        # Remove parenthesis and medium
+        # Elected not to remove because diet is model specific to the ESL
+        # gsub("(.*)(\\([^\\(].*)", "\\1", .) %>%
+        # sub('-.*', '', .) %>%
+        # Remove (water), - sediment, - water
+        gsub("\\(water\\)|- water|- sediment", "", .) %>%
+
+        stringr::str_squish() %>%
+        tolower()) %>%
   # Pivot to add toxval_type and toxval_numeric
-  res <- res %>%
-    pivot_longer(cols = c('No Effect ESL',
+    tidyr::pivot_longer(cols = c('No Effect ESL',
                           'Low Effect ESL'),
                  names_to = 'toxval_type',
                  values_to = 'toxval_numeric'
-    )
-  
-  # Add empty columns
-  res$`toxval_subtype` <- NA
-  res$`toxval_numeric_qualifier` <- NA
-  res$`study_type` <- NA
-  res$`study_duration_value` <- NA
-  res$`study_duration_units` <- NA
-  res$`strain` <- NA
-  res$`sex` <- NA
-  res$`critical_effect` <- NA
-  res$`population` <- NA
-  res$`exposure_route` <- NA
-  res$`exposure_method` <- NA
-  res$`exposure_form` <- NA
-  res$`lifestage` <- NA
-  res$`generation` <- NA
-  res$`year` <- NA
-  
-  # Code pulled into import from load file (toxval.load.doe.lanl.ecorisk.R, 51-62)
-  res$species <-  gsub("(.*)(\\([^\\(].*)", "\\1", res$species)
-  res$species = str_trim(res$species)
-  # End load file code
-  #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
+    ) %>%
+    # Recode toxval_type
+    dplyr::mutate(toxval_type = dplyr::case_when(toxval_type =="No Effect ESL" ~ "NOEL",
+                                                    toxval_type =="Low Effect ESL" ~ "LOEL")) %>%
+    dplyr::distinct()
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -107,6 +104,9 @@ import_doe_lanl_ecorisk_source <- function(db,chem.check.halt=FALSE, do.reset=FA
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -116,7 +116,8 @@ import_doe_lanl_ecorisk_source <- function(db,chem.check.halt=FALSE, do.reset=FA
                        res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
 
 
