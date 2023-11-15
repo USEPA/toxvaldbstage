@@ -23,7 +23,7 @@
 #' @export
 #' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
-import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source="Cal OEHHA"
   source_table = "source_caloehha"
@@ -143,14 +143,22 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     # Also normalizes mm/dd/yyyy to just year
     for (col_name in names(res)[grepl("year", names(res), ignore.case = TRUE)]){
       res[[col_name]] <- as.character(res[[col_name]])
-      date_fix = excel_numeric_to_date(as.numeric(as.character(res[grep("[0-9]{5}",
-                                                                        res[[col_name]]),col_name])), date_system = "modern")
-      date_fix = format(date_fix, format = "%Y")
-      data_fix = as.character(date_fix)
-      res[grep("[0-9]{5}", res[[col_name]]),col_name] = date_fix
-      res[grep("[a-zA-Z]+", res[[col_name]]),col_name] = gsub(".*\\,\\s+(\\d{4})", "\\1", grep("[a-zA-Z]+", res[[col_name]],value= T))
-      res[which(res[[col_name]] == "-"), "year"] = NA
+      date_fix = res[[col_name]][grep("[0-9]{5}",
+                          res[[col_name]])]
 
+      if(length(date_fix)){
+        date_fix = date_fix %>%
+          as.numeric() %>%
+          janitor::excel_numeric_to_date(date_system = "modern") %>%
+          format(format = "%Y") %>%
+          as.character()
+
+        res[grep("[0-9]{5}", res[[col_name]]), col_name] = date_fix
+        # res[which(res[[col_name]] == "-"), "year"] = NA
+      }
+      # Handle case of month, year (e.g., July, 2014)
+      res[grep("[a-zA-Z]+", res[[col_name]]), col_name] = gsub(".*\\,\\s+(\\d{4})", "\\1", grep("[a-zA-Z]+", res[[col_name]],value= T))
+      # TODO Comment what this line is supposed to accomplish...older code...
       res[[col_name]] <- ifelse(grepl("^\\d{1,2}/\\d{1,2}/\\d{4}$", res[[col_name]]),
                                 sub("\\d{1,2}/\\d{1,2}/(\\d{4})", "\\1", res[[col_name]]),
                                 res[[col_name]])
@@ -421,6 +429,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     res$target_organ = "-"
     res$severity = "-"
 
+    # Combine and transform into ToxVal fields
     res <- lapply(c("inhalation_unit_risk", "inhalation_slope_factor",
                      "oral_slope_factor",
                      "acute_rel", "rel_8_hour_inhalation",
@@ -488,9 +497,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
 
                      # Special cases by toxval_type
                      if(f_name == "acute_rel"){
-                       tmp$critical_effect = paste(res$acute_rel_critical_effect,
-                                                   "|", res$acute_rel_target_organ,
-                                                   "|", res$acute_rel_severity)
+                       tmp$critical_effect = res$acute_rel_critical_effect
                        tmp$target_organ =  res$acute_rel_target_organ
                        tmp$severity =  res$acute_rel_severity
                        tmp$year = res$acute_rel_year
@@ -503,8 +510,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                      } else if(f_name == "chronic_inhalation_rel"){
                        tmp$toxval_subtype = "chronic inhalation REL"
                      } else if(f_name == "chronic_oral_rel"){
-                       tmp$critical_effect = paste(res$chronic_rel_critical_effect,
-                                                   "|", res$chronic_rel_target_organ)
+                       tmp$critical_effect = res$chronic_rel_critical_effect
                        tmp$target_organ = res$chronic_rel_target_organ
                        tmp$toxval_subtype = "chronic oral REL"
                      } else if(f_name == "phg"){
@@ -538,11 +544,17 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       dplyr::mutate(across(where(is.character), ~stringr::str_squish(.)),
                     severity = severity %>%
                       gsub("*", "", ., fixed=TRUE) %>%
-                      tolower()) %>%
+                      tolower(),
+                    critical_effect = paste(critical_effect, "|",
+                                                target_organ, "|",
+                                                stringr::str_to_title(severity)) %>%
+                      # Clean up NA combined cases
+                      gsub("\\| NA|NA \\|", "", .) %>%
+                      stringr::str_squish()) %>%
       # Fix severity
       dplyr::distinct()
 
-    # Changes all NA instances to "-" in critical_effect. Unsure if necessary
+    # Replace NA with -
     res$critical_effect <- str_replace_all(res$critical_effect, "NA", "-")
 
 ##########################################################################################################
