@@ -93,8 +93,8 @@ set_clowder_id_lineage <- function(source_table,
                       #                     document_name = "tp200-c2.pdf"),
                       "source_atsdr_pfas_2021" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                           "clowder_v3/source_atsdr_pfas_2021_document_map_20231108.xlsx")),
-                      "source_chiu" = data.frame(clowder_id = "61003953e4b01a90a3f9b6d1",
-                                                 document_name = "08b44893c3ec2ed2c917bd2962aefca2-Chiu-2018-Beyond the.pdf"),
+                      "source_chiu" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                               "clowder_v3/source_chiu_document_map_20231109.xlsx")),
                       "source_dod_meg" = data.frame(clowder_id = "61003ab1e4b01a90a3f9ce11",
                                                     document_name = "3606a83ea4293730c355bceca0900d9c-Anonymous-2013-Technical .pdf"),
                       "source_doe_benchmarks" = data.frame(clowder_id = "651ef0b2e4b0f0a60ddcffee",
@@ -824,6 +824,27 @@ set_clowder_id_lineage <- function(source_table,
                     # Match to extraction doc
                     tmp = res %>%
                       dplyr::select(short_ref, source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(!is.na(parent_flag)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res, tmp)
+
+                    # Return res
+                    res
+                  },
+                  "source_chiu" = {
+                    # Match to origin doc
+                    res <- res %>%
+                      dplyr::select(long_ref, source_hash, source_version_date) %>%
+                      left_join(map_file %>%
+                                  select(long_ref, clowder_id, fk_doc_id) %>%
+                                  distinct(),
+                                by = "long_ref")
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(long_ref, source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(!is.na(parent_flag)) %>%
                               dplyr::select(clowder_id, fk_doc_id))
