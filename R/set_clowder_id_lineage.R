@@ -72,16 +72,16 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_ow_npdwr" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_epa_ow_npdwr_document_map.xlsx")),
                       "source_epa_ow_nrwqc_hhc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                         "clowder_v3/source_epa_ow-nrwqc-hhc_document_map_20231108.xlsx")),
+                                                                           "clowder_v3/source_epa_ow-nrwqc-hhc_document_map_20231108.xlsx")),
                       "source_epa_ow_nrwqc_alc" = readr::read_csv(paste0(toxval.config()$datapath,
                                                                          "clowder_v3/source_epa_ow_nrwqc_alc_document_map_20231004.csv"),
                                                                   col_types = readr::cols()),
                       "source_epa_ow_opp_alb" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                         "clowder_v3/source_epa_ow_opp_alb_document_map.csv"),
-                                                                  col_types = readr::cols()),
-                      "source_atsdr_mrls" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                       "clowder_v3/source_astdr_mrls_2023_document_map_20231012.csv"),
+                                                                       "clowder_v3/source_epa_ow_opp_alb_document_map.csv"),
                                                                 col_types = readr::cols()),
+                      "source_atsdr_mrls" = readr::read_csv(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/source_astdr_mrls_2023_document_map_20231012.csv"),
+                                                            col_types = readr::cols()),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_ntp_pfas_doc_map_20231019.xlsx")),
                       "source_atsdr_pfas_2021" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -94,8 +94,8 @@ set_clowder_id_lineage <- function(source_table,
                       #                          document_name="a6a427952aa24d5d9e1d1a229109ba7e-Agency for Toxic Substances and Disease Registry-2020.pdf"),
                       # "source_atsdr_pfas" = data.frame(clowder_id = "6238e943e4b0b18cb57ced5a",
                       #                     document_name = "tp200-c2.pdf"),
-                      "source_atsdr_pfas_2021" = data.frame(clowder_id = "6238b97ae4b0b18cb57ce4f6",
-                                                            document_name = "tp200.pdf"),
+                      "source_atsdr_pfas_2021" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                          "clowder_v3/source_atsdr_pfas_2021_document_map_20231108.xlsx")),
                       "source_chiu" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/source_chiu_document_map_20231109.xlsx")),
                       "source_dod_meg" = data.frame(clowder_id = "61003ab1e4b01a90a3f9ce11",
@@ -142,7 +142,7 @@ set_clowder_id_lineage <- function(source_table,
                           fix.non_ascii.v2(.,"map.icf")
                       },
                       "source_hess" = data.frame(clowder_id = "652d6ad3e4b045b9ff7a35de",
-                                                     document_name = "hess_20230517_fixed.xlsx"),
+                                                 document_name = "hess_20230517_fixed.xlsx"),
                       # No source match, return empty
                       data.frame()
     )
@@ -255,8 +255,10 @@ set_clowder_id_lineage <- function(source_table,
                    get.id = FALSE,
                    db=db)
   }
-
-  # PUll source table data
+  
+  ################################################################################
+  ### PUll source table data
+  ################################################################################
   res <- runQuery(paste0("SELECT * FROM ", source_table), db=db)
 
   # Check if source table data has been pushed (could be empty table)
@@ -805,12 +807,11 @@ set_clowder_id_lineage <- function(source_table,
                   "source_epa_aegl" = {
                     res <- res %>%
                       dplyr::select(name, casrn, source_hash, source_version_date) %>%
-                      left_join(map_file %>%
-                                  #filter(!is.na(clowder_id)) %>%
-                                  select("casrn" = casn, clowder_id, fk_doc_id) %>%
-                                  distinct(),
-                                by = "casrn")
-
+                      dplyr::left_join(map_file %>%
+                                         #filter(!is.na(clowder_id)) %>%
+                                         dplyr::select("casrn" = casn, clowder_id, fk_doc_id) %>%
+                                         dplyr::distinct(),
+                                       by = "casrn")
                     # Match to extraction doc
                     tmp = res %>%
                       dplyr::select(name, casrn, source_hash, source_version_date) %>%
@@ -858,7 +859,6 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
-
                   "source_chiu" = {
                     # Match to origin doc
                     res <- res %>%
@@ -880,7 +880,6 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
-
                   # Default case, return without mapping
                   res
     )
