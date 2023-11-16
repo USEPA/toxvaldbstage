@@ -90,9 +90,6 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
                  names_to = 'toxval_type',
                  values_to = 'toxval_numeric'
     ) %>%
-    # Recode toxval_type
-    dplyr::mutate(toxval_type = dplyr::case_when(toxval_type =="No Effect ESL" ~ "NOEL",
-                                                 toxval_type =="Low Effect ESL" ~ "LOEL")) %>%
     dplyr::distinct()
 
   # Standardize the names
