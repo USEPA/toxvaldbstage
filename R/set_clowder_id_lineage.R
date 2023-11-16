@@ -165,13 +165,15 @@ set_clowder_id_lineage <- function(source_table,
                       },
                       "source_hess" = data.frame(clowder_id = "652d6ad3e4b045b9ff7a35de",
                                                  document_name = "hess_20230517_fixed.xlsx"),
+                      "source_copper" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                 "clowder_v3/source_copper_document_map.xlsx")),
                       # No source match, return empty
                       data.frame()
     )
 
     # Sources with a single document in a combined map
     if(source_table %in% c("source_heast", "source_mass_mmcl",
-                           "source_cal_dph", "source_copper", "source_dod_ered",
+                           "source_cal_dph", "source_dod_ered",
                            "source_doe_lanl_ecorisk", "source_doe_pac")){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/source_single_doc_map.xlsx")) %>%
@@ -890,6 +892,27 @@ set_clowder_id_lineage <- function(source_table,
                     # Combine origin and extraction document associations
                     res = rbind(res, tmp)
 
+                    # Return res
+                    res
+                  },
+                  "source_copper" = {
+                    # Join on long_ref
+                    res <- res %>%
+                      dplyr::select(source_hash, source_version_date, long_ref) %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id, long_ref),
+                                       by="long_ref") %>%
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(!is.na(parent_flag)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res, tmp)
                     # Return res
                     res
                   },
