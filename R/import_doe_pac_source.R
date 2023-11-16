@@ -58,6 +58,9 @@ import_doe_pac_source <- function(db,
     # Remove excess whitespace
     stringr::str_squish()
 
+  # Add vapor pressure prefix where needed
+  header[header %in% c("mm Hg", "T (°C)")] = paste0("Vapor Pressure - ", header[header %in% c("mm Hg", "T (°C)")])
+
   # Apply headers
   names(res0) = header
 
@@ -102,8 +105,9 @@ import_doe_pac_source <- function(db,
       study_type = "acute",
       exposure_route = "inhalation",
       toxval_type = toxval_type %>%
-        gsub("\\(ppm\\)", "", .) %>%
-        stringr::str_squish()
+        gsub("\\(ppm\\)", "", .),
+      # Remove excess whitespace for all character columns
+      dplyr::across(where(is.character), ~stringr::str_squish(.))
     ) %>%
     dplyr::select(-`No.`)
 
