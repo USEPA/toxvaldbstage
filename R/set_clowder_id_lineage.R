@@ -52,7 +52,7 @@ set_clowder_id_lineage <- function(source_table,
                       # "source_efsa2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                    "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx")),
                       "source_hawc_pfas_150" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                        "clowder_v3/hawc_pfas_150_document_map_20221123.xlsx")),
+                                                                        "clowder_v3/source_hawc_pfas_150_document_map_20231114.xlsx")),
                       "source_hawc_pfas_430" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                         "clowder_v3/hawc_pfas_430_doc_map_20230120.xlsx")),
                       "source_pfas_150_sem_v2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -901,6 +901,9 @@ set_clowder_id_lineage <- function(source_table,
     if(source_table %in% c("source_hawc_pfas_150","source_hawc_pfas_430")) {
       map = map_file %>%
         select(-fk_doc_id)
+      if(!"study_name" %in% names(map)){
+        map = map %>% rename(study_name = `Study Name`)
+      }
       title2 = res$title
       title2 = gsub("Registration dossier: |RRegistration dossier: ","", title2)
       title2 = gsub('\\.$','',title2)
@@ -957,7 +960,18 @@ set_clowder_id_lineage <- function(source_table,
       res <- res %>%
         dplyr::left_join(map_file %>%
                            dplyr::select(fk_doc_id, clowder_id),
-                         by="clowder_id")
+                         by="clowder_id") %>%
+        dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+
+      # Match to extraction doc
+      tmp = res %>%
+        dplyr::select(source_hash, source_version_date) %>%
+        merge(map_file %>%
+                dplyr::filter(!is.na(parent_flag)) %>%
+                dplyr::select(clowder_id, fk_doc_id))
+
+      # Combine origin and extraction document associations
+      res = dplyr::bind_rows(res, tmp)
     }
 
     # Handle IUCLID case
