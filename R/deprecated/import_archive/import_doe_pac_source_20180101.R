@@ -17,7 +17,6 @@
 #'  \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{filter-joins}}
 #'  \code{\link[tidyr]{reexports}}
 #' @rdname import_doe_pac_source
-#' @export
 #' @importFrom openxlsx read.xlsx
 #' @importFrom dplyr distinct semi_join anti_join
 #' @importFrom tidyr contains
