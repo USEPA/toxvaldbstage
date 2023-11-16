@@ -85,6 +85,8 @@ set_clowder_id_lineage <- function(source_table,
                                                                 col_types = readr::cols()),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20231019.xlsx")),
+                      "source_copper" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/source_copper_document_map.xlsx")),
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                                        document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -147,7 +149,7 @@ set_clowder_id_lineage <- function(source_table,
 
     # Sources with a single document in a combined map
     if(source_table %in% c("source_heast", "source_mass_mmcl",
-                           "source_cal_dph", "source_copper", "source_dod_ered",
+                           "source_cal_dph", "source_dod_ered",
                            "source_doe_lanl_ecorisk", "source_doe_pac")){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/source_single_doc_map.xlsx")) %>%
@@ -811,6 +813,16 @@ set_clowder_id_lineage <- function(source_table,
                                        by = "ntp_study_identifier") %>%
                       dplyr::select(-ntp_study_identifier)
 
+                    # Return res
+                    res
+                  },
+                  "source_copper" = {
+                    # Join on long_ref
+                    res <- res %>%
+                      dplyr::select(source_hash, source_version_date, long_ref) %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id, lonf_ref),
+                                       by="long_ref")
                     # Return res
                     res
                   },
