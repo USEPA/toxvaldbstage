@@ -81,7 +81,6 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
         # sub('-.*', '', .) %>%
         # Remove (water), - sediment, - water
         gsub("\\(water\\)|- water|- sediment", "", .) %>%
-
         stringr::str_squish() %>%
         tolower()) %>%
   # Pivot to add toxval_type and toxval_numeric
@@ -92,7 +91,7 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
     ) %>%
     # Recode toxval_type
     dplyr::mutate(toxval_type = dplyr::case_when(toxval_type =="No Effect ESL" ~ "NOEL",
-                                                    toxval_type =="Low Effect ESL" ~ "LOEL")) %>%
+                                                 toxval_type =="Low Effect ESL" ~ "LOEL")) %>%
     dplyr::distinct()
 
   # Standardize the names
