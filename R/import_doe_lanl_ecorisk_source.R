@@ -26,7 +26,7 @@
 #' ---------------------------------------------------
 import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "doe_lanl_ecorisk"
+  source = "DOE LANL ECORISK"
   source_table = "source_doe_lanl_ecorisk"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2022-09-01")
