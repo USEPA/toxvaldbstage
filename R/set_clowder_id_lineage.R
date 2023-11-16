@@ -67,12 +67,28 @@ set_clowder_id_lineage <- function(source_table,
                         file_name = paste0(toxval.config()$datapath,
                                            "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")
                         sheet_list = readxl::excel_sheets(file_name)
+                        # Pull all docu map sheets
                         docs = lapply(sheet_list, function(s_list){
-                          readxl::read_xlsx(file_name, s_list)
+                          readxl::read_xlsx(file_name, s_list) %>%
+                            dplyr::select(clowder_id, animal_group.experiment.study.id) %>%
+                            dplyr::mutate(parent_flag = NA,
+                                          parent_clowder_id = NA)
                         }) %>%
-                          data.table::rbindlist(fill = TRUE) %>%
-                          select(clowder_id, animal_group.experiment.study.id) %>%
-                          rbind(data.frame(clowder_id = "652d4faae4b045b9ff7a30d3", animal_group.experiment.study.id = NULL))
+                          dplyr::bind_rows() %>%
+                          rbind(data.frame(clowder_id = "652d4faae4b045b9ff7a30d3",
+                                           animal_group.experiment.study.id = NA,
+                                           parent_flag = "primary_source",
+                                           parent_clowder_id = paste0(unique(.$clowder_id[!is.na(.$clowder_id)]),
+                                                                      collapse = "; ")),
+                                .)
+                        # Return prepped map
+                        docs
+                        # # Hard code extraction document and doc lineage
+                        # tmp = data.frame(clowder_id = "652d4faae4b045b9ff7a30d3",
+                        #                  animal_group.experiment.study.id = NA,
+                        #                  parent_flag = "primary_source",
+                        #                  parent_clowder_id = paste0(unique(docs$clowder_id[!is.na(docs$clowder_id)]),
+                        #                                             collapse = "; "))
                       },
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                       "clowder_v3/pprtv_cphea_doc_map_lineage_jwall01.xlsx")),
@@ -580,13 +596,26 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_hawc" = {
+                    # Match origin docs
                     # Focus only on the study id and clowder id fields for matching
                     res <- res %>%
                       left_join(map_file %>%
                                   filter(!is.na(clowder_id)) %>%
                                   select(clowder_id, fk_doc_id, animal_group.experiment.study.id) %>%
                                   distinct(),
-                                by=c("study_id" = "animal_group.experiment.study.id"))
+                                by=c("study_id" = "animal_group.experiment.study.id")) %>%
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(is.na(animal_group.experiment.study.id)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = dplyr::bind_rows(res, tmp)
+
                     # Return res
                     res
                   },
