@@ -26,7 +26,7 @@
 #' ---------------------------------------------------
 import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "doe_lanl_ecorisk"
+  source = "DOE LANL ECORISK"
   source_table = "source_doe_lanl_ecorisk"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2022-09-01")
@@ -53,7 +53,7 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
   res = res0 %>%
     dplyr::rename(all_of(rename_map))
 
-  # Handle bad casrn values
+  # Handle bad casrn values (could be replaced with cas_checkSum.R)
   bad.casrn = c("AL","SB","AS","BA","BE",
                 "B","CD","CL(-1)","CR","CR(+6)","CO","CU",
                 "CN(-1)","F(-1)","FE","PB","LI","MN","HGI",
@@ -62,7 +62,8 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
                 "AM-241","CS-134","CS-137/ BA-137","CO-60","EU-152",
                 "PB-210","NP-237","PU-238","PU-239/240","PU-241","RA-226","RA-228",
                 "NA-22","SR-90/ Y-90","TH-228","TH-229","TH-230","TH-232","H-3",
-                "U-233","U-234","U-235","U-236","U-238")
+                "U-233","U-234","U-235","U-236","U-238", "5H 4:1 FTOH", "6:2 FTOH", "GenX",
+                "TPH F2F3", "N-EtFOSE")
   # Set bad casrn values as "-"
   res$`Analyte CAS`[res$`Analyte CAS` %in% bad.casrn] = "-"
 
