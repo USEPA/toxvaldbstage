@@ -23,7 +23,7 @@
 #' @export
 #' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
-import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source="Cal OEHHA"
   source_table = "source_caloehha"
@@ -140,36 +140,61 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     }
 
     # Better handling of year fields where conversion to text (e.g., 6/10/2023) converted to a numeric
-    res = res %>%
-      dplyr::mutate(dplyr::across(dplyr::contains("year"), ~as.character(.)),
-                    dplyr::across(dplyr::contains("year"),
-                                  .fns = ~ dplyr::case_when(
-                                    # Fix Year
-                                    .=="44050" ~ "8/7/2020",
-                                    .=="42621" ~ "9/8/2016",
-                                    .=="41821" ~ "Jul-14",
-                                    .=="42787" ~ "2/21/2017",
-                                    .=="44804" ~ "8/31/2022",
-                                    .=="43714" ~ "9/6/2019",
-                                    .=="42459" ~ "3/30/2016",
-                                    .=="42457" ~ "3/28/2016",
-                                    .=="39783" ~ "12/1/2008",
-                                    .=="39052" ~ "12/1/2006",
-                                    .=="38096" ~ "4/19/2004",
-                                    .=="38525" ~ "6/22/2005",
-                                    .=="36777" ~ "9/8/2000",
-                                    .=="28460" ~ "Dec-77",
-                                    .=="42461" ~ "4/1/2016",
-                                    .=="39356" ~ "Oct-07",
-                                    .=="38687" ~ "Dec-05",
-                                    .=="40330" ~ "Jun-10",
-                                    .=="39173" ~ "Apr-07",
-                                    .=="38869" ~ "Jun-06",
-                                    .=="43224" ~ "5/4/2018",
-                                    TRUE ~ .
-                                    )
-                                  )
-                    )
+    # Also normalizes mm/dd/yyyy to just year
+    for (col_name in names(res)[grepl("year", names(res), ignore.case = TRUE)]){
+      res[[col_name]] <- as.character(res[[col_name]])
+      date_fix = res[[col_name]][grep("[0-9]{5}",
+                          res[[col_name]])]
+
+      if(length(date_fix)){
+        date_fix = date_fix %>%
+          as.numeric() %>%
+          janitor::excel_numeric_to_date(date_system = "modern") %>%
+          format(format = "%Y") %>%
+          as.character()
+
+        res[grep("[0-9]{5}", res[[col_name]]), col_name] = date_fix
+        # res[which(res[[col_name]] == "-"), "year"] = NA
+      }
+      # Handle case of month, year (e.g., July, 2014)
+      res[grep("[a-zA-Z]+", res[[col_name]]), col_name] = gsub(".*\\,\\s+(\\d{4})", "\\1", grep("[a-zA-Z]+", res[[col_name]],value= T))
+      # TODO Comment what this line is supposed to accomplish...older code...
+      res[[col_name]] <- ifelse(grepl("^\\d{1,2}/\\d{1,2}/\\d{4}$", res[[col_name]]),
+                                sub("\\d{1,2}/\\d{1,2}/(\\d{4})", "\\1", res[[col_name]]),
+                                res[[col_name]])
+    }
+
+    # Old year handling code
+    # res = res %>%
+    #   dplyr::mutate(dplyr::across(dplyr::contains("year"), ~as.character(.)),
+    #                 dplyr::across(dplyr::contains("year"),
+    #                               .fns = ~ dplyr::case_when(
+    #                                 # Fix Year
+    #                                 .=="44050" ~ "8/7/2020",
+    #                                 .=="42621" ~ "9/8/2016",
+    #                                 .=="41821" ~ "Jul-14",
+    #                                 .=="42787" ~ "2/21/2017",
+    #                                 .=="44804" ~ "8/31/2022",
+    #                                 .=="43714" ~ "9/6/2019",
+    #                                 .=="42459" ~ "3/30/2016",
+    #                                 .=="42457" ~ "3/28/2016",
+    #                                 .=="39783" ~ "12/1/2008",
+    #                                 .=="39052" ~ "12/1/2006",
+    #                                 .=="38096" ~ "4/19/2004",
+    #                                 .=="38525" ~ "6/22/2005",
+    #                                 .=="36777" ~ "9/8/2000",
+    #                                 .=="28460" ~ "Dec-77",
+    #                                 .=="42461" ~ "4/1/2016",
+    #                                 .=="39356" ~ "Oct-07",
+    #                                 .=="38687" ~ "Dec-05",
+    #                                 .=="40330" ~ "Jun-10",
+    #                                 .=="39173" ~ "Apr-07",
+    #                                 .=="38869" ~ "Jun-06",
+    #                                 .=="43224" ~ "5/4/2018",
+    #                                 TRUE ~ .
+    #                                 )
+    #                               )
+    #                 )
 
     # Clean before exponent fix: mcl, phg, nsrl_inhalation, nsrl_oral
     # # Remove comma, text, and parenthetic values
@@ -404,6 +429,7 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     res$target_organ = "-"
     res$severity = "-"
 
+    # Combine and transform into ToxVal fields
     res <- lapply(c("inhalation_unit_risk", "inhalation_slope_factor",
                      "oral_slope_factor",
                      "acute_rel", "rel_8_hour_inhalation",
@@ -518,9 +544,18 @@ import_caloehha_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       dplyr::mutate(across(where(is.character), ~stringr::str_squish(.)),
                     severity = severity %>%
                       gsub("*", "", ., fixed=TRUE) %>%
-                      tolower()) %>%
+                      tolower(),
+                    critical_effect = paste(critical_effect, "|",
+                                                target_organ, "|",
+                                                stringr::str_to_title(severity)) %>%
+                      # Clean up NA combined cases
+                      gsub("\\| NA|NA \\|", "", .) %>%
+                      stringr::str_squish()) %>%
       # Fix severity
       dplyr::distinct()
+
+    # Replace NA with -
+    res$critical_effect <- str_replace_all(res$critical_effect, "NA", "-")
 
 ##########################################################################################################
 
