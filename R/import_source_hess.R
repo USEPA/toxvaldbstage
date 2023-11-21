@@ -29,7 +29,7 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2023-05-17")
   dir = paste0(toxval.config()$datapath,"hess/hess_files/")
-  file = paste0(dir,"hess_20230517_fixed.xlsx")
+  file = paste0(dir,"hess_20231109_fixed.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -74,23 +74,42 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
         tolower(),
       # Removing parenthesis around values in route_of_administration field
       route_of_administration = gsub("[()]", "", route_of_administration),
+      tocval_subsource = "Repeated Dose Toxicity HESS"
     ) %>%
     # Splitting route_of_administration field into exposure_route and exposure_method
     tidyr::separate(route_of_administration, c("exposure_route", "exposure_method"),
-                    sep=" ", fill="right", extra = "merge", remove=FALSE)
+                    sep=" ", fill="right", extra = "merge", remove=FALSE) %>%
+    dplyr::distinct()
 
-    # Omit blank rows
-  res <- res[rowSums(is.na(res)) != ncol(res), ]  
-  
   # Check route_of_administration splitting
   # View(res %>% select(route_of_administration, exposure_route, exposure_method) %>% distinct())
-  # TODO Check critical_effect encoded arrow symbol notation
+
+  # Group combine effect for study groups
+  crit_groups = res %>%
+    dplyr::select(name, toxval_type, toxval_numeric, critical_effect) %>%
+    dplyr::group_by(name, toxval_type, toxval_numeric) %>%
+    dplyr::mutate(critical_effect = paste0(unique(critical_effect), collapse = " | ")) %>%
+    dplyr::distinct()
+
+  # Join back in combined critical_effect groups
+  res = res %>%
+    dplyr::select(-critical_effect) %>%
+    dplyr::left_join(crit_groups,
+                     by=c("name", "toxval_type", "toxval_numeric")) %>%
+    distinct()
+
+  # Omit blank rows
+  res <- res[rowSums(is.na(res)) != ncol(res), ]
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
-  
+
   # Make records distinct
-  res <- res %>% distinct()
+  res <- res %>%
+    dplyr::distinct()
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -100,7 +119,8 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
 
 
