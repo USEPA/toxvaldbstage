@@ -29,7 +29,7 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2023-07-14")
   dir = paste0(toxval.config()$datapath,"ntp_pfas/ntp_pfas_files/")
-
+  
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -56,8 +56,8 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                           values_to = "critical_effect_direction")
   }) %>%
     dplyr::bind_rows()
-
-  res = res0 %>%
+  
+  res0 = res0 %>%
     # Split into critical effect class and critical effect
     tidyr::separate(field_name, into = c("critical_effect_class", "critical_effect"), sep = "-",
                     extra="merge", fill="right") %>%
@@ -68,21 +68,55 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     dplyr::mutate(dplyr::across(c("critical_effect", "critical_effect_class",
                                   "dose_value", "notes"), ~stringr::str_squish(.)),
                   dose_value = as.numeric(dose_value),
-                  toxval_type = NA)
-
+                  toxval_type = NA) %>%
+  dplyr::distinct()
+  
   # Set toxval_type
-  res$toxval_type[grepl("increase|decrease", res$critical_effect_direction, ignore.case = TRUE)] <- "LOEL"
-  res$toxval_type[grepl("no effect", res$critical_effect_direction, ignore.case = TRUE)] <- "NOEL"
-
+  res0$toxval_type[grepl("increase|decrease", res0$critical_effect_direction, ignore.case = TRUE)] <- "LOEL"
+  res0$toxval_type[grepl("no effect", res0$critical_effect_direction, ignore.case = TRUE)] <- "NOEL"
+  
   # Standardize the names
-  names(res) <- names(res) %>%
+  names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
-
+  
   # Add version date. Can be converted to a mutate statement as needed
-  res$source_version_date <- src_version_date
+  res0$source_version_date <- src_version_date
+  
+  # Read in manually curated data
+  res1 <- lapply(list.files(paste0(dir, "/manual_curation"), full.names = TRUE, pattern = ".xlsx"), function(f){
+    readxl::read_xlsx(f, sheet="manual_dose") %>%
+      # Set dose to character across files
+      dplyr::mutate(dplyr::across(c("dose_value"), ~as.character(.)))
+    }) %>%
+    dplyr::bind_rows() %>%
+    # Remove duplicated rows (dose_notes sometimes differ, but information is the same)
+    # https://stackoverflow.com/questions/51856550/dplyr-distinct-over-two-columns
+    dplyr::rowwise() %>%
+    dplyr::mutate(intermediate = paste0(c(name, sex, species, critical_effect_class, critical_effect), collapse = ",")) %>% 
+    dplyr::distinct(., intermediate, .keep_all=TRUE) %>%
+    dplyr::select(-intermediate)
+  
+  # Remove whitespace
+  res1 = res1 %>% dplyr::mutate(dplyr::across(c("critical_effect", "critical_effect_class",
+                                "dose_value", "dose_notes"), ~stringr::str_squish(.)),
+                                dose_value = as.numeric(dose_value))
+  
+  # Separate rows to be updated from rows that are ok
+  res0_ok = dplyr::filter(res0, toxval_type == "NOEL")
+  res0_update = dplyr::filter(res0, (toxval_type != "NOEL")|is.na(toxval_type))
+  
+  # Prepare res0_update for merging
+  res0_update = dplyr::select(res0_update, !c("critical_effect_direction", "toxval_type", "dose_value"))
+  
+  # Merge res0_update and res1 on name, sex, species, and critical effect class
+  res_updated = dplyr::left_join(res0_update, res1, by=c("name", "sex", "species", "critical_effect_class", "critical_effect"))
+  
+  # Combine all data
+  res = dplyr::bind_rows(res0_ok, res_updated)
+  
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
