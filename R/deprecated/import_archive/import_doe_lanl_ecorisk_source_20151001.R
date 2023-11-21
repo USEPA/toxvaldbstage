@@ -1,31 +1,31 @@
 #--------------------------------------------------------------------------------------
-#' @description Load LANL Source into toxval_source
+#' @description Load DOE LANL ECORISK Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
-#' @param infile The input file ./lanl/lanl_files/ESLs_R3.3.xlsx
+#' @param infile The input file ./doe_lanl_ecorisk/doe_lanl_ecorisk_files/ESLs_R3.3.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
-#' @rdname import_lanl_source
-#' @export 
+#' @rdname import_doe_lanl_ecorisk_source
+#' @export
 #' @importFrom openxlsx read.xlsx
 
 #--------------------------------------------------------------------------------------
-import_lanl_source <- function(db,
+import_doe_lanl_ecorisk_source <- function(db,
                                infile="ESLs_R3.3.xlsx",
                                chem.check.halt=T)  {
   printCurrentFunction(db)
-  infile = paste0(toxval.config()$datapath,"lanl/lanl_files/",infile)
+  infile = paste0(toxval.config()$datapath,"doe_lanl_ecorisk/doe_lanl_ecorisk_files/",infile)
   #####################################################################
-  cat("Build original_lanl_table \n")
+  cat("Build original_doe_lanl_ecorisk_table \n")
   #####################################################################
   res <- openxlsx::read.xlsx( infile ,1,colNames = T)
 
@@ -55,5 +55,5 @@ import_lanl_source <- function(db,
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="DOE ECORISK",table="source_lanl",res=resall,F,T,T)
+  source_prep_and_load(db,source="DOE LANL ECORISK",table="source_doe_lanl_ecorisk",res=resall,F,T,T)
 }

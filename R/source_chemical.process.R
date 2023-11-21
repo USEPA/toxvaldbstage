@@ -9,16 +9,16 @@
 #' @param name.col The name ofhte column containing hte chemical name
 #' @param verbose If TRUE, write out diagnostic messages #'
 #' @return Returns the original dataframe with a chemical_id appended
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[tidyr]{unite}}
 #'  \code{\link[utils]{head}}
 #'  \code{\link[digest]{digest}}
@@ -34,24 +34,26 @@ source_chemical.process <- function(db,
                                     chem.check.halt=FALSE,
                                     casrn.col="casrn",
                                     name.col="name",
-                                    verbose=F) {
+                                    verbose=FALSE) {
   printCurrentFunction(paste0(db,"\n",source))
   #####################################################################
   cat("Do the chemical checking\n")
   #####################################################################
   # res$chemical_index = paste(res[,casrn.col],res[,name.col])
   res = res %>%
-    tidyr::unite(col="chemical_index", casrn.col, name.col, sep=" ", remove=FALSE)
-  result = chem.check(res,name.col=name.col,casrn.col=casrn.col,verbose=verbose,source)
+    tidyr::unite(col="chemical_index", all_of(c(casrn.col, name.col)), sep=" ", remove=FALSE)
+  # result = chem.check(res,name.col=name.col,casrn.col=casrn.col,verbose=verbose,source)
+  result = chem.check.v2(res0=res, source=source, verbose=verbose)
   if(chem.check.halt) if(!result$name.OK || !result$casrn.OK || !result$checksum.OK) browser()
 
   #####################################################################
   cat("Build the chemical table\n")
   #####################################################################
-  chems = cbind(res[,c(casrn.col,name.col)],result$res0[,c(casrn.col,name.col)])
+  chems = cbind(res[,c(casrn.col,name.col)], result$res0[,c(casrn.col,name.col)])
   names(chems) = c("raw_casrn","raw_name","cleaned_casrn","cleaned_name")
-  chems = unique(chems)
+  chems = distinct(chems)
   chems$source = source
+
   prefix = runQuery(paste0("select chemprefix from chemical_source_index where source='",source,"'"),db)[1,1]
   if(is.na(prefix)){
     # Grab last entry to add a new prefix
@@ -73,6 +75,8 @@ source_chemical.process <- function(db,
     # Final error handling just in case
     if(is.na(prefix)) stop("No entry in chemical_source_index for source: ", source, "'")
   }
+
+  # Prep chemical ID hash
   ilist = seq(from=1,to=nrow(chems))
   chems$chemical_id = "-"
   for(i in 1:nrow(chems)) {

@@ -100,7 +100,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   # seperate out toxval_type to make other toxval columns and add input file column
   res2_3 <- res2_2_1 %>%
-  tidyr::separate(toxval_type, c("toxval_type", "risk_assessment_class", "exposure_route","toxval_unit"), sep="_", fill="right", remove=TRUE) %>%
+  tidyr::separate(toxval_type, c("toxval_type", "risk_assessment_class", "exposure_route","toxval_units"), sep="_", fill="right", remove=TRUE) %>%
     dplyr::mutate(raw_input_file= "rsl_subchronic_nov_2022.xlsx")
 
   # make new column for the key values to go in
@@ -197,7 +197,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   # separate out toxval_type into other toxval columns
   res_combo_01_4 <- res_combo_01_3 %>%
-    tidyr::separate(toxval_type, c("toxval_type", "risk_assessment_class", "toxval_unit"), sep="_", fill="right", remove=TRUE)
+    tidyr::separate(toxval_type, c("toxval_type", "risk_assessment_class", "toxval_units"), sep="_", fill="right", remove=TRUE)
 
   # make new column for the key values to go in
   res_combo_01_4$study_type = res_combo_01_4$toxval_type
