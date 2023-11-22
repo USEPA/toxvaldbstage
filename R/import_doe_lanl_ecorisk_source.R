@@ -71,7 +71,7 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
   res = res %>%
     dplyr::mutate(
       name =`Analyte Name`,
-      casrn = `Analyte Code`,
+      casrn = `Analyte CAS`,
       toxval_units = Units,
       media = `ESL Medium` %>%
         tolower(),
