@@ -12,15 +12,19 @@
 #' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}, \code{\link[dplyr]{distinct}}
-#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}
-#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_extract}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}
+#'  \code{\link[dplyr]{across}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{ungroup}}
+#'  \code{\link[dplyr]{"rowwise"}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}
+#'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}
+#'  \code{\link[stringr]{str_extract_all}}, \code{\link[stringr]{str_squish}}
 #' @rdname import_doe_pac_source
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr mutate filter select across rename rowwise distinct
+#' @importFrom dplyr mutate filter select across rename rowwise distinct ungroup
 #' @importFrom tidyr pivot_longer all_of separate replace_na
-#' @importFrom stringr str_squish str_replace_all str_extract
+#' @importFrom stringr str_squish str_replace_all str_extract_all
 #--------------------------------------------------------------------------------------
 import_doe_pac_source <- function(db,
                                   chem.check.halt=FALSE,
@@ -41,7 +45,6 @@ import_doe_pac_source <- function(db,
   # RELEVANT SOURCE TEXT: "Table 2 PACs by Chemical Name is a list of the same
   # PAC values as presented in Table 1, but only shows the PACs and Source for
   # the PACs values. They are presented in either ppm or mg/m³."
-  # res0 <- readxl::read_xlsx(file, sheet="Input", range="A4:V3149", col_names=FALSE)
   res0 <- readxl::read_xlsx(file, sheet="Input", skip = 2, col_names = FALSE)
 
   #####################################################################
@@ -64,26 +67,9 @@ import_doe_pac_source <- function(db,
   # Apply headers
   names(res0) = header
 
-  # No longer fixing molecular weight since we do not use it anywhere
-
-  # # Remove artifacts from weight column
-  # # If weight is shown in a range, then record only the lower weight
-  # res0$`Molecular Weight (MW)` <- gsub("\\-.*", "", res0$`Molecular Weight (MW)`) %>%
-  #   gsub("(~)", "", .) %>%
-  #   gsub("\\s+$", "", .)
-  #
-  # # Handle non-numeric values in Molecular Weight Column
-  # non_numeric_mw <- grep("(kDa)", res0$`Molecular Weight (MW)`, value = T)
-  # non_numeric_val <- gsub("(kDa)", "", non_numeric_mw)
-  # non_numeric_val <- gsub("\\s+$", "", non_numeric_val)
-  # non_numeric_val <- as.numeric(non_numeric_val)
-  # non_numeric_val <- 1000 * non_numeric_val
-  #
-  # res0$`Molecular Weight (MW)`[res0$`Molecular Weight (MW)` %in% non_numeric_mw] <- non_numeric_val
-  # res0$`Molecular Weight (MW)` <- as.numeric(res0$`Molecular Weight (MW)`)
-
   # Check for numeric conversion NA coercions to fix
   # data.frame(res0$`LEL (ppm)`, num=as.numeric(res0$`LEL (ppm)`)) %>% distinct() %>% filter(is.na(num)) %>% View()
+
   # Clean and pivot toxval_type and numeric fields
   res = res0 %>%
     dplyr::mutate(dplyr::across(c("PAC-1", "PAC-2", "PAC-3", "LEL (ppm)"),
@@ -149,11 +135,27 @@ import_doe_pac_source <- function(db,
                                        format(as.Date(`Originally Derived`, format="%m/%d/%y"),"%Y")))) %>%
     dplyr::ungroup()
 
-  # Check year
-  # res %>% select(`Last Revised`, `Last Reviewed`, `Originally Derived`, year) %>% distinct() %>% View()
-
   # Fill in missing with "-"
   res$species[res$species %in% c("", "NA")] <- "-"
+
+  # Chemical name cleaning
+  res <- res %>% dplyr::mutate(
+    # Replace prime symbols
+    name = gsub("\u2019|<U+2019>", "'", name) %>%
+
+      # Fix Greek symbols
+      fix.greek.symbols() %>%
+
+      # Fix escaped quotation marks
+      gsub("[\\]{1,}'", "'", .) %>%
+      gsub('[\\]{1,}"', '"', .) %>%
+
+      # Remove trademark symbols
+      gsub("\u00ae|<U+00ae>", "", name) %>%
+      
+      # Remove excess whitespace
+      stringr::str_squish()
+  )
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -167,7 +169,6 @@ import_doe_pac_source <- function(db,
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
-
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
