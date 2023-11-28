@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' @description Load GESTIS DNEL into toxval_source
+#' @description Import GESTIS DNEL into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
@@ -16,11 +16,15 @@
 #' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[stringr]{str_trim}}
-#' @rdname import_generic_source
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_squish}}
+#'  \code{\link[tidyr]{pivot_longer}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{select}}
+#' @rdname import_source_gestis_dnel
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom stringr str_squish
+#' @importFrom stringr str_squish str_trim
+#' @importFrom tidyr pivot_longer
+#' @importFrom dplyr mutate distinct select
 #--------------------------------------------------------------------------------------
 import_source_gestis_dnel <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
