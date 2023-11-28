@@ -16,18 +16,17 @@
 #' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_trim}}
-#'  \code{\link[stringr]{str_remove}}, \code{\link[stringr]{fixed}}
-#'  \code{\link[stringr]{str_squish}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_remove}}
+#'  \code{\link[stringr]{fixed}}, \code{\link[stringr]{str_squish}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate_wider_delim}}
-#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{rename}}
 #'  \code{\link[tidyselect]{all_of}}
 #' @rdname import_doe_lanl_ecorisk_source
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom stringr str_squish str_trim str_remove fixed str_squish
+#' @importFrom stringr str_squish str_trim str_remove fixed
 #' @importFrom tidyr pivot_longer separate_wider_delim
-#' @importFrom dplyr mutate distinct
+#' @importFrom dplyr mutate distinct rename
 #' @importFrom tidyselect all_of
 #' ---------------------------------------------------
 import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
@@ -57,7 +56,7 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
                  "Minimum ESL"="Note",
                  "ESL ID"="ESL ID")
   res = res0 %>%
-    dplyr::rename(all_of(rename_map))
+    dplyr::rename(tidyselect::all_of(rename_map))
 
   # Handle bad casrn values (could be replaced with cas_checkSum.R)
   bad.casrn = c("AL","SB","AS","BA","BE",
