@@ -42,36 +42,61 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
   #
 
   res = res0 %>%
-    # Rename toxval names
-    dplyr::rename(name = 'Webpage Name',
+    # Copy toxval fields from originals
+    dplyr::mutate(name = 'Webpage Name',
                   casrn = 'CAS number',
                   year = 'Evaluation year')
+
+  # res$ADI[grepl(";", res$ADI)] %>% unique()
+  # Case of ADI ending with ";", fix before separate
+  # res$ADI[grepl(";$", res$ADI)]
+  res$ADI[grepl(";$", res$ADI)] = res$ADI[grepl(";$", res$ADI)] %>%
+    gsub(";", "", .)
+  # Case of ; in reference parentheses - hardcode fix for the single case
+  res$ADI[grepl("(1973; SORBIC ACID)", res$ADI)] = "(1973, SORBIC ACID)"
 
   res = res %>%
     # Derive toxval_numeric, toxval_units, toxval_numeric_qualifier from ADI column
     tidyr::separate_rows(ADI, sep = ';') %>%
     dplyr::mutate(
-      cleaned_adi = gsub("\\(.*?\\)","",ADI),
-      cleaned_adi = gsub("–", "-", cleaned_adi),
-      cleaned_adi = gsub("\\s*-\\s*", "-", cleaned_adi),
-      toxval_numeric = stringr::str_extract(cleaned_adi, "\\d+\\.?\\d*-?\\d*\\.?\\d*"),
-      toxval_units = stringr::str_replace(cleaned_adi, paste0(".*", toxval_numeric),""),
-      toxval_units = stringr::str_trim(toxval_units),
-      toxval_units = if_else(is.na(toxval_numeric), NA_character_, toxval_units),
+      cleaned_adi = ADI %>%
+        gsub("\\(.*?\\)","",.) %>%
+        gsub("–", "-", .) %>%
+        gsub("\\s*-\\s*", "-", .),
+      toxval_numeric = cleaned_adi %>%
+        stringr::str_extract(., "\\d+\\.?\\d*-?\\d*\\.?\\d*"),
+      toxval_units = cleaned_adi %>%
+        stringr::str_replace(., paste0(".*", toxval_numeric),"") %>%
+        stringr::str_squish() %>%
+        fix.greek.symbols(),
+      toxval_units_comments = Comments %>%
+        # Replace unicode  "-"
+        gsub("\u2013", "-", .) %>%
+        stringr::str_replace(., paste0(".*", toxval_numeric),"") %>%
+        stringr::str_squish(),
+      # toxval_units = if_else(is.na(toxval_numeric), NA_character_, toxval_units),
       toxval_numeric_qualifier = dplyr::case_when(
         grepl(">", cleaned_adi) ~ ">",
         grepl("<", cleaned_adi) ~ "<",
         grepl("=", cleaned_adi) ~ "=",
         grepl("~", cleaned_adi) ~ "~",
         TRUE ~ "-"
-      )
+      ),
+      toxval_type = "ADI",
+      species = "human",
+      exposure_route = "oral",
+      exposure_method = "diet"
     )
 
+  # Set units as NA if numeric is NA
+  res$toxval_units[is.na(res$toxval_numeric)] = NA
 
-  res$toxval_type <- "ADI"
-  res$species <- "human"
-  res$exposure_route <- "oral"
-  res$exposure_method <- "diet"
+  # Handle case of blank toxval_units in Comment column
+  res$toxval_units[res$toxval_units == "" & !is.na(res$toxval_units)] = res$toxval_units_comments[res$toxval_units == "" & !is.na(res$toxval_units)]
+
+  # Remove cleaning columns
+  res = res %>%
+    dplyr::select(-cleaned_adi, toxval_units_comments)
 
   # Standardize the names
   names(res) <- names(res) %>%
