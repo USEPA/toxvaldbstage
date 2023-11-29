@@ -128,7 +128,7 @@ import_source_gestis_dnel <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
         gsub("\u00bf|<U+00BF>", "?", .) %>%
 
         # Fix math symbols
-        gsub("\u2265|<U+2265>", " greater than or equal to ", .) %>%
+        gsub("\u2265|<U+2265>", ">=", .) %>%
         gsub("\u00b1|<U+00B1>", "+/-", .) %>%
         gsub("\u00b0|<U+00B0>", "", .) %>%
         gsub("\u00b0|<U+00B0>", "", .) %>%
