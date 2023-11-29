@@ -167,6 +167,10 @@ set_clowder_id_lineage <- function(source_table,
                                                  document_name = "hess_20230517_fixed.xlsx"),
                       "source_copper" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/source_copper_document_map.xlsx")),
+                      
+                      "source_gestis_dnel" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                      "clowder_v3/source_gestis_dnel_document_map.xlsx")),
+  
                       # No source match, return empty
                       data.frame()
     )
@@ -911,6 +915,27 @@ set_clowder_id_lineage <- function(source_table,
                               dplyr::filter(!is.na(parent_flag)) %>%
                               dplyr::select(clowder_id, fk_doc_id))
 
+                    # Combine origin and extraction document associations
+                    res = rbind(res, tmp)
+                    # Return res
+                    res
+                  },
+                  "source_gestis_dnel" = {
+                    # Join on name
+                    res <- res %>%
+                      dplyr::select(source_hash, source_version_date, name) %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id, name),
+                                       by="name") %>%
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+                    
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(!is.na(parent_flag)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+                    
                     # Combine origin and extraction document associations
                     res = rbind(res, tmp)
                     # Return res
