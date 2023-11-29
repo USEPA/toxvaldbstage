@@ -15,16 +15,16 @@
 #'  }
 #' }
 #' @seealso
-#'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_squish}}
-#'  \code{\link[tidyr]{pivot_longer}}
-#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{select}}
+#'  [read_xlsx][readxl::read_xlsx]
+#'  [str_squish][stringr::str_squish]
+#'  [mutate][dplyr::mutate], [across][dplyr::across], [select][dplyr::select], [distinct][dplyr::distinct], [filter][dplyr::filter]
+#'  [pivot_longer][tidyr::pivot_longer]
 #' @rdname import_source_gestis_dnel
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom stringr str_squish str_trim
+#' @importFrom stringr str_squish
+#' @importFrom dplyr mutate across select distinct filter
 #' @importFrom tidyr pivot_longer
-#' @importFrom dplyr mutate distinct select
 #--------------------------------------------------------------------------------------
 import_source_gestis_dnel <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
