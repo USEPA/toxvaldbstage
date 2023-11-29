@@ -1,3 +1,4 @@
+#--------------------------------------------------------------------------------------
 #' @description Load DOE Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
@@ -11,21 +12,18 @@
 #'  }
 #' }
 #' @seealso
-#'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}
-#'  \code{\link[dplyr]{across}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{ungroup}}
-#'  \code{\link[dplyr]{"rowwise"}}, \code{\link[dplyr]{distinct}}
-#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}
-#'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}
-#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}
-#'  \code{\link[stringr]{str_extract_all}}, \code{\link[stringr]{str_squish}}
+#'  [read_xlsx][readxl::read_xlsx]
+#'  [str_squish][stringr::str_squish], [str_extract_all][stringr::str_extract_all]
+#'  [mutate][dplyr::mutate], [across][dplyr::across], [rename][dplyr::rename], [select][dplyr::select], [rowwise][dplyr::rowwise], [ungroup][dplyr::ungroup]
+#'  [pivot_longer][tidyr::pivot_longer]
+#'  [where][tidyselect::where]
 #' @rdname import_doe_pac_source
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr mutate filter select across rename rowwise distinct ungroup
-#' @importFrom tidyr pivot_longer all_of separate replace_na
-#' @importFrom stringr str_squish str_replace_all str_extract_all
-#--------------------------------------------------------------------------------------
+#' @importFrom stringr str_squish str_extract_all
+#' @importFrom dplyr mutate across rename select rowwise ungroup
+#' @importFrom tidyr pivot_longer
+#' @importFrom tidyselect where
 import_doe_pac_source <- function(db,
                                   chem.check.halt=FALSE,
                                   do.reset=FALSE,
@@ -93,7 +91,7 @@ import_doe_pac_source <- function(db,
       toxval_type = toxval_type %>%
         gsub("\\(ppm\\)", "", .),
       # Remove excess whitespace for all character columns
-      dplyr::across(where(is.character), ~stringr::str_squish(.))
+      dplyr::across(tidyselect::where(is.character), ~stringr::str_squish(.))
     ) %>%
     dplyr::select(-`No.`)
 
@@ -152,7 +150,7 @@ import_doe_pac_source <- function(db,
 
       # Remove trademark symbols
       gsub("\u00ae|<U+00ae>", "", name) %>%
-      
+
       # Remove excess whitespace
       stringr::str_squish()
   )
