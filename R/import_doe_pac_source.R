@@ -91,7 +91,7 @@ import_doe_pac_source <- function(db,
       toxval_type = toxval_type %>%
         gsub("\\(ppm\\)", "", .),
       # Remove excess whitespace for all character columns
-      dplyr::across(tidyselect::where(is.character), ~stringr::str_squish(.))
+      dplyr::across(where(is.character), ~stringr::str_squish(.))
     ) %>%
     dplyr::select(-`No.`)
 
@@ -138,8 +138,9 @@ import_doe_pac_source <- function(db,
 
   # Chemical name cleaning
   res <- res %>% dplyr::mutate(
-    # Replace prime symbols
-    name = gsub("\u2019|<U+2019>", "'", name) %>%
+    name = name %>%
+      # Replace prime symbols
+      gsub("\u2019|<U+2019>", "'", .) %>%
 
       # Fix Greek symbols
       fix.greek.symbols() %>%
@@ -149,7 +150,7 @@ import_doe_pac_source <- function(db,
       gsub('[\\]{1,}"', '"', .) %>%
 
       # Remove trademark symbols
-      gsub("\u00ae|<U+00ae>", "", name) %>%
+      gsub("\u00ae|<U+00ae>", "", .) %>%
 
       # Remove excess whitespace
       stringr::str_squish()
