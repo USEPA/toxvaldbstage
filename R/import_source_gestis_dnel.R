@@ -101,7 +101,7 @@ import_source_gestis_dnel <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
         fix.greek.symbols() %>%
 
         # Remove trademark symbols
-        gsub("\u00ae|<U+00ae>", "", name) %>%
+        gsub("\u00ae|<U+00ae>", "", .) %>%
 
         # Fix whitespace
         gsub("[\r\n][\r\n]", " ", .) %>%
