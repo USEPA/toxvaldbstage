@@ -89,13 +89,16 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   res1 <- lapply(list.files(paste0(dir, "/manual_curation"), full.names = TRUE, pattern = ".xlsx"), function(f){
     readxl::read_xlsx(f, sheet="manual_dose") %>%
       # Set dose to character across files
-      dplyr::mutate(dplyr::across(c("dose_value"), ~as.character(.)))
-    }) %>%
+      dplyr::mutate(dplyr::across(c("dose_value"), ~as.character(.)),
+                    # Get ntp study identifier
+                    ntp_study_identifier = basename(f) %>%
+                      stringr::str_extract("TOX-\\d+"))
+  }) %>%
     dplyr::bind_rows() %>%
     # Remove duplicated rows (dose_notes sometimes differ, but information is the same)
     # https://stackoverflow.com/questions/51856550/dplyr-distinct-over-two-columns
     dplyr::rowwise() %>%
-    dplyr::mutate(intermediate = paste0(c(name, sex, species, critical_effect_class, critical_effect), collapse = ",")) %>%
+    dplyr::mutate(intermediate = paste0(c(ntp_study_identifier, name, sex, species, critical_effect_class, critical_effect, critical_effect_direction), collapse = ",")) %>%
     dplyr::distinct(., intermediate, .keep_all=TRUE) %>%
     dplyr::select(-intermediate)
 
@@ -107,17 +110,17 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   # Separate rows to be updated from rows that are ok
   res0_ok = res0 %>%
     dplyr::filter(toxval_type == "NOEL")
-  res0_update = res0 %>%
+  res0_updated = res0 %>%
     dplyr::filter(toxval_type != "NOEL" | is.na(toxval_type)) %>%
     # Prepare res0_update for merging
-    dplyr::select(-critical_effect_direction, -toxval_type, -dose_value) %>%
+    dplyr::select(-toxval_type, -dose_value) %>%
     # Merge res0_update and res1 on name, sex, species, and critical effect class
     dplyr::left_join(res1,
-                     by=c("name", "sex", "species",
-                          "critical_effect_class", "critical_effect"))
+                     by=c("ntp_study_identifier", "name", "sex", "species",
+                          "critical_effect_class", "critical_effect", "critical_effect_direction"))
 
   # Combine all data
-  res = dplyr::bind_rows(res0_ok, res_updated) %>%
+  res = dplyr::bind_rows(res0_ok, res0_updated) %>%
     dplyr::rename(toxval_numeric = dose_value,
                   toxval_units = dose_units)
 
