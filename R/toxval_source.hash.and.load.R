@@ -113,7 +113,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
     res.temp = res %>%
       tidyr::unite(hash_col, all_of(sort(names(.)[names(.) %in% hashing_cols])), sep="") %>%
       dplyr::rowwise() %>%
-      dplyr::mutate(source_hash = paste0("ToxVal_", digest(hash_col, serialize = FALSE))) %>%
+      dplyr::mutate(source_hash = paste0("ToxValhc_", digest(hash_col, serialize = FALSE))) %>%
       dplyr::ungroup()
     res$source_hash = res.temp$source_hash
 

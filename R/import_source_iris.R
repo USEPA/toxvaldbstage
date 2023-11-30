@@ -112,6 +112,14 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     paste0("IRIS_", .) %>%
     gsub(" ", "_", .) %>%
     tolower()
+  # Pull most recent revision year to map to year field
+  iris_year_map = iris_data$Chemical_Rev_History.xlsx %>%
+    dplyr::group_by(`CHEMICAL ID`) %>%
+    dplyr::filter(iris_revision_number == max(`iris_revision_number`)) %>%
+    dplyr::select(iris_chemical_id=`CHEMICAL ID`, year=iris_revision_date) %>%
+    dplyr::mutate(year = year %>%
+                    format(format = "%Y") %>%
+                    as.numeric())
   # Convert revision history to JSON format
   iris_data$Chemical_Rev_History.xlsx <- iris_data$Chemical_Rev_History.xlsx %>%
     # Transform record columns into JSON
@@ -362,6 +370,9 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::select(-`EXPERIMENTAL DOSE TYPE`, -`POD VALUE`) %>%
     rbind(pod_fix)
 
+  # Hardcode species as human for RfD, RfD, HED, HED, Slope Factor, Unit Risk
+  human_toxval_type = c("RfD", "Inhalation Unit Risk", "RfC", "Oral Slope Factor", "HED", "HEC")
+  res0$species[res0$toxval_type %in% human_toxval_type] = "human"
   # Add source version date
   res0$source_version_date <- src_version_date
 
@@ -388,6 +399,11 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::select(-uncertainty_factor, -modifying_factor, -dose_type) %>%
     dplyr::distinct()
 
+  # Join with year map to add year field
+  res0 = res0 %>%
+    dplyr::left_join(iris_year_map,
+                     by="iris_chemical_id")
+
   # Fill blank hashing cols
   res0[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res0)]] <- "-"
 
@@ -402,5 +418,4 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
-
 }
