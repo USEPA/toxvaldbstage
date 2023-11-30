@@ -43,9 +43,42 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
 
   res = res0 %>%
     # Copy toxval fields from originals
-    dplyr::mutate(name = 'Webpage Name',
-                  casrn = 'CAS number',
-                  year = 'Evaluation year')
+    dplyr::mutate(name = `Webpage Name` %>%
+                    # Replace "-" unicode
+                    gsub("\u2212|\u2013", "-", .) %>%
+                    # Replace +/- symbol
+                    gsub("\u00b1", "+/-", .) %>%
+                    # Replace Prime symbol
+                    gsub("\u00b4|<U+00B4>|\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>|\u2032", "'", .) %>%
+                    # Replace trademark/copyright symbol
+                    gsub("\u00ae|<U+00ae>|\u00a9|\u2122", "", .) %>%
+                    # Handle species greek symbol case
+                    gsub("\u03b1lpha", "alpha", .) %>%
+                    # delta symbol
+                    gsub("\u03b4", "d", .) %>%
+                    # Replace greek symbol unicode
+                    fix.greek.symbols(),
+                  casrn = `CAS number` %>%
+                    # Remove parenthetics
+                    gsub("\\s*\\([^\\)]+\\)","", .),
+                  year = `Evaluation year`) %>%
+    # Separate casrn lists
+    tidyr::separate_rows(casrn, sep=";") %>%
+    tidyr::separate_rows(casrn, sep=",") %>%
+    tidyr::separate_rows(casrn, sep=" and ") %>%
+    tidyr::separate_rows(casrn, sep="/") %>%
+    dplyr::mutate(casrn = casrn %>%
+                    stringr::str_squish()) %>%
+    # Rename toxval identifier field
+    dplyr::rename(who_jecfa_chemical_id = `Chemical ID`)
+
+  # name unicode check
+  # tmp = res %>% mutate(name_check = name %>% stringi::stri_escape_unicode())
+  # tmp %>% filter(name != name_check) %>% select(name, name_check) %>% distinct() %>% View()
+  # casrn unicode check
+  # tmp = res %>% mutate(casrn_check = casrn %>% stringi::stri_escape_unicode())
+  # tmp %>% filter(casrn != casrn_check) %>% select(casrn, casrn_check) %>% distinct() %>% View()
+  # res %>% select(casrn) %>% unique() %>% View()
 
   # res$ADI[grepl(";", res$ADI)] %>% unique()
   # Case of ADI ending with ";", fix before separate
@@ -86,7 +119,9 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
       species = "human",
       exposure_route = "oral",
       exposure_method = "diet"
-    )
+    ) %>%
+    # Remove NA toxval_numeric values (we don't use them)
+    dplyr::filter(!is.na(toxval_numeric))
 
   # Set units as NA if numeric is NA
   res$toxval_units[is.na(res$toxval_numeric)] = NA
