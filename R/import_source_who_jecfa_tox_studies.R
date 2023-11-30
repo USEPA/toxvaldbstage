@@ -57,7 +57,6 @@ import_source_who_jecfa_tox_studies <- function(db,chem.check.halt=FALSE, do.res
     dplyr::mutate(casrn = casrn %>%
                     stringr::str_squish())
 
-  res$unicode_names = stringi::stri_escape_unicode(res$name)
   # Deal with two toxval_numeric values in one. Hardcode split
   row_to_split <- res %>%
     dplyr::filter(NOAEL == "Rats only:  0.67 mg/kg bw/d (males) and 1.88 mg/kg bw/d (females)")
