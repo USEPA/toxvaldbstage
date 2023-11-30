@@ -112,6 +112,14 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     paste0("IRIS_", .) %>%
     gsub(" ", "_", .) %>%
     tolower()
+  # Pull most recent revision year to map to year field
+  iris_year_map = iris_data$Chemical_Rev_History.xlsx %>%
+    dplyr::group_by(`CHEMICAL ID`) %>%
+    dplyr::filter(iris_revision_number == max(`iris_revision_number`)) %>%
+    dplyr::select(iris_chemical_id=`CHEMICAL ID`, year=iris_revision_date) %>%
+    dplyr::mutate(year = year %>%
+                    format(format = "%Y") %>%
+                    as.numeric())
   # Convert revision history to JSON format
   iris_data$Chemical_Rev_History.xlsx <- iris_data$Chemical_Rev_History.xlsx %>%
     # Transform record columns into JSON
@@ -303,7 +311,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   res0 <- res0 %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(species_original = `PRINCIPAL STUDY` %>%
+    dplyr::mutate(species = `PRINCIPAL STUDY` %>%
                     tolower() %>%
                     # Extract species from `PRINCIPAL STUDY`
                     stringr::str_extract_all(., species_list) %>%
@@ -311,7 +319,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                     unique() %>%
                     paste0(collapse="; "),
                   # Extract sex from `PRINCIPAL STUDY`
-                  sex_original = `PRINCIPAL STUDY` %>%
+                  sex = `PRINCIPAL STUDY` %>%
                     tolower() %>%
                     # Extract any matches to sex
                     stringr::str_extract_all(., "female|females|male|males") %>%
@@ -319,11 +327,11 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                     unique() %>%
                     paste0(collapse="; "))
   # Fill in missing with "-"
-  res0$species_original[res0$species_original %in% c("", "NA")] <- "-"
+  res0$species[res0$species %in% c("", "NA")] <- "-"
   # Set occupational or epidemilog* studies to human species
-  res0$species_original[grepl("occupation|epidemiolog", res0$species_original)] <- "human"
-  # res0 %>% select(`PRINCIPAL STUDY`, species_original) %>% distinct() %>% View()
-  res0$sex_original[res0$sex_original %in% c("", "NA")] <- "-"
+  res0$species[grepl("occupation|epidemiolog", res0$species)] <- "human"
+  # res0 %>% select(`PRINCIPAL STUDY`, species) %>% distinct() %>% View()
+  res0$sex[res0$sex %in% c("", "NA")] <- "-"
 
   # Transform/relabel `EXPERIMENTAL DOSE TYPE` into a toxval_type with POD as the toxval_numeric/units
   pod_fix <- res0 %>%
@@ -362,6 +370,9 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::select(-`EXPERIMENTAL DOSE TYPE`, -`POD VALUE`) %>%
     rbind(pod_fix)
 
+  # Hardcode species as human for RfD, RfD, HED, HED, Slope Factor, Unit Risk
+  human_toxval_type = c("RfD", "Inhalation Unit Risk", "RfC", "Oral Slope Factor", "HED", "HEC")
+  res0$species[res0$toxval_type %in% human_toxval_type] = "human"
   # Add source version date
   res0$source_version_date <- src_version_date
 
@@ -372,6 +383,30 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
+  # Add study_type, study_duration_class, and exposure_route, fix critical effect
+  res0 <- res0 %>%
+    dplyr::rename(exposure_route=route,
+                  study_type = assessment_type,
+                  study_duration_class=risk_assessment_duration) %>%
+    tidyr::unite(col="study_type", study_type, principal_study, sep=" - ", remove = FALSE) %>%
+    # Combine endpoint and critical_effect
+    tidyr::unite(col="critical_effect", endpoint, critical_effect, sep=": ", remove = FALSE) %>%
+    dplyr::mutate(critical_effect = critical_effect %>%
+                    gsub("-: ", "", .),
+                  study_type = study_type %>%
+                    gsub(" - -| - NA", "", .)) %>%
+    # Team decision to remove uncertainty_factor, modifying_factor, and dose_type (causing unnecessary duplicates)
+    dplyr::select(-uncertainty_factor, -modifying_factor, -dose_type) %>%
+    dplyr::distinct()
+
+  # Join with year map to add year field
+  res0 = res0 %>%
+    dplyr::left_join(iris_year_map,
+                     by="iris_chemical_id")
+
+  # Fill blank hashing cols
+  res0[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res0)]] <- "-"
+
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -381,6 +416,6 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        res=res0,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
-
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }

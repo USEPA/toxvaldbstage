@@ -67,18 +67,29 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
   }
 
   # Remove columns
-  rm_list = c("source_id", "chemical_id", "source",
-              "subsource", "created_by", "create_time",
-              "modify_time", "qc_status", "parent_hash"
-  )
+  rm_list = c(toxval.config()$non_hash_cols,
+              c("source", "subsource"))
   src_data[, rm_list] <- NULL
   # Set ID column for pivot
   id_cols = c("record_id")
   # Set list of template columns to add
   template_cols = c("dataset_name", "domain_name", "source_name", "document_id",
                     "document_name", "document_path")
+
+  # Get Clowder document fields
+  rec_docs <- runQuery(paste0("SELECT a.clowder_id as source_name, b.source_hash as record_id FROM documents a ",
+                              "LEFT JOIN documents_records b ",
+                              "ON b.fk_doc_id = a.id ",
+                              "WHERE source_hash in ('",
+                              paste0(src_data$record_id, collapse="', '")
+                              ,"')"),
+                       source.db)
+
+
   # Load and transform data
   in_dat = src_data %>%
+    dplyr::left_join(rec_docs,
+                     by="record_id") %>%
     tidyr::pivot_longer(cols=-c(record_id, tidyr::all_of(id_cols)),
                         names_to="field_name",
                         values_to="value",
@@ -91,8 +102,8 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
   # Reorder columns to fit template order
   in_dat = in_dat %>%
     dplyr::select(dataset_name, domain_name, source_name,
-           record_id, field_name, value,
-           document_id, document_name, document_path)
+                  record_id, field_name, value,
+                  document_id, document_name, document_path)
   # Prep export location (check and create if not present)
   if(!dir.exists("Repo/DAT Input")) dir.create("Repo/DAT Input")
 

@@ -7,6 +7,8 @@
 #' @param do.reset If TRUE, delete data from the database for this source before #' inserting new data. Default FALSE
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @param chem.check.halt If TRUE, stop the execution if there are errors in the #' chemical mapping
+#' @param verbose If TRUE, write out diagnostic messages #'
+#' @param hashing_cols Optional list of columns to use for generating source_hash
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
@@ -23,7 +25,8 @@
 #--------------------------------------------------------------------------------------
 source_prep_and_load <- function(db,source,table,res,
                                  do.reset=FALSE, do.insert=FALSE,
-                                 chem.check.halt=FALSE){
+                                 chem.check.halt=FALSE, verbose=FALSE,
+                                 hashing_cols = NULL){
   printCurrentFunction(paste(db,"\n",source,":",table))
 
   chem.check.halt = FALSE
@@ -79,7 +82,27 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
   cat("Do the chemical checking\n")
   #####################################################################
-  res = source_chemical.process(db,res,source,table,chem.check.halt,casrn.col="casrn",name.col="name")
+  # res = source_chemical.process(db,res,source,table,chem.check.halt,casrn.col="casrn",name.col="name")
+
+  # Process and curate the distinct chemical entries (saves processing time and resources)
+  chem_map = source_chemical.process(db=db,
+                                    res=res %>%
+                                      dplyr::select(casrn, name) %>%
+                                      dplyr::distinct(),
+                                    source=source,
+                                    table=table,
+                                    chem.check.halt=chem.check.halt,
+                                    casrn.col="casrn",name.col="name",
+                                    verbose=verbose)
+
+  # Map back chemical information to all records
+  res <- res %>%
+    left_join(chem_map %>%
+                dplyr::select(-chemical_index),
+              by = c("name", "casrn"))
+
+  # Remove intermediate
+  rm(chem_map)
 
   #####################################################################
   cat("Set the default values for missing data\n")
@@ -91,5 +114,5 @@ source_prep_and_load <- function(db,source,table,res,
   #####################################################################
   toxval_source.hash.and.load(db=db, source=source,table=table,
                               do.reset=do.reset, do.insert=do.insert,
-                              res=res)
+                              res=res, hashing_cols = hashing_cols)
 }

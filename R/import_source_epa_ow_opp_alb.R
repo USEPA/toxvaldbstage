@@ -31,9 +31,9 @@ import_source_epa_ow_opp_alb <- function(db, chem.check.halt=FALSE, do.reset=FAL
   source = "EPA OW OPP-ALB"
   source_table = "source_epa_ow_opp_alb"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2023-02-28")
+  src_version_date = as.Date("2023-08-31")
   dir = paste0(toxval.config()$datapath,"epa_ow_opp_alb/epa_ow_opp_alb_files/")
-  file = paste0(dir,"source_epa_ow_opp_alb_20230228.xlsx")
+  file = paste0(dir,"source_epa_ow_opp_alb_20230831.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")

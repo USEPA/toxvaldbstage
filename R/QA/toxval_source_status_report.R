@@ -26,6 +26,10 @@ toxval_source_status_report <- function(db){
   ################################################################################
   cat("\n...Generating general stats")
   gen_stats = lapply(chem_index$source_table[!is.na(chem_index$source_table)], function(s_tbl){
+    # Check if table exists
+    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
+    if(!nrow(s_check)) return(NULL)
+    # Pull data for existing table
     s_dat = runQuery(paste0("SELECT chemical_id, create_time, qc_status FROM ", s_tbl), db=db)
     s_audit = runQuery(paste0("SELECT MIN(create_time) as initial_import FROM source_audit where src_tbl_name = '", s_tbl,"'"), db=db)
 
@@ -34,8 +38,8 @@ toxval_source_status_report <- function(db){
     }
     tmp = s_dat %>%
       dplyr::summarise(n_records = n(),
-                n_chems = length(unique(chemical_id)),
-                first_uploaded = s_audit$initial_import) %>%
+                       n_chems = length(unique(chemical_id)),
+                       first_uploaded = s_audit$initial_import) %>%
       dplyr::mutate(source_table = s_tbl)
 
     tmp$last_updated = s_dat$create_time[s_dat$qc_status == "not determined"] %>%
@@ -51,9 +55,16 @@ toxval_source_status_report <- function(db){
   ### Get chemical curation stats
   ################################################################################
   cat("\n...Generating chemical curation stats")
-  src_chem <- runQuery("SELECT source, dtxsid, dtxrid FROM source_chemical", db=db)
-
-  chem_stats <- src_chem %>%
+  chem_stats = lapply(chem_index$source_table[!is.na(chem_index$source_table)], function(s_tbl){
+    # Check if table exists
+    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
+    if(!nrow(s_check)) return(NULL)
+    # Pull source_chemical data for existing table by chemical_id
+    runQuery(paste0("SELECT source, dtxsid, dtxrid FROM source_chemical ",
+                             "WHERE chemical_id in (SELECT chemical_id FROM ", s_tbl, ")"), db) %>%
+      return()
+  }) %>%
+    dplyr::bind_rows() %>%
     dplyr::group_by(source) %>%
     dplyr::summarise(total_chems = n(),
                      dtxrid = length(unique(dtxrid)),
@@ -61,13 +72,18 @@ toxval_source_status_report <- function(db){
     get_percent_summary("perc_dtxsid", "dtxsid", "total_chems") %>%
     get_percent_summary("perc_dtxrid", "dtxrid", "total_chems") %>%
     left_join(x=chem_index, y=., by="source") %>%
-    dplyr::mutate(across(c(-chemprefix, -source, -source_table), ~tidyr::replace_na(., 0)))
+    dplyr::mutate(across(c("total_chems", "dtxrid", "dtxsid", "perc_dtxsid", "perc_dtxrid"),
+                         ~tidyr::replace_na(., 0)))
 
   ################################################################################
   ### Get QC Stats
   ################################################################################
   cat("\n...Generating QC stats")
   qc_stats = lapply(chem_index$source_table[!is.na(chem_index$source_table)], function(s_tbl){
+    # Check if table exists
+    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
+    if(!nrow(s_check)) return(NULL)
+    # Pull data for existing table
     runQuery(paste0("SELECT qc_status FROM ", s_tbl), db=db) %>%
       dplyr::summarise(total_records = n(),
                        total_qc = sum(qc_status != "not determined"),
@@ -75,7 +91,7 @@ toxval_source_status_report <- function(db){
                        fail = sum(qc_status %in% c("fail", "FAIL")),
                        pending = sum(qc_status == "not determined"),
                        qc_perc = round(total_qc / total_records * 100, 3)
-                       ) %>%
+      ) %>%
       dplyr::mutate(source_table = s_tbl) %>%
       return()
   }) %>%
@@ -83,7 +99,7 @@ toxval_source_status_report <- function(db){
     get_percent_summary("perc_pass", "pass", "total_qc") %>%
     get_percent_summary("perc_fail", "fail", "total_qc") %>%
     left_join(x=chem_index, y=., by="source_table") %>%
-    dplyr::mutate(across(c(-chemprefix, -source, -source_table), ~tidyr::replace_na(., 0)))
+    dplyr::mutate(across(c(-chemprefix, -source, -source_table, -source_status), ~tidyr::replace_na(., 0)))
 
   ################################################################################
   ### Get Document Cataloging/Lineage Stats
@@ -104,15 +120,36 @@ toxval_source_status_report <- function(db){
     doc_cat_stats = data.frame()
   } else {
     # Generate stats once the document lineage schema is established
-    doc_cat_stats <- runQuery("SELECT source_hash, source_table FROM documents_records", db) %>%
-      distinct() %>%
-      dplyr::group_by(source_table) %>%
+    doc_cat_stats <- runQuery(paste0("SELECT distinct a.source_hash, a.source_table, b.document_type ",
+                                     "FROM documents_records a ",
+                                     "LEFT JOIN documents b on a.fk_doc_id = b.id"), db)
+
+    # Filter to only source_hash values in the source tables (can be orphan linkages due to archived tables not
+    # updated in the document_records table...)
+    doc_cat_stats = lapply(unique(doc_cat_stats$source_table), function(s_tbl){
+      # Check if table exists
+      s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
+      if(!nrow(s_check)) return(NULL)
+      # Pull data for existing table
+      hashes = runQuery(paste0("SELECT DISTINCT source_hash FROM ", s_tbl), db)
+      doc_cat_stats %>%
+        dplyr::filter(source_table == s_tbl,
+                      source_hash %in% hashes$source_hash) %>%
+        return()
+    }) %>%
+      dplyr::bind_rows()
+
+    # Summarize
+    doc_cat_stats = doc_cat_stats %>%
+      dplyr::group_by(source_table, document_type) %>%
       dplyr::summarise(recs_w_docs = n()) %>%
+      dplyr::ungroup() %>%
       left_join(x=chem_index, y=., by="source_table") %>%
       left_join(gen_stats %>% select(source_table, n_records) %>% distinct(),
                 by="source_table") %>%
-      get_percent_summary("perc_w_docs", "recs_w_docs", "n_records") %>%
-      dplyr::mutate(across(c(-chemprefix, -source, -source_table), ~tidyr::replace_na(., 0)))
+      get_percent_summary(col="perc_w_docs", num="recs_w_docs", den="n_records") %>%
+      dplyr::mutate(across(c(-chemprefix, -source, -source_table, -source_status, -document_type), ~tidyr::replace_na(., 0))) %>%
+      dplyr::arrange(source, document_type)
   }
 
   ################################################################################
@@ -121,6 +158,10 @@ toxval_source_status_report <- function(db){
   cat("\n...Generating chemical index check stats")
   # Pull Chemical indexes in use in source tables
   src_table = lapply(tblList, function(s_tbl){
+    # Check if table exists
+    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
+    if(!nrow(s_check)) return(NULL)
+    # Pull data for existing table
     row = runQuery(paste0("SELECT * FROM ", s_tbl, " LIMIT 1"),
                    db)
     if("chemical_id" %in% names(row)){
@@ -183,7 +224,7 @@ toxval_source_status_report <- function(db){
 #' @return Modified dataframe with new percentage 'col' based on 'num' divided by 'den'
 get_percent_summary <- function(df, col, num, den, n_digits=3){
   df[[col]] = round(df[[num]] / df[[den]] * 100, digits = n_digits)
+  # Replace "Inf" with NA
+  df[sapply(df, is.infinite)] <- NA
   return(df)
 }
-
-
