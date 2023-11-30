@@ -98,10 +98,10 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
     dplyr::distinct() %>%
 
     # Extract diet information as toxval_subtype
-    tidyr::separate_wider_delim(species,
-                                delim = " (",
-                                names = c("species", "toxval_subtype"),
-                                too_few = "align_start") %>%
+    tidyr::separate(species,
+                    sep = " \\(",
+                    into = c("species", "toxval_subtype"),
+                    fill="right") %>%
 
     # Final cleaning
     dplyr::mutate(
@@ -116,7 +116,7 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
         # Fix escaped quotation marks
         gsub("[\\]{1,}'", "'", .) %>%
         gsub('[\\]{1,}"', '"', .) %>%
-      
+
       # Remove whitespace
       stringr::str_squish()
     )
