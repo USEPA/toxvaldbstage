@@ -42,22 +42,50 @@ import_source_who_jecfa_tox_studies <- function(db,chem.check.halt=FALSE, do.res
   #
   library(readr)
   res = res0 %>%
-    # Rename toxval names
-    dplyr::rename(name = 'Webpage Name',
-                  casrn = 'CAS number',
-                  year = 'Evaluation year',
-                  species = 'Animal Specie',
-                  critical_effect = 'Effect'
-                  )
+    # Copy toxval fields from originals
+    dplyr::mutate(name = `Webpage Name` %>%
+                    # Replace trademark/copyright symbol
+                    gsub("\u00ae|<U+00ae>|\u00a9|\u2122", "", .) %>%
+                    fix.greek.symbols(),
+                  casrn = `CAS number` %>%
+                    # Remove parenthetics
+                    gsub("\\s*\\([^\\)]+\\)","", .),
+                  critical_effect = `Effect`,
+                  species = `Animal Specie`,
+                  year = `Evaluation year`) %>%
+    tidyr::separate_rows(casrn, sep=";") %>%
+    dplyr::mutate(casrn = casrn %>%
+                    stringr::str_squish())
+
+  res$unicode_names = stringi::stri_escape_unicode(res$name)
+  # Deal with two toxval_numeric values in one. Hardcode split
+  row_to_split <- res %>%
+    dplyr::filter(NOAEL == "Rats only:  0.67 mg/kg bw/d (males) and 1.88 mg/kg bw/d (females)")
+  split_rows <- row_to_split %>%
+    tidyr::separate_rows(NOAEL, sep = " and ")
+
+  if (nrow(split_rows) > 0){
+    res <- res %>%
+      dplyr::filter(!NOAEL %in% "Rats only:  0.67 mg/kg bw/d (males) and 1.88 mg/kg bw/d (females)")
+    res <- dplyr::bind_rows(res, split_rows)
+  }
+
 
   res = res %>%
     pivot_longer(cols = c(NOAEL, NOEL, LOEL, PMTDI, LOAEL, PTWI, PTMI, PTDI), names_to= "toxval_type", values_to = "value") %>%
-    mutate(
-      cleaned_value = gsub("\\(.*?\\)","",value),
-      cleaned_value = gsub("–", "-", cleaned_value),
-      cleaned_value = gsub("\\s*-\\s*", "-", cleaned_value),
-      toxval_numeric = stringr::str_extract(cleaned_value, "\\d+\\.?\\d*-?\\d*\\.?\\d*"),
-      toxval_units = stringr::str_replace(cleaned_value, paste0(".*", toxval_numeric),""),
+    tidyr::separate_rows(value, sep = ';') %>%
+    dplyr::mutate(
+      value = fix.greek.symbols(value)
+    ) %>%
+    dplyr::mutate(
+      cleaned_value = value %>%
+        gsub("\\(.*?\\)","",.) %>%
+        gsub("–", "-", .) %>%
+        gsub("\\s*-\\s*", "-", .),
+      toxval_numeric = cleaned_value %>%
+        stringr::str_extract(., "\\d+\\.?\\d*-?\\d*\\.?\\d*"),
+      # Fixes a few cases of the toxval_numeric occurring twice in the string, causing issues with toxval_units
+      toxval_units = stringr::str_match(cleaned_value, paste0(toxval_numeric, "(.*)"))[,2],
       toxval_units = stringr::str_trim(toxval_units),
       toxval_units = if_else(is.na(toxval_numeric), NA_character_, toxval_units),
       toxval_numeric_qualifier = dplyr::case_when(
@@ -66,8 +94,20 @@ import_source_who_jecfa_tox_studies <- function(db,chem.check.halt=FALSE, do.res
         grepl("=", cleaned_value) ~ "=",
         grepl("~", cleaned_value) ~ "~",
         TRUE ~ "-"
-      )
-    )
+      ),
+      # Extract sex
+      sex = str_extract(value, "\\((males|females)\\)")
+    ) %>%
+    mutate(
+      sex = if_else(!is.na(sex), str_extract(sex, "(males|females)"), "-"),
+    ) %>%
+
+    dplyr::filter(!is.na(toxval_numeric))
+
+  res$toxval_units[is.na(res$toxval_numeric)] = NA
+
+  res = res %>%
+    dplyr::select(-cleaned_value, -value)
 
   # Standardize the names
   names(res) <- names(res) %>%
