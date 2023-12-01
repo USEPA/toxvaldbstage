@@ -94,7 +94,7 @@ import_source_who_jecfa_tox_studies <- function(db,chem.check.halt=FALSE, do.res
         TRUE ~ "-"
       ),
       # Extract sex
-      sex = stringr::str_extract(value, "\\((males|females)\\)")
+      sex = stringr::str_extract(value, "\\(males|\\(females")
     ) %>%
     dplyr::mutate(
       sex = if_else(!is.na(sex), stringr::str_extract(sex, "(males|females)"), "-"),
