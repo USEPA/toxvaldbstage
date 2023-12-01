@@ -124,6 +124,25 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     dplyr::rename(toxval_numeric = dose_value,
                   toxval_units = dose_units)
 
+  # Post manual curation edits to whole (did not want to affect joining)
+  res = res %>%
+    tidyr::unite(col="critical_effect",
+                 critical_effect_class, critical_effect,
+                 sep=" - ")
+
+  # Add long_ref for documents
+  res$long_ref = ifelse(res$ntp_study_identifier == "TOX-96",
+                        paste0("National Toxicology Program. 2019. ",
+                               "NTP Technical Report on the Toxicity Studies of Perfluoroalkyl Sulfonates ",
+                               "(Perfluorobutane Sulfonic Acid, Perfluorohexane Sulfonate Potassium Salt, and Perfluorooctane Sulfonic Acid) ",
+                               "Administered by Gavage to Sprague Dawley (Hsd:Sprague Dawley SD) Rats (Revised) ",
+                               "Toxicity Report 96. https://ntp.niehs.nih.gov/sites/default/files/ntp/htdocs/st_rpts/tox096_508.pdf."),
+                        paste0("National Toxicology Program. 2019. ",
+                               "NTP Technical Report on the Toxicity Studies of Perfluoroalkyl Carboxylates ",
+                               "(Perfluorohexanoic Acid, Perfluorooctanoic Acid, Perfluorononanoic Acid, and Perfluorodecanoic Acid) ",
+                               "Administered by Gavage to Sprague Dawley (Hsd:Sprague Dawley SD) Rats (Revised) ",
+                               "Toxicity Report 97. https://ntp.niehs.nih.gov/sites/default/files/ntp/htdocs/st_rpts/tox097_508.pdf."))
+
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
   #####################################################################
