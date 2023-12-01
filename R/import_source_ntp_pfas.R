@@ -128,7 +128,9 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   res = res %>%
     tidyr::unite(col="critical_effect",
                  critical_effect_class, critical_effect,
-                 sep=" - ")
+                 sep=" - ") %>%
+    # Hardcode report year
+    dplyr::mutate(year = 2019)
 
   # Add long_ref for documents
   res$long_ref = ifelse(res$ntp_study_identifier == "TOX-96",
