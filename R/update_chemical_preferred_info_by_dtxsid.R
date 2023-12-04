@@ -40,11 +40,21 @@ update_chemical_preferred_info_by_dtxsid <- function(source.db){
     # Combine all results
     updated_chem_details = dplyr::bind_rows(updated_chem_details)
   }
-  # if(nrow(preferred_name)){
-  #   # Query to inner join and make updates with updated_chem_details dataframe (temp table added/dropped)
-  #   updateQuery = paste0("UPDATE toxval a INNER JOIN z_updated_df b ",
-  #                        "ON (a.dtxsid = b.dtxsid) SET a.name = b.preferred_name, casrn = b.casrn")
-  #   # Run update query
-  #   runUpdate(table="toxval", updateQuery=updateQuery, updated_df=res, db=toxval.db)
-  # }
+
+  # # Compare old and new identifiers
+  # old = runQuery(paste0("select distinct dtxsid, name as old_name, casrn as old_casrn from source_chemical where dtxsid IS NOT NULL"), source.db)
+  #
+  # tmp = updated_chem_details %>%
+  #   dplyr::left_join(old,
+  #                    by="dtxsid") %>%
+  #   dplyr::mutate(compare_name = old_name != preferred_name,
+  #                 compare_casrn = old_casrn != casrn)
+
+  if(nrow(updated_chem_details)){
+    # Query to inner join and make updates with updated_chem_details dataframe (temp table added/dropped)
+    updateQuery = paste0("UPDATE source_chemical a INNER JOIN z_updated_df b ",
+                         "ON (a.dtxsid = b.dtxsid) SET a.name = b.preferred_name, a.casrn = b.casrn")
+    # Run update query
+    # runUpdate(table="source_chemical", updateQuery=updateQuery, updated_df=updated_chem_details, db=source.db)
+  }
 }
