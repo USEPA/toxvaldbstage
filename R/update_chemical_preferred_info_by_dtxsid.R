@@ -35,7 +35,7 @@ update_chemical_preferred_info_by_dtxsid <- function(source.db){
       ) %>%
         httr::content() %>%
         dplyr::bind_rows() %>%
-        dplyr::select(dtxsid, preferred_name=preferredName,casrn=casrn)
+        dplyr::select(dtxsid, name=preferredName,casrn=casrn)
     }
     # Combine all results
     updated_chem_details = dplyr::bind_rows(updated_chem_details)
@@ -47,14 +47,17 @@ update_chemical_preferred_info_by_dtxsid <- function(source.db){
   # tmp = updated_chem_details %>%
   #   dplyr::left_join(old,
   #                    by="dtxsid") %>%
-  #   dplyr::mutate(compare_name = old_name != preferred_name,
+  #   dplyr::mutate(compare_name = old_name != name,
   #                 compare_casrn = old_casrn != casrn)
+
+  # Fix non-ascii
+  updated_chem_details = fix.non_ascii.v2(updated_chem_details, source=NULL)
 
   if(nrow(updated_chem_details)){
     # Query to inner join and make updates with updated_chem_details dataframe (temp table added/dropped)
     updateQuery = paste0("UPDATE source_chemical a INNER JOIN z_updated_df b ",
-                         "ON (a.dtxsid = b.dtxsid) SET a.name = b.preferred_name, a.casrn = b.casrn")
+                         "ON (a.dtxsid = b.dtxsid) SET a.name = b.name, a.casrn = b.casrn")
     # Run update query
-    # runUpdate(table="source_chemical", updateQuery=updateQuery, updated_df=updated_chem_details, db=source.db)
+    runUpdate(table="source_chemical", updateQuery=updateQuery, updated_df=updated_chem_details, db=source.db)
   }
 }
