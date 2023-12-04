@@ -19,7 +19,6 @@
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
 #'  \code{\link[tibble]{add_column}}
 #' @rdname import_rsl_source
-#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_replace_all
 #' @importFrom dplyr rename filter mutate bind_rows across case_when

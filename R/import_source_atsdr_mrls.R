@@ -91,8 +91,9 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
                   source_url = "https://wwwn.cdc.gov/TSP/MRLS/mrlsListing.aspx",
                   # Recode study_type from abbreviations
                   study_type = dplyr::recode(study_type,
-                                             "Int." = "Intermediate",
-                                             "Chr."="Chronic"),
+                                             "Acute" = "acute",
+                                             "Int." = "short-term",
+                                             "Chr."="chronic"),
                   # Recode exposure_route from abbreviations
                   exposure_route = dplyr::recode(exposure_route,
                                         'Rad.'='External Radiation',
@@ -104,8 +105,8 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
     # Fix greek symbols
     dplyr::mutate(dplyr::across(c("name", "toxval_units"), ~fix.greek.symbols(.))) %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(study_duration_value = ifelse(study_type == "Acute", "1-14 days",
-                                          ifelse(study_type == "Chronic", ">1 year",
+    dplyr::mutate(study_duration_value = ifelse(study_type == "acute", "1-14 days",
+                                          ifelse(study_type == "chronic", ">1 year",
                                                  "15-364 days"))) %>%
     dplyr::ungroup() %>%
     tidyr::separate(study_duration_value, c("study_duration_value", "study_duration_units"), sep=" ") %>%
