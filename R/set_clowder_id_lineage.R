@@ -168,6 +168,11 @@ set_clowder_id_lineage <- function(source_table,
                                                  document_name = "hess_20230517_fixed.xlsx"),
                       "source_copper" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/source_copper_document_map.xlsx")),
+
+                      "source_gestis_dnel" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                      "clowder_v3/source_gestis_dnel_document_map.xlsx"),
+                                                               col_types = "text", guess_max=21474836),
+
                       # No source match, return empty
                       data.frame()
     )
@@ -949,6 +954,70 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::left_join(map_file %>%
                                          dplyr::select(fk_doc_id, clowder_id, long_ref),
                                        by="long_ref") %>%
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(!is.na(parent_flag)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res, tmp)
+                    # Return res
+                    res
+                  },
+                  "source_gestis_dnel" = {
+                    # Sync map_file chemical name cleaning
+                    map_file = map_file %>%
+                      dplyr::mutate(name = name %>%
+                                    # Fix Greek symbols
+                                    fix.greek.symbols() %>%
+
+                                    # Remove trademark symbols
+                                    gsub("\u00ae|<U+00ae>", "", .) %>%
+
+                                    # Fix whitespace
+                                    gsub("[\r\n][\r\n]", " ", .) %>%
+                                    gsub("\u00a0|<U+00A0>", " ", .) %>%
+
+                                    # Fix quotations and apostrophes
+                                    gsub("\u201c|<U+201C>|\u201d|<U+201D>", '"', .) %>%
+                                    gsub("\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>", "'", .) %>%
+
+                                    # Fix superscript/subscript
+                                    gsub("\u00b3|<U+00B3>", "3", .) %>%
+                                    gsub("\u00b9|<U+00B9>", "1", .) %>%
+                                    gsub("\u2070|<U+2070>", "0", .) %>%
+                                    gsub("\u00b2|<U+00B2>", "2", .) %>%
+                                    gsub("\u2079|<U+2079>", "9", .) %>%
+                                    gsub("\u2078|<U+2078>", "8", .) %>%
+                                    gsub("\u2074|<U+2074>", "4", .) %>%
+                                    gsub("\u2077|<U+2077>", "7", .) %>%
+                                    gsub("\u2076|<U+2076>", "6", .) %>%
+
+                                    # Fix general punctuation
+                                    gsub("\u00b4|<U+00B4>", "'", .) %>%
+                                    gsub("\u2013|<U+2013>", "-", .) %>%
+                                    gsub("\u00bf|<U+00BF>", "?", .) %>%
+
+                                    # Fix math symbols
+                                    gsub("\u2265|<U+2265>", ">=", .) %>%
+                                    gsub("\u00b1|<U+00B1>", "+/-", .) %>%
+                                    gsub("\u00b0|<U+00B0>", "", .) %>%
+                                    gsub("\u00b0|<U+00B0>", "", .) %>%
+                                    gsub("\u2032|<U+2032>", "", .) %>%
+                                    gsub("\u00b7|<U+00B7>", "*", .) %>%
+
+                                    # Remove excess whitespace
+                                    stringr::str_squish())
+                    # Join on name
+                    res <- res %>%
+                      dplyr::select(source_hash, source_version_date, name) %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id, name),
+                                       by="name") %>%
                       dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
 
                     # Match to extraction doc
