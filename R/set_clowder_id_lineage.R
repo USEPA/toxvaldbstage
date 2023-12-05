@@ -106,9 +106,8 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_ow_opp_alb" = readr::read_csv(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_epa_ow_opp_alb_document_map.csv"),
                                                                 col_types = readr::cols()),
-                      "source_atsdr_mrls" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                   "clowder_v3/source_astdr_mrls_2023_document_map_20231012.csv"),
-                                                            col_types = readr::cols()),
+                      "source_atsdr_mrls" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                     "clowder_v3/source_atsdr_mrls_sept2023_doc_map_20231204.xlsx")),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20231019.xlsx")),
                       ### Hard coded document maps
@@ -825,16 +824,6 @@ set_clowder_id_lineage <- function(source_table,
                       tidyr::separate_rows(`Chemical Name`, sep=" & ") %>%
                       tidyr::separate_rows(`Chemical Name`, sep=" AND ")
 
-                    # Separate groups into individual chemical names
-                    # origin_docs <- origin_docs %>%
-                    #   mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, ", ")) %>%
-                    #   unnest(cols = c('Chemical Name'))
-                    # origin_docs <- origin_docs %>%
-                    #   mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, " & ")) %>%
-                    #   unnest(cols = c('Chemical Name'))
-                    # origin_docs <- origin_docs %>%
-                    #   mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, " AND ")) %>%
-                    #   unnest(cols = c('Chemical Name'))
 
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
@@ -847,10 +836,9 @@ set_clowder_id_lineage <- function(source_table,
                     unmatched_names = c("BARIUM", "2-BUTOXYETHANOL", "CHROMIUM", "CYANIDE",
                                         "DDD", "DDT", "DDE", "DICHLOROBENZENE", "1,2-DICHLOROETHENE",
                                         "DICHLOROPROPENE", "DINITROTOLUENE", "FLUORIDE",
-                                        "HEXACHLOROCYCLOHEXANE", "PBDES", "CHLOROPHENOL", "TIN",
+                                        "HEXACHLOROCYCLOHEXANE", "CHLOROPHENOL", "TIN",
                                         "URANIUM", "HYDRAZINE", "CHLORODIBENZOFURAN", "PHOSPHATE",
-                                        "XYLENES", "PHOSPHORUS", "IONIZING RADIATION", "MANGANESE",
-                                        "METHYLENEDIPHENYL DIISOCYANATE")
+                                        "XYLENES", "PHOSPHORUS", "IONIZING RADIATION", "PBDES", "MANGANESE", "(2,4-D)")
 
                     # Find matches for those missing matches with grep name to chemical name
                     for(u_name in unmatched_names){
