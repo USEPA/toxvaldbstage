@@ -74,11 +74,13 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
         tolower(),
       # Removing parenthesis around values in route_of_administration field
       route_of_administration = gsub("[()]", "", route_of_administration),
-      tocval_subsource = "Repeated Dose Toxicity HESS"
+      toxval_subtype = "Repeated Dose Toxicity HESS"
     ) %>%
     # Splitting route_of_administration field into exposure_route and exposure_method
     tidyr::separate(route_of_administration, c("exposure_route", "exposure_method"),
                     sep=" ", fill="right", extra = "merge", remove=FALSE) %>%
+    tidyr::separate(name, into=c("name", "name_extra"), sep=";", extra='merge', fill='right') %>%
+    dplyr::select(-name_extra) %>%
     dplyr::distinct()
 
   # Check route_of_administration splitting
@@ -86,6 +88,7 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   # Group combine effect for study groups
   crit_groups = res %>%
+    tidyr::unite(critical_effect, critical_effect, tissue, sep=" - ", remove=FALSE) %>%
     dplyr::select(name, toxval_type, toxval_numeric, critical_effect) %>%
     dplyr::group_by(name, toxval_type, toxval_numeric) %>%
     dplyr::mutate(critical_effect = paste0(unique(critical_effect), collapse = " | ")) %>%
