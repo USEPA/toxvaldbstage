@@ -92,8 +92,10 @@ set_clowder_id_lineage <- function(source_table,
                       },
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                       "clowder_v3/pprtv_cphea_doc_map_lineage_jwall01.xlsx")),
-                      "source_who_jecfa" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                  "clowder_v3/source_who_jecfa_document_map_20230920.csv")),
+                      "source_who_jecfa_adi" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                    "clowder_v3/source_who_jecfa_document_map_20231107.xlsx")),
+                      "source_who_jecfa_tox_studies" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                        "clowder_v3/source_who_jecfa_document_map_20231107.xlsx")),
                       "source_epa_ow_npdwr" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_epa_ow_npdwr_document_map.xlsx")),
                       "source_epa_ow_nrwqc_hhc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -642,12 +644,69 @@ set_clowder_id_lineage <- function(source_table,
                     #Return the mapped res with document names and clowder ids
                     res
                   },
-                  "source_who_jecfa" = {
-                    #Perform a left join on chemical names to match the chemical ids (the last part of the url)
-                    res <- res %>%
-                      left_join(map_file %>%
-                                  dplyr::select(name = Chemical, clowder_id, filename, fk_doc_id),
-                                by = "basename(URL)")
+                  "source_who_jecfa_adi" = {
+                    # Associates origin documents to records based on filename
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+
+                    # Separates the lists of chemical id
+                    origin_docs = origin_docs %>%
+                      tidyr::separate_rows(chemical_id, sep="; ") %>%
+                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+
+                    res1 <- res %>%
+                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      left_join(origin_docs %>%
+                                  select(clowder_id, filename, chemical_id, fk_doc_id),
+                                by = "chemical_id")
+
+                    # Associates extraction document to all records
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag)) %>%
+                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+
+                    res2 <- res %>%
+                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      left_join(extraction_docs %>%
+                                  select(clowder_id, filename, chemical_id, fk_doc_id),
+                                by = "chemical_id")
+
+                    # Combines both associations back into one data frame
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  },
+                  "source_who_jecfa_tox_studies" = {
+                    # Associates origin documents to records based on filename
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+
+                    # Separates the lists of chemical id
+                    origin_docs = origin_docs %>%
+                      tidyr::separate_rows(chemical_id, sep="; ") %>%
+                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+
+                    res1 <- res %>%
+                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      left_join(origin_docs %>%
+                                  select(clowder_id, filename, chemical_id, fk_doc_id),
+                                by = "chemical_id")
+
+                    # Associates extraction document to all records
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag)) %>%
+                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+
+                    res2 <- res %>%
+                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      left_join(extraction_docs %>%
+                                  select(clowder_id, filename, chemical_id, fk_doc_id),
+                                by = "chemical_id")
+
+                    # Combines both associations back into one data frame
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
                     #Return the mapped res with document names and clowder ids
                     res
                   },
