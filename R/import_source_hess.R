@@ -48,23 +48,95 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  #res = source.specific.transformations(res0)
-
   res <- res0 %>%
-    # Renaming columns
-    dplyr::rename(casrn="cas_number",
-                  name="chemical_name(s)",
-                  ec_number="additional_ids",
-                  study_type="endpointpath",
-                  critical_effect="effect",
-                  toxval_type="endpoint",
-                  tissue="organ(tissue)",
-                  strain="strain",
-                  species="test_organisms_(species)",
-                  toxval_numeric="value_meanvalue",
-                  toxval_numeric_qualifier="value_qualifier",
-                  toxval_units="value_unit",
+    # Creating toxval columns
+    dplyr::rename(casrn=cas_number,
+                  ec_number=additional_ids,
+                  study_type=endpointpath,
+                  critical_effect=effect,
+                  toxval_type=endpoint,
+                  tissue=`organ(tissue)`,
+                  strain=strain,
+                  species=`test_organisms_(species)`,
+                  toxval_numeric=value_meanvalue,
+                  toxval_numeric_qualifier=value_qualifier,
+                  toxval_units=value_unit,
                   ) %>%
+    tidyr::separate(`chemical_name(s)`,
+                    into=c("name", "name_extra"),
+                    sep=";",
+                    extra='merge', fill='right', remove = FALSE) %>%
+    dplyr::select(-name_extra) %>%
+    dplyr::distinct()
+
+  # critical_effect grouping early to improve processing speed
+  # Group combine effect for study groups
+  crit_groups = res %>%
+    tidyr::unite(col="critical_effect", critical_effect, tissue, sep=" - ", remove=TRUE) %>%
+    dplyr::select(name, toxval_type, toxval_numeric, critical_effect) %>%
+    dplyr::group_by(name, toxval_type, toxval_numeric) %>%
+    dplyr::mutate(critical_effect = paste0(sort(unique(critical_effect)), collapse = " | ")) %>%
+    dplyr::distinct()
+
+  # Join back in combined critical_effect groups
+  res = res %>%
+    dplyr::select(-critical_effect, -tissue) %>%
+    dplyr::distinct() %>%
+    dplyr::left_join(crit_groups,
+                     by=c("name", "toxval_type", "toxval_numeric")) %>%
+    dplyr::distinct()
+
+  # Clean up name field
+  res = res %>%
+    dplyr::mutate(
+      name=name %>%
+        # Fix Greek symbols
+        fix.greek.symbols() %>%
+        # Remove trademark symbols
+        gsub("\u00ae|<U+00ae>", "", .) %>%
+        # Fix math symbols
+        gsub("\u00b1|<U+00B1>", "+/-", .) %>%
+        # Fix apostrophes
+        gsub("\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>", "'", .) %>%
+        # Fix parentheses and brackets
+        gsub("\uff08", "(", .) %>%
+        gsub("\uff09", ")", .) %>%
+        gsub("\uff3d", "]", .) %>%
+        # Fix roman numeral 2
+        gsub("\u2161","II", .) %>%
+        # Fix fullwidth latin small letter o
+        gsub("\uff4f", "o", .) %>%
+        # Fix fullwidth digit 1
+        gsub("\uff11", 1, .) %>%
+        # Fix fullwidth digit 3
+        gsub("\uff13", 3, .) %>%
+        # Fix fullwidth digit 7
+        gsub("\uff17", 7, .) %>%
+        stringr::str_squish())
+
+  # Handle case of chemical names with "?" in name due to unicode symbols
+  tmp = res %>%
+    dplyr::filter(grepl("?", name, fixed=TRUE)) %>%
+    dplyr::select(name, `chemical_name(s)`) %>%
+    dplyr::distinct()
+
+  for(i in seq_len(nrow(tmp))){
+    n_fix = tmp$`chemical_name(s)`[i] %>%
+      # Fix math symbols
+      gsub("\u00b1|<U+00B1>", "+/-", .) %>%
+      stringr::str_squish() %>%
+      strsplit(";") %>%
+      .[[1]]
+    # Loop through synonyms until one without "?" exists
+    for(n in n_fix){
+      if(!grepl("?", n, fixed=TRUE)){
+        res$name[res$name == tmp$name[i]] <- n
+      }
+    }
+  }
+
+  # Additional field processing
+  res = res %>%
     dplyr::mutate(
       # Removing "EC Number:" from ec_number field
       ec_number = gsub("EC Number:", "", ec_number),
@@ -78,28 +150,10 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     ) %>%
     # Splitting route_of_administration field into exposure_route and exposure_method
     tidyr::separate(route_of_administration, c("exposure_route", "exposure_method"),
-                    sep=" ", fill="right", extra = "merge", remove=FALSE) %>%
-    tidyr::separate(name, into=c("name", "name_extra"), sep=";", extra='merge', fill='right') %>%
-    dplyr::select(-name_extra) %>%
-    dplyr::distinct()
+                    sep=" ", fill="right", extra = "merge", remove=FALSE)
 
   # Check route_of_administration splitting
   # View(res %>% select(route_of_administration, exposure_route, exposure_method) %>% distinct())
-
-  # Group combine effect for study groups
-  crit_groups = res %>%
-    tidyr::unite(critical_effect, critical_effect, tissue, sep=" - ", remove=FALSE) %>%
-    dplyr::select(name, toxval_type, toxval_numeric, critical_effect) %>%
-    dplyr::group_by(name, toxval_type, toxval_numeric) %>%
-    dplyr::mutate(critical_effect = paste0(unique(critical_effect), collapse = " | ")) %>%
-    dplyr::distinct()
-
-  # Join back in combined critical_effect groups
-  res = res %>%
-    dplyr::select(-critical_effect) %>%
-    dplyr::left_join(crit_groups,
-                     by=c("name", "toxval_type", "toxval_numeric")) %>%
-    distinct()
 
   # Omit blank rows
   res <- res[rowSums(is.na(res)) != ncol(res), ]
@@ -109,6 +163,8 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   # Make records distinct
   res <- res %>%
+    dplyr::select(-`#`, -`chemical_name(s)`, -smiles, -molecular_formula,
+                  -identity, -database_affiliation, -inventory_affiliation) %>%
     dplyr::distinct()
 
   # Fill blank hashing cols
