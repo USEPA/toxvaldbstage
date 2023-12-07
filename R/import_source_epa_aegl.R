@@ -1,0 +1,207 @@
+#--------------------------------------------------------------------------------------
+#' @title import_source_epa_aegl
+#' @description Import EPA AEGL data into toxval_source
+#' @param db PARAM_DESCRIPTION
+#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate-joins}}
+#'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate_wider_delim}}, \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{reexports}}
+#'  \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_remove}}, \code{\link[stringr]{str_split}}, \code{\link[stringr]{str_trim}}
+#'  \code{\link[stringi]{stri_length}}
+#' @rdname import_source_epa_aegl
+#' @export
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr filter mutate select distinct right_join
+#' @importFrom tidyr separate_rows pivot_longer separate_wider_delim drop_na any_of
+#' @importFrom stringr regex str_remove str_split_i str_squish
+#' @importFrom stringi stri_length
+#--------------------------------------------------------------------------------------
+import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+  printCurrentFunction(db)
+  source = "EPA AEGL"
+  source_table = "source_epa_aegl"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2018-07-27")
+  dir = paste0(toxval.config()$datapath,"epa_aegl/epa_aegl_files/")
+  file = paste0(dir, "automated_epa_aegl_output.xlsx")
+  file1 = paste0(dir, "automated_epa_aegl_lel_loa_output.xlsx")
+
+  res0 = readxl::read_xlsx(file)
+  #####################################################################
+  cat("Do any non-generic steps to get the data ready \n")
+  #####################################################################
+  # Handle cases where one row represents multiple substances
+  res0_multiple_substance = res0 %>%
+    # Extract all entries with multiple CAS numbers
+    # dplyr::filter(grepl("and", CASRN)) %>%
+
+    # Extract just jet fuel entries
+    # Comment out this line and use the above line to split up HFE-7100 entries as well
+    dplyr::filter(grepl("Jet Fuels", Name)) %>%
+
+    # Adjust jet fuel name to match convention (hardcoded)
+    dplyr::mutate(
+      Name = gsub("Jet Fuels \\(JP-5 and JP-8\\)", "Jet Fuel (JP-5) and Jet Fuel (JP-8)", Name)
+    ) %>%
+
+    # Split each row into two (one row per substance)
+    tidyr::separate_rows(CASRN, Name, sep = " and ")
+
+
+  # Replace entries with multiple names/casrn
+  # Switch the commented and un-commented filter lines if splitting HFE-7100
+  # res0 = res0 %>% dplyr::filter(!grepl("and", CASRN))
+  res0 = res0 %>% dplyr::filter(!grepl("Jet Fuels", Name))
+  res0 = rbind(res0, res0_multiple_substance)
+
+  res0 <- res0 %>%
+    # Extract study duration
+    tidyr::pivot_longer(cols = c('10 min', '30 min', '60 min', '4 hr', '8 hr'),
+                        names_to = 'study_duration',
+                        values_to = 'toxval_numeric'
+    ) %>%
+
+    # Split study duration into value and units
+    tidyr::separate_wider_delim(study_duration,
+                                delim = " ",
+                                names = c("study_duration_value", "study_duration_units"),
+                                too_few = "align_start") %>%
+
+    # Create toxval_units column
+    dplyr::mutate(toxval_units = Units) %>%
+
+    # Split up units when multiple units
+    tidyr::separate_wider_delim(toxval_units,
+                                names = c('toxval_units', 'toxval_units_extra'),
+                                delim = stringr::regex(" \\[| \\("),
+                                too_few = "align_start") %>%
+
+    # Split up values when multiple values
+    tidyr::separate_wider_delim(toxval_numeric,
+                                names = c('toxval_numeric', 'toxval_numeric_extra'),
+                                delim = stringr::regex(" \\[| \\("),
+                                too_few = "align_start") %>%
+
+    # Remove closing punctuation from toxval_units_extra and toxval_numeric_extra
+    dplyr::mutate(
+      toxval_units_extra = stringr::str_remove(toxval_units_extra, stringr::regex("[\\]\\)]")),
+      toxval_numeric_extra = stringr::str_remove(toxval_numeric_extra, stringr::regex("[\\]\\)]"))
+    )
+
+  # Create separate DF for entries with multiple units
+  res0_multiple = tidyr::drop_na(res0, tidyr::any_of("toxval_units_extra"))
+
+  # Set res0_multiple entries to have extra units as original
+  res0_multiple = res0_multiple %>%
+    dplyr::mutate(
+      toxval_units = toxval_units_extra,
+      toxval_numeric = toxval_numeric_extra
+    )
+
+  # Drop extra columns from both DFs
+  res0 = res0 %>% dplyr::select(!c(toxval_units_extra, toxval_numeric_extra))
+  res0_multiple = res0_multiple %>% dplyr::select(!c(toxval_units_extra, toxval_numeric_extra))
+
+  # Concatenate DFs so res has individual entries for original+extra units
+  res0 = rbind(res0, res0_multiple)
+
+  res = res0 %>%
+    # Remove non-numeric values in toxval_numeric column
+    dplyr::filter(toxval_numeric != "NR" & toxval_numeric != "ND") %>%
+
+    # Add other columns as necessary
+    dplyr::mutate(
+      toxval_type = AEGL,
+      source = "EPA AEGL",
+      subsource = "EPA OW",
+      source_url = "https://www.epa.gov/aegl/access-acute-exposure-guideline-levels-aegls-values#chemicals",
+      risk_assessment_class = "acute",
+      exposure_route = "inhalation",
+
+      # Clean toxval_numeric
+      toxval_numeric = gsub("\\*+\\s?", "", toxval_numeric),
+      toxval_numeric = as.numeric(gsub(",", "", toxval_numeric)),
+
+      # Get year by splitting date and ensuring YYYY format
+      year = ifelse(grepl("/", Date), stringr::str_split_i(Date, "/", 3),
+                    ifelse(grepl(",", Date), stringr::str_split_i(Date, ", ", 2),
+                           stringr::str_split_i(Date, " ", 2))),
+      year = as.numeric(ifelse(stringi::stri_length(year) == 2, paste0("20", year), year))
+    ) %>%
+
+    dplyr::distinct()
+
+
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  ##############################################################################
+  #############INCORPORATE LEL/LOA DATA - COMMENT OUT IF NOT NEEDED#############
+  ##############################################################################
+  res1 = readxl::read_xlsx(file1)
+
+  # Get DF with full LEL/LOA data
+  res_lel_loa = res %>%
+    # Create res copy without columns to be replaced
+    dplyr::select(!c(toxval_type, toxval_numeric, toxval_units, units, aegl,
+                     study_duration_units, study_duration_value)) %>%
+
+    # Only one entry needed per chemical
+    dplyr::distinct() %>%
+
+    # Join LEL/LOA data with data from res
+    dplyr::right_join(res1,
+                      by=c("casrn", "name")) %>%
+
+    # Add columns needed for concatenation
+    dplyr::mutate(
+      units = toxval_units,
+      aegl = "-",
+      study_duration_units = "-",
+      study_duration_value = "-",
+
+      # Clean toxval_numeric field
+      toxval_numeric = gsub(",", "", toxval_numeric),
+      toxval_numeric = as.numeric(stringr::str_split_i(toxval_numeric, " to ", 1))
+    )
+
+  # Concatenate data
+  res = rbind(res, res_lel_loa)
+  ##############################################################################
+  ###########################END LEL/LOA DATA SECTION###########################
+  ##############################################################################
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
+  #####################################################################
+  cat("Prep and load the data\n")
+  #####################################################################
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
+}
+
+
+
+
