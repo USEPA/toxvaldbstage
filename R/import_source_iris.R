@@ -263,6 +263,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   study_reference = `STUDY CITATION`) %>%
     dplyr::mutate(toxval_units = fix.greek.symbols(toxval_units))
 
+
   # Check joins (identified issue with float/double versus character toxval_numeric join)
   # tmp <- chem_details %>%
   #   filter(toxval_type %in% c("RfC", "RfD"),
@@ -385,11 +386,12 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
+  # Rename before potential merge to avoid error
   res0 <- res0 %>%
     dplyr::rename(study_type = assessment_type)
 
+  # Set defaults for new fields
   res0$document_type = 'IRIS Export'
-
   res0$key_finding = 'No'
 
   # Set key_findings, to yes if not in subset of toxval_type
@@ -397,11 +399,20 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   key_finding_type = subset(res0$toxval_type, !(res0$toxval_type %in% not_key_finding))
   res0$key_finding[res0$toxval_type %in% key_finding_type] = "Yes"
 
+  # Add summary data to df before prep and load
   if(do.summary_data){
-    iris_data$test_source_iris_summary_curation_2023125.xlsx$document_type = 'IRIS Summary'
-    iris_data$test_source_iris_summary_curation_2023125.xlsx$key_finding = 'No'
-
-    res0 <- merge(res0, iris_data$test_source_iris_summary_curation_2023125.xlsx, all=TRUE)
+    # Merge to add chemical rev history fields to summary data
+    chem_rev <- iris_data$Chemical_Rev_History.xlsx[, !names(iris_data$Chemical_Rev_History.xlsx) %in% "URL"]
+    res1 <- merge(iris_data$test_source_iris_summary_curation_2023125.xlsx,
+                  chem_rev, by.x = "name",
+                  by.y = "CHEMICAL NAME", all.x = TRUE)
+    res1 <- res1 %>%
+      dplyr::rename(casrn = `CASRN`,
+                    iris_chemical_id = `CHEMICAL ID`)
+    res1$source_version_date <- src_version_date
+    res1$document_type = 'IRIS Summary'
+    res1$key_finding = 'No'
+    res0 <- merge(res0, res1, all=TRUE)
   }
 
   # Add study_type, study_duration_class, and exposure_route, fix critical effect
