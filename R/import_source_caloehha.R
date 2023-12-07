@@ -424,7 +424,7 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
 
     # Realign by toxval_type
     res$year = "2023"
-    res[,c("critical_effect", "species_original")] = "-"
+    res[,c("critical_effect", "species")] = "-"
     res$study_duration_class[is.na(res$study_duration_class)] <- "chronic"
     res$target_organ = "-"
     res$severity = "-"
@@ -443,7 +443,7 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                      message("...working on ", f_name)
                      tmp = res %>%
                        dplyr::select(name, casrn,
-                                     year, critical_effect, species_original, study_duration_class,
+                                     year, critical_effect, species, study_duration_class,
                                      toxval_numeric = !!f_name,
                                      toxval_units = !!paste0(f_name, "_units"),
                                      `Human Data`) %>%
@@ -501,7 +501,7 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                        tmp$target_organ =  res$acute_rel_target_organ
                        tmp$severity =  res$acute_rel_severity
                        tmp$year = res$acute_rel_year
-                       tmp$species_original = res$acute_rel_species
+                       tmp$species = res$acute_rel_species
                        tmp$study_duration_class = "acute"
                        tmp$toxval_subtype = "acute REL"
                      } else if(f_name == "rel_8_hour_inhalation"){
@@ -550,7 +550,11 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                                                 stringr::str_to_title(severity)) %>%
                       # Clean up NA combined cases
                       gsub("\\| NA|NA \\|", "", .) %>%
-                      stringr::str_squish()) %>%
+                      stringr::str_squish(),
+                    toxval_numeric_qualifier = "=",
+                    `Human Data` = stringr::str_to_title(`Human Data`),
+                    species = species %>% tolower()
+                    ) %>%
       # Fix severity
       dplyr::distinct()
 
@@ -568,6 +572,9 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -577,5 +584,6 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                        res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
