@@ -6,6 +6,7 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @param do.summary_data If TRUE, add IRIS Summary data to table before insertion
 #' @title import_source_iris
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
@@ -376,8 +377,6 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   res0$species[res0$toxval_type %in% human_toxval_type] = "human"
   # Add source version date
   res0$source_version_date <- src_version_date
-
-  do.summary_data = TRUE
 
   # Fix names
   names(res0) <- names(res0) %>%
