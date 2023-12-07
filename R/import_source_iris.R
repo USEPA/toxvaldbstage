@@ -27,7 +27,7 @@
 #' @importFrom tidyr pivot_longer all_of separate replace_na
 #' @importFrom stringr str_squish str_replace_all str_extract
 #--------------------------------------------------------------------------------------
-import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
   printCurrentFunction(db)
   source = "IRIS"
   source_table = "source_iris"
@@ -376,6 +376,8 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Add source version date
   res0$source_version_date <- src_version_date
 
+  do.summary_data = TRUE
+
   # Fix names
   names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
@@ -383,10 +385,28 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
+  res0 <- res0 %>%
+    dplyr::rename(study_type = assessment_type)
+
+  res0$document_type = 'IRIS Export'
+
+  res0$key_finding = 'No'
+
+  # Set key_findings, to yes if not in subset of toxval_type
+  not_key_finding = c("RfD", "RfC", "Cancer Slope", "Unit Risk Factor")
+  key_finding_type = subset(res0$toxval_type, !(res0$toxval_type %in% not_key_finding))
+  res0$key_finding[res0$toxval_type %in% key_finding_type] = "Yes"
+
+  if(do.summary_data){
+    iris_data$test_source_iris_summary_curation_2023125.xlsx$document_type = 'IRIS Summary'
+    iris_data$test_source_iris_summary_curation_2023125.xlsx$key_finding = 'No'
+
+    res0 <- merge(res0, iris_data$test_source_iris_summary_curation_2023125.xlsx, all=TRUE)
+  }
+
   # Add study_type, study_duration_class, and exposure_route, fix critical effect
   res0 <- res0 %>%
     dplyr::rename(exposure_route=route,
-                  study_type = assessment_type,
                   study_duration_class=risk_assessment_duration) %>%
     tidyr::unite(col="study_type", study_type, principal_study, sep=" - ", remove = FALSE) %>%
     # Combine endpoint and critical_effect
@@ -398,6 +418,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     # Team decision to remove uncertainty_factor, modifying_factor, and dose_type (causing unnecessary duplicates)
     dplyr::select(-uncertainty_factor, -modifying_factor, -dose_type) %>%
     dplyr::distinct()
+
 
   # Join with year map to add year field
   res0 = res0 %>%
