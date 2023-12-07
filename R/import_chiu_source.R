@@ -39,87 +39,86 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  # Select only non-POD data
-  res1 <- res0 %>% dplyr::select(!c(POD.type, numPOD, strUnitsPOD))
+  # Rename list
+  rename_list = c("casrn"="strCAS",
+                  "name"="strName",
+                  "subsource"="Source",
+                  "toxval_type"="Type",
+                  "toxval_numeric"="numValue",
+                  "toxval_type"="POD.type",
+                  "toxval_numeric"="numPOD",
+                  "record_url"="strHyperlink",
+                  "long_ref"="strReference",
+                  "toxval_units"="strUnitsPOD",
+                  "critical_effect"="strCriticalEffect",
+                  "year"="strDateAssessed",
+                  "species"="Species",
+                  "strain"="Strain",
+                  "study_duration_value"="strDuration",
+                  "study_duration_units"="Duration type",
+                  "sex"="tblOrgan_strSex",
+                  "uf"="numUF",
+                  "ufa"="numUFa",
+                  "ufh"="numUFh",
+                  "ufs"="numUFs",
+                  "ufl"="numUFl",
+                  "ufd"="numUFd",
+                  "ufother"="numUFother",
+                  "exposure_route"="Route")
+
+  # Select non-POD data
+  res1 <- res0 %>%
+    dplyr::select(-POD.type, -numPOD, -strUnitsPOD) %>%
+    dplyr::rename(any_of(rename_list)) %>%
+    dplyr::select(any_of(names(rename_list))) %>%
+    dplyr::distinct() %>%
+    # Extract toxval_type and toxval_units
+    tidyr::separate(toxval_type, into=c("toxval_type", "toxval_units"), sep="\\(") %>%
+    dplyr::mutate(toxval_units = toxval_units %>%
+                    gsub("\\)", "", .))
 
   # Select only POD data
-  res2 <- res0 %>% dplyr::select(!c(Type, numValue))
-
-  # For non-POD entries, extract toxval_type, toxval_units, and toxval_numeric
-  res1 <- res1 %>%
-    # Extract toxval_type and toxval_units
-    tidyr::separate_wider_delim(Type,
-                                delim = " (",
-                                names = c("toxval_type", "toxval_units"),
-                                too_few = "align_start") %>%
-
-    # Finalize values
-    dplyr::mutate(
-      # Remove closing parentheses from toxval_units
-      toxval_units = stringr::str_remove(toxval_units, stringr::fixed(")")),
-
-      # Extract toxval_numeric
-      toxval_numeric = as.numeric(numValue),
-
-      # Add in columns to enable rbind
-      POD.type = "-",
-      numPOD = "-",
-      strUnitsPOD = "-"
-    )
-
-  # For non-POD entries, extract toxval_type, toxval_units, and toxval_numeric
-  res2 <- res2 %>%
-    dplyr::mutate(
-      toxval_type = POD.type,
-      toxval_units = strUnitsPOD,
-      toxval_numeric = as.numeric(numPOD),
-
-      # Add in columns to enable rbind
-      numValue = "-"
-    )
-
-  res = rbind(res1,res2)
+  res2 <- res0 %>%
+    dplyr::select(-Type, -numValue) %>%
+    dplyr::rename(any_of(rename_list)) %>%
+    dplyr::select(any_of(names(rename_list))) %>%
+    dplyr::distinct()
 
   # Mutate columns in combined data as needed
-  res <- res %>%
+  res <- res1 %>%
+    bind_rows(res2) %>%
     dplyr::mutate(
-      # Updated from deprecated import script
-      name = strName,
-      casrn = sapply(strCAS, FUN=fix.casrn),
-      subsource = Source,
-      record_url = strHyperlink,
-      long_ref = strReference,
-      critical_effect = strCriticalEffect,
-      year = as.numeric(strDateAssessed),
-      study_duration_value = strDuration,
-      study_duration_units = tolower(`Duration type`),
-      uncertainty_factor = numUF,
-      ufa = numUFa,
-      ufh = numUFh,
-      ufs = numUFs,
-      ufl = numUFl,
-      ufd = numUFd,
-      ufother = numUFother,
-
+      # Remove extraneous whitespace
+      dplyr::across(where(is.character), stringr::str_squish),
+      casrn = as.character(casrn),
+      year = as.numeric(year),
+      study_duration_units = tolower(study_duration_units),
       # Moved from deprecated load script
       exposure_method = "-",
       risk_assessment_class = "chronic",
       study_type = "chronic",
       toxval_units = "mg/kg-day",
-      exposure_route = ifelse(grepl("Oral", Route), "oral",
-                              ifelse(Route == "Other", "other", "-")),
-      exposure_method = ifelse(grepl("other", tolower(Route)), "other",
-                               ifelse(grepl("diet", Route), "diet",
-                                      ifelse(grepl("drinking water", Route), "drinking water",
-                                             ifelse(grepl("gavage", Route), "gavage", "-")))),
-      critical_effect = enc2utf8(critical_effect),
+      exposure_method = ifelse(grepl("other", tolower(exposure_route)), "other",
+                               ifelse(grepl("diet", exposure_route), "diet",
+                                      ifelse(grepl("drinking water", exposure_route), "drinking water",
+                                             ifelse(grepl("gavage", exposure_route), "gavage", "-")))),
+      exposure_route = ifelse(grepl("Oral", exposure_route), "oral",
+                              ifelse(exposure_route == "Other", "other", "-")),
       critical_effect = gsub("\\[", "(", critical_effect),
-      critical_effect = gsub("\\]", ")", critical_effect)
+      critical_effect = gsub("\\]", ")", critical_effect),
+      species = tolower(species),
+      sex = sex %>%
+        gsub("Both", "M/F", .) %>%
+        toupper()
     ) %>%
-
+    dplyr::rowwise() %>%
+    dplyr::mutate(casrn = casrn %>%
+                    fix.casrn()) %>%
+    dplyr::ungroup() %>%
     dplyr::distinct() %>%
-
     tidyr::drop_na(toxval_numeric)
+
+  res$year[res$year == -1] = NA
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -127,13 +126,6 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
-
-  # Final changes after standardizing names, avoids duplicate cols
-  res <- res %>%
-    dplyr::mutate(
-      species = tolower(species),
-      sex = gsub("BOTH", "M/F", toupper(tblorgan_strsex))
-    )
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"

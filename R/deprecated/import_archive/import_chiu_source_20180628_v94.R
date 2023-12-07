@@ -9,16 +9,15 @@
 #' @description FUNCTION_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #' @rdname import_chiu_source
-#' @export 
 #' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_chiu_source <- function(db,
