@@ -417,7 +417,8 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Add study_type, study_duration_class, and exposure_route, fix critical effect
   res0 <- res0 %>%
     dplyr::rename(exposure_route=route,
-                  study_duration_class=risk_assessment_duration) %>%
+                  study_duration_class=risk_assessment_duration,
+                  lifestage=age_original) %>%
     tidyr::unite(col="study_type", study_type, principal_study, sep=" - ", remove = FALSE) %>%
     # Combine endpoint and critical_effect
     tidyr::unite(col="critical_effect", endpoint, critical_effect, sep=": ", remove = FALSE) %>%
