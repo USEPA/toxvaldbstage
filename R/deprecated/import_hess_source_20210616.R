@@ -19,7 +19,6 @@
 #'  \code{\link[tidyr]{unite}}
 #'  \code{\link[stringr]{str_replace}}
 #' @rdname import_hess_source
-#' @export 
 #' @importFrom openxlsx read.xlsx
 #' @importFrom utils type.convert
 #' @importFrom tidyr unite

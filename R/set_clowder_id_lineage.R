@@ -92,8 +92,10 @@ set_clowder_id_lineage <- function(source_table,
                       },
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                       "clowder_v3/pprtv_cphea_doc_map_lineage_jwall01.xlsx")),
-                      "source_who_jecfa" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                  "clowder_v3/source_who_jecfa_document_map_20230920.csv")),
+                      "source_who_jecfa_adi" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                    "clowder_v3/source_who_jecfa_document_map_20231107.xlsx")),
+                      "source_who_jecfa_tox_studies" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                        "clowder_v3/source_who_jecfa_document_map_20231107.xlsx")),
                       "source_epa_ow_npdwr" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_epa_ow_npdwr_document_map.xlsx")),
                       "source_epa_ow_nrwqc_hhc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -104,9 +106,8 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_ow_opp_alb" = readr::read_csv(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_epa_ow_opp_alb_document_map.csv"),
                                                                 col_types = readr::cols()),
-                      "source_atsdr_mrls" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                   "clowder_v3/source_astdr_mrls_2023_document_map_20231012.csv"),
-                                                            col_types = readr::cols()),
+                      "source_atsdr_mrls" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                     "clowder_v3/source_atsdr_mrls_sept2023_doc_map_20231204.xlsx")),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20231019.xlsx")),
                       ### Hard coded document maps
@@ -167,6 +168,11 @@ set_clowder_id_lineage <- function(source_table,
                                                  document_name = "hess_20230517_fixed.xlsx"),
                       "source_copper" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/source_copper_document_map.xlsx")),
+
+                      "source_gestis_dnel" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                      "clowder_v3/source_gestis_dnel_document_map.xlsx"),
+                                                               col_types = "text", guess_max=21474836),
+
                       # No source match, return empty
                       data.frame()
     )
@@ -642,12 +648,69 @@ set_clowder_id_lineage <- function(source_table,
                     #Return the mapped res with document names and clowder ids
                     res
                   },
-                  "source_who_jecfa" = {
-                    #Perform a left join on chemical names to match the chemical ids (the last part of the url)
-                    res <- res %>%
-                      left_join(map_file %>%
-                                  dplyr::select(name = Chemical, clowder_id, filename, fk_doc_id),
-                                by = "basename(URL)")
+                  "source_who_jecfa_adi" = {
+                    # Associates origin documents to records based on filename
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+
+                    # Separates the lists of chemical id
+                    origin_docs = origin_docs %>%
+                      tidyr::separate_rows(chemical_id, sep="; ") %>%
+                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+
+                    res1 <- res %>%
+                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      left_join(origin_docs %>%
+                                  select(clowder_id, filename, chemical_id, fk_doc_id),
+                                by = "chemical_id")
+
+                    # Associates extraction document to all records
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag)) %>%
+                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+
+                    res2 <- res %>%
+                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      left_join(extraction_docs %>%
+                                  select(clowder_id, filename, chemical_id, fk_doc_id),
+                                by = "chemical_id")
+
+                    # Combines both associations back into one data frame
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  },
+                  "source_who_jecfa_tox_studies" = {
+                    # Associates origin documents to records based on filename
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+
+                    # Separates the lists of chemical id
+                    origin_docs = origin_docs %>%
+                      tidyr::separate_rows(chemical_id, sep="; ") %>%
+                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+
+                    res1 <- res %>%
+                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      left_join(origin_docs %>%
+                                  select(clowder_id, filename, chemical_id, fk_doc_id),
+                                by = "chemical_id")
+
+                    # Associates extraction document to all records
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag)) %>%
+                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+
+                    res2 <- res %>%
+                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      left_join(extraction_docs %>%
+                                  select(clowder_id, filename, chemical_id, fk_doc_id),
+                                by = "chemical_id")
+
+                    # Combines both associations back into one data frame
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
                     #Return the mapped res with document names and clowder ids
                     res
                   },
@@ -761,16 +824,6 @@ set_clowder_id_lineage <- function(source_table,
                       tidyr::separate_rows(`Chemical Name`, sep=" & ") %>%
                       tidyr::separate_rows(`Chemical Name`, sep=" AND ")
 
-                    # Separate groups into individual chemical names
-                    # origin_docs <- origin_docs %>%
-                    #   mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, ", ")) %>%
-                    #   unnest(cols = c('Chemical Name'))
-                    # origin_docs <- origin_docs %>%
-                    #   mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, " & ")) %>%
-                    #   unnest(cols = c('Chemical Name'))
-                    # origin_docs <- origin_docs %>%
-                    #   mutate('Chemical Name'=strsplit(origin_docs$`Chemical Name`, " AND ")) %>%
-                    #   unnest(cols = c('Chemical Name'))
 
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
@@ -783,10 +836,9 @@ set_clowder_id_lineage <- function(source_table,
                     unmatched_names = c("BARIUM", "2-BUTOXYETHANOL", "CHROMIUM", "CYANIDE",
                                         "DDD", "DDT", "DDE", "DICHLOROBENZENE", "1,2-DICHLOROETHENE",
                                         "DICHLOROPROPENE", "DINITROTOLUENE", "FLUORIDE",
-                                        "HEXACHLOROCYCLOHEXANE", "PBDES", "CHLOROPHENOL", "TIN",
+                                        "HEXACHLOROCYCLOHEXANE", "CHLOROPHENOL", "TIN",
                                         "URANIUM", "HYDRAZINE", "CHLORODIBENZOFURAN", "PHOSPHATE",
-                                        "XYLENES", "PHOSPHORUS", "IONIZING RADIATION", "MANGANESE",
-                                        "METHYLENEDIPHENYL DIISOCYANATE")
+                                        "XYLENES", "PHOSPHORUS", "IONIZING RADIATION", "PBDES", "MANGANESE", "(2,4-D)")
 
                     # Find matches for those missing matches with grep name to chemical name
                     for(u_name in unmatched_names){
@@ -902,6 +954,70 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::left_join(map_file %>%
                                          dplyr::select(fk_doc_id, clowder_id, long_ref),
                                        by="long_ref") %>%
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(!is.na(parent_flag)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res, tmp)
+                    # Return res
+                    res
+                  },
+                  "source_gestis_dnel" = {
+                    # Sync map_file chemical name cleaning
+                    map_file = map_file %>%
+                      dplyr::mutate(name = name %>%
+                                    # Fix Greek symbols
+                                    fix.greek.symbols() %>%
+
+                                    # Remove trademark symbols
+                                    gsub("\u00ae|<U+00ae>", "", .) %>%
+
+                                    # Fix whitespace
+                                    gsub("[\r\n][\r\n]", " ", .) %>%
+                                    gsub("\u00a0|<U+00A0>", " ", .) %>%
+
+                                    # Fix quotations and apostrophes
+                                    gsub("\u201c|<U+201C>|\u201d|<U+201D>", '"', .) %>%
+                                    gsub("\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>", "'", .) %>%
+
+                                    # Fix superscript/subscript
+                                    gsub("\u00b3|<U+00B3>", "3", .) %>%
+                                    gsub("\u00b9|<U+00B9>", "1", .) %>%
+                                    gsub("\u2070|<U+2070>", "0", .) %>%
+                                    gsub("\u00b2|<U+00B2>", "2", .) %>%
+                                    gsub("\u2079|<U+2079>", "9", .) %>%
+                                    gsub("\u2078|<U+2078>", "8", .) %>%
+                                    gsub("\u2074|<U+2074>", "4", .) %>%
+                                    gsub("\u2077|<U+2077>", "7", .) %>%
+                                    gsub("\u2076|<U+2076>", "6", .) %>%
+
+                                    # Fix general punctuation
+                                    gsub("\u00b4|<U+00B4>", "'", .) %>%
+                                    gsub("\u2013|<U+2013>", "-", .) %>%
+                                    gsub("\u00bf|<U+00BF>", "?", .) %>%
+
+                                    # Fix math symbols
+                                    gsub("\u2265|<U+2265>", ">=", .) %>%
+                                    gsub("\u00b1|<U+00B1>", "+/-", .) %>%
+                                    gsub("\u00b0|<U+00B0>", "", .) %>%
+                                    gsub("\u00b0|<U+00B0>", "", .) %>%
+                                    gsub("\u2032|<U+2032>", "", .) %>%
+                                    gsub("\u00b7|<U+00B7>", "*", .) %>%
+
+                                    # Remove excess whitespace
+                                    stringr::str_squish())
+                    # Join on name
+                    res <- res %>%
+                      dplyr::select(source_hash, source_version_date, name) %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id, name),
+                                       by="name") %>%
                       dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
 
                     # Match to extraction doc
