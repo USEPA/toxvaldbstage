@@ -60,8 +60,9 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   # Replace entries with multiple names/casrn
   # Switch the commented and un-commented filter lines if splitting HFE-7100
   # res0 = res0 %>% dplyr::filter(!grepl("and", CASRN))
-  res0 = res0 %>% dplyr::filter(!grepl("Jet Fuels", Name))
-  res0 = rbind(res0, res0_multiple_substance)
+  res0 = res0 %>%
+    dplyr::filter(!grepl("Jet Fuels", Name)) %>%
+    dplyr::bind_rows(res0_multiple_substance)
 
   res0 <- res0 %>%
     # Extract study duration
@@ -69,55 +70,29 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                         names_to = 'study_duration',
                         values_to = 'toxval_numeric'
     ) %>%
-
     # Split study duration into value and units
-    tidyr::separate_wider_delim(study_duration,
-                                delim = " ",
-                                names = c("study_duration_value", "study_duration_units"),
-                                too_few = "align_start") %>%
-
+    tidyr::separate(study_duration,
+                    into = c("study_duration_value", "study_duration_units"),
+                    sep = " ") %>%
     # Create toxval_units column
-    dplyr::mutate(toxval_units = Units) %>%
+    dplyr::mutate(toxval_units = Units)
 
-    # Split up units when multiple units
-    tidyr::separate_wider_delim(toxval_units,
-                                names = c('toxval_units', 'toxval_units_extra'),
-                                delim = stringr::regex(" \\[| \\("),
-                                too_few = "align_start") %>%
+  # Handle case of multiple values/units reported
+  res_2_units = res0 %>%
+    dplyr::filter(grepl("\\[|\\(", toxval_units)) %>%
+    # Extract values between () and []
+    dplyr::mutate(toxval_numeric = stringr::str_extract(string = toxval_numeric,
+                                                        pattern = "(?<=\\(|\\[).*(?=\\)|\\])"),
+                  toxval_units = stringr::str_extract(string = toxval_units,
+                                                        pattern = "(?<=\\(|\\[).*(?=\\)|\\])")
+                  )
 
-    # Split up values when multiple values
-    tidyr::separate_wider_delim(toxval_numeric,
-                                names = c('toxval_numeric', 'toxval_numeric_extra'),
-                                delim = stringr::regex(" \\[| \\("),
-                                too_few = "align_start") %>%
-
-    # Remove closing punctuation from toxval_units_extra and toxval_numeric_extra
-    dplyr::mutate(
-      toxval_units_extra = stringr::str_remove(toxval_units_extra, stringr::regex("[\\]\\)]")),
-      toxval_numeric_extra = stringr::str_remove(toxval_numeric_extra, stringr::regex("[\\]\\)]"))
-    )
-
-  # Create separate DF for entries with multiple units
-  res0_multiple = tidyr::drop_na(res0, tidyr::any_of("toxval_units_extra"))
-
-  # Set res0_multiple entries to have extra units as original
-  res0_multiple = res0_multiple %>%
-    dplyr::mutate(
-      toxval_units = toxval_units_extra,
-      toxval_numeric = toxval_numeric_extra
-    )
-
-  # Drop extra columns from both DFs
-  res0 = res0 %>% dplyr::select(!c(toxval_units_extra, toxval_numeric_extra))
-  res0_multiple = res0_multiple %>% dplyr::select(!c(toxval_units_extra, toxval_numeric_extra))
-
-  # Concatenate DFs so res has individual entries for original+extra units
-  res0 = rbind(res0, res0_multiple)
-
+  # Recombine
   res = res0 %>%
+    dplyr::filter(!grepl("\\[|\\(", toxval_units)) %>%
+    dplyr::bind_rows(res_2_units) %>%
     # Remove non-numeric values in toxval_numeric column
     dplyr::filter(toxval_numeric != "NR" & toxval_numeric != "ND") %>%
-
     # Add other columns as necessary
     dplyr::mutate(
       toxval_type = AEGL,
@@ -128,18 +103,21 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       exposure_route = "inhalation",
 
       # Clean toxval_numeric
-      toxval_numeric = gsub("\\*+\\s?", "", toxval_numeric),
-      toxval_numeric = as.numeric(gsub(",", "", toxval_numeric)),
-
+      toxval_numeric = toxval_numeric %>%
+        gsub("\\*|,", "", .) %>%
+        stringr::str_squish() %>%
+        as.numeric(),
       # Get year by splitting date and ensuring YYYY format
-      year = ifelse(grepl("/", Date), stringr::str_split_i(Date, "/", 3),
-                    ifelse(grepl(",", Date), stringr::str_split_i(Date, ", ", 2),
-                           stringr::str_split_i(Date, " ", 2))),
-      year = as.numeric(ifelse(stringi::stri_length(year) == 2, paste0("20", year), year))
+      # https://stackoverflow.com/questions/13764514/how-to-change-multiple-date-formats-in-same-column
+      year = lubridate::parse_date_time(Date,
+                                        orders = c('mdy')) %>%
+        as.Date() %>%
+        format("%Y")
     ) %>%
-
     dplyr::distinct()
 
+  # Check Date year extraction
+  # View(res %>% select(Date, year) %>% distinct())
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -174,12 +152,16 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       study_duration_value = "-",
 
       # Clean toxval_numeric field
-      toxval_numeric = gsub(",", "", toxval_numeric),
-      toxval_numeric = as.numeric(stringr::str_split_i(toxval_numeric, " to ", 1))
+      toxval_numeric = toxval_numeric %>%
+        gsub(",", "", .) %>%
+        # Pull lower end of range
+        sub('to.*', '', .) %>%
+        stringr::str_squish() %>%
+        as.numeric()
     )
 
   # Concatenate data
-  res = rbind(res, res_lel_loa)
+  res = dplyr::bind_rows(res, res_lel_loa)
   ##############################################################################
   ###########################END LEL/LOA DATA SECTION###########################
   ##############################################################################
