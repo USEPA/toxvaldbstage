@@ -14,16 +14,15 @@
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate-joins}}
-#'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate_wider_delim}}, \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{reexports}}
+#'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}
 #'  \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_remove}}, \code{\link[stringr]{str_split}}, \code{\link[stringr]{str_trim}}
-#'  \code{\link[stringi]{stri_length}}
 #' @rdname import_source_epa_aegl
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr filter mutate select distinct right_join
-#' @importFrom tidyr separate_rows pivot_longer separate_wider_delim drop_na any_of
-#' @importFrom stringr regex str_remove str_split_i str_squish
-#' @importFrom stringi stri_length
+#' @importFrom tidyr separate_rows pivot_longer separate
+#' @importFrom stringr regex str_remove str_squish
+#' @importFrom lubridate parse_date_time
 #--------------------------------------------------------------------------------------
 import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

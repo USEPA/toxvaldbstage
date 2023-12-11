@@ -18,14 +18,14 @@
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_remove}}
 #'  \code{\link[stringr]{fixed}}, \code{\link[stringr]{str_squish}}
-#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate_wider_delim}}
+#'  \code{\link[tidyr]{pivot_longer}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{rename}}
 #'  \code{\link[tidyselect]{all_of}}
 #' @rdname import_doe_lanl_ecorisk_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_trim str_remove fixed
-#' @importFrom tidyr pivot_longer separate_wider_delim
+#' @importFrom tidyr pivot_longer
 #' @importFrom dplyr mutate distinct rename
 #' @importFrom tidyselect all_of
 #' ---------------------------------------------------

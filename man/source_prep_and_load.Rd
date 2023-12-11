@@ -11,7 +11,9 @@ source_prep_and_load(
   res,
   do.reset = FALSE,
   do.insert = FALSE,
-  chem.check.halt = FALSE
+  chem.check.halt = FALSE,
+  verbose = FALSE,
+  hashing_cols = NULL
 )
 }
 \arguments{
@@ -28,6 +30,10 @@ source_prep_and_load(
 \item{do.insert}{If TRUE, insert data into the database, default FALSE}
 
 \item{chem.check.halt}{If TRUE, stop the execution if there are errors in the #' chemical mapping}
+
+\item{verbose}{If TRUE, write out diagnostic messages #'}
+
+\item{hashing_cols}{Optional list of columns to use for generating source_hash}
 }
 \value{
 OUTPUT_DESCRIPTION
