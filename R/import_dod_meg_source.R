@@ -28,7 +28,7 @@
 #--------------------------------------------------------------------------------------
 import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "DOD MEG"
+  source = "DOD"
   source_table = "source_dod_meg"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2013-01-01")
