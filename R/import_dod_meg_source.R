@@ -54,6 +54,7 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       meg_type = SEVERITY,
       duration = TIMEFRAME,
       toxval_type = "MEG",
+      year = "2013",
 
       # Get appropriate subtype
       subtype = dplyr::case_when(
@@ -113,6 +114,7 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
 
       # Get study_duration_units
       study_duration_units = gsub("[0-9]+", "", duration),
+
       # Add per day to rate
       Intake_Rate = paste0(Intake_Rate, "/d") %>%
         gsub("NA/d", NA, .)
