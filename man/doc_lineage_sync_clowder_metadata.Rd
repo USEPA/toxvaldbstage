@@ -9,7 +9,8 @@ doc_lineage_sync_clowder_metadata(
   db,
   clowder_url,
   clowder_api_key,
-  batch_size = 250
+  batch_size = 100,
+  dsID = "5e31dc1e99323f93a9f5cec0"
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ doc_lineage_sync_clowder_metadata(
 \item{clowder_api_key}{API key to access Clowder resources}
 
 \item{batch_size}{PARAM_DESCRIPTION, Default: 250}
+
+\item{dsID}{Clowder Dataset ID}
 }
 \value{
 OUTPUT_DESCRIPTION
