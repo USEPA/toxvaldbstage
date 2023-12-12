@@ -55,6 +55,7 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       duration = TIMEFRAME,
       toxval_type = "MEG",
       year = "2013",
+      long_ref = "U.S. Army Public Health Command (2013) TG 230 Military Exposure Guidelines Table. Army Public Health Center.",
 
       # Get appropriate subtype
       subtype = dplyr::case_when(
