@@ -1,11 +1,12 @@
 #--------------------------------------------------------------------------------------
-#' @description Load DOD MEG to toxval_source. The file to be loaded are in ./dod_meg/dod_meg_files
+#' @description Load DOD MEG to toxval_source.
 #'
-#' @param db The version of toxval_source into which the tables are loaded.
-#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#' @export
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @param db The version of toxval_source into which the source is loaded.
+#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @param do.reset If TRUE, delete data from the database for this source before
+#' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title import_dod_meg_source
+#' @return None. Data is processed into the database
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -14,110 +15,144 @@
 #'  }
 #' }
 #' @seealso
-#'  \code{\link[openxlsx]{read.xlsx}}
-#'  \code{\link[stats]{reshape}}
-#'  \code{\link[stringr]{word}}
-#'  \code{\link[tidyr]{reexports}}
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[tidyr]{unite}}
 #' @rdname import_dod_meg_source
-#' @importFrom openxlsx read.xlsx
-#' @importFrom stats reshape
-#' @importFrom stringr word
-#' @importFrom tidyr contains
-#-------------------------------------------------------------------------------------
-import_dod_meg_source = function(db,
-                                 chem.check.halt=F) {
+#' @export
+#' @importFrom readxl read_xls
+#' @importFrom dplyr mutate case_when distinct
+#' @importFrom stringr str_squish
+#' @importFrom tidyr unite
+#--------------------------------------------------------------------------------------
+import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
+  source = "DOD"
+  source_table = "source_dod_meg"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2013-01-01")
+  dir = paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/")
+  file = paste0(dir,"TG230MilitaryExposureGuidelines.xls")
 
-  #Air-long-term
-  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/DOD_Air-MEGs_Long-Term_2013.xlsx")) -> mat
-  mat = mat[3:nrow(mat),c(2:3,7:10)]
-  names(mat) = c("casrn", "name","numeric_Negligible","subsource_Negligible", "numeric_Marginal","subsource_Marginal")
-  mat$id = 1:nrow(mat)
-  mat = stats::reshape(mat, varying = 3:6, idvar = "id", direction = "long", sep = "_")
-  names(mat)[4] = "MEG-type"
-  mat = mat[!is.na(mat$numeric),]
-  mat$subtype = "Long-term"
-  mat$route = "Inhalation"
-  mat$method = "Air"
-  mat$duration = "1 year"
-  mat$units = "mg/m3"
-  mat$units[mat$name=="Asbestos"] = "fibers/cm3"
-  total = mat
+  res0 = readxl::read_xls(file, sheet = "All MEGs (vertical)")
+  #####################################################################
+  cat("Do any non-generic steps to get the data ready \n")
+  #####################################################################
 
-  #Air-short-term
-  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/DOD_Air-MEGS_Short-Term_2013.xlsx")) -> mat
-  mat = mat[4:nrow(mat),c(2:3,7:15)]
-  names(mat) = c("casrn", "name","numeric_Negligible","subsource_Negligible", "numeric_Marginal","subsource_Marginal", "numeric_Critical","subsource_Critical", "numeric_Catastrophic","subsource_Catastrophic", "MEG-info")
-  mat$id = 1:nrow(mat)
-  mat = stats::reshape(mat, varying = 3:10, idvar = "id", direction = "long", sep = "_")
-  names(mat)[5] = "MEG-type"
-  mat = mat[!is.na(mat$numeric),]
-  mat$subtype = "Short-term"
-  mat$route = "Inhalation"
-  mat$method = "Air"
-  mat$duration = stringr::word(mat$`MEG-info`,1,2,sep = "-|\\s")
-  mat$units = "mg/m3"
-  mat = mat[,c(1:2,4:12)]
-  total = rbind(total,mat)
+  res <- res0 %>%
+    dplyr::mutate(
+      # Get rid of excess whitespace
+      dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish)),
+      # Assign appropriate names
+      name = TG230_CHEMICAL_NAME,
+      casrn = TG230_CASRN,
+      toxval_numeric = as.numeric(MEGvalue),
+      toxval_units = UNITS,
+      subsource = BASIS,
+      exposure_method = MEDIA,
+      meg_type = SEVERITY,
+      duration = TIMEFRAME,
+      toxval_type = "MEG",
+      year = "2013",
 
-  #Soil
-  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/DOD_Soil-MEGs_2013.xlsx")) -> mat
-  mat = mat[3:nrow(mat),c(2:3,7:8)]
-  names(mat) = c("casrn", "name","numeric","subsource")
-  mat$id = 1:nrow(mat)
-  mat = mat[!is.na(mat$numeric),]
-  mat$subtype = "Soil"
-  mat$route = "Soil"
-  mat$method = "Soil"
-  mat$duration = "1 year"
-  mat$units = "mg/kg"
-  mat$'MEG-type' = "Negligible"
-  total = rbind(total,mat)
+      # Get appropriate subtype
+      subtype = dplyr::case_when(
+        grepl("min|hour|day", duration) ~ "Short-Term",
+        grepl("year", duration) ~ "Long-Term",
+      ),
 
-  #Water Long-term
-  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/DOD_Water-MEGS_Long-Term_2013.xlsx")) -> mat
-  mat = mat[3:nrow(mat),c(2:3,7:8)]
-  names(mat) = c("casrn", "name","numeric","subsource")
-  mat$id = 1:nrow(mat)
-  mat = mat[!is.na(mat$numeric),]
-  mat$subtype = "Long-Term, 5L/d"
-  mat$route = "Oral"
-  mat$method = "Water"
-  mat$duration = "1 year"
-  mat$units = "mg/L"
-  mat$units[mat$name=="Asbestos"] = "fibers/L"
-  mat$'MEG-type' = "Negligible"
-  total = rbind(total,mat)
+      # Get appropriate exposure_route
+      exposure_route = dplyr::case_when(
+        exposure_method == "Air" ~ "Inhalation",
+        exposure_method == "Soil" ~ "Soil",
+        exposure_method == "Water" ~ "Oral"
+      ),
 
-  #Water Short-term
-  openxlsx::read.xlsx(paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/DOD_Water-MEGs_Short-Term_2013.xlsx")) -> mat
-  mat = mat[4:nrow(mat),c(2:3,7:11)]
-  names(mat) = c("casrn", "name","numeric_5","subsource_5","numeric_15","subsource_15", "duration")
-  mat$id = 1:nrow(mat)
-  mat = stats::reshape(mat, varying = 3:6, idvar = "id", direction = "long", sep = "_")
-  mat = mat[!is.na(mat$numeric),]
-  mat$subtype = paste0("Short-Term, ",mat$time,"L/d")
-  mat$route = "Oral"
-  mat$method = "Water"
-  mat$duration = stringr::word(mat$duration,1,2)
-  mat$units = "mg/L"
-  mat$'MEG-type' = "Negligible"
-  mat = mat[,c(1:4,6:12)]
-  total = rbind(total,mat)
+      # Fix symbols in name field
+      name = name %>%
+        # Fix micro signs
+        fix.greek.symbols() %>%
 
-  mat = total
-  mat[,5]=as.numeric(mat[,5])
-  mat$subsource = iconv(mat$subsource, "UTF-8", "ASCII", sub = "")
-  names(mat)[4:5] = c("meg_type", "toxval_numeric")
-  mat = mat %>%
-    dplyr::filter(!grepl("ACToR", casrn))
-  # mask = vector(length=nrow(mat),mode="integer")
-  # mask[] = 1
-  # for(i in 1:nrow(mat)) if(tidyr::contains(mat[i,"casrn"],"ACToR")) mask[i] = 0
-  # mat = mat[mask==1,]
+        # Remove trademark symbols
+        gsub("\u00ae|<U+00ae>", "", .) %>%
 
+        # Fix whitespace
+        gsub("[\r\n][\r\n]", " ", .) %>%
+
+        # Fix escaped quotation marks
+        gsub("[\\]{1,}'", "'", .) %>%
+        gsub('[\\]{1,}"', '"', .) %>%
+
+        # Handle extra whitespace
+        stringr::str_squish(),
+
+      # Fix CASRN - instead use checksum to narrow down
+      casrn = casrn %>%
+        # Remove *
+        gsub("\\*+", "", .) %>%
+
+        # Remove "numbering" (e.g., (2))
+        gsub("\\s\\([0-9*]\\)", "", .) %>%
+
+        # Handle extra whitespace
+        stringr::str_squish(),
+
+      # Fix subsource
+      subsource = subsource %>%
+        # Remove * and double-dagger symbols
+        gsub("\\*+|\u2021|<U+2021>", "", .) %>%
+
+        # Remove trailing underscores
+        gsub("_$", "", .) %>%
+
+        # Handle extra whitespace
+        stringr::str_squish(),
+
+      # Get study_duration_value
+      study_duration_value = gsub("[a-zA-Z]+", "", duration),
+
+      # Get study_duration_units
+      study_duration_units = gsub("[0-9]+", "", duration),
+
+      # Add per day to rate
+      Intake_Rate = paste0(Intake_Rate, "/d") %>%
+        gsub("NA/d", NA, .)
+    ) %>%
+
+    # Unite subtype and intake_rate, and remove entries with no intake_rate
+    tidyr::unite("toxval_subtype", c("subtype", "Intake_Rate"), sep = ", ", remove = FALSE) %>%
+    tidyr::unite(toxval_subtype, c(toxval_subtype, meg_type, exposure_method), sep=" ", remove=FALSE) %>%
+    dplyr::mutate(toxval_subtype = toxval_subtype %>%
+                    gsub(", NA", "", .)) %>%
+
+    dplyr::distinct()
+
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="DOD",table="source_dod_meg",res=mat,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
+
+
+
+
