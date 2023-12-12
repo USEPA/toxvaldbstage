@@ -42,6 +42,8 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
 
   res <- res0 %>%
     dplyr::mutate(
+      # Get rid of excess whitespace
+      dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish)),
       # Assign appropriate names
       name = TG230_CHEMICAL_NAME,
       casrn = TG230_CASRN,
@@ -110,11 +112,15 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       study_duration_value = gsub("[a-zA-Z]+", "", duration),
 
       # Get study_duration_units
-      study_duration_units = gsub("[0-9]+", "", duration)
+      study_duration_units = gsub("[0-9]+", "", duration),
+      # Add per day to rate
+      Intake_Rate = paste0(Intake_Rate, "/d") %>%
+        gsub("NA/d", NA, .)
     ) %>%
 
     # Unite subtype and intake_rate, and remove entries with no intake_rate
     tidyr::unite("toxval_subtype", c("subtype", "Intake_Rate"), sep = ", ", remove = FALSE) %>%
+    tidyr::unite(toxval_subtype, c(toxval_subtype, meg_type, exposure_method), sep=" ", remove=FALSE) %>%
     dplyr::mutate(toxval_subtype = toxval_subtype %>%
                     gsub(", NA", "", .)) %>%
 
