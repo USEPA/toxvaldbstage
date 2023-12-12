@@ -40,7 +40,7 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
 
-  res0 <- res0 %>%
+  res <- res0 %>%
     dplyr::mutate(
       # Assign appropriate names
       name = TG230_CHEMICAL_NAME,
@@ -55,7 +55,7 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
 
       # Get appropriate subtype
       subtype = dplyr::case_when(
-        grepl("min", duration) | grepl("hour", duration) | grepl("day", duration) ~ "Short-Term",
+        grepl("min|hour|day", duration) ~ "Short-Term",
         grepl("year", duration) ~ "Long-Term",
       ),
 
@@ -84,30 +84,24 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
         # Handle extra whitespace
         stringr::str_squish(),
 
-      # Fix CASRN
+      # Fix CASRN - instead use checksum to narrow down
       casrn = casrn %>%
         # Remove *
         gsub("\\*+", "", .) %>%
 
-        # Remove "numbering"
+        # Remove "numbering" (e.g., (2))
         gsub("\\s\\([0-9*]\\)", "", .) %>%
-
-        # Remove values that are not CASRNs
-        ifelse(!grepl("\\b[0-9]{0,7}\\-[0-9]{2}\\-[0-9]", .), "", .) %>%
 
         # Handle extra whitespace
         stringr::str_squish(),
 
       # Fix subsource
       subsource = subsource %>%
-        # Remove *
-        gsub("\\*+", "", .) %>%
+        # Remove * and double-dagger symbols
+        gsub("\\*+|\u2021|<U+2021>", "", .) %>%
 
         # Remove trailing underscores
         gsub("_$", "", .) %>%
-
-        # Replace double-dagger symbol
-        gsub("\u2021|<U+2021>", "++", .) %>%
 
         # Handle extra whitespace
         stringr::str_squish(),
@@ -121,21 +115,20 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
 
     # Unite subtype and intake_rate, and remove entries with no intake_rate
     tidyr::unite("toxval_subtype", c("subtype", "Intake_Rate"), sep = ", ", remove = FALSE) %>%
-    dplyr::mutate(toxval_subtype = ifelse(grepl(", NA", toxval_subtype), "", toxval_subtype)) %>%
+    dplyr::mutate(toxval_subtype = toxval_subtype %>%
+                    gsub(", NA", "", .)) %>%
 
     dplyr::distinct()
 
   # Standardize the names
-  names(res0) <- names(res0) %>%
+  names(res) <- names(res) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
   # Fill blank hashing cols
-  res0[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res0)]] <- "-"
-
-  res <- res0
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
