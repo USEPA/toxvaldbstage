@@ -1,3 +1,28 @@
+#--------------------------------------------------------------------------------------
+#' @description Load DOD MEG to toxval_source.
+#'
+#' @param db The version of toxval_source into which the source is loaded.
+#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @param do.reset If TRUE, delete data from the database for this source before
+#' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title import_dod_meg_source
+#' @return None. Data is processed into the database
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[tidyr]{unite}}
+#' @rdname import_dod_meg_source
+#' @export
+#' @importFrom readxl read_xls
+#' @importFrom dplyr mutate case_when distinct
 #' @importFrom stringr str_squish
 #' @importFrom tidyr unite
 #--------------------------------------------------------------------------------------
