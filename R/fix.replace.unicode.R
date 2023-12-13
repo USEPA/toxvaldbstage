@@ -168,7 +168,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u00ce\u00b1", "a", ., ignore.case=TRUE) %>%
 
     # Handle dashes
-    gsub("\u2013|\u2014|\u2212", "-", ., ignore.case=TRUE) %>%
+    gsub("\u2013|\u2014|\u2212|\u2010", "-", ., ignore.case=TRUE) %>%
 
     # Fix quotations and apostrophes
     gsub("\u201c|<U+201C>|\u201d|<U+201D>", '"', ., ignore.case=TRUE) %>%
@@ -266,7 +266,7 @@ fix.replace.unicode <- function(df) {
     cat(paste0("\n", length(not_handled), " unicode symbols were not handled:\n    - "))
     cat(paste0(not_handled, collapse="\n    - "))
     cat("\n\nUpdate fix.replace.unicode to handle these cases.\n\n")
-    browser()
+    # browser()
   }
 
   return(df)
