@@ -1,28 +1,3 @@
-#--------------------------------------------------------------------------------------
-#' @description Load DOD MEG to toxval_source.
-#'
-#' @param db The version of toxval_source into which the source is loaded.
-#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
-#' @param do.reset If TRUE, delete data from the database for this source before
-#' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title import_dod_meg_source
-#' @return None. Data is processed into the database
-#' @details DETAILS
-#' @examples
-#' \dontrun{
-#' if(interactive()){
-#'  #EXAMPLE1
-#'  }
-#' }
-#' @seealso
-#'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
-#'  \code{\link[stringr]{str_trim}}
-#'  \code{\link[tidyr]{unite}}
-#' @rdname import_dod_meg_source
-#' @export
-#' @importFrom readxl read_xls
-#' @importFrom dplyr mutate case_when distinct
 #' @importFrom stringr str_squish
 #' @importFrom tidyr unite
 #--------------------------------------------------------------------------------------
@@ -34,18 +9,16 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   src_version_date = as.Date("2013-01-01")
   dir = paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/")
   file = paste0(dir,"TG230MilitaryExposureGuidelines.xls")
-
   res0 = readxl::read_xls(file, sheet = "All MEGs (vertical)")
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-
   res <- res0 %>%
     dplyr::mutate(
       # Get rid of excess whitespace
       dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish)),
       # Assign appropriate names
-      name = fix.replace.unicode(TG230_CHEMICAL_NAME),
+      name = TG230_CHEMICAL_NAME,
       casrn = TG230_CASRN,
       toxval_numeric = as.numeric(MEGvalue),
       toxval_units = UNITS,
@@ -55,6 +28,7 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       duration = TIMEFRAME,
       toxval_type = "MEG",
       year = "2013",
+      long_ref = "U.S. Army Public Health Command (2013) TG 230 Military Exposure Guidelines Table. Army Public Health Center.",
 
       # Get appropriate subtype
       subtype = dplyr::case_when(
@@ -68,6 +42,14 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
         exposure_method == "Soil" ~ "Soil",
         exposure_method == "Water" ~ "Oral"
       ),
+
+      # Fix name field
+      name = name %>%
+        # Fix unicode symbols
+        fix.replace.unicode() %>%
+
+        # Handle extra whitespace
+        stringr::str_squish(),
 
       # Fix CASRN - instead use checksum to narrow down
       casrn = casrn %>%
