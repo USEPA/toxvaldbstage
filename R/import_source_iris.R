@@ -261,7 +261,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   endpoint = `PRINCIPAL CRITICAL EFFECT SYSTEM`,
                   risk_assessment_duration = DURATION,
                   study_reference = `STUDY CITATION`) %>%
-    dplyr::mutate(toxval_units = fix.greek.symbols(toxval_units))
+    dplyr::mutate(toxval_units = fix.replace.unicode(toxval_units))
 
   # Check joins (identified issue with float/double versus character toxval_numeric join)
   # tmp <- chem_details %>%

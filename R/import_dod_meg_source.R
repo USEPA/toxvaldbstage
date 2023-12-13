@@ -45,7 +45,7 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       # Get rid of excess whitespace
       dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish)),
       # Assign appropriate names
-      name = TG230_CHEMICAL_NAME,
+      name = fix.replace.unicode(TG230_CHEMICAL_NAME),
       casrn = TG230_CASRN,
       toxval_numeric = as.numeric(MEGvalue),
       toxval_units = UNITS,
@@ -55,7 +55,6 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       duration = TIMEFRAME,
       toxval_type = "MEG",
       year = "2013",
-      long_ref = "U.S. Army Public Health Command (2013) TG 230 Military Exposure Guidelines Table. Army Public Health Center.",
 
       # Get appropriate subtype
       subtype = dplyr::case_when(
@@ -70,24 +69,6 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
         exposure_method == "Water" ~ "Oral"
       ),
 
-      # Fix symbols in name field
-      name = name %>%
-        # Fix micro signs
-        fix.greek.symbols() %>%
-
-        # Remove trademark symbols
-        gsub("\u00ae|<U+00ae>", "", .) %>%
-
-        # Fix whitespace
-        gsub("[\r\n][\r\n]", " ", .) %>%
-
-        # Fix escaped quotation marks
-        gsub("[\\]{1,}'", "'", .) %>%
-        gsub('[\\]{1,}"', '"', .) %>%
-
-        # Handle extra whitespace
-        stringr::str_squish(),
-
       # Fix CASRN - instead use checksum to narrow down
       casrn = casrn %>%
         # Remove *
@@ -101,8 +82,11 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
 
       # Fix subsource
       subsource = subsource %>%
-        # Remove * and double-dagger symbols
-        gsub("\\*+|\u2021|<U+2021>", "", .) %>%
+        # Remove *
+        gsub("\\*+", "", .) %>%
+
+        # Fix symbols
+        fix.replace.unicode() %>%
 
         # Remove trailing underscores
         gsub("_$", "", .) %>%

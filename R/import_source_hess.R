@@ -90,28 +90,9 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   res = res %>%
     dplyr::mutate(
       name=name %>%
-        # Fix Greek symbols
-        fix.greek.symbols() %>%
-        # Remove trademark symbols
-        gsub("\u00ae|<U+00ae>", "", .) %>%
-        # Fix math symbols
-        gsub("\u00b1|<U+00B1>", "+/-", .) %>%
-        # Fix apostrophes
-        gsub("\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>", "'", .) %>%
-        # Fix parentheses and brackets
-        gsub("\uff08", "(", .) %>%
-        gsub("\uff09", ")", .) %>%
-        gsub("\uff3d", "]", .) %>%
-        # Fix roman numeral 2
-        gsub("\u2161","II", .) %>%
-        # Fix fullwidth latin small letter o
-        gsub("\uff4f", "o", .) %>%
-        # Fix fullwidth digit 1
-        gsub("\uff11", 1, .) %>%
-        # Fix fullwidth digit 3
-        gsub("\uff13", 3, .) %>%
-        # Fix fullwidth digit 7
-        gsub("\uff17", 7, .) %>%
+        # Fix unicode symbols
+        fix.replace.unicode() %>%
+
         stringr::str_squish())
 
   # Handle case of chemical names with "?" in name due to unicode symbols
@@ -122,7 +103,7 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   for(i in seq_len(nrow(tmp))){
     n_fix = tmp$`chemical_name(s)`[i] %>%
-      # Fix math symbols
+      # Fix math symbols (kept manual unicode substitution to preserve logic)
       gsub("\u00b1|<U+00B1>", "+/-", .) %>%
       stringr::str_squish() %>%
       strsplit(";") %>%

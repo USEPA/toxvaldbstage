@@ -67,9 +67,9 @@ import_source_epa_ow_nrwqc_alc <- function(db,chem.check.halt=FALSE, do.reset=FA
     tidyr::separate(toxval_type, c("media", "toxval_type", "study_type", "toxval_units"),
                     sep="_", fill="right", remove=TRUE) %>%
     dplyr::mutate(
-      # replacing greek letters
+      # replacing unicode symbols
       # toxval_units = gsub("?", "u", toxval_units),
-      dplyr::across(c("name", "toxval_units"), ~fix.greek.symbols(.)),
+      dplyr::across(c("name", "toxval_units"), ~fix.replace.unicode(.)),
       # getting rid of units still in toxval_numeric column
       toxval_numeric = gsub("ug/L", "", toxval_numeric),
       # getting rid of parenthesis around values in certain columns
@@ -79,7 +79,7 @@ import_source_epa_ow_nrwqc_alc <- function(db,chem.check.halt=FALSE, do.reset=FA
       toxval_type = gsub("[[:digit:]]+", "", toxval_type)) %>%
     # replacing multiple dashes with single dash for empty columns
     dplyr::mutate(dplyr::across(c("name","casrn","Publication_Year","toxval_numeric"),
-                                ~ gsub(paste0(c("\u2013", "\u2014", "---", "--"), collapse="|"), "-", .)
+                                ~fix.replace.unicode(.)
                                 ),
                   # getting rid of (P) at end of 'name' column values
                   name = gsub("\\(P[)]$", "", name) %>%

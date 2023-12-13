@@ -103,7 +103,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
                     as.Date(., format = "%y") %>%
                     format(., "%Y")) %>%
     # Fix greek symbols
-    dplyr::mutate(dplyr::across(c("name", "toxval_units"), ~fix.greek.symbols(.))) %>%
+    dplyr::mutate(dplyr::across(c("name", "toxval_units"), ~fix.replace.unicode(.))) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(study_duration_value = ifelse(study_type == "acute", "1-14 days",
                                           ifelse(study_type == "chronic", ">1 year",

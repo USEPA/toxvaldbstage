@@ -43,21 +43,7 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
 
   res = res0 %>%
     # Copy toxval fields from originals
-    dplyr::mutate(name = `Webpage Name` %>%
-                    # Replace "-" unicode
-                    gsub("\u2212|\u2013", "-", .) %>%
-                    # Replace +/- symbol
-                    gsub("\u00b1", "+/-", .) %>%
-                    # Replace Prime symbol
-                    gsub("\u00b4|<U+00B4>|\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>|\u2032", "'", .) %>%
-                    # Replace trademark/copyright symbol
-                    gsub("\u00ae|<U+00ae>|\u00a9|\u2122", "", .) %>%
-                    # Handle species greek symbol case
-                    gsub("\u03b1lpha", "alpha", .) %>%
-                    # delta symbol
-                    gsub("\u03b4", "d", .) %>%
-                    # Replace greek symbol unicode
-                    fix.greek.symbols(),
+    dplyr::mutate(name = `Webpage Name` %>% fix.replace.unicode(),
                   casrn = `CAS number` %>%
                     # Remove parenthetics
                     gsub("\\s*\\([^\\)]+\\)","", .),
@@ -101,10 +87,10 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
       toxval_units = cleaned_adi %>%
         stringr::str_replace(., paste0(".*", toxval_numeric),"") %>%
         stringr::str_squish() %>%
-        fix.greek.symbols(),
+        fix.replace.unicode(),
       toxval_units_comments = Comments %>%
-        # Replace unicode  "-"
-        gsub("\u2013", "-", .) %>%
+        # Fix unicode symbols
+        fix.replace.unicode() %>%
         stringr::str_replace(., paste0(".*", toxval_numeric),"") %>%
         stringr::str_squish(),
       # toxval_units = if_else(is.na(toxval_numeric), NA_character_, toxval_units),

@@ -75,9 +75,9 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
   # Add new toxval columns as needed but retain original columns
   res = res %>%
     dplyr::mutate(
-      name =`Analyte Name`,
+      name = fix.replace.unicode(`Analyte Name`),
       casrn = `Analyte CAS`,
-      toxval_units = fix.greek.symbols(Units),
+      toxval_units = fix.replace.unicode(Units),
       media = `ESL Medium` %>%
         tolower(),
       species = `ESL Receptor` %>%
@@ -108,17 +108,8 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
       # Remove closing parentheses from toxval_subtype
       toxval_subtype = stringr::str_remove(toxval_subtype, stringr::fixed(")")),
 
-      # Handle symbols in name
-      name = name %>%
-        # Fix Greek symbols
-        fix.greek.symbols() %>%
-
-        # Fix escaped quotation marks
-        gsub("[\\]{1,}'", "'", .) %>%
-        gsub('[\\]{1,}"', '"', .) %>%
-
       # Remove whitespace
-      stringr::str_squish()
+      # stringr::str_squish()
     )
 
   # Standardize the names
