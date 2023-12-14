@@ -110,6 +110,8 @@ set_clowder_id_lineage <- function(source_table,
                                                                      "clowder_v3/source_atsdr_mrls_sept2023_doc_map_20231204.xlsx")),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20231019.xlsx")),
+                      "source_health_canada" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/source_health_canada_document_map.xlsx")),
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                                        document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -1032,6 +1034,33 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
+
+                  "source_health_canada" = {
+                    # Match origin docs
+                    # Match based on trv_source
+                    res <- res %>%
+                      dplyr::select(source_hash, source_version_date, trv_source, name) %>%
+                      left_join(map_file %>%
+                                  filter(!is.na(clowder_id)) %>%
+                                  select(clowder_id, fk_doc_id, trv_source) %>%
+                                  distinct(), relationship = "many-to-many",
+                                by= "trv_source")
+
+
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date, trv_source) %>%
+                      merge(map_file %>%
+                              dplyr::filter(is.na(trv_source)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = dplyr::bind_rows(res, tmp)
+
+                    # Return res
+                    res
+                  },
+
                   # Default case, return without mapping
                   res
     )
