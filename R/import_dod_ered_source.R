@@ -49,7 +49,7 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         gsub("N/A", "", .),
       toxval_type = Risk %>%
         gsub("N/A|N/R|<\\s?", "", .),
-      species = GenusSpecies,
+      species = tolower(GenusSpecies),
       exposure_route = Route %>%
         gsub("N/I", "", .),
       long_ref = source,
