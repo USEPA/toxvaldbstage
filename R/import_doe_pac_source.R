@@ -139,18 +139,8 @@ import_doe_pac_source <- function(db,
   # Chemical name cleaning
   res <- res %>% dplyr::mutate(
     name = name %>%
-      # Replace prime symbols
-      gsub("\u2019|<U+2019>", "'", .) %>%
-
-      # Fix Greek symbols
-      fix.greek.symbols() %>%
-
-      # Fix escaped quotation marks
-      gsub("[\\]{1,}'", "'", .) %>%
-      gsub('[\\]{1,}"', '"', .) %>%
-
-      # Remove trademark symbols
-      gsub("\u00ae|<U+00ae>", "", .) %>%
+      # Fix symbols
+      fix.replace.unicode() %>%
 
       # Remove excess whitespace
       stringr::str_squish()

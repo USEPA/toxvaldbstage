@@ -64,8 +64,8 @@ import_source_epa_ow_opp_alb <- function(db, chem.check.halt=FALSE, do.reset=FAL
       media = "freshwater",
       # Replace "NR" in casrn with "-"
       casrn = gsub("^NR$", "-", casrn),
-      # Replace all greek letters "µ" with "u"
-      dplyr::across(where(is.character), fix.greek.symbols),
+      # Handle unicode symbols
+      dplyr::across(where(is.character), fix.replace.unicode),
       # Remove ">" and "<" from toxval columns...
       dplyr::across(tidyr::all_of(toxval_cols), ~gsub(" *[<>] *", "", .)),
       # ...and convert them all to numerics
