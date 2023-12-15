@@ -20,6 +20,16 @@ fix.replace.unicode <- function(df) {
     return()
   }
 
+  # Check if any unicode substitutions are needed
+  # Escape all text
+  uni_check = df %>%
+    stringi::stri_escape_unicode() %>%
+    .[grepl("\\\\[uU][a-zA-Z0-9]{4,8}", .)]
+  # Return if no unicode to replace
+  if(!length(uni_check)){
+    return(df)
+  }
+
   # Generate unicode lists
   # TODO Add more cases to handle
   # USE stringi::stri_escape_unicode("") to assist with identifying new encoding
@@ -248,11 +258,7 @@ fix.replace.unicode <- function(df) {
     # Escape all text
     stringi::stri_escape_unicode() %>%
 
-    # Search for unicode symbols
-    stringr::str_extract_all(., "\\\\[uU][a-zA-Z0-9]{4,8}") %>%
-
-    # Remove nested lists
-    purrr::list_c() %>%
+    .[grepl("\\\\[uU][a-zA-Z0-9]{4,8}", .)] %>%
 
     # Make characters lowercase
     tolower() %>%
@@ -265,8 +271,8 @@ fix.replace.unicode <- function(df) {
     .[. != "NA"]
 
   # Print output related to unicode symbols that were not handled
-  if (length(not_handled) > 0) {
-    cat(paste0("\n", length(not_handled), " unicode symbols were not handled:\n    - "))
+  if(length(not_handled)){
+    cat(paste0("\n", length(not_handled), " unicode symbol(s) was/were not handled:\n    - "))
     cat(paste0(not_handled, collapse="\n    - "))
     cat("\n\nUpdate fix.replace.unicode to handle these cases.\n\n")
     # browser()

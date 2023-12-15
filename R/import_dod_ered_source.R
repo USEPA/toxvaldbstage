@@ -21,7 +21,7 @@
 #' @rdname import_generic_source
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr mutate across where case_when rename distinct
+#' @importFrom dplyr mutate across case_when rename distinct
 #' @importFrom stringr str_extract str_squish
 #' @importFrom tidyr replace_na drop_na
 #--------------------------------------------------------------------------------------
@@ -38,12 +38,18 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
 
-  res = res0 %>%
+  res0 = res0 %>%
     # Handle unicode symbols
-    dplyr::mutate(dplyr::across(dplyr::where(is.character), fix.replace.unicode)) %>%
+    dplyr::mutate(dplyr::across(where(is.character), fix.replace.unicode),
+                  # Remove any instances of N/A, N/I, N/R, and N/S
+                  dplyr::across(.fns = ~replace(., . %in% c("N/A", "N/I", "N/R", "N/S", "(N/I)"),
+                                                NA))
+                  )
 
+  res = res0 %>%
     # Mutate new columns as needed
     dplyr::mutate(
+      source_url = "https://ered.el.erdc.dren.mil/",
       name = ChemName,
       casrn = CAS %>%
         gsub("N/A", "", .),
@@ -55,16 +61,14 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       long_ref = source,
       year = as.numeric(Time),
       habitat = environment,
-
       # Extract and translate study_type
       study_type = dplyr::case_when(
         ST == "L" ~ "Lab",
         ST == "F" ~ "Field",
         ST == "Meso" ~ "Mesocosm",
         ST == "Micro" ~ "Microcosm",
-        .default = ST
+        TRUE ~ ST
       ),
-
       # Handle toxval_numeric noise
       toxval_numeric = expConc %>%
         stringr::str_extract("[0-9\\.]+") %>%
@@ -78,24 +82,22 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       # Extract toxval_numeric_qualifier
       toxval_numeric_qualifier = expConc %>%
         gsub("[\\s0-9\\.]+", "", .) %>%
-        dplyr::case_when(
-          . == "" | . == "-" ~ NA,
-          .default = .
-        ) %>%
+        dplyr::na_if("") %>%
+        dplyr::na_if("-") %>%
         tidyr::replace_na("="),
 
       # Get media
-      media = dplyr::case_when(
-          grepl("FW", Media) ~ "freshwater",
-          grepl("SW", Media) ~ "saltwater",
-          .default = ""
+      Media = dplyr::case_when(
+          Media == "FW" ~ "freshwater",
+          Media == "SW" ~ "saltwater",
+          TRUE ~ Media
         ),
 
       # Get animal_source
       animal_source = dplyr::case_when(
         Coll == "W" ~ "wild",
         Coll == "C" ~ "cultured",
-        .default = Coll
+        TRUE ~ Coll
       ),
 
       # Get critical_effect and remove N/R
@@ -108,21 +110,20 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       # Get study_duration_value and study_duration_units
       # To handle edge cases, only take the leftmost value and hr/d/mo/yr
       # Rationale: earliest time when effects are observed is most relevant
-      study_duration_value = stringr::str_extract(DUR, "[0-9\\.]+"),
+      study_duration_value = DUR %>%
+        sub('.*;', '', .) %>%
+        sub(" - ", "-", .) %>%
+        # Pull out ranges or first numeric value
+        stringr::str_extract("[0-9\\.]+-[0-9\\.]+|[0-9\\.]+") %>%
+        # Select max of range
+        sub('.*-', '', .),
       study_duration_units = stringr::str_extract(DUR, "hr|rr|d|wk|mo| m|yr|generations") %>%
-        dplyr::case_when(
-          grepl("hr|rr", .) ~ "hours",
-          grepl("d", .) ~ "days",
-          grepl("wk", .) ~ "weeks",
-          grepl(" m|mo", .) ~ "months",
-          grepl("yr", .) ~ "years",
-          .default = .
-        ),
+        gsub("hr|rr", "hours", .) %>%
+        gsub("d", "days", .) %>%
+        gsub("wk", "weeks", .) %>%
+        gsub(" m|mo", "months", .) %>%
+        gsub("yr", "years", .)
     ) %>%
-
-    # Remove any instances of N/A, N/I, N/R, and N/S that remain
-    dplyr::mutate(dplyr::across(.fns = ~replace(., . %in% c("N/A", "N/I", "N/R", "N/S", "(N/I)"),
-                                                NA))) %>%
 
     # Drop rows without toxval_numeric
     tidyr::drop_na(toxval_numeric) %>%
@@ -163,6 +164,9 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     # ) %>%
 
     dplyr::distinct()
+
+  # Check study_duration splitting
+  # View(res %>% select(study_duration, study_duration_value, study_duration_units) %>% unique())
 
   # Standardize the names
   names(res) <- names(res) %>%
