@@ -83,8 +83,8 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
                     # Remove numerics, range, and decimals
                     gsub("[0-9+]|-|\\.", "", .) %>%
                     stringr::str_squish() %>%
-                    # Replace "≥" with ">="
-                    gsub("\u2265", ">=", .),
+                    # Fix unicode symbols
+                    fix.replace.unicode(),
                   Remarks = Remarks %>%
                     gsub("LD_\\{50\\}", "LD50", .) %>%
                     stringr::str_squish()) %>%
@@ -168,6 +168,7 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
 
   # Remove qualitifer from toxval_numeric
   res$toxval_numeric = res$toxval_numeric %>%
+    # Keep manual unicode removal to preserve script logic
     gsub(paste0(c(unique(res$toxval_numeric_qualifier), "\u2265"), collapse = "|"), "", .) %>%
     stringr::str_squish()
   # From document: "Dermal LD50 values are indicated with the letter D.

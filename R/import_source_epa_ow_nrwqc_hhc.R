@@ -89,8 +89,8 @@ import_source_epa_ow_nrwqc_hhc <- function(db, chem.check.halt=FALSE, do.reset=F
         stringr::str_squish(),
       # Replace all multiple and/or non-standard dashes with a standard dash
       dplyr::across(.fns = ~gsub("(--)?—", "-", .)),
-      # ...and replace all greek letters "µ" with "u"
-      dplyr::across(where(is.character), fix.greek.symbols)
+      # ...and fix unicode symbols
+      dplyr::across(where(is.character), fix.replace.unicode)
       ) %>%
     # Make row-by-row adjustments
     dplyr::rowwise() %>%
