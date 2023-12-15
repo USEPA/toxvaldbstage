@@ -2,7 +2,7 @@
 #' @title fix.replace.unicode
 #' @description A function to check all character fields and handle unicode symbols,
 #' either by removing them or replacing them with alphabetic equivalents.
-#' @return Returns a dataframe with no unicode symbols in the character fields.
+#' @return Returns a modified version of the input vector with unicode replacements.
 #' @export
 #' @details DETAILS
 #' @examples
@@ -12,7 +12,7 @@
 #'  }
 #' }
 #' @rdname fix.replace.unicode
-#' @param df DF with unicode symbols to be replaced
+#' @param df Character vector to check/replace unicode symbols.
 #--------------------------------------------------------------------------------------
 fix.replace.unicode <- function(df) {
   if(!is.character(df)){
@@ -160,9 +160,12 @@ fix.replace.unicode <- function(df) {
     # Handle special case for micro sign
     gsub("\u00c2\u00b5|\u00c2u", "u", ., ignore.case=TRUE) %>%
 
-    # Remove unicode "noise"
-    gsub("\u00e2\u20ac\u017d", "", ., ignore.case=TRUE) %>%
-    gsub("\u00a3", "", ., ignore.case=TRUE) %>%
+    # Remove euro/pound currency symbol unicode
+    gsub("\u20ac|u00a3", "", ., ignore.case=TRUE) %>%
+    # Replace LATIN CAPITAL LETTER Z WITH CARON
+    gsub("\u017d|<U+017D>", "Z", ., ignore.case = TRUE) %>%
+    # Replace Latin small letter a with circumflex
+    gsub("\u00e2|<U+00E2>", "a", ., ignore.case = TRUE) %>%
 
     # Handle special case for Alpha
     gsub("\u00ce\u00b1", "a", ., ignore.case=TRUE) %>%
@@ -240,7 +243,7 @@ fix.replace.unicode <- function(df) {
   # Identify and print unicode symbols that were not handled
   not_handled = df %>%
     # Remove NA values
-    na.omit %>%
+    na.omit() %>%
 
     # Escape all text
     stringi::stri_escape_unicode() %>%
