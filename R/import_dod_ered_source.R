@@ -59,7 +59,9 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       species = tolower(GenusSpecies),
       exposure_route = Route %>%
         gsub("N/I", "", .),
-      long_ref = paste(source, Origin),
+      long_ref = paste(source, Origin) %>%
+        # Remove NA Origin
+        gsub(" NA$", "", .),
       year = as.numeric(Time),
       habitat = environment,
       # Extract and translate study_type
