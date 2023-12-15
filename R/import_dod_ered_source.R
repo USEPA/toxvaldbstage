@@ -49,6 +49,7 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   res = res0 %>%
     # Mutate new columns as needed
     dplyr::mutate(
+      lifestage = LifeStage,
       source_url = "https://ered.el.erdc.dren.mil/",
       name = ChemName,
       casrn = CAS %>%
@@ -58,7 +59,7 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       species = tolower(GenusSpecies),
       exposure_route = Route %>%
         gsub("N/I", "", .),
-      long_ref = source,
+      long_ref = paste(source, Origin),
       year = as.numeric(Time),
       habitat = environment,
       # Extract and translate study_type
@@ -105,7 +106,13 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         gsub(", N/R|N/R, ", "", .),
 
       # Address typo in source data
-      DUR = gsub("96114\\)", "96\\(114\\)", DUR),
+      DUR = DUR %>%
+        gsub("96114\\)", "96\\(114\\)", .) %>%
+        # Fix consistency of unit spacing
+        gsub(" d", "d", .) %>%
+        # Removing "+1 hr"
+        gsub("+1 hr", "", ., fixed = TRUE) %>%
+        stringr::str_squish(),
 
       # Get study_duration_value and study_duration_units
       # To handle edge cases, only take the leftmost value and hr/d/mo/yr
@@ -122,7 +129,15 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         gsub("d", "days", .) %>%
         gsub("wk", "weeks", .) %>%
         gsub(" m|mo", "months", .) %>%
-        gsub("yr", "years", .)
+        gsub("yr", "years", .),
+      # Size column has sex information for some entries
+      sex = `size (cm)` %>%
+        tolower() %>%
+        # Extract any matches to sex
+        stringr::str_extract_all(., "female|females|male|males") %>%
+        unlist() %>%
+        unique() %>%
+        paste0(collapse="; ")
     ) %>%
 
     # Drop rows without toxval_numeric
@@ -137,6 +152,13 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                   effect_trend="trend", percentage_effect="%effect", effect_significance="Signif",
                   data_source="source", data_year="Time", ered_date_modified="Date Modified",
                   moisture_percentage="%Moisture") %>%
+
+    # Remove columns causing duplicates with hashed cols
+    dplyr::select(-ered_id, -tissue_residue_conc, -tissue_residue_conc_units,
+                  -percentage_effect, -Control_result, -comments,
+                  -effect_trend, -effect_significance, -Depuration, -ered_date_modified,
+                  -exposure_conc, -Origin, -animal_source, -Coll, -p_value, -mixed_chemical,
+                  -Lipid, -moisture_percentage, -`weight (g)`, -`size (cm)`) %>%
 
     # Uncomment this block and comment the above block if mutation is preferred to renaming
     # dplyr::mutate(
