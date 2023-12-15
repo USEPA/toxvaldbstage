@@ -133,8 +133,6 @@ set_clowder_id_lineage <- function(source_table,
                                                                    "clowder_v3/source_epa_aegl_document_map.xlsx")),
                       "source_opp" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/epa_opp_doc_lineage_mmille16.xlsx")),
-                      "source_health_canada" = data.frame(clowder_id = "61003a57e4b01a90a3f9c305",
-                                                          document_name = "60683b9de75ea6aced60e004a919370b-Health Canada-2010-Part II H.pdf"),
                       "source_niosh" = data.frame(clowder_id = "61fabd3de4b04a563fdc9b99",
                                                   document_name = "ToxValQA33091630_NIOSH_2020_ImmediatelyDangerous-(IDLH)Values.pdf"),
                       "source_ow_dwsha" = data.frame(clowder_id = "610036ede4b01a90a3f98ae0",
@@ -1039,12 +1037,12 @@ set_clowder_id_lineage <- function(source_table,
                     # Match origin docs
                     # Match based on trv_source
                     res <- res %>%
-                      dplyr::select(source_hash, source_version_date, trv_source, name) %>%
-                      left_join(map_file %>%
-                                  filter(!is.na(clowder_id)) %>%
-                                  select(clowder_id, fk_doc_id, trv_source) %>%
-                                  distinct(), relationship = "many-to-many",
-                                by= "trv_source")
+                      dplyr::select(source_hash, source_version_date, trv_source) %>%
+                      dplyr::left_join(map_file %>%
+                                  dplyr::filter(!is.na(clowder_id)) %>%
+                                    dplyr::select(clowder_id, fk_doc_id, trv_source) %>%
+                                    dplyr::distinct(), relationship = "many-to-many",
+                                by = "trv_source")
 
 
                     # Match to extraction doc
