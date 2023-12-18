@@ -1,5 +1,4 @@
 #--------------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------
 #' @description Load Pennsylvania DEP MCLs into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
@@ -35,6 +34,8 @@ import_source_penn_dep <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   src_version_date = as.Date("2021-11-20")
   dir = paste0(toxval.config()$datapath,"penn_dep_mcls/penn_dep_mcls_files/")
   file = paste0(dir,"PENN_DEP_MCLs_Table 1_20211120.xlsx")
+
+  file = "PENN_DEP_MCLs_Table 1_20211120.xlsx"
   res0 = readxl::read_xlsx(file, skip = 5, n_max = 369, col_names = FALSE)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -136,7 +137,7 @@ import_source_penn_dep <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       # Get toxval_type
       toxval_type = dplyr::case_when(
         category == "M" ~ "MCL",
-        .default = "medium spec. conc."
+        TRUE ~ "medium spec. conc."
       ),
 
       # Translate category abbreviations (use table definitions for now)
@@ -146,7 +147,7 @@ import_source_penn_dep <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         category == "G" ~ "Ingestion",
         category == "N" ~ "Inhalation",
         category == "S" ~ "Aqueous solubility cap",
-        .default = ""
+        TRUE ~ ""
       )
     ) %>%
 
@@ -157,6 +158,11 @@ import_source_penn_dep <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       sep = ":",
       remove = TRUE
     ) %>%
+
+    # Uncomment if hardcoded "groundwater" should be added to toxval_subtype
+    # dplyr::mutate(
+    #   toxval_subtype = paste0("groundwater:", toxval_subtype)
+    # ) %>%
 
     dplyr::distinct()
 
