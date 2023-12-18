@@ -34,8 +34,6 @@ import_source_penn_dep <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   src_version_date = as.Date("2021-11-20")
   dir = paste0(toxval.config()$datapath,"penn_dep_mcls/penn_dep_mcls_files/")
   file = paste0(dir,"PENN_DEP_MCLs_Table 1_20211120.xlsx")
-
-  file = "PENN_DEP_MCLs_Table 1_20211120.xlsx"
   res0 = readxl::read_xlsx(file, skip = 5, n_max = 369, col_names = FALSE)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
