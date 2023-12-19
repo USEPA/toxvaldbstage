@@ -47,9 +47,10 @@ import_penn_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   res = res0 %>%
     dplyr::mutate(
-      # Rename columns as needed
+      # Rename/add columns as needed
       name = stringr::str_squish(`Regulated Subtance`),
       casrn = CAS,
+      source_url = " https://www.dep.pa.gov/Business/Land/LandRecycling/Standards-Guidance-Procedures/Pages/Statewide-Health-Standards.aspx"
     )  %>%
 
     # Combine values and categories to enable later transformations
