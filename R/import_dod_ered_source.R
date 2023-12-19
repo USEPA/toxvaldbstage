@@ -18,7 +18,7 @@
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{replace_na}}, \code{\link[tidyr]{drop_na}}
-#' @rdname import_generic_source
+#' @rdname import_dod_ered_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate across case_when rename distinct
@@ -51,6 +51,7 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     dplyr::mutate(
       lifestage = LifeStage,
       source_url = "https://ered.el.erdc.dren.mil/",
+      subsource = "USACE_ERDC_ERED_database_10_25_2019",
       name = ChemName,
       casrn = CAS %>%
         gsub("N/A", "", .),
@@ -125,21 +126,32 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         # Pull out ranges or first numeric value
         stringr::str_extract("[0-9\\.]+-[0-9\\.]+|[0-9\\.]+") %>%
         # Select max of range
-        sub('.*-', '', .),
-      study_duration_units = stringr::str_extract(DUR, "hr|rr|d|wk|mo| m|yr|generations") %>%
+        sub('.*-', '', .) %>%
+        as.numeric(),
+      study_duration_units = stringr::str_extract(DUR, "d p\\.h\\.|d posthatch|hr|rr|d|wk|mo|m\\b|yr|generations") %>%
         gsub("hr|rr", "hours", .) %>%
         gsub("d", "days", .) %>%
         gsub("wk", "weeks", .) %>%
-        gsub(" m|mo", "months", .) %>%
-        gsub("yr", "years", .),
+        gsub("mo", "months", .) %>%
+        gsub("m\\b", "minutes", .) %>%
+        gsub("yr", "years", .) %>%
+        gsub("posthatch|p\\.h\\.", "post-hatch", .),
+
+      # Assign missing units
+      # Duration units for long term studies (NOEC,LOEC) as d (days) - "NOEC|LOEC"
+      # Duration units for short term studies (ED,LC) as d (days) if duration value > 4 and as h (hours) if <= 4 - "ED|LC"
+      # Duration units for the rest of the short term studies as h (hours) - "NOEC|LOEC|ED|LC"
+      study_duration_units = ifelse(!is.na(study_duration_units), study_duration_units,
+                                    ifelse(!grepl("NOEC|LOEC|ED|LC", toxval_type), study_duration_units,
+                                           ifelse(grepl("NOEC|LOEC", toxval_type), "days",
+                                                  ifelse(study_duration_value > 4, "days", "hours")))),
+
       # Size column has sex information for some entries
-      sex = `size (cm)` %>%
-        tolower() %>%
-        # Extract any matches to sex
-        stringr::str_extract_all(., "female|females|male|males") %>%
-        unlist() %>%
-        unique() %>%
-        paste0(collapse="; ")
+      sex = dplyr::case_when(
+        `size (cm)` == "female" ~ "F",
+        `size (cm)` == "male" ~ "M",
+        TRUE ~ NA_character_
+      )
     ) %>%
 
     # Drop rows without toxval_numeric
