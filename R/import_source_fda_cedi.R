@@ -34,13 +34,6 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
-
   # Fixes error with stringi functions regarding UTF-8 byte sequences
   res0$`Substance` <-iconv(res0$`Substance`, from="UTF-8", to="ASCII")
   res = res0 %>%
@@ -63,11 +56,12 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     toxval_units = toxval_units %>%
       gsub("\\)", "", .),
     toxval_numeric = toxval_numeric %>%
-      sub('.*?"(.*?)"\\)', '\\1', .))
-
-  res$source_url = "https://cfsanappsexternal.fda.gov/scripts/fdcc/?set=CEDI"
-  res$subsource = "FDA CFSAN"
-  res$risk_assessment = "chronic"
+      sub('.*?"(.*?)"\\)', '\\1', .),
+    source_url = "https://cfsanappsexternal.fda.gov/scripts/fdcc/?set=CEDI",
+    subsource = "FDA CFSAN",
+    risk_assessment = "chronic",
+    source_version_date = src_version_date
+    )
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -78,9 +72,6 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
-
-  # Add version date. Can be converted to a mutate statement as needed
-  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
