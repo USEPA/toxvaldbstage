@@ -113,6 +113,7 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         as.Date() %>%
         format("%Y")
     ) %>%
+
     dplyr::distinct()
 
   # Check Date year extraction
@@ -164,6 +165,23 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   ##############################################################################
   ###########################END LEL/LOA DATA SECTION###########################
   ##############################################################################
+
+  res = res %>%
+    # Remove LEL values
+    dplyr::filter(toxval_type!="LEL") %>%
+
+    # Fix toxval_type by translating LOA and adding AEGL information
+    dplyr::mutate(
+      toxval_type = dplyr::case_when(
+        toxval_type == "LOA" ~ "Level of Distinct Odor Awareness (LOA)",
+        grepl("AEGL", toxval_type) ~ paste(toxval_type, "-", study_duration_value,
+                                           study_duration_units, aegl_status, sep=" ")
+      ) %>%
+        gsub("Final AEGLs", "(final)", .) %>%
+        gsub("Holding AEGLs", "(holding)", .) %>%
+        gsub("Interim AEGLs", "(interim)", .) %>%
+        gsub("Proposed AEGLs", "(proposed)", .)
+    )
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
