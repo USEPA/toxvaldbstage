@@ -19,17 +19,17 @@
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
-#' @rdname import_source_penn_dep
+#' @rdname import_source_penn_dep_mcls
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate case_when distinct
 #' @importFrom stringr str_squish
 #' @importFrom tidyr unite pivot_longer separate
 #--------------------------------------------------------------------------------------
-import_source_penn_dep <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_penn_dep_mcls <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "Pennsylvania DEP MCLs"
-  source_table = "source_penn_dep"
+  source_table = "source_penn_dep_mcls"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2021-11-20")
   dir = paste0(toxval.config()$datapath,"penn_dep_mcls/penn_dep_mcls_files/")
@@ -58,12 +58,11 @@ import_source_penn_dep <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     dplyr::mutate(
       # Add columns as appropriate
       name = stringr::str_squish(`Regulated Substance`),
-      toxval_units = "mg/L",
+      toxval_units = "ug/L",
       subsource = "MSC Table 1",
       source_url = "https://www.dep.pa.gov/Business/Land/LandRecycling/Standards-Guidance-Procedures/Pages/Statewide-Health-Standards.aspx",
       risk_assessment_class = "chronic",
-      exposure_route = "oral",
-
+      exposure_route = "oral"
     ) %>%
 
     # Combine values and categories for later transformations
@@ -158,9 +157,9 @@ import_source_penn_dep <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     ) %>%
 
     # Uncomment if hardcoded "groundwater" should be added to toxval_subtype
-    # dplyr::mutate(
-    #   toxval_subtype = paste0("groundwater:", toxval_subtype)
-    # ) %>%
+    dplyr::mutate(
+      toxval_subtype = paste0("groundwater:", toxval_subtype)
+    ) %>%
 
     dplyr::distinct()
 
