@@ -137,7 +137,10 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         gsub("yr", "years", .) %>%
         gsub("posthatch|p\\.h\\.", "post-hatch", .),
 
-      # Get short-term study_duration_units
+      # Assign missing units
+      # Duration units for long term studies (NOEC,LOEC) as d (days) - "NOEC|LOEC"
+      # Duration units for short term studies (ED,LC) as d (days) if duration value > 4 and as h (hours) if <= 4 - "ED|LC"
+      # Duration units for the rest of the short term studies as h (hours) - "NOEC|LOEC|ED|LC"
       study_duration_units = ifelse(!is.na(study_duration_units), study_duration_units,
                                     ifelse(!grepl("NOEC|LOEC|ED|LC", toxval_type), study_duration_units,
                                            ifelse(grepl("NOEC|LOEC", toxval_type), "days",
@@ -147,7 +150,7 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       sex = dplyr::case_when(
         `size (cm)` == "female" ~ "F",
         `size (cm)` == "male" ~ "M",
-        TRUE ~ NA
+        TRUE ~ NA_character_
       )
     ) %>%
 
