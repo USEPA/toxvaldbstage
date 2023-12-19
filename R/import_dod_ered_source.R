@@ -172,7 +172,8 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                   -percentage_effect, -Control_result, -comments,
                   -effect_trend, -effect_significance, -Depuration, -ered_date_modified,
                   -exposure_conc, -Origin, -animal_source, -Coll, -p_value, -mixed_chemical,
-                  -Lipid, -moisture_percentage, -`weight (g)`, -`size (cm)`) %>%
+                  -Lipid, -moisture_percentage, -`weight (g)`, -`size (cm)`, -study_duration,
+                  -`Exp Type`) %>%
 
     # Uncomment this block and comment the above block if mutation is preferred to renaming
     # dplyr::mutate(
