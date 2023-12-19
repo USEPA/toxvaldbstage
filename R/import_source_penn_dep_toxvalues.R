@@ -1,6 +1,6 @@
 #--------------------------------------------------------------------------------------
-#' @title import_penn_source
-#' @description Load Penn Source into toxval_source
+#' @title import_source_penn_dep_toxvalues
+#' @description Load Penn DEP ToxValues Source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #' @param do.reset If TRUE, delete data from the database for this source before inserting new data
@@ -18,19 +18,19 @@
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
-#' @rdname import_penn_source
+#' @rdname source_penn_dep_toxvalues
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate filter case_when
 #' @importFrom stringr str_squish
 #' @importFrom tidyr unite pivot_longer separate
-import_penn_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_penn_dep_toxvalues <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "Pennsylvania Dep ToxValues"
-  source_table = "source_penn"
+  source_table = "source_penn_dep_toxvalues"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2021-11-20")
-  dir = paste0(toxval.config()$datapath,"source_penn/source_penn_files/")
+  dir = paste0(toxval.config()$datapath,"penn_dep_toxvalues/penn_dep_toxvalues_files/")
   file = paste0(dir,"PENN_DEP_Table 5a_20211120.xlsx")
   res0 = readxl::read_xlsx(file, skip = 7, col_names = FALSE, n_max = 371)
   #####################################################################
@@ -138,7 +138,7 @@ import_penn_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
         subsource == "S8" ~ "Anthracene surrogate",
         subsource == "S9" ~ "O-Toluidine surrogate",
         subsource == "S10" ~ "1,2,4-Trichlorobenzene surrogate",
-        TRUE ~ NA,
+        TRUE ~ NA_character_,
       )
     )
 
