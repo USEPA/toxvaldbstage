@@ -19,7 +19,6 @@
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
 #'  \code{\link[tibble]{add_column}}
 #' @rdname import_rsl_source
-#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_replace_all
 #' @importFrom dplyr rename filter mutate bind_rows across case_when
@@ -31,9 +30,9 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
   source = "ATSDR MRLs"
   source_table = "source_atsdr_mrls"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2023-09-01")
+  src_version_date = as.Date("2023-04-01")
   dir = paste0(toxval.config()$datapath,"atsdr_mrls/atsdr_mrls_files/")
-  file = paste0(dir,"source_atsdr_mrls_R_extract_20230901.xlsx")
+  file = paste0(dir,"atsdr_mrls_2023-04-01_raw.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -54,13 +53,12 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
     tolower()
 
   res <- res0 %>%
-    # Split toxval_numeric and units
-    tidyr::separate(col=mrl, into=c("toxval_numeric", "toxval_units"),
-                    sep=" ", fill="right") %>%
     # Renaming columns
-    dplyr::mutate(study_type=duration,
+    dplyr::rename(study_type=duration,
                   exposure_route=route,
                   casrn=cas_number,
+                  toxval_numeric = mrl,
+                  toxval_units = units,
                   critical_effect=endpoint,
                   doc_status = status,
                   doc_cover_date = cover_date) %>%
@@ -82,62 +80,31 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
                                                 "Neurol.,Reprod." = "neurological, reproductive",
                                                 "Reprod." = "reproductive",
                                                 "Resp." = "respiratory") %>%
-                    tolower() %>%
-                    # Make list items uniform
-                    gsub(", |,", ", ", .)) %>%
+                    tolower()) %>%
     # Set toxval_type as MRL and convert values to numeric type
     dplyr::mutate(toxval_numeric=as.numeric(toxval_numeric),
                   toxval_type = "MRL",
                   source_url = "https://wwwn.cdc.gov/TSP/MRLS/mrlsListing.aspx",
                   # Recode study_type from abbreviations
                   study_type = dplyr::recode(study_type,
-                                             "Acute" = "acute",
-                                             "Int." = "short-term",
-                                             "Chr."="chronic"),
+                                             "Int." = "Intermediate",
+                                             "Chr."="Chronic"),
                   # Recode exposure_route from abbreviations
                   exposure_route = dplyr::recode(exposure_route,
-                                        'Rad.'='External Radiation',
-                                        'Inh.'='Inhalation'),
-                  year = cover_date %>%
-                    gsub("[0-9]+\\/", "", .) %>%
-                    as.Date(., format = "%y") %>%
-                    format(., "%Y")) %>%
+                                                 'Rad.'='External Radiation',
+                                                 'Inh.'='Inhalation')) %>%
     # Fix greek symbols
-    dplyr::mutate(dplyr::across(c("name", "toxval_units"), ~fix.replace.unicode(.))) %>%
+    dplyr::mutate(dplyr::across(c("name", "toxval_units"), ~fix.greek.symbols(.))) %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(study_duration_value = ifelse(study_type == "acute", "1-14 days",
-                                          ifelse(study_type == "chronic", ">1 year",
-                                                 "15-364 days"))) %>%
-    dplyr::ungroup() %>%
+    dplyr::mutate(study_duration_value = ifelse(study_type == "Acute", "1-14 days",
+                                                ifelse(study_type == "Chronic", ">1 year",
+                                                       "15-364 days"))) %>%
     tidyr::separate(study_duration_value, c("study_duration_value", "study_duration_units"), sep=" ") %>%
-    # Set study_duration_qualifier - leaving out until toxval table adds this field
-    # dplyr::mutate(study_duration_qualifier = study_duration_value %>%
-    #                 gsub("-", "", .) %>%
-    #                 gsub("[[:digit:]]", "", .),
-    #               study_duration_value = study_duration_value %>%
-    #                 gsub(">", "", .)
-    #               ) %>%
     #Reorder columns
-    dplyr::select(any_of(toxval.config()$hashing_cols), everything())
-
-  # Set study_duration_qualifier NA - leaving out until toxval table adds this field
-  # res$study_duration_qualifier[res$study_duration_qualifier == ""] <- NA
-
-  # Hardcode missing units for Nitrobenzene Acute Inhalation 0.04 ppm in September 2023 Update
-  res$toxval_units[(res$name == "NITROBENZENE" & res$toxval_numeric == 0.04 &
-                     res$study_type == "Acute" & res$exposure_route == "Inhalation")] <- "ppm"
-
-  # Combine duplicate records except for total_factors field
-  res = res %>%
-    dplyr::group_by(name, casrn, exposure_route, study_duration_value, study_duration_units, toxval_numeric, toxval_units, critical_effect) %>%
-    dplyr::mutate(total_factors = paste0(total_factors, collapse = ", ")) %>%
-    dplyr::distinct()
+    select(name, casrn, exposure_route, study_type, study_duration_value, study_duration_units, toxval_type, everything())
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
-
-  # Fill blank hashing cols
-  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -147,10 +114,8 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
                        res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt,
-                       hashing_cols=toxval.config()$hashing_cols)
+                       chem.check.halt=chem.check.halt)
 }
-
 
 
 
