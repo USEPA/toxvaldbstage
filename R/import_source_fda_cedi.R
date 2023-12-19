@@ -30,7 +30,7 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   src_version_date = as.Date("2023-11-17")
   dir = paste0(toxval.config()$datapath,"fda_cedi/fda_cedi_files/")
   file = paste0(dir,"source_fda_cedi_20231117.csv")
-  res0 = readr::read_csv(file, skip=4)
+  res0 = readr::read_csv(file, skip=4, col_types = readr::cols())
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -40,11 +40,16 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   res0$`Substance` <-iconv(res0$`Substance`, from="UTF-8", to="ASCII")
 
   res = res0 %>%
-    dplyr::mutate(name = `Substance` %>% fix.replace.unicode(),
+    dplyr::mutate(name = `Substance` %>%
+                    fix.replace.unicode(),
                   casrn = `CAS Reg. No. (or other ID)`,
-                  year = substr(`Calculation/update date`, 7, 10)
+                  year = `Calculation/update date` %>%
+                    as.Date(format="%m/%d/%Y") %>%
+                    format("%Y") %>%
+                    as.numeric(),
+                  dplyr::across(dplyr::starts_with("Reg"), ~gsub('=T\\("|"\\)', "", .))
     ) %>%
-    tidyr::unite(Reg, dplyr::starts_with("Reg"), sep = ",", na.rm = TRUE)
+    tidyr::unite(Reg, dplyr::starts_with("Reg"), sep = ", ", na.rm = TRUE)
 
   res <- res %>%
     pivot_longer(cols = c("CEDI (μg/kb bw/d)", "CDC (ppb)"),
@@ -57,14 +62,17 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       grepl("CDC", toxval_type) ~ "Cumulative Dietary Concentration"
     ),
     toxval_units = toxval_units %>%
-      gsub("\\)", "", .) %>% fix.greek.symbols(),
+      gsub("\\)", "", .) %>%
+      fix.greek.symbols(),
     toxval_numeric = toxval_numeric %>%
-      sub('.*?"(.*?)"\\)', '\\1', .),
+      sub('.*?"(.*?)"\\)', '\\1', .) %>%
+      as.numeric(),
     source_url = "https://cfsanappsexternal.fda.gov/scripts/fdcc/?set=CEDI",
     subsource = "FDA CFSAN",
     risk_assessment = "chronic",
     source_version_date = src_version_date
     )
+
   # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
