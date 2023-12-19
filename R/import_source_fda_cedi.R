@@ -35,7 +35,10 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
   # Fixes error with stringi functions regarding UTF-8 byte sequences
+  col_names <- gsub("&micro;", "μ", names(res0))
+  names(res0) <- col_names
   res0$`Substance` <-iconv(res0$`Substance`, from="UTF-8", to="ASCII")
+
   res = res0 %>%
     dplyr::mutate(name = `Substance` %>% fix.replace.unicode(),
                   casrn = `CAS Reg. No. (or other ID)`,
@@ -44,7 +47,7 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     tidyr::unite(Reg, dplyr::starts_with("Reg"), sep = ",", na.rm = TRUE)
 
   res <- res %>%
-    pivot_longer(cols = c("CEDI (&micro;g/kb bw/d)", "CDC (ppb)"),
+    pivot_longer(cols = c("CEDI (μg/kb bw/d)", "CDC (ppb)"),
                  names_to = "toxval_type",
                  values_to = "toxval_numeric") %>%
     tidyr::separate(col="toxval_type",
@@ -54,7 +57,7 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       grepl("CDC", toxval_type) ~ "Cumulative Dietary Concentration"
     ),
     toxval_units = toxval_units %>%
-      gsub("\\)", "", .),
+      gsub("\\)", "", .) %>% fix.greek.symbols(),
     toxval_numeric = toxval_numeric %>%
       sub('.*?"(.*?)"\\)', '\\1', .),
     source_url = "https://cfsanappsexternal.fda.gov/scripts/fdcc/?set=CEDI",
@@ -62,7 +65,6 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     risk_assessment = "chronic",
     source_version_date = src_version_date
     )
-
   # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
