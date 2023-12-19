@@ -79,6 +79,10 @@ import_doe_pac_source <- function(db,
     tidyr::pivot_longer(cols=c("PAC-1", "PAC-2", "PAC-3", "LEL (ppm)"),
                         names_to = "toxval_type",
                         values_to = "toxval_numeric") %>%
+
+    # Remove entries with NA toxval_numeric value
+    tidyr::drop_na("toxval_numeric") %>%
+
     dplyr::rename("BP (°C)"="BP (°C) @ 760 mm Hg unless indicated",
                   "SG"="SG @ 25°C unless indicated") %>%
     dplyr::mutate(
@@ -91,7 +95,7 @@ import_doe_pac_source <- function(db,
       toxval_type = toxval_type %>%
         gsub("\\(ppm\\)", "", .),
       # Remove excess whitespace for all character columns
-      dplyr::across(tidyselect::where(is.character), ~stringr::str_squish(.))
+      dplyr::across(where(is.character), ~stringr::str_squish(.))
     ) %>%
     dplyr::select(-`No.`)
 
@@ -138,18 +142,9 @@ import_doe_pac_source <- function(db,
 
   # Chemical name cleaning
   res <- res %>% dplyr::mutate(
-    # Replace prime symbols
-    name = gsub("\u2019|<U+2019>", "'", name) %>%
-
-      # Fix Greek symbols
-      fix.greek.symbols() %>%
-
-      # Fix escaped quotation marks
-      gsub("[\\]{1,}'", "'", .) %>%
-      gsub('[\\]{1,}"', '"', .) %>%
-
-      # Remove trademark symbols
-      gsub("\u00ae|<U+00ae>", "", name) %>%
+    name = name %>%
+      # Fix symbols
+      fix.replace.unicode() %>%
 
       # Remove excess whitespace
       stringr::str_squish()
