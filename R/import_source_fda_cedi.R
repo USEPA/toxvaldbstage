@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' @description A generic template for adding data to toxval_source for a new source
+#' @description Import FDA CEDI data into source_fda_cedi
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
@@ -15,11 +15,11 @@
 #'  }
 #' }
 #' @seealso
-#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[readr]{read_csv}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_generic_source
 #' @export
-#' @importFrom readxl read_xlsx
+#' @importFrom readr read_csv
 #' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
 import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
@@ -41,8 +41,10 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   # described in the SOP - they will get added in source_prep_and_load
   #
 
+  # Fixes error with stringi functions regarding UTF-8 byte sequences
+  res0$`Substance` <-iconv(res0$`Substance`, from="UTF-8", to="ASCII")
   res = res0 %>%
-    dplyr::mutate(name = `Substance`,
+    dplyr::mutate(name = `Substance` %>% fix.replace.unicode(),
                   casrn = `CAS Reg. No. (or other ID)`,
                   year = substr(`Calculation/update date`, 7, 10)
     ) %>%
@@ -91,7 +93,3 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
