@@ -79,6 +79,10 @@ import_doe_pac_source <- function(db,
     tidyr::pivot_longer(cols=c("PAC-1", "PAC-2", "PAC-3", "LEL (ppm)"),
                         names_to = "toxval_type",
                         values_to = "toxval_numeric") %>%
+
+    # Remove entries with NA toxval_numeric value
+    tidyr::drop_na("toxval_numeric") %>%
+
     dplyr::rename("BP (°C)"="BP (°C) @ 760 mm Hg unless indicated",
                   "SG"="SG @ 25°C unless indicated") %>%
     dplyr::mutate(
@@ -139,19 +143,8 @@ import_doe_pac_source <- function(db,
   # Chemical name cleaning
   res <- res %>% dplyr::mutate(
     name = name %>%
-      # Replace prime symbols
-      gsub("\u2019|<U+2019>", "'", .) %>%
-
-      # Fix Greek symbols
-      fix.greek.symbols() %>%
-
-      # Fix escaped quotation marks
-      gsub("[\\]{1,}'", "'", .) %>%
-      gsub('[\\]{1,}"', '"', .) %>%
-
-      # Remove trademark symbols
-      gsub("\u00ae|<U+00ae>", "", .) %>%
-
+      # Fix symbols
+      fix.replace.unicode() %>%
       # Remove excess whitespace
       stringr::str_squish()
   )

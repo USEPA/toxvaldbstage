@@ -10,7 +10,8 @@ toxval_source.hash.and.load(
   table,
   do.reset = FALSE,
   do.insert = FALSE,
-  res
+  res,
+  hashing_cols = NULL
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ toxval_source.hash.and.load(
 \item{do.insert}{If TRUE, insert data into the database, default False}
 
 \item{res}{The data frame to be processed}
+
+\item{hashing_cols}{Optional list of columns to use for generating source_hash}
 }
 \value{
 OUTPUT_DESCRIPTION

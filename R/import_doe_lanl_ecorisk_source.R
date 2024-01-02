@@ -18,14 +18,14 @@
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_remove}}
 #'  \code{\link[stringr]{fixed}}, \code{\link[stringr]{str_squish}}
-#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate_wider_delim}}
+#'  \code{\link[tidyr]{pivot_longer}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{rename}}
 #'  \code{\link[tidyselect]{all_of}}
 #' @rdname import_doe_lanl_ecorisk_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_trim str_remove fixed
-#' @importFrom tidyr pivot_longer separate_wider_delim
+#' @importFrom tidyr pivot_longer
 #' @importFrom dplyr mutate distinct rename
 #' @importFrom tidyselect all_of
 #' ---------------------------------------------------
@@ -75,9 +75,9 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
   # Add new toxval columns as needed but retain original columns
   res = res %>%
     dplyr::mutate(
-      name =`Analyte Name`,
+      name = fix.replace.unicode(`Analyte Name`),
       casrn = `Analyte CAS`,
-      toxval_units = fix.greek.symbols(Units),
+      toxval_units = fix.replace.unicode(Units),
       media = `ESL Medium` %>%
         tolower(),
       species = `ESL Receptor` %>%
@@ -108,17 +108,8 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
       # Remove closing parentheses from toxval_subtype
       toxval_subtype = stringr::str_remove(toxval_subtype, stringr::fixed(")")),
 
-      # Handle symbols in name
-      name = name %>%
-        # Fix Greek symbols
-        fix.greek.symbols() %>%
-
-        # Fix escaped quotation marks
-        gsub("[\\]{1,}'", "'", .) %>%
-        gsub('[\\]{1,}"', '"', .) %>%
-
       # Remove whitespace
-      stringr::str_squish()
+      # stringr::str_squish()
     )
 
   # Standardize the names
