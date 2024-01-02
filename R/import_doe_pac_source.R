@@ -16,14 +16,12 @@
 #'  [str_squish][stringr::str_squish], [str_extract_all][stringr::str_extract_all]
 #'  [mutate][dplyr::mutate], [across][dplyr::across], [rename][dplyr::rename], [select][dplyr::select], [rowwise][dplyr::rowwise], [ungroup][dplyr::ungroup]
 #'  [pivot_longer][tidyr::pivot_longer]
-#'  [where][tidyselect::where]
 #' @rdname import_doe_pac_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_extract_all
 #' @importFrom dplyr mutate across rename select rowwise ungroup
 #' @importFrom tidyr pivot_longer
-#' @importFrom tidyselect where
 import_doe_pac_source <- function(db,
                                   chem.check.halt=FALSE,
                                   do.reset=FALSE,

@@ -28,7 +28,6 @@
 #' @importFrom tidyr pivot_longer
 #' @importFrom dplyr mutate distinct rename
 #' @importFrom tidyselect all_of
-#' ---------------------------------------------------
 import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "DOE LANL ECORISK"

@@ -2,26 +2,29 @@
 % Please edit documentation in R/import_dod_ered_source.R
 \name{import_dod_ered_source}
 \alias{import_dod_ered_source}
-\title{FUNCTION_TITLE}
+\title{import_dod_ered_source}
 \usage{
 import_dod_ered_source(
   db,
-  infile = "USACE_ERDC_ERED_database_12_07_2018.xlsx",
-  chem.check.halt = F
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
 )
 }
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}
 
-\item{infile}{The input file ./dod/dod_files/USACE_ERDC_ERED_database_12_07_2018.xlsx}
+\item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
 
-\item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+\item{do.reset}{If TRUE, delete data from the database for this source before}
+
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; the script sends data to toxval_source
 }
 \description{
-Load dod Source into toxval_source
+Load DOD ERED data into toxval_source
 }
 \details{
 DETAILS
@@ -34,6 +37,8 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[openxlsx]{read.xlsx}}
- \code{\link[janitor]{excel_numeric_to_date}}
+\code{\link[readxl]{read_excel}}
+ \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{distinct}}
+ \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}
+ \code{\link[tidyr]{replace_na}}, \code{\link[tidyr]{drop_na}}
 }
