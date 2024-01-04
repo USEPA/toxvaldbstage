@@ -437,10 +437,15 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
         sex = sex_original,
         age = age_original
       )
+    # Set non-manually curated fields to blank
+    res1[, c(#"principal_study", "exposure_route", "critical_effect", "assessment_type",
+             "risk_assessment_duration", "endpoint")] <- "-"
     res = res0 %>%
-      dplyr::bind_rows(res1)
+      dplyr::bind_rows(res1) %>%
+      dplyr::distinct()
   } else {
-    res = res0
+    res = res0 %>%
+      dplyr::distinct()
   }
 
   # Fill blank hashing cols
