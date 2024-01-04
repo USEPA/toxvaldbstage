@@ -18,13 +18,13 @@
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}
-#'  \code{\link[tidyr]{separate_wider_delim}}, \code{\link[tidyr]{drop_na}}
+#'  \code{\link[tidyr]{drop_na}}
 #'  \code{\link[stringr]{str_remove}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_chiu_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr select mutate distinct
-#' @importFrom tidyr separate_wider_delim drop_na
+#' @importFrom tidyr drop_na
 #' @importFrom stringr str_remove fixed str_squish
 #--------------------------------------------------------------------------------------
 import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {

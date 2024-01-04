@@ -110,6 +110,8 @@ set_clowder_id_lineage <- function(source_table,
                                                                      "clowder_v3/source_atsdr_mrls_sept2023_doc_map_20231204.xlsx")),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20231019.xlsx")),
+                      "source_health_canada" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/source_health_canada_document_map.xlsx")),
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                                        document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -131,15 +133,13 @@ set_clowder_id_lineage <- function(source_table,
                                                                    "clowder_v3/source_epa_aegl_document_map.xlsx")),
                       "source_opp" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/epa_opp_doc_lineage_mmille16.xlsx")),
-                      "source_health_canada" = data.frame(clowder_id = "61003a57e4b01a90a3f9c305",
-                                                          document_name = "60683b9de75ea6aced60e004a919370b-Health Canada-2010-Part II H.pdf"),
                       "source_niosh" = data.frame(clowder_id = "61fabd3de4b04a563fdc9b99",
                                                   document_name = "ToxValQA33091630_NIOSH_2020_ImmediatelyDangerous-(IDLH)Values.pdf"),
                       "source_ow_dwsha" = data.frame(clowder_id = "610036ede4b01a90a3f98ae0",
                                                      document_name = "b5ffe2b7e16578b78213213141cfc3ad-United States Environmental Protection Agency (USEPA)-2018-2018 Drink.pdf"),
-                      "source_penn_dep" = data.frame(clowder_id = "654521b8e4b045b9ff7d0eaa",
+                      "source_penn_dep_mcls" = data.frame(clowder_id = "654521b8e4b045b9ff7d0eaa",
                                                      document_name = "Pennsylvania DEP MCLs_MSC Table 1_20160827.pdf"),
-                      "source_penn" = data.frame(clowder_id = "65452589e4b045b9ff7d0fa2",
+                      "source_penn_dep_toxvalues" = data.frame(clowder_id = "65452589e4b045b9ff7d0fa2",
                                                  document_name = "PENN_DEP_Table 5a_20160827.xls"),
                       "source_usgs_hbsl" = data.frame(clowder_id = "6578ab34e4b063812d59531e",
                                                       document_name = "HBSL-data_20180531.xlsx"),
@@ -1032,6 +1032,33 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
+
+                  "source_health_canada" = {
+                    # Match origin docs
+                    # Match based on trv_source
+                    res <- res %>%
+                      dplyr::select(source_hash, source_version_date, trv_source) %>%
+                      dplyr::left_join(map_file %>%
+                                  dplyr::filter(!is.na(clowder_id)) %>%
+                                    dplyr::select(clowder_id, fk_doc_id, trv_source) %>%
+                                    dplyr::distinct(), relationship = "many-to-many",
+                                by = "trv_source")
+
+
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date, trv_source) %>%
+                      merge(map_file %>%
+                              dplyr::filter(is.na(trv_source)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = dplyr::bind_rows(res, tmp)
+
+                    # Return res
+                    res
+                  },
+
                   # Default case, return without mapping
                   res
     )

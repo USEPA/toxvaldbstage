@@ -37,5 +37,4 @@ if(interactive()){
  [str_squish][stringr::str_squish], [str_extract_all][stringr::str_extract_all]
  [mutate][dplyr::mutate], [across][dplyr::across], [rename][dplyr::rename], [select][dplyr::select], [rowwise][dplyr::rowwise], [ungroup][dplyr::ungroup]
  [pivot_longer][tidyr::pivot_longer]
- [where][tidyselect::where]
 }

@@ -88,18 +88,14 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       # Separate casrn lists
       tidyr::separate_rows(casrn, sep = "; ")
 
-    # Fix greek symbols
+    # Fix unicode symbols
     res = res %>%
       dplyr::mutate(dplyr::across(c(rel_8_hour_inhalation, chronic_inhalation_rel,
                                     nsrl_inhalation, nsrl_oral, madl_inhalation_reprotox,
                                     madl_oral_reprotox),
-                                  ~gsub("\u00c2\u00b5", "u", .)),
-                    casrn = casrn %>%
-                      gsub("\u00e2\u20ac\u017d", "", .),
-                    name = fix.greek.symbols(name) %>%
-                      # Special case for p-Chloro-Î±,Î±,Î±-trifluorotoluene (para-Chlorobenzo trifluoride, PCBTF)
-                      # Actually supposed to be alphas, so replacing with "a"
-                      gsub("\u00ce\u00b1", "a", .))
+                                  ~fix.replace.unicode(.)),
+                    casrn = fix.replace.unicode(casrn),
+                    name = fix.replace.unicode(name))
 
     # Split chronic_inhalation_rel into chronic_oral_rel with units
     res = res %>%

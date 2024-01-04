@@ -14,7 +14,6 @@
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
 #' @rdname get.chemical.info.by.source
 #--------------------------------------------------------------------------------------
 get.chemical.info.by.source <- function(source.db,source_table,source, file_id){
