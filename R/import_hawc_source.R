@@ -298,6 +298,9 @@ import_hawc_source <- function(db,
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
+  # Fix toxval_units unicode
+  res$toxval_units = fix.replace.unicode(res$toxval_units)
+
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
