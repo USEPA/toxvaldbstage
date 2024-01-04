@@ -35,7 +35,7 @@ import_hawc_source <- function(db,
                                do.reset=FALSE,
                                do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "HAWC"
+  source = "HAWC Project"
   source_table = "source_hawc"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2021-12-06")
