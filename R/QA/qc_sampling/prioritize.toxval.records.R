@@ -6,23 +6,13 @@
 #' @return prioritization files
 #'
 #-----------------------------------------------------------------------------------
-prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,curation_method=NULL) {
+prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0.1) {
   printCurrentFunction(toxval.db)
-  dir = "Repo/data/qc_prioritization/"
-  if(!exists("TOXVAL_ALL")) {
-    file = paste0(dir,"/toxval_for_qc_prioritization.RData")
-    load(file=file)
-    TOXVAL_ALL <<- res
-  }
-  done = FALSE
-  total_sampled = 0
-
-  tv = TOXVAL_ALL
+  dir = "Repo/data/qc_prioritization/input_files/"
+  tv = sub_res
   tv = tv[tv$source_hash!="-",]
-  tv = tv[tv$qc_status=="not determined",]
-  curation_method = 'automated'
-  total_records = nrow(tv)
-  nlist = c("dtxsid","name","source_hash","source","toxval_type_supercategory","toxval_units","study_type","human_eco","source_table")
+
+  nlist = c("dtxsid","name","source_hash","source","source_table","toxval_type_supercategory","toxval_units","study_type","human_eco")
   tv = tv[,nlist]
   rownames(tv) = tv$source_hash
 
@@ -36,19 +26,17 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,cu
   tv2 = tv2[tv2$toxval_type_supercategory=="Point of Departure",]
   tv2 = tv2[is.element(tv2$study_type,repdose),]
   slist = tv2$source_hash
-  slist = sample(slist,length(slist)*fraction)
+  if((length(slist)*fraction) <= 100){
+    slist = sample(slist,length(slist)*fraction)
+  } else{
+    slist = sample(slist, 100)
+  }
   tv$rule1 = 0
   tv[slist,"rule1"] = 1
   cat("  ",length(slist),"\n")
-  total_sampled = total_sampled + length(slist)
-  if ((curation_method == 'automated' & total_sampled > 200) |
-      (curation_method == 'manual' & total_sampled > (total_records * 0.2))){
-    done = TRUE
-  }
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 2: 100% human health repeat dose points of departure, mg/kg-day, mg/m3, include all sources for PFAS\n")
-  dir = paste0(dir,"input_files/")
   file = paste0(dir,"pfas_catalog 2023-06-29.xlsx")
   pfas = read.xlsx(file)
   dlist = pfas$dtxsid
@@ -59,16 +47,8 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,cu
   tv2 = tv2[is.element(tv2$study_type,repdose),]
   slist = tv2$source_hash
   tv$rule2 = 0
-  if(!done){
-    tv[slist,"rule2"] = 1
-    total_sampled = total_sampled + length(slist)
-  }
+  tv[slist,"rule2"] = 1
   cat("  ",length(slist),"\n")
-  if ((curation_method == 'automated' & total_sampled > 200) |
-      (curation_method == 'manual' & total_sampled > (total_records * 0.2))){
-    done = TRUE
-  }
-
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 3: ", fraction*100, "% eco with units of mg/L\n")
@@ -78,18 +58,14 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,cu
   tv2 = tv2[tv2$toxval_type_supercategory=="Point of Departure",]
   #tv2 = tv2[is.element(tv2$study_type,repdose),]
   slist = tv2$source_hash
-  slist = sample(slist,length(slist)*fraction)
+  if((length(slist)*fraction) <= 100){
+    slist = sample(slist,length(slist)*fraction)
+  } else{
+    slist = sample(slist, 100)
+  }
   tv$rule3 = 0
-  if(!done){
-    tv[slist,"rule3"] = 1
-    total_sampled = total_sampled + length(slist)
-  }
+  tv[slist,"rule3"] = 1
   cat("  ",length(slist),"\n")
-  if ((curation_method == 'automated' & total_sampled > 200) |
-      (curation_method == 'manual' & total_sampled > (total_records * 0.2))){
-    done = TRUE
-  }
-
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 4: ", fraction*100, "% points of departure, human health, each source\n")
@@ -102,20 +78,17 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,cu
     tv3 = tv3[tv3$toxval_type_supercategory=="Point of Departure",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
-      slist3 = sample(slist3,length(slist3)*fraction)
+      if((length(slist3)*fraction) <= 100){
+        slist3 = sample(slist3,length(slist3)*fraction)
+      } else{
+        slist3 = sample(slist3, 100)
+      }
       slist = c(slist,slist3)
     }
   }
   tv$rule4 = 0
-  if(!done){
-    tv[slist,"rule4"] = 1
-    total_sampled = total_sampled + length(slist)
-  }
+  tv[slist,"rule4"] = 1
   cat("  ",length(slist),"\n")
-  if ((curation_method == 'automated' & total_sampled > 200) |
-      (curation_method == 'manual' & total_sampled > (total_records * 0.2))){
-    done = TRUE
-  }
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 5: ", fraction*100, "% lethality effect level, human health, each source\n")
@@ -128,20 +101,17 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,cu
     tv3 = tv3[tv3$toxval_type_supercategory=="Lethality Effect Level",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
-      slist3 = sample(slist3,length(slist3)*fraction)
+      if((length(slist3)*fraction) <= 100){
+        slist3 = sample(slist3,length(slist3)*fraction)
+      } else{
+        slist3 = sample(slist3, 100)
+      }
       slist = c(slist,slist3)
     }
   }
   tv$rule5 = 0
-  if(!done){
-    tv[slist,"rule5"] = 1
-    total_sampled = total_sampled + length(slist)
-  }
+  tv[slist,"rule5"] = 1
   cat("  ",length(slist),"\n")
-  if ((curation_method == 'automated' & total_sampled > 200) |
-      (curation_method == 'manual' & total_sampled > (total_records * 0.2))){
-    done = TRUE
-  }
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 6: ", fraction*100, "% toxicity value, human health, each source\n")
@@ -154,20 +124,17 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,cu
     tv3 = tv3[tv3$toxval_type_supercategory=="Toxicity Value",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
-      slist3 = sample(slist3,length(slist3)*fraction)
+      if((length(slist3)*fraction) <= 100){
+        slist3 = sample(slist3,length(slist3)*fraction)
+      } else{
+        slist3 = sample(slist3, 100)
+      }
       slist = c(slist,slist3)
     }
   }
   tv$rule6 = 0
-  if(!done){
-    tv[slist,"rule6"] = 1
-    total_sampled = total_sampled + length(slist)
-  }
+  tv[slist,"rule6"] = 1
   cat("  ",length(slist),"\n")
-  if ((curation_method == 'automated' & total_sampled > 200) |
-      (curation_method == 'manual' & total_sampled > (total_records * 0.2))){
-    done = TRUE
-  }
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 7: ", fraction*100, "% points of departure, eco, each source\n")
@@ -180,20 +147,17 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,cu
     tv3 = tv3[tv3$toxval_type_supercategory=="Point of Departure",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
-      slist3 = sample(slist3,length(slist3)*fraction)
+      if((length(slist3)*fraction) <= 100){
+        slist3 = sample(slist3,length(slist3)*fraction)
+      } else{
+        slist3 = sample(slist3, 100)
+      }
       slist = c(slist,slist3)
     }
   }
   tv$rule7 = 0
-  if(!done){
-    tv[slist,"rule7"] = 1
-    total_sampled = total_sampled + length(slist)
-  }
+  tv[slist,"rule7"] = 1
   cat("  ",length(slist),"\n")
-  if ((curation_method == 'automated' & total_sampled > 200) |
-      (curation_method == 'manual' & total_sampled > (total_records * 0.2))){
-    done = TRUE
-  }
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 8: ", fraction*100, "% lethality effect level, eco, each source\n")
@@ -206,20 +170,17 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,cu
     tv3 = tv3[tv3$toxval_type_supercategory=="Lethality Effect Level",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
-      slist3 = sample(slist3,length(slist3)*fraction)
+      if((length(slist3)*fraction) <= 100){
+        slist3 = sample(slist3,length(slist3)*fraction)
+      } else{
+        slist3 = sample(slist3, 100)
+      }
       slist = c(slist,slist3)
     }
   }
   tv$rule8 = 0
-  if(!done){
-    tv[slist,"rule8"] = 1
-    total_sampled = total_sampled + length(slist)
-  }
+  tv[slist,"rule8"] = 1
   cat("  ",length(slist),"\n")
-  if ((curation_method == 'automated' & total_sampled > 200) |
-      (curation_method == 'manual' & total_sampled > (total_records * 0.2))){
-    done = TRUE
-  }
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 9: ", fraction*100, "% toxicity value, eco, each source\n")
@@ -232,20 +193,17 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,cu
     tv3 = tv3[tv3$toxval_type_supercategory=="Toxicity Value",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
-      slist3 = sample(slist3,length(slist3)*fraction)
+      if((length(slist3)*fraction) <= 100){
+        slist3 = sample(slist3,length(slist3)*fraction)
+      } else{
+        slist3 = sample(slist3, 100)
+      }
       slist = c(slist,slist3)
     }
   }
   tv$rule9 = 0
-  if(!done){
-    tv[slist,"rule9"] = 1
-    total_sampled = total_sampled + length(slist)
-  }
+  tv[slist,"rule9"] = 1
   cat("  ",length(slist),"\n")
-  if ((curation_method == 'automated' & total_sampled > 200) |
-      (curation_method == 'manual' & total_sampled > (total_records * 0.2))){
-    done = TRUE
-  }
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 10: ", fraction*100, "% remaining toxval_type_supercategory, each source\n")
@@ -257,20 +215,17 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",fraction=0.1,cu
     tv3 = tv2[tv2$source==src,]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
-      slist3 = sample(slist3,length(slist3)*fraction)
+      if((length(slist3)*fraction) <= 100){
+        slist3 = sample(slist3,length(slist3)*fraction)
+      } else{
+        slist3 = sample(slist3, 100)
+      }
       slist = c(slist,slist3)
     }
   }
   tv$rule10 = 0
-  if(!done){
-    tv[slist,"rule10"] = 1
-    total_sampled = total_sampled + length(slist)
-  }
+  tv[slist,"rule10"] = 1
   cat("  ",length(slist),"\n")
-  if ((curation_method == 'automated' & total_sampled > 200) |
-      (curation_method == 'manual' & total_sampled > (total_records * 0.2))){
-    done = TRUE
-  }
 
   #---------------------------------------------------------------------------------------------------------------
   cat("summarize\n")

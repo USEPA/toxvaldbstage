@@ -24,14 +24,13 @@ export.for.toxvaldb.qc_prioritization <- function(toxval.db) {
                     b.toxval_units,
                     b.study_type,
                     b.source_hash,
-                    b.qc_status,
                     b.source_table
                     FROM
                     toxval b
                     INNER JOIN source_chemical a on a.chemical_id=b.chemical_id
                     INNER JOIN toxval_type_dictionary c on b.toxval_type=c.toxval_type
                     WHERE
-                    b.source='",src,"'")
+                    b.source='",src,"' AND b.qc_status='not determined'")
  #                   and toxval_type_supercategory in ('Point of Departure','Lethality Effect Level','Toxicity Value')")
     mat = runQuery(query,toxval.db,T,F)
     mat = unique(mat)
