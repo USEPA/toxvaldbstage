@@ -9,7 +9,7 @@
 prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0.1) {
   printCurrentFunction(toxval.db)
   dir = "Repo/data/qc_prioritization/input_files/"
-  tv = sub_res
+  tv = res
   tv = tv[tv$source_hash!="-",]
 
   nlist = c("dtxsid","name","source_hash","source","source_table","toxval_type_supercategory","toxval_units","study_type","human_eco")
