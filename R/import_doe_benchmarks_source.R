@@ -1,12 +1,11 @@
 #--------------------------------------------------------------------------------------
-#' @description Load doe_benchmarks Source into toxval_source
+#' @title import_doe_benchmarks_source
+#' @description Load DOE Wildlife Benchmarks data into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
-#' @param infile The input file ./doe_benchmarks/doe_benchmarks_files/DOE_Wildlife_Benchmarks_1996.xlsx
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -15,44 +14,72 @@
 #'  }
 #' }
 #' @seealso
-#'  \code{\link[openxlsx]{read.xlsx}}
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}}
+#'  \code{\link[stringr]{str_trim}}
 #' @rdname import_doe_benchmarks_source
 #' @export
-#' @importFrom openxlsx read.xlsx
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr mutate across case_when distinct
+#' @importFrom tidyr starts_with pivot_longer separate drop_na
+#' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
-import_doe_benchmarks_source <- function(db,
-                                         infile="DOE_Wildlife_Benchmarks_1996.xlsx",
-                                         chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE){
+import_doe_benchmarks_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "DOE Wildlife Benchmarks"
   source_table = "source_doe_benchmarks"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("1996-06-01")
-  infile = paste0(toxval.config()$datapath,"doe_benchmarks/doe_benchmarks_files/",infile)
+  dir = paste0(toxval.config()$datapath,"doe_benchmarks/benchmarks_files/")
+  file = paste0(dir,"DOE_Wildlife_Benchmarks_1996.xlsx")
+  res0 = readxl::read_xlsx(file)
   #####################################################################
-  cat("Build original_doe_benchmarks_table \n")
+  cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  res0 = readxl::read_xlsx(infile)
-
   res = res0 %>%
-    dplyr::rename(source_url = URL,
-                  species_original = `Test Species`) %>%
-    dplyr::mutate(across(starts_with("Test"), ~suppressWarnings(as.numeric(.)))) %>%
-    dplyr::select(-tidyr::starts_with(c("Wildlife","NOAEL","LOAEL", "Endpoint"))) %>%
-    tidyr::pivot_longer(cols=starts_with("Test"),
-                        names_to = "toxval_type",
+    # Add basic columns as necessary
+    dplyr::mutate(
+      source_url = URL,
+      species = `Test Species`,
+      media = "food",
+      exposure_route = "oral",
+      source_url = "https://rais.ornl.gov/documents/tm86r3.pdf"
+    ) %>%
+
+    # Set appropriate columns to numeric
+    dplyr::mutate(dplyr::across(tidyr::starts_with("Test"), ~suppressWarnings(as.numeric(.)))) %>%
+
+    # Removing this line from the original to align with "keep all data" philosophy
+    # Uncomment if column removal is still desired
+    # dplyr::select(-tidyr::starts_with(c("Wildlife","NOAEL","LOAEL", "Endpoint"))) %>%
+
+    # Extract toxval_type and toxval_numeric
+    tidyr::pivot_longer(cols=tidyr::starts_with("Test"),
+                        names_to = "toxval_type_units",
                         values_to = "toxval_numeric") %>%
-    # Split type and units
-    tidyr::separate(col="toxval_type", into=c("toxval_type", "toxval_units"), sep="\\(") %>%
-    dplyr::mutate(toxval_units = gsub("\\)", "", toxval_units) %>%
-                    gsub("mg/kg/d", "mg/kg-day", ., fixed=TRUE),
-                  toxval_type = gsub("Test Species", "", toxval_type) %>%
-                    stringr::str_squish(),
-                  media = "food",
-                  exposure_route = "oral",
-                  toxval_subtype = dplyr::case_when(toxval_type =="NOAEL" ~ "test_species_noael",
-                                                    toxval_type =="LOAEL" ~ "test_species_loael")) %>%
-    distinct()
+
+    # Split type/units
+    tidyr::separate(col="toxval_type_units", into=c("toxval_type", "toxval_units"), sep="\\(") %>%
+
+    dplyr::mutate(
+      # Clean toxval_units
+      toxval_units = gsub("\\)", "", toxval_units) %>%
+        gsub("mg/kg/d", "mg/kg-day", ., fixed=TRUE),
+
+      # Clean toxval_type
+      toxval_type = gsub("Test Species", "", toxval_type) %>%
+        stringr::str_squish(),
+
+      # Get toxval_subtype
+      toxval_subtype = dplyr::case_when(toxval_type =="NOAEL" ~ "test_species_noael",
+                                        toxval_type =="LOAEL" ~ "test_species_loael")) %>%
+
+    # Drop rows w/o numeric value
+    tidyr::drop_na("toxval_numeric") %>%
+
+    # Remove duplicate rows
+    dplyr::distinct()
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -60,6 +87,9 @@ import_doe_benchmarks_source <- function(db,
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
@@ -72,5 +102,10 @@ import_doe_benchmarks_source <- function(db,
                        res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
+
+
+
+
