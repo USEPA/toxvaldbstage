@@ -19,7 +19,7 @@ qc_sampling <- function(toxval.db="res_toxval_v95",source.db='res_toxval_source_
     TOXVAL_ALL <<- res
   }
   source_name=source
-  sub_res <- subset(TOXVAL_ALL, source == source_name)
+  sub_res <- subset(TOXVAL_ALL, source==source_name)
 
   # pull by record
   sampled_records <- prioritize.toxval.records(toxval.db='res_toxval_v95',res=sub_res,fraction=0.1)
@@ -41,6 +41,17 @@ qc_sampling <- function(toxval.db="res_toxval_v95",source.db='res_toxval_source_
 
 
   # if necessary, pull randomly to reach thresholds by curation method
+  if((nrow(sampled_records) < 100 & curation_method == "automated") |
+     (nrow(sampled_records) < (nrow(sub_res)*.1)) & curation_method == "manual"){
+    if(curation_method == "automated"){
+      cur_sample <- sample(sub_res, nrow(sub_res)*.1)
+    } else{
+      cur_sample <- sample(sub_res, 100)
+    }
+    cur_sample <- cur_sample[, c("source_hash", "source_table")]
+    sampled_records <- bind_rows(sampled_records, cur_sample)
+    sampled_records <- sampled_records %>% distinct(source_hash, .keep_all = TRUE)
+  }
 
 
   source_table = unique(sampled_records$source_table)
