@@ -30,6 +30,9 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
   # Get source table by input source name
   source_table = runQuery(query=paste0("SELECT source_table FROM chemical_source_index WHERE source = '", source,"'"),
                           db=source.db)[,1]
+  # Get source record count
+  src_n <- runQuery(paste0("SELECT count(*) FROM ", source_table),
+                    db=source.db)[,1]
 
   # Check source records in need of QC
   src_tbl_to_qc <- runQuery(query=paste0("SELECT source_hash, source FROM ", source_table, " WHERE qc_status = 'not determined'"),
@@ -71,7 +74,7 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
   ##############################################################################
   # Add data profiling records based on curation_method, if sample limits aren't already met
   if((nrow(sampled_records) < 100 & curation_method == "automated") |
-     ((nrow(sampled_records) < (nrow(sub_res)*.2)) & curation_method == "manual")){
+     ((nrow(sampled_records) < (src_n*0.2)) & curation_method == "manual")){
 
     # Sample from data profiling if provided
     if(!is.null(data_profiling_file) && !is.na(data_profiling_file)){
@@ -99,12 +102,12 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
   ##############################################################################
   # Sample additional input records if thresholds not met
   if((nrow(sampled_records) < 100 & curation_method == "automated") |
-     ((nrow(sampled_records) < (nrow(sub_res)*.2)) & curation_method == "manual")){
+     ((nrow(sampled_records) < (src_n*0.2)) & curation_method == "manual")){
     slist = src_tbl_to_qc %>%
       dplyr::filter(!source_hash %in% sampled_records$source_hash)
     if(curation_method == "manual"){
       # Calc additional record count needed in 20% sample
-      sample_diff = ceiling((nrow(sub_res)*.2) - nrow(sampled_records))
+      sample_diff = ceiling((src_n*0.2) - nrow(sampled_records))
     } else{
       # Calc additional record count needed to reach 100 records
       sample_diff = 100-nrow(sampled_records)

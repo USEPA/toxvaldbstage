@@ -240,16 +240,16 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
   tv$do.qc = y
   sampled_records <- tv[tv$do.qc ==1,c("source_hash","source_table")]
 
-  slist = sort(unique(tv$source))
-  res = as.data.frame(matrix(nrow=length(slist),ncol=3))
-  names(res) = c("source","records","qc")
-  for(i in 1:length(slist)) {
-    src = slist[i]
-    tv2 = tv[tv$source==src,]
-    res[i,"source"] = src
-    res[i,"records"] = nrow(tv2)
-    res[i,"qc"] = sum(tv2$do.qc)
-  }
+  # slist = sort(unique(tv$source))
+  # res = as.data.frame(matrix(nrow=length(slist),ncol=3))
+  # names(res) = c("source","records","qc")
+  # for(i in 1:length(slist)) {
+  #   src = slist[i]
+  #   tv2 = tv[tv$source==src,]
+  #   res[i,"source"] = src
+  #   res[i,"records"] = nrow(tv2)
+  #   res[i,"qc"] = sum(tv2$do.qc)
+  # }
 
   return(sampled_records)
 }
