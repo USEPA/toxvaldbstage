@@ -39,6 +39,12 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
                             db=source.db) %>%
     dplyr::mutate(source_table = !!source_table)
 
+  # Return wihtout sampling if no records to QC in source table
+  if(!nrow(src_tbl_to_qc)){
+    message("No source records with qc_status of 'not determined'...returning...")
+    return()
+  }
+
   ##############################################################################
   ### Sample by Record Type
   ##############################################################################
@@ -108,7 +114,7 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
     if(curation_method == "manual"){
       # Calc additional record count needed in 20% sample
       sample_diff = ceiling((src_n*0.2) - nrow(sampled_records))
-    } else{
+    } else {
       # Calc additional record count needed to reach 100 records
       sample_diff = 100-nrow(sampled_records)
     }
@@ -121,7 +127,27 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
       dplyr::distinct()
   }
 
-  # pull source records
+  ##############################################################################
+  ### Sample Down if Over Threshold
+  ##############################################################################
+  if((nrow(sampled_records) > 100 & curation_method == "automated") |
+     ((nrow(sampled_records) > (src_n*0.2)) & curation_method == "manual")){
+    slist = src_tbl_to_qc %>%
+      dplyr::filter(!source_hash %in% sampled_records$source_hash)
+    if(curation_method == "manual"){
+      # Sample threshold for manual
+      sample_diff = ceiling(src_n*0.2)
+    } else {
+      # Sample threshold for automated
+      sample_diff = 100
+    }
+    # Sample down records to meet threshold
+    sampled_records <- sampled_records %>%
+      dplyr::slice_sample(n = sample_diff) %>%
+      dplyr::distinct()
+  }
+
+  # Pull all data for sampled records
   full_source = runQuery(query=paste0("SELECT * FROM ", source_table, " WHERE source_hash in ('",
                                       paste0(sampled_records$source_hash, collapse="', '"),
                                       "')"),
@@ -129,6 +155,7 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
   # Export QC Sample
   writexl::write_xlsx(full_source,
                       paste0(dir_output,"/toxval_qc_", source_table, "_",Sys.Date(),".xlsx"))
+
   # Return sampled data
   return(full_source)
 
