@@ -9,7 +9,7 @@ library(digest)
 #-----------------------------------------------------------------------------------
 export.for.toxvaldb.qc_prioritization <- function(toxval.db) {
   printCurrentFunction(toxval.db)
-  dir = "Repo/data/qc_prioritization/"
+  dir = "Repo/qc_sampling/sampling_input"
   slist = runQuery("select distinct source from toxval",toxval.db)[,1]
   #slist = slist[!is.element(slist,c("ECOTOX"))]
   res = NULL
@@ -30,12 +30,12 @@ export.for.toxvaldb.qc_prioritization <- function(toxval.db) {
                     INNER JOIN source_chemical a on a.chemical_id=b.chemical_id
                     INNER JOIN toxval_type_dictionary c on b.toxval_type=c.toxval_type
                     WHERE
-                    b.source='",src,"' AND b.qc_status='not determined'")
+                    b.source='",src,"'")
  #                   and toxval_type_supercategory in ('Point of Departure','Lethality Effect Level','Toxicity Value')")
     mat = runQuery(query,toxval.db,T,F)
     mat = unique(mat)
     if(nrow(mat)>0) res = rbind(res,mat)
   }
-  file = paste0(dir,"/toxval_for_qc_prioritization.RData")
+  file = file.path(dir,"toxval_for_qc_prioritization.RData")
   save(res,file=file)
 }

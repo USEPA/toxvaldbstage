@@ -3,64 +3,130 @@
 #'
 #' @param toxval.db Database version
 #' @param source.db Source database version
-#' @param sys.date Date string for ToxValDB export
+#' @param fraction Sampling fraction, default of 0.1 (10%)
+#' @param source Name of source to sample
 #' @param curation_method 'automated' or 'manual', Determines what sampling rule to use
+#' @param data_profiling_file Path to input data profiling file to use for sampling
+#' @param refresh_qc_pull Whether to reset the stored QC RData, toxval_for_qc_prioritization.RData
 #' @return sampled toxval_source records
 #-----------------------------------------------------------------------------------
-qc_sampling <- function(toxval.db="res_toxval_v95",source.db='res_toxval_source_V5',fraction=0.1,source=NULL,curation_method=NULL) {
+qc_sampling <- function(toxval.db="res_toxval_v95",
+                        source.db="res_toxval_source_V5",
+                        fraction=0.1,
+                        source=NULL,
+                        curation_method=NULL,
+                        data_profiling_file=NULL,
+                        refresh_qc_pull=TRUE) {
   printCurrentFunction(toxval.db)
-  dir = "Repo/data/qc_prioritization/"
-  dir_input = "Repo/data/qc_prioritization/input_files/"
+  # Check input params
+  if(is.null(source) || is.na(source)) stop("Input param 'source' must not be NULL or NA.")
+  if(is.null(curation_method) || is.na(curation_method)) stop("Input param 'curation_method' must not be NULL or NA.")
+  if(!curation_method %in% c("automated", "manual")) stop("Input param 'curation_method' must be 'automated' or 'manual'")
 
-  # get all data where qc_status is not determined
+  # Directory paths for QC sampling assets
+  dir_input = "Repo/qc_sampling/sampling_input"
+  dir_output = "Repo/qc_sampling"
+
+  # Get source table by input source name
+  source_table = runQuery(query=paste0("SELECT source_table FROM chemical_source_index WHERE source = '", source,"'"),
+                          db=source.db)[,1]
+
+  # Check source records in need of QC
+  src_tbl_to_qc <- runQuery(query=paste0("SELECT source_hash, source FROM ", source_table, " WHERE qc_status = 'not determined'"),
+                            db=source.db) %>%
+    dplyr::mutate(source_table = !!source_table)
+
+  ##############################################################################
+  ### Sample by Record Type
+  ##############################################################################
+  # Pull data to sample by record type
   if(!exists("TOXVAL_ALL")) {
-    file = paste0(dir,"/toxval_for_qc_prioritization.RData")
+    file = file.path(dir_input,"toxval_for_qc_prioritization.RData")
+    # Pull if refresh is TRUE or not previously pulled
+    if(refresh_qc_pull | !file.exists(file)){
+      export.for.toxvaldb.qc_prioritization(toxval.db)
+    }
     load(file=file)
     TOXVAL_ALL <<- res
   }
-  source_name=source
-  sub_res <- subset(TOXVAL_ALL, source==source_name)
 
-  # pull by record
-  sampled_records <- prioritize.toxval.records(toxval.db='res_toxval_v95',res=sub_res,fraction=0.1)
-  sampled_records <- sampled_records %>% distinct(source_hash, .keep_all = TRUE)
-  #stlist = sort(unique(sampled_records$source_table))
+  # Pull source specific data
+  sub_res <- TOXVAL_ALL %>%
+    dplyr::filter(source == !!source)
 
-  # pull by data profile
-  file = paste0(dir_input,"dp_flagged_records_2024-01-05.xlsx")
-  dp_flags = read.xlsx(file)
-
-  # Add data profiling records based on curation_method
-  if((nrow(sampled_records) < 200 & curation_method == "automated") |
-     (nrow(sampled_records) < (nrow(sub_res)*.2)) & curation_method == "manual"){
-    dp_source <- subset(dp_flags, source == source_name)
-    dp_final <- dp_source[, c("source_hash", "source_table")]
-    sampled_records <- bind_rows(sampled_records, dp_final)
-    sampled_records <- sampled_records %>% distinct(source_hash, .keep_all = TRUE)
+  # Sample by record type
+  if(!nrow(sub_res)){
+    message("Source '", source,"' not found in TOXVAL_ALL...skipping...")
+    sampled_records = data.frame()
+  } else {
+    # pull by record
+    sampled_records <- prioritize.toxval.records(toxval.db=toxval.db, res=sub_res, fraction=fraction) %>%
+      dplyr::distinct() %>%
+      # Filter only to those needing QC
+      dplyr::filter(source_hash %in% src_tbl_to_qc$source_hash)
   }
 
-
-  # if necessary, pull randomly to reach thresholds by curation method
+  ##############################################################################
+  ### Sample by Data Profiling Flagged Records
+  ##############################################################################
+  # Add data profiling records based on curation_method, if sample limits aren't already met
   if((nrow(sampled_records) < 100 & curation_method == "automated") |
-     (nrow(sampled_records) < (nrow(sub_res)*.1)) & curation_method == "manual"){
-    slist = sub_res$source_hash
-    if(curation_method == "manual"){
-      clist <- sample(slist, (length(slist)*.1))
-    } else{
-      clist <- sample(slist, 100)
+     ((nrow(sampled_records) < (nrow(sub_res)*.2)) & curation_method == "manual")){
+
+    # Sample from data profiling if provided
+    if(!is.null(data_profiling_file) && !is.na(data_profiling_file)){
+      if(!file.exists(data_profiling_file)){
+        message("Input data_profiling_file '", data_profiling_file, "' not found...skipping...")
+      } else {
+        # Read provided data profiling file
+        dp_flags = readxl::read_xlsx(data_profiling_file)
+        # Filter to source
+        dp_source <- dp_flags %>%
+          dplyr::filter(source == !!source) %>%
+          dplyr::select(source_hash, source_table)
+        # Append data profiling records to sample
+        sampled_records <- sampled_records %>%
+          dplyr::bind_rows(dp_source) %>%
+          dplyr::distinct() %>%
+          # Filter only to those needing QC
+          dplyr::filter(source_hash %in% src_tbl_to_qc$source_hash)
+      }
     }
-    cur_sample <- data.frame(source_hash = clist, source_table = unique(sampled_records$source_table))
-    sampled_records <- bind_rows(sampled_records, cur_sample)
-    sampled_records <- sampled_records %>% distinct(source_hash, .keep_all = TRUE)
   }
 
+  ##############################################################################
+  ### Random Sample to Fill Threshold
+  ##############################################################################
+  # Sample additional input records if thresholds not met
+  if((nrow(sampled_records) < 100 & curation_method == "automated") |
+     ((nrow(sampled_records) < (nrow(sub_res)*.2)) & curation_method == "manual")){
+    slist = src_tbl_to_qc %>%
+      dplyr::filter(!source_hash %in% sampled_records$source_hash)
+    if(curation_method == "manual"){
+      # Calc additional record count needed in 20% sample
+      sample_diff = ceiling((nrow(sub_res)*.2) - nrow(sampled_records))
+    } else{
+      # Calc additional record count needed to reach 100 records
+      sample_diff = 100-nrow(sampled_records)
+    }
+    # Sample records to fill record thresholds
+    cur_sample <- src_tbl_to_qc %>%
+      dplyr::slice_sample(n = sample_diff)
 
-  source_table = unique(sampled_records$source_table)
-  # pull source records and write out
-  query = paste0("select * from ",source_table)
-  full_source = runQuery(query, source.db)
-  full_records = merge(x=sampled_records, y=full_source, by='source_hash', all.x=FALSE, all.y=FALSE)
-  file = paste0(dir_input,"toxval_qc_", source_table, "_",Sys.Date(),".xlsx")
-  write.xlsx(full_records, file)
+    sampled_records <- sampled_records %>%
+      dplyr::bind_rows(cur_sample) %>%
+      dplyr::distinct()
+  }
+
+  # pull source records
+  full_source = runQuery(query=paste0("SELECT * FROM ", source_table, " WHERE source_hash in ('",
+                                      paste0(sampled_records$source_hash, collapse="', '"),
+                                      "')"),
+                         db=source.db)
+  # Export QC Sample
+  writexl::write_xlsx(full_source,
+                      paste0(dir_output,"/toxval_qc_", source_table, "_",Sys.Date(),".xlsx"))
+  # Return sampled data
+  return(full_source)
 
 }

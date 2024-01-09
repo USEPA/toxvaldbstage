@@ -8,9 +8,14 @@
 #-----------------------------------------------------------------------------------
 prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0.1) {
   printCurrentFunction(toxval.db)
-  dir = "Repo/data/qc_prioritization/input_files/"
+  dir = "Repo/qc_sampling/sampling_input"
   tv = res
   tv = tv[tv$source_hash!="-",]
+
+  if(!nrow(tv)){
+    message("No source_hash values to sample...returning...")
+    return(tv %>% dplyr::select(source_hash, source_table))
+  }
 
   nlist = c("dtxsid","name","source_hash","source","source_table","toxval_type_supercategory","toxval_units","study_type","human_eco")
   tv = tv[,nlist]
@@ -37,7 +42,7 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 2: 100% human health repeat dose points of departure, mg/kg-day, mg/m3, include all sources for PFAS\n")
-  file = paste0(dir,"pfas_catalog 2023-06-29.xlsx")
+  file = file.path(dir,"pfas_catalog 2023-06-29.xlsx")
   pfas = read.xlsx(file)
   dlist = pfas$dtxsid
   tv2 = tv[is.element(tv$dtxsid,dlist),]
