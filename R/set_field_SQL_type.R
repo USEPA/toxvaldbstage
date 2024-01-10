@@ -5,16 +5,16 @@
 #' @return SQL string for the input dataframe's fields
 #' @title FUNCTION_TITLE
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[dplyr]{bind}}
 #' @rdname set_field_SQL_type
-#' @export 
+#' @export
 #' @importFrom dplyr bind_rows
 #--------------------------------------------------------------------------------------
 set_field_SQL_type <- function(src_f = NULL, default_fields = NULL){
@@ -53,7 +53,7 @@ set_field_SQL_type <- function(src_f = NULL, default_fields = NULL){
                                     "TEXT",
                                     paste0("VARCHAR(",t_len,")")),
            "POSIXct;POSIXt;double"= "date",
-           { message("Unhandled SQL type in set_field_SQL_type(): ", type); browser(); stop() }) %>%
+           { message("Unhandled SQL type in set_field_SQL_type() for field '", f,"': ", type); browser(); stop() }) %>%
       paste0("`", f, "` ", .,
              ifelse(grepl("VARCHAR", .),
                     " COLLATE utf8_unicode_ci", ""),

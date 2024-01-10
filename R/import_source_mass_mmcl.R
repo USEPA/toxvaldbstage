@@ -128,8 +128,8 @@ import_source_mass_mmcl <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
         TRUE ~ toxval_units
       ),
 
-      # Get toxval_numeric_qualifier
-      toxval_numeric_qualifier = stringr::str_match(source_value, "[<>=]"),
+      # Get toxval_numeric_qualifier (convert to vector)
+      toxval_numeric_qualifier = stringr::str_match(source_value, "[<>=]") %>% c(),
 
       # Get study_duration
       study_duration = stringr::str_match(source_value, "[0-9]+ days|lifetime"),
