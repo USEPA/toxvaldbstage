@@ -34,7 +34,6 @@ library(logr)
 #'  }
 #' }
 #' @rdname toxval.config
-#' @seealso
 #--------------------------------------------------------------------------------------
 toxval.config <- function() {
   toxval.db <- "res_toxval_v92"

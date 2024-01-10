@@ -16,14 +16,12 @@
 #'  [str_squish][stringr::str_squish], [str_extract_all][stringr::str_extract_all]
 #'  [mutate][dplyr::mutate], [across][dplyr::across], [rename][dplyr::rename], [select][dplyr::select], [rowwise][dplyr::rowwise], [ungroup][dplyr::ungroup]
 #'  [pivot_longer][tidyr::pivot_longer]
-#'  [where][tidyselect::where]
 #' @rdname import_doe_pac_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_extract_all
 #' @importFrom dplyr mutate across rename select rowwise ungroup
 #' @importFrom tidyr pivot_longer
-#' @importFrom tidyselect where
 import_doe_pac_source <- function(db,
                                   chem.check.halt=FALSE,
                                   do.reset=FALSE,
@@ -92,6 +90,7 @@ import_doe_pac_source <- function(db,
       toxval_units = Units,
       study_type = "acute",
       exposure_route = "inhalation",
+      long_ref = "U.S. Department of Energy (DOE) Protective Action Criteria (PAC). 2023. PAC Chemical Database. Updated 11 October 2023. Available: https://edms3.energy.gov/pac/ (Accessed November 16, 2023)",
       toxval_type = toxval_type %>%
         gsub("\\(ppm\\)", "", .),
       # Remove excess whitespace for all character columns
