@@ -22,17 +22,17 @@
 #' @rdname import_source_mass_mmcl
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr mutate across where rename coalesce filter case_when
+#' @importFrom dplyr mutate across rename coalesce filter case_when
 #' @importFrom purrr is_character
 #' @importFrom tidyr pivot_longer drop_na separate
 #' @importFrom stringr str_match str_squish
 #--------------------------------------------------------------------------------------
-import_source_mass_mmcl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_mass_mmcl <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "Mass. Drinking Water Standards"
   source_table = "source_mass_mmcl"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2022-12-01")
+  src_version_date = as.Date("2020-12-01")
   dir = paste0(toxval.config()$datapath,"mass_mmcl/mass_mmcl_files/")
   file = paste0(dir,"mass_drinking_water_standards_winter_2020.xlsx")
   res0 = readxl::read_xlsx(file)
@@ -41,7 +41,7 @@ import_source_mass_mmcl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
   #####################################################################
   res = res0 %>%
     # Remove any instances of N/A
-    dplyr::mutate(dplyr::across(dplyr::where(purrr::is_character),
+    dplyr::mutate(dplyr::across(where(purrr::is_character),
                                 .fns = ~replace(., . %in% c("N/A", "N/A10"), NA))) %>%
 
     # Rename columns as needed to avoid duplicates
@@ -131,21 +131,25 @@ import_source_mass_mmcl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
       # Get toxval_numeric_qualifier
       toxval_numeric_qualifier = stringr::str_match(source_value, "[<>=]"),
 
+      # Get study_duration
+      study_duration = stringr::str_match(source_value, "[0-9]+ days|lifetime"),
+
       # Finalize toxval_numeric
       toxval_numeric = source_value %>%
         # Hard-code handle scientific notation
         gsub("3 x 10-8", "0.00000003", .) %>%
         # Hard-code handle 7 million
         gsub("7 million fibers/liter", "7000000", .) %>%
-        # Handle ranges (use maximum)
-        gsub("[0-9\\.]+ to|[0-9\\.]+ ?-", "", .) %>%
-        # Grab left-most remaining number
-        stringr::str_match(., "[0-9\\.]+") %>%
-        # Convert to numeric
-        as.numeric,
-
-      # Get study_duration
-      study_duration = stringr::str_match(source_value, "[0-9]+ days|lifetime"),
+        # Replace to with hyphen for range
+        gsub(" to ", "-", .) %>%
+        # Replace NA
+        gsub("use guidance for individual chemicals|^.*Treatment Technique.*$", NA, .) %>%
+        # Remove extraneous strings
+        gsub("millirem/yr|pCi/L|concentration which produces an annual dose of ", "", .) %>%
+        # Remove parenthetic toxval_type
+        sub('\\(.*', '', .) %>%
+        # Remove excess whitespace
+        stringr::str_squish()
     ) %>%
 
     # Get study_duration_value and study_duration_units
@@ -164,7 +168,14 @@ import_source_mass_mmcl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
     ) %>%
 
     # Drop entries with NA toxval_numeric
-    tidyr::drop_na(toxval_numeric)
+    tidyr::drop_na(toxval_numeric) %>%
+
+    # Remove select non-chemicals/categories
+    dplyr::filter(!name %in% c("Odor", "Color", "Corrosivity", "Foaming agents",
+                               "pH", "Total dissolved solids (TDS)"))
+
+  # Compare to input PDF file for spot check
+  # res %>% select(name, toxval_type, toxval_numeric, toxval_units, population, study_duration_value, study_duration_units) %>% View()
 
   # Standardize the names
   names(res) <- names(res) %>%
