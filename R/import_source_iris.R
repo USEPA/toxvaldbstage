@@ -407,7 +407,15 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   by.y = "CHEMICAL NAME", all.x = TRUE)
     res1 <- res1 %>%
       dplyr::rename(casrn = `CASRN`,
-                    iris_chemical_id = `CHEMICAL ID`)
+                    iris_chemical_id = `CHEMICAL ID`) %>%
+      dplyr::mutate(toxval_numeric_qualifier = case_when(
+        grepl("<", toxval_numeric) ~ "<",
+        grepl(">", toxval_numeric) ~ ">",
+        grepl("~", toxval_numeric) ~ "~",
+        grepl("=", toxval_numeric) ~ "=",
+        TRUE ~ NA_character_
+      )) %>%
+      dplyr::mutate(toxval_numeric = gsub("[<>=~]", "", toxval_numeric))
     res1$source_version_date <- src_version_date
     res1$document_type = 'IRIS Summary'
     res1$key_finding = 'No'
