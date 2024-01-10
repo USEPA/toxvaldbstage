@@ -28,7 +28,7 @@
 #' @importFrom tidyr pivot_longer all_of separate replace_na
 #' @importFrom stringr str_squish str_replace_all str_extract
 #--------------------------------------------------------------------------------------
-import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
+import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
   printCurrentFunction(db)
   source = "IRIS"
   source_table = "source_iris"
@@ -211,8 +211,8 @@ import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   # Combine chemical detail files
   chem_details <- iris_data$chemicals_details.xlsx %>%
     dplyr::left_join(iris_data$Chemical_Rev_History.xlsx %>%
-                select(-`CHEMICAL NAME`, -CASRN, -URL),
-              by="CHEMICAL ID") %>%
+                       select(-`CHEMICAL NAME`, -CASRN, -URL),
+                     by="CHEMICAL ID") %>%
     dplyr::distinct()
 
   # Combine RfC/RfD files
@@ -251,11 +251,11 @@ import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
                        dplyr::select(-`CHEMICAL NAME`, -CASRN, -URL) %>%
                        # Required so that the join will work due to float/double precision
                        dplyr::mutate(toxval_numeric = as.character(toxval_numeric)),
-              by = c("CHEMICAL ID",
-                     "critical_effect_tumor_type" = "PRINCIPAL CRITICAL DESCRIPTION",
-                     "toxval_type",
-                     "toxval_numeric",
-                     "toxval_units")) %>%
+                     by = c("CHEMICAL ID",
+                            "critical_effect_tumor_type" = "PRINCIPAL CRITICAL DESCRIPTION",
+                            "toxval_type",
+                            "toxval_numeric",
+                            "toxval_units")) %>%
     dplyr::rename(iris_chemical_id = `CHEMICAL ID`,
                   critical_effect = critical_effect_tumor_type,
                   assessment_type = type,
@@ -407,9 +407,9 @@ import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
     dplyr::left_join(iris_year_map,
                      by="iris_chemical_id")
 
-################################################################################
-### Append IRIS Summary information
-################################################################################
+  ################################################################################
+  ### Append IRIS Summary information
+  ################################################################################
 
   # Set defaults for new fields
   res0$document_type = 'IRIS Export'
@@ -439,7 +439,7 @@ import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
       )
     # Set non-manually curated fields to blank
     res1[, c(#"principal_study", "exposure_route", "critical_effect", "assessment_type",
-             "risk_assessment_duration", "endpoint")] <- "-"
+      "risk_assessment_duration", "endpoint")] <- "-"
     res = res0 %>%
       dplyr::bind_rows(res1) %>%
       dplyr::distinct()
@@ -448,8 +448,17 @@ import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
       dplyr::distinct()
   }
 
-  # Fill long_ref with study_reference if blank
-  res$long_ref[is.na(res$long_ref)] = res$study_reference[is.na(res$long_ref)]
+  res = res %>%
+    # Handle toxval_numeric_qualifier
+    dplyr::mutate(toxval_numeric_qualifier = case_when(
+      grepl("<", toxval_numeric) ~ "<",
+      grepl(">", toxval_numeric) ~ ">",
+      grepl("~", toxval_numeric) ~ "~",
+      grepl("=", toxval_numeric) ~ "=",
+      TRUE ~ NA_character_
+    )) %>%
+    # Remove qualifier symbols
+    dplyr::mutate(toxval_numeric = gsub("[<>=~]", "", toxval_numeric))
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
