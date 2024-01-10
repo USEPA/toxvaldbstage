@@ -97,43 +97,8 @@ import_source_gestis_dnel <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
 
       # Fix symbols in name field
       Name = Name %>%
-        # Fix Greek symbols
-        fix.greek.symbols() %>%
-
-        # Remove trademark symbols
-        gsub("\u00ae|<U+00ae>", "", .) %>%
-
-        # Fix whitespace
-        gsub("[\r\n][\r\n]", " ", .) %>%
-        gsub("\u00a0|<U+00A0>", " ", .) %>%
-
-        # Fix quotations and apostrophes
-        gsub("\u201c|<U+201C>|\u201d|<U+201D>", '"', .) %>%
-        gsub("\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>", "'", .) %>%
-
-        # Fix superscript/subscript
-        gsub("\u00b3|<U+00B3>", "3", .) %>%
-        gsub("\u00b9|<U+00B9>", "1", .) %>%
-        gsub("\u2070|<U+2070>", "0", .) %>%
-        gsub("\u00b2|<U+00B2>", "2", .) %>%
-        gsub("\u2079|<U+2079>", "9", .) %>%
-        gsub("\u2078|<U+2078>", "8", .) %>%
-        gsub("\u2074|<U+2074>", "4", .) %>%
-        gsub("\u2077|<U+2077>", "7", .) %>%
-        gsub("\u2076|<U+2076>", "6", .) %>%
-
-        # Fix general punctuation
-        gsub("\u00b4|<U+00B4>", "'", .) %>%
-        gsub("\u2013|<U+2013>", "-", .) %>%
-        gsub("\u00bf|<U+00BF>", "?", .) %>%
-
-        # Fix math symbols
-        gsub("\u2265|<U+2265>", ">=", .) %>%
-        gsub("\u00b1|<U+00B1>", "+/-", .) %>%
-        gsub("\u00b0|<U+00B0>", "", .) %>%
-        gsub("\u00b0|<U+00B0>", "", .) %>%
-        gsub("\u2032|<U+2032>", "", .) %>%
-        gsub("\u00b7|<U+00B7>", "*", .) %>%
+        # Fix unicode symbols
+        fix.replace.unicode() %>%
 
         # Remove excess whitespace
         stringr::str_squish(),

@@ -34,7 +34,6 @@ library(logr)
 #'  }
 #' }
 #' @rdname toxval.config
-#' @seealso
 #--------------------------------------------------------------------------------------
 toxval.config <- function() {
   toxval.db <- "res_toxval_v92"
@@ -45,12 +44,17 @@ toxval.config <- function() {
   actorws.prod <- "https://actorws.epa.gov/actorws/toxval/v01/toxval_source"
   actorws.dev <- "http://ag.epa.gov:8528/actorws/toxval/v01/toxval_source"
 
-  hashing_cols = c('name', 'casrn', 'toxval_type', 'toxval_subtype', 'toxval_numeric', 'toxval_units',
-                   'toxval_numeric_qualifier', 'study_type', 'study_duration_class',
-                   'study_duration_qualifier', 'study_duration_value', 'study_duration_units',
-                   'species', 'strain', 'sex', 'critical_effect', 'population',
-                   'exposure_route', 'exposure_method', 'exposure_form', 'media',
-                   'lifestage', 'generation', 'year')
+  hashing_cols = c(
+    # toxval table fields
+    'name', 'casrn', 'toxval_type', 'toxval_subtype', 'toxval_numeric', 'toxval_units',
+    'toxval_numeric_qualifier', 'study_type', 'study_duration_class',
+    'study_duration_qualifier', 'study_duration_value', 'study_duration_units',
+    'species', 'strain', 'sex', 'critical_effect', 'population',
+    'exposure_route', 'exposure_method', 'exposure_form', 'media',
+    'lifestage', 'generation', 'year',
+    # record_source table fields (only long_ref for now)
+    'long_ref' #, 'title', 'author', 'journal', 'volume', 'issue', 'page'
+  )
 
   non_hash_cols = c("chemical_id", "parent_chemical_id", "source_id","clowder_id","document_name","source_hash","qc_status",
                     "parent_hash","create_time","modify_time","created_by", "qc_flags", "qc_notes", "version",

@@ -28,7 +28,7 @@
 #' @importFrom tidyr pivot_longer all_of separate replace_na
 #' @importFrom stringr str_squish str_replace_all str_extract
 #--------------------------------------------------------------------------------------
-import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
+import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
   printCurrentFunction(db)
   source = "IRIS"
   source_table = "source_iris"
@@ -262,7 +262,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   endpoint = `PRINCIPAL CRITICAL EFFECT SYSTEM`,
                   risk_assessment_duration = DURATION,
                   study_reference = `STUDY CITATION`) %>%
-    dplyr::mutate(toxval_units = fix.greek.symbols(toxval_units))
+    dplyr::mutate(toxval_units = fix.replace.unicode(toxval_units))
 
 
   # Check joins (identified issue with float/double versus character toxval_numeric join)
@@ -425,8 +425,8 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Add study_type, study_duration_class, and exposure_route, fix critical effect
   res0 <- res0 %>%
     dplyr::rename(exposure_route=route,
-                  study_duration_class=risk_assessment_duration,
-                  lifestage=age_original) %>%
+                  study_type = assessment_type,
+                  study_duration_class=risk_assessment_duration) %>%
     tidyr::unite(col="study_type", study_type, principal_study, sep=" - ", remove = FALSE) %>%
     # Combine endpoint and critical_effect
     tidyr::unite(col="critical_effect", endpoint, critical_effect, sep=": ", remove = FALSE) %>%
@@ -444,8 +444,52 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::left_join(iris_year_map,
                      by="iris_chemical_id")
 
+################################################################################
+### Append IRIS Summary information
+################################################################################
+
+  # Set defaults for new fields
+  res0$document_type = 'IRIS Export'
+  # Set key_findings, to yes if not in subset of toxval_type
+  not_key_finding = c("RfD", "RfC", "Cancer Slope", "Unit Risk Factor", "Inhalation Unit Risk", "Oral Slope Factor")
+  res0$key_finding = ifelse(res0$toxval_type %in% not_key_finding, 'No', 'Yes')
+
+  # Add summary data to df before prep and load
+  if(do.summary_data){
+    # Import manually curated IRIS Summary information
+    res1 <- iris_data$test_source_iris_summary_curation_2023125.xlsx %>%
+      dplyr::mutate(
+        source_version_date = src_version_date,
+        document_type = 'IRIS Summary',
+        key_finding = 'No',
+        iris_chemical_id = url %>%
+          sub('.*=', '', .) %>%
+          as.numeric()) %>%
+      # Remove IRIS Export fields
+      # dplyr::select(-principal_study, -document_type, -endpoint) %>%
+      dplyr::rename(
+        long_ref=full_reference,
+        exposure_route = route,
+        species = species_original,
+        sex = sex_original,
+        age = age_original
+      )
+    # Set non-manually curated fields to blank
+    res1[, c(#"principal_study", "exposure_route", "critical_effect", "assessment_type",
+             "risk_assessment_duration", "endpoint")] <- "-"
+    res = res0 %>%
+      dplyr::bind_rows(res1) %>%
+      dplyr::distinct()
+  } else {
+    res = res0 %>%
+      dplyr::distinct()
+  }
+
+  # Fill long_ref with study_reference if blank
+  res$long_ref[is.na(res$long_ref)] = res$study_reference[is.na(res$long_ref)]
+
   # Fill blank hashing cols
-  res0[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res0)]] <- "-"
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   #####################################################################
   cat("Prep and load the data\n")
@@ -453,7 +497,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   source_prep_and_load(db=db,
                        source=source,
                        table=source_table,
-                       res=res0,
+                       res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
