@@ -30,7 +30,6 @@ import_envirotox_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2021-09-28")
   dir = paste0(toxval.config()$datapath,"envirotox/envirotox_files/")
-  file = paste0(dir,"envirotox_taxonomy clean casrn.xlsx")
   res0 = readxl::read_xlsx(file, sheet="test")
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -61,7 +60,7 @@ import_envirotox_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
       ),
 
       # Get study_duration_value, study_duration_units, and study_duration_qualifier
-      study_duration_qualifier = stringr::str_match(Duration, "[<>=]+"),
+      study_duration_qualifier = stringr::str_match(Duration, "[<>=]+") %>% c(),
       study_duration_value = stringr::str_match(Duration, "[0-9\\.;]+") %>%
         gsub("[0-9\\.]+;", "", .) %>%
         as.numeric(),
