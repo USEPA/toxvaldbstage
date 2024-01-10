@@ -35,6 +35,8 @@ import_source_mass_mmcl <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
   src_version_date = as.Date("2020-12-01")
   dir = paste0(toxval.config()$datapath,"mass_mmcl/mass_mmcl_files/")
   file = paste0(dir,"mass_drinking_water_standards_winter_2020.xlsx")
+
+  file = "mass_drinking_water_standards_winter_2020.xlsx"
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -165,6 +167,11 @@ import_source_mass_mmcl <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
         study_duration_units == "lifetime" ~ "1",
         TRUE ~ study_duration_value
       ) %>% as.numeric
+    ) %>%
+
+    # Handle Sulfate edge case
+    dplyr::mutate(
+      toxval_numeric = dplyr::case_when(name == "Sulfate" ~ "250", TRUE ~ toxval_numeric)
     ) %>%
 
     # Drop entries with NA toxval_numeric
