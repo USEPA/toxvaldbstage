@@ -25,13 +25,13 @@
 #' @importFrom tidyr starts_with pivot_longer separate drop_na
 #' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
-import_doe_benchmarks_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "DOE Wildlife Benchmarks"
   source_table = "source_doe_benchmarks"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("1996-06-01")
-  dir = paste0(toxval.config()$datapath,"doe_benchmarks/benchmarks_files/")
+  dir = paste0(toxval.config()$datapath,"doe_benchmarks/doe_benchmarks_files/")
   file = paste0(dir,"DOE_Wildlife_Benchmarks_1996.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
@@ -48,19 +48,21 @@ import_doe_benchmarks_source <- function(db,chem.check.halt=FALSE, do.reset=FALS
     ) %>%
 
     # Set appropriate columns to numeric
-    dplyr::mutate(dplyr::across(tidyr::starts_with("Test"), ~suppressWarnings(as.numeric(.)))) %>%
+    dplyr::mutate(dplyr::across(c(tidyr::starts_with("Test"), -"Test Species"), ~suppressWarnings(as.numeric(.)))) %>%
 
     # Removing this line from the original to align with "keep all data" philosophy
     # Uncomment if column removal is still desired
     # dplyr::select(-tidyr::starts_with(c("Wildlife","NOAEL","LOAEL", "Endpoint"))) %>%
 
     # Extract toxval_type and toxval_numeric
-    tidyr::pivot_longer(cols=tidyr::starts_with("Test"),
+    tidyr::pivot_longer(cols=c(tidyr::starts_with("Test"), -"Test Species"),
                         names_to = "toxval_type_units",
                         values_to = "toxval_numeric") %>%
 
     # Split type/units
-    tidyr::separate(col="toxval_type_units", into=c("toxval_type", "toxval_units"), sep="\\(") %>%
+    tidyr::separate(col="toxval_type_units",
+                    into=c("toxval_type", "toxval_units"),
+                    sep="\\(") %>%
 
     dplyr::mutate(
       # Clean toxval_units
@@ -87,6 +89,17 @@ import_doe_benchmarks_source <- function(db,chem.check.halt=FALSE, do.reset=FALS
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
+
+  res = res %>%
+    # Temporary select out duplicate causing columns
+    # TODO Need team discussion on desired fields
+    # Do we want to keep and process these toxval_type and subtypes?
+    # Do we want to use the endpoint_species as species instead?
+    dplyr::select(-c("endpoint_species", "wildlife_noael_(mg/kg/d)", "noael_food_(mg/kg)",
+                     "noael_water_(mg/l)", "noael_piscivore_(mg/l)", "wildlife_loael_(mg/kg/d)",
+                     "loael_food_(mg/kg)", "loael_water_(mg/l)", "loael_piscivore_(mg/l)",
+                     "form")) %>%
+    dplyr::distinct()
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
