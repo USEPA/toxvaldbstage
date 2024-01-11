@@ -12,7 +12,7 @@ source_chemical.process(
   chem.check.halt = FALSE,
   casrn.col = "casrn",
   name.col = "name",
-  verbose = F
+  verbose = FALSE
 )
 }
 \arguments{

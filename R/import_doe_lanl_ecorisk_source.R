@@ -16,14 +16,18 @@
 #' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_trim}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_remove}}
+#'  \code{\link[stringr]{fixed}}, \code{\link[stringr]{str_squish}}
 #'  \code{\link[tidyr]{pivot_longer}}
-#' @rdname import_generic_source
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{rename}}
+#'  \code{\link[tidyselect]{all_of}}
+#' @rdname import_doe_lanl_ecorisk_source
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom stringr str_squish str_trim
+#' @importFrom stringr str_squish str_trim str_remove fixed
 #' @importFrom tidyr pivot_longer
-#' ---------------------------------------------------
+#' @importFrom dplyr mutate distinct rename
+#' @importFrom tidyselect all_of
 import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "DOE LANL ECORISK"
@@ -51,9 +55,9 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
                  "Minimum ESL"="Note",
                  "ESL ID"="ESL ID")
   res = res0 %>%
-    dplyr::rename(all_of(rename_map))
+    dplyr::rename(tidyselect::all_of(rename_map))
 
-  # Handle bad casrn values
+  # Handle bad casrn values (could be replaced with cas_checkSum.R)
   bad.casrn = c("AL","SB","AS","BA","BE",
                 "B","CD","CL(-1)","CR","CR(+6)","CO","CU",
                 "CN(-1)","F(-1)","FE","PB","LI","MN","HGI",
@@ -62,16 +66,17 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
                 "AM-241","CS-134","CS-137/ BA-137","CO-60","EU-152",
                 "PB-210","NP-237","PU-238","PU-239/240","PU-241","RA-226","RA-228",
                 "NA-22","SR-90/ Y-90","TH-228","TH-229","TH-230","TH-232","H-3",
-                "U-233","U-234","U-235","U-236","U-238")
+                "U-233","U-234","U-235","U-236","U-238", "5H 4:1 FTOH", "6:2 FTOH", "GenX",
+                "TPH F2F3", "N-EtFOSE")
   # Set bad casrn values as "-"
   res$`Analyte CAS`[res$`Analyte CAS` %in% bad.casrn] = "-"
 
   # Add new toxval columns as needed but retain original columns
   res = res %>%
     dplyr::mutate(
-      name =`Analyte Name`,
-      casrn = `Analyte Code`,
-      toxval_units = Units,
+      name = fix.replace.unicode(`Analyte Name`),
+      casrn = `Analyte CAS`,
+      toxval_units = fix.replace.unicode(Units),
       media = `ESL Medium` %>%
         tolower(),
       species = `ESL Receptor` %>%
@@ -89,10 +94,22 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
                  names_to = 'toxval_type',
                  values_to = 'toxval_numeric'
     ) %>%
-    # Recode toxval_type
-    dplyr::mutate(toxval_type = dplyr::case_when(toxval_type =="No Effect ESL" ~ "NOEL",
-                                                 toxval_type =="Low Effect ESL" ~ "LOEL")) %>%
-    dplyr::distinct()
+    dplyr::distinct() %>%
+
+    # Extract diet information as toxval_subtype
+    tidyr::separate(species,
+                    sep = " \\(",
+                    into = c("species", "toxval_subtype"),
+                    fill="right") %>%
+
+    # Final cleaning
+    dplyr::mutate(
+      # Remove closing parentheses from toxval_subtype
+      toxval_subtype = stringr::str_remove(toxval_subtype, stringr::fixed(")")),
+
+      # Remove whitespace
+      # stringr::str_squish()
+    )
 
   # Standardize the names
   names(res) <- names(res) %>%

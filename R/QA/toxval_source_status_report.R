@@ -99,7 +99,7 @@ toxval_source_status_report <- function(db){
     get_percent_summary("perc_pass", "pass", "total_qc") %>%
     get_percent_summary("perc_fail", "fail", "total_qc") %>%
     left_join(x=chem_index, y=., by="source_table") %>%
-    dplyr::mutate(across(c(-chemprefix, -source, -source_table, -source_status), ~tidyr::replace_na(., 0)))
+    dplyr::mutate(across(c(-chemprefix, -source, -source_table, -source_status, -curation_type), ~tidyr::replace_na(., 0)))
 
   ################################################################################
   ### Get Document Cataloging/Lineage Stats
@@ -148,7 +148,7 @@ toxval_source_status_report <- function(db){
       left_join(gen_stats %>% select(source_table, n_records) %>% distinct(),
                 by="source_table") %>%
       get_percent_summary(col="perc_w_docs", num="recs_w_docs", den="n_records") %>%
-      dplyr::mutate(across(c(-chemprefix, -source, -source_table, -source_status, -document_type), ~tidyr::replace_na(., 0))) %>%
+      dplyr::mutate(across(c(-chemprefix, -source, -source_table, -source_status, -document_type, -curation_type), ~tidyr::replace_na(., 0))) %>%
       dplyr::arrange(source, document_type)
   }
 
