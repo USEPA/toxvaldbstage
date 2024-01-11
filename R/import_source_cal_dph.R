@@ -22,9 +22,8 @@
 #' @rdname import_source_cal_dph
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr mutate across where case_when select any_of
-#' @importFrom purrr is_character
-#' @importFrom stringr str_split_i str_match str_squish
+#' @importFrom dplyr mutate across case_when select any_of
+#' @importFrom stringr str_match str_squish
 #' @importFrom tidyr pivot_longer drop_na
 #--------------------------------------------------------------------------------------
 import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
@@ -41,16 +40,16 @@ import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   #####################################################################
   res = res0 %>%
     # Replace NAs with actual NA value
-    dplyr::mutate(dplyr::across(dplyr::where(purrr::is_character),
+    dplyr::mutate(dplyr::across(where(is.character),
                                 .fns = ~replace(., . %in% c("--", "n/a", "withdrawn Nov. 2001", "none"),
                                                 NA))) %>%
 
     # Replace "zero" with actual 0
-    dplyr::mutate(dplyr::across(dplyr::where(purrr::is_character),
+    dplyr::mutate(dplyr::across(where(is.character),
                                 .fns = ~replace(., . == "zero", 0))) %>%
 
     # Replace scientific notation with numbers understandable to R
-    dplyr::mutate(dplyr::across(dplyr::where(purrr::is_character),
+    dplyr::mutate(dplyr::across(where(is.character),
                                 .fns = ~gsub("x10\\-", "e-", .))) %>%
 
     dplyr::mutate(
@@ -61,7 +60,7 @@ import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
       risk_assessment_class = "chronic",
       exposure_route = "oral",
       detection_limit = `State DLR` %>%
-        stringr::str_split_i(., " ", 1) %>%
+        # stringr::str_split_i(., " ", 1) %>%
         gsub('[",*]', "", .) %>%
         as.numeric()
     ) %>%
@@ -76,7 +75,9 @@ import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
                "State Regulated Disinfection Byproducts Contaminants"),
       names_to = "chemical_class_full",
       values_to = "name"
-    ) %>% tidyr::drop_na("name") %>%
+    ) %>%
+    # Not all classes have chemicals to list, so remove
+    tidyr::drop_na("name") %>%
 
     # Get toxval_type and toxval_numeric
     tidyr::pivot_longer(
@@ -84,6 +85,29 @@ import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
       names_to = "toxval_type",
       values_to = "toxval_numeric"
     ) %>%
+    dplyr::mutate(
+      # Clean up toxval_numeric
+      toxval_numeric = toxval_numeric %>%
+        fix.replace.unicode() %>%
+        gsub('[",]', "", .) %>%
+        gsub(" as NO3 \\(=10 as N\\)| as N", "", .),
+      # Get year
+      year = dplyr::case_when(
+        toxval_type != "State PHG" ~ "2023",
+        TRUE ~ `State Date of PHG`
+      )
+    ) %>%
+    # Split units where needed
+    tidyr::separate(
+      toxval_numeric, into=c("toxval_numeric", "toxval_units"), sep = " ", fill="right"
+    ) %>%
+
+    # Separate year where needed to get revision years
+    tidyr::separate(
+      year, into = c("extra_year", "year"), sep = "\\(", fill="left"
+    ) %>%
+
+    dplyr::select(-extra_year) %>%
 
     # Conduct final transformations
     dplyr::mutate(
@@ -98,18 +122,6 @@ import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
       # Extract specific chemical class
       chemical_class = stringr::str_match(chemical_class_full, "State Regulated (.+) Contaminants?")[,2],
 
-      # Clean up toxval_numeric
-      toxval_numeric = toxval_numeric %>%
-        fix.replace.unicode() %>%
-        gsub('[",]', "", .) %>%
-        gsub(" as NO3 \\(=10 as N\\)| as N", "", .),
-
-      # Get year
-      year = dplyr::case_when(
-        toxval_type != "State PHG" ~ "2023",
-        TRUE ~ `State Date of PHG`
-      ),
-
       # Recode toxval_type
       toxval_type = dplyr::case_when(
         toxval_type == "State MCL" ~ "California MCL",
@@ -120,23 +132,26 @@ import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
 
       # Check for specified units, otherwise use mg/L
       toxval_units = dplyr::case_when(
-        grepl(" ", toxval_numeric) ~ stringr::str_split_i(toxval_numeric, " ", 2),
-        chemical_class == "Radionuclides" ~ "pCi/L",
-        TRUE ~ "mg/L"
+        is.na(toxval_units) ~ "mg/L",
+        chemical_class == "Radionuclides" & is.na(toxval_units) ~ "pCi/L",
+        TRUE ~ toxval_units
       ),
 
-      # Set appropriate fields as numeric
+      # Set toxval_numeric as numeric
       toxval_numeric = toxval_numeric %>%
-        stringr::str_split_i(., " ", 1) %>%
         as.numeric(),
+      # Finish formatting year
       year = year %>%
-        stringr::str_split_i(., " ", 1) %>%
+        gsub("rev|\\)|\\*", "", .) %>%
         as.numeric()
     ) %>%
     tidyr::drop_na("toxval_numeric") %>%
 
     # Remove Federal MCLG field
     dplyr::select(!dplyr::any_of("Federal MCLG"))
+
+  # Hardcode special case for Asbestos
+  res$toxval_units[res$name == "Asbestos"] = "million fibers per liter"
 
   # Standardize the names
   names(res) <- names(res) %>%
