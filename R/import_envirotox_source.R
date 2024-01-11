@@ -23,25 +23,35 @@
 #' @importFrom dplyr left_join mutate na_if case_when
 #' @importFrom stringr str_match str_squish
 #--------------------------------------------------------------------------------------
-import_envirotox_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "EnviroTox_v2"
   source_table = "source_envirotox"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2021-09-28")
   dir = paste0(toxval.config()$datapath,"envirotox/envirotox_files/")
+  file = paste0(dir, "envirotox_20240102183325.xlsx")
   res0 = readxl::read_xlsx(file, sheet="test")
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
   # Read in taxonomy sheet to get medium information
-  res0_taxonomy = readxl::read_xlsx(file, sheet="taxonomy")
-  res0_merged = dplyr::left_join(res0, res0_taxonomy, by="Latin name")
+  res0_taxonomy = readxl::read_xlsx(file, sheet="taxonomy") %>%
+    dplyr::select(`Latin name`, Medium)
+  res0_merged = res0 %>%
+    dplyr::left_join(res0_taxonomy,
+                     by="Latin name")
 
   res <- res0_merged %>%
+    dplyr::rename(study_reference = Source,
+                  envirotox_version = version) %>%
     dplyr::mutate(
       # Perform initial renaming/basic transformations as needed
-      name = fix.replace.unicode(`Chemical name`),
+      name = `Chemical name` %>%
+        # Select first chemical name before ";"
+        sub(';.*', '', .) %>%
+        fix.replace.unicode() %>%
+        stringr::str_squish(),
       casrn = sapply(CAS, FUN=fix.casrn) %>% dplyr::na_if("NOCAS"),
       species = `Latin name`,
       critical_effect = Effect,
@@ -55,22 +65,27 @@ import_envirotox_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
       # Get study_type by translating "Test type" values
       study_type = dplyr::case_when(
         `Test type` == "A" ~ "acute",
-        `Test type` == "C" ~ "acute",
-        TRUE ~ NA
+        `Test type` == "C" ~ "acute"
       ),
 
       # Get study_duration_value, study_duration_units, and study_duration_qualifier
-      study_duration_qualifier = stringr::str_match(Duration, "[<>=]+") %>% c(),
+      study_duration_qualifier = stringr::str_match(Duration, "[~<>=]+") %>% c(),
       study_duration_value = stringr::str_match(Duration, "[0-9\\.;]+") %>%
         gsub("[0-9\\.]+;", "", .) %>%
         as.numeric(),
-      study_duration_units = dplyr::case_when(
-        grepl("NR", Duration) ~ NA,
-        TRUE ~ stringr::str_match(Duration, "[\\(\\)a-zA-Z\\-\\s]+")
-      ) %>% stringr::str_squish()
+      study_duration_units = Duration %>%
+        gsub("NR", NA, .) %>%
+        gsub("Day\\(s\\)", "days", .) %>%
+        # Hardcode case
+        gsub("until hatch", "hours until hatch", .) %>%
+        stringr::str_match(., "[\\(\\)a-zA-Z\\-\\s]+") %>%
+        c() %>%
+        stringr::str_squish()
     )
 
-  # Get medium column
+  # study duration lists handling, use their reported days/hours
+  res$study_duration_value[grepl(";", res$Duration) & grepl("days", res$study_duration_units)] = res$`Duration (days)`[grepl(";", res$Duration) & grepl("days", res$study_duration_units)]
+  res$study_duration_value[grepl(";", res$Duration) & grepl("hours", res$study_duration_units)] = res$`Duration (hours)`[grepl(";", res$Duration) & grepl("hours", res$study_duration_units)]
 
   # Standardize the names
   names(res) <- names(res) %>%
