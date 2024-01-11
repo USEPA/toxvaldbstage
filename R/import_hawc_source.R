@@ -229,33 +229,40 @@ import_hawc_source <- function(db,
   GD_until_vals <- grep("GD.*until.*[^0]$", res$study_duration_value, ignore.case = T)
   res[GD_until_vals,"study_duration_units"] <- "GD"
   res[GD_until_vals,"study_duration_value"] <- gsub("^(GD.*GD\\s+)(.*)","\\2",res[GD_until_vals,"study_duration_value"])
-
   GD_until_zero_vals <- grep("GD.*until.*[0]$", res$study_duration_value, ignore.case = T)
   res[GD_until_zero_vals,"study_duration_units"] <- res[GD_until_zero_vals,"study_duration_value"]
-  res[GD_until_zero_vals,"study_duration_value"] <- ""
+  res[GD_until_zero_vals,"study_duration_value"] <- "0"
+  # GD0 to lactation
+  gd_lac_zero <- grep("GD0 through lactation", res$study_duration_value, ignore.case=TRUE)
+  res[gd_lac_zero,"study_duration_value"] <- "0"
+  # GD and PND zero
+  both_zero <- grep("GD0 to PND0", res$study_duration_value, ignore.case = TRUE)
+  res[both_zero,"study_duration_value"] <- "0"
 
   #PND range vals
   PND_vals <- grep(".*PND\\s*.*[^0a-zA-Z]$", res$study_duration_value, ignore.case = T)
-  res[PND_vals,"study_duration_units"] <- "PND"
+  #res[PND_vals,"study_duration_units"] <- "PND"
   res[PND_vals,"study_duration_value"] <- gsub("^(.*PND\\s*)(\\d+)","\\2",res[PND_vals,"study_duration_value"])
-  res[which(res$study_duration_value == "2-15" & res$study_duration_units == "PND"),"study_duration_value"] <- gsub("(\\d+\\-)(\\d+)","\\2",res[which(res$study_duration_value == "2-15" & res$study_duration_units == "PND"),"study_duration_value"])
+  res[which(res$study_duration_value == "2-15"),"study_duration_value"] <- gsub("(\\d+\\-)(\\d+)","\\2",res[which(res$study_duration_value == "2-15"),"study_duration_value"])
   PND_vals <- grep(".*PND\\s*[^0]\\d+$", res$study_duration_value, ignore.case = T)
-  res[PND_vals,"study_duration_units"] <- "PND"
+  #res[PND_vals,"study_duration_units"] <- "PND"
   res[PND_vals,"study_duration_value"] <- gsub("^(.*PND\\s*)(\\d+)(.*?)","\\2",res[PND_vals,"study_duration_value"])
   res[which(res$study_duration_value == "21, not PND 0" & res$study_duration_units == "PND"),"study_duration_value"] <- gsub("(\\d+)(\\,.*)","\\1",res[which(res$study_duration_value == "21, not PND 0" & res$study_duration_units == "PND"),"study_duration_value"])
-  # GD or PND zero vals
-  zero_vals <- grep("PND0|GD0", res$study_duration_value, ignore.case = T)
-  res[zero_vals,"study_duration_units"] <- res[zero_vals,"study_duration_value"]
-  res[zero_vals,"study_duration_value"] <- ""
+
+  # Remaining GD not zero
+  GD_not_zero <- grep("GD(\\d+)", res$study_duration_value, ignore.case = TRUE)
+  res[GD_not_zero,"study_duration_value"] <- gsub(".*GD(\\d+).*","\\1", res[GD_not_zero,"study_duration_value"])
   # 1 OR 2 years vals
   or_vals <- grep("or", res$study_duration_value, ignore.case = T)
   res[or_vals,"study_duration_units"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\4",res[or_vals,"study_duration_value"])
   res[or_vals,"study_duration_value"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\2",res[or_vals,"study_duration_value"])
   # PND 3-10 vals
   PND_vals <- grep("PND", res$study_duration_value, ignore.case = T)
-  res[PND_vals,"study_duration_units"] <-"PND"
+  #res[PND_vals,"study_duration_units"] <-"PND"
   res[PND_vals,"study_duration_value"] <- gsub("(PND.*\\-)(\\d+)","\\2",res[PND_vals,"study_duration_value"])
   res[which(res$study_duration_value == "-"),"study_duration_value"] <- ""
+  res$study_duration_value <- gsub(",.*", "", res$study_duration_value)
+
 
   res$study_duration_value <- as.numeric(res$study_duration_value)
 
