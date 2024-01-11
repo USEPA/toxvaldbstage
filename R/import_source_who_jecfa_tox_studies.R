@@ -25,7 +25,7 @@
 #' @importFrom tidyr separate_rows
 #' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
-import_source_who_jecfa_tox_studies <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "WHO JECFA Tox Studies"
   source_table = "source_who_jecfa_tox_studies"
@@ -38,11 +38,19 @@ import_source_who_jecfa_tox_studies <- function(db,chem.check.halt=FALSE, do.res
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
   res = res0 %>%
+    dplyr::rename(who_jecfa_chemical_id = `Chemical ID`) %>%
+    # Handle casrn lists
+    tidyr::separate_rows(casrn, sep=";") %>%
     # Copy toxval fields from originals
     dplyr::mutate(
       name = fix.replace.unicode(name) %>% toupper(),
       casrn = gsub("\\s*\\([^\\)]+\\)","", casrn),
-      toxval_units = fix.replace.unicode(toxval_units),
+      toxval_units = fix.replace.unicode(toxval_units) %>%
+        # Fix unit cases and remove excess whitespace
+        gsub("bw/ d", "bw/d", ., fixed=TRUE) %>%
+        gsub("mg/kgbw per day", "mg/kg bw per day", ., fixed=TRUE) %>%
+        gsub("ug/kg bw /d", "ug/kg bw/d", ., fixed=TRUE) %>%
+        stringr::str_squish(),
 
       # Replace non-number toxval_numeric values with blank entry (not NA to preserve char col)
       toxval_numeric = dplyr::case_when(
@@ -59,27 +67,16 @@ import_source_who_jecfa_tox_studies <- function(db,chem.check.halt=FALSE, do.res
       ),
 
       # Set "none"-type critical_effect to NA
-      critical_effect = dplyr::case_when(
-        critical_effect %in% c("None",
-                               "None reported",
-                               "not specified",
-                               "No significant adverse effects") ~ NA,
-        TRUE ~ critical_effect
-      )
+      critical_effect = stringr::str_to_sentence(critical_effect),
+      # Remove excess whitespace
+      dplyr::across(where(is.character), stringr::str_squish)
     ) %>%
 
-    # Drop rows without toxval_numeric
-    dplyr::filter(toxval_numeric != "-") %>%
-
-    # Remove entries with blank toxval_type
-    dplyr::filter(toxval_type != "-") %>%
-
-    # Handle casrn
-    tidyr::separate_rows(casrn, sep=";") %>%
-    dplyr::mutate(
-      casrn = casrn %>%
-        stringr::str_squish(),
-    )
+                  # Drop rows without toxval_numeric
+    dplyr::filter(toxval_numeric != "-",
+                  # Remove entries with blank toxval_type
+                  toxval_type != "-") %>%
+    dplyr::distinct()
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -105,7 +102,3 @@ import_source_who_jecfa_tox_studies <- function(db,chem.check.halt=FALSE, do.res
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
