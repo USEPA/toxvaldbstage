@@ -43,7 +43,7 @@ import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
                      by="Latin name")
 
   res <- res0_merged %>%
-    dplyr::rename(study_reference = Source,
+    dplyr::rename(long_ref = Source,
                   envirotox_version = version) %>%
     dplyr::mutate(
       # Perform initial renaming/basic transformations as needed
@@ -58,14 +58,14 @@ import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
       toxval_numeric = `Effect value` %>% as.numeric(),
       toxval_units = Unit,
       toxval_type = gsub("\\*", "", `Test statistic`),
-      long_ref = "Health and Environmental Sciences Institute (HESI). 2024. EnviroTox Database & Tools. Version 2.0.0 Available: http://www.envirotoxdatabase.org/ (accessed January 02, 2024)",
+      # long_ref = "Health and Environmental Sciences Institute (HESI). 2024. EnviroTox Database & Tools. Version 2.0.0 Available: http://www.envirotoxdatabase.org/ (accessed January 02, 2024)",
       source_url = "https://envirotoxdatabase.org/",
       media = gsub("Both", "Freshwater/Saltwater", Medium),
 
       # Get study_type by translating "Test type" values
       study_type = dplyr::case_when(
         `Test type` == "A" ~ "acute",
-        `Test type` == "C" ~ "acute"
+        `Test type` == "C" ~ "chronic"
       ),
 
       # Get study_duration_value, study_duration_units, and study_duration_qualifier
