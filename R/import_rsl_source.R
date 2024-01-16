@@ -179,9 +179,10 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
     # Clean values as needed
     dplyr::mutate(
-      # Fix toxval_units formatting
+      # Fix toxval_units formatting and set "unitless" where appropriate (from older script)
       toxval_units = dplyr::case_when(
         grepl("\\-1", toxval_units) ~ paste0("(", toxval_units),
+        toxval_type %in% c("GIABS", "ABSd") ~ "unitless",
         TRUE ~ gsub("[\\(\\)]", "", toxval_units)
       ),
 
