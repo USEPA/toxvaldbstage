@@ -8,6 +8,7 @@
 #' @param curation_method 'automated' or 'manual', Determines what sampling rule to use
 #' @param data_profiling_file Path to input data profiling file to use for sampling
 #' @param refresh_qc_pull Whether to reset the stored QC RData, toxval_for_qc_prioritization.RData
+#' @param dir_output Custom output directory path. Default of "Repo/qc_sampling"
 #' @return sampled toxval_source records
 #-----------------------------------------------------------------------------------
 qc_sampling <- function(toxval.db="res_toxval_v95",
@@ -16,7 +17,8 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
                         source=NULL,
                         curation_method=NULL,
                         data_profiling_file=NULL,
-                        refresh_qc_pull=TRUE) {
+                        refresh_qc_pull=TRUE,
+                        dir_output = "Repo/qc_sampling") {
   printCurrentFunction(toxval.db)
   # Check input params
   if(is.null(source) || is.na(source)) stop("Input param 'source' must not be NULL or NA.")
@@ -25,7 +27,6 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
 
   # Directory paths for QC sampling assets
   dir_input = "Repo/qc_sampling/sampling_input"
-  dir_output = "Repo/qc_sampling"
 
   # Get source table by input source name
   source_table = runQuery(query=paste0("SELECT source_table FROM chemical_source_index WHERE source = '", source,"'"),
@@ -66,6 +67,8 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
   # Sample by record type
   if(!nrow(sub_res)){
     message("Source '", source,"' not found in TOXVAL_ALL...skipping...")
+    # Do not skip unless we want to...
+    browser()
     sampled_records = data.frame()
   } else {
     # pull by record
