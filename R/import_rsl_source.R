@@ -20,14 +20,12 @@
 #'  \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{mutate_all}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}}
 #'  \code{\link[stringr]{str_trim}}
-#'  \code{\link[purrr]{reexports}}
 #' @rdname import_rsl_source
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr bind_rows mutate_all mutate na_if across where case_when
+#' @importFrom dplyr bind_rows mutate_all mutate na_if across case_when
 #' @importFrom tidyr unite pivot_longer separate drop_na
 #' @importFrom stringr str_squish
-#' @importFrom purrr is_character
 #--------------------------------------------------------------------------------------
 import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -174,7 +172,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
     ) %>%
 
     # Replace NAs with actual NA value
-    dplyr::mutate(dplyr::across(dplyr::where(purrr::is_character),
+    dplyr::mutate(dplyr::across(where(is.character),
                                 .fns = ~replace(., . == "NA", NA))) %>%
 
     # Clean values as needed
@@ -203,14 +201,14 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         grepl("c|n|\\*|m|s", subsource) ~ subsource %>%
           gsub("c", "cancer", .) %>%
           gsub("\\bn|n\\b", "noncancer", .) %>%
-          gsub("\\*\\*", " where noncancer SL < 10X cancer SL, SSL values are based on DAF=1", .) %>%
+          gsub("\\*\\*", " where noncancer SL < 10X cancer SL", .) %>%
           gsub("\\*", " where noncancer SL < 100X cancer SL", .) %>%
           gsub("m", ", ceiling limit exceeded", .) %>%
           gsub("\\bs\\b|s$", ", Csat exceeded", .) %>%
           gsub("G", "", .) %>%
           stringr::str_squish() %>%
           gsub(",$", "", .),
-        TRUE ~ NA
+        TRUE ~ as.character(NA)
       ),
 
       # Translate subsource values according to key in source docs
@@ -230,7 +228,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         subsource == "E" ~ "RPF applied",
         subsource == "G" ~ "see user's guide",
         grepl("[A-Z]", subsource) ~ subsource,
-        TRUE ~ NA
+        TRUE ~ as.character(NA)
       ),
 
       # Get risk_assessment_type
@@ -272,7 +270,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         TRUE ~ "chronic"
       ),
 
-      # Handle entries with "(units in fibers)
+      # Handle entries with "(units in fibers) for Asbestos
       toxval_units = dplyr::case_when(
         grepl("units in fibers", name) ~ gsub("ug|mg", "fibers", toxval_units),
         TRUE ~ toxval_units
