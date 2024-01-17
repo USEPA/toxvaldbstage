@@ -127,25 +127,25 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
       dplyr::distinct()
   }
 
-  ##############################################################################
-  ### Sample Down if Over Threshold
-  ##############################################################################
-  if((nrow(sampled_records) > 100 & curation_method == "automated") |
-     ((nrow(sampled_records) > (src_n*0.2)) & curation_method == "manual")){
-    slist = src_tbl_to_qc %>%
-      dplyr::filter(!source_hash %in% sampled_records$source_hash)
-    if(curation_method == "manual"){
-      # Sample threshold for manual
-      sample_diff = ceiling(src_n*0.2)
-    } else {
-      # Sample threshold for automated
-      sample_diff = 100
-    }
-    # Sample down records to meet threshold
-    sampled_records <- sampled_records %>%
-      dplyr::slice_sample(n = sample_diff) %>%
-      dplyr::distinct()
-  }
+  # ##############################################################################
+  # ### Sample Down if Over Threshold
+  # ##############################################################################
+  # if((nrow(sampled_records) > 100 & curation_method == "automated") |
+  #    ((nrow(sampled_records) > (src_n*0.2)) & curation_method == "manual")){
+  #   slist = src_tbl_to_qc %>%
+  #     dplyr::filter(!source_hash %in% sampled_records$source_hash)
+  #   if(curation_method == "manual"){
+  #     # Sample threshold for manual
+  #     sample_diff = ceiling(src_n*0.2)
+  #   } else {
+  #     # Sample threshold for automated
+  #     sample_diff = 100
+  #   }
+  #   # Sample down records to meet threshold
+  #   sampled_records <- sampled_records %>%
+  #     dplyr::slice_sample(n = sample_diff) %>%
+  #     dplyr::distinct()
+  # }
 
   # Pull all data for sampled records
   full_source = runQuery(query=paste0("SELECT * FROM ", source_table, " WHERE source_hash in ('",
