@@ -1,12 +1,26 @@
 #-------------------------------------------------------------------------------------
 #' @title toxval_source_check_extraction_documents
+#' @description FUNCTION_DESCRIPTION
 #' @description Check which sources do not have "extraction document" associations
 #' in their records (by source hash) and get list of docs with null document_type
 #' @param db The version of toxval source database to use.
 #' @param write_output Whether to write output to Excel (FALSE by default)
 #' @return List of sources without extraction document associations and document information
 #' for docs without document_type. Export XLSX files produced if specified.
-#' @import RMySQL dplyr readxl magrittr
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso
+#'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{pull}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[writexl]{write_xlsx}}
+#' @rdname toxval_source_check_extraction_documents
+#' @export
+#' @importFrom dplyr filter pull bind_rows distinct
+#' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
 toxval_source_check_extraction_documents <- function(db, write_output=FALSE){
   cat("Getting list of sources with no extraction document associations... ")
