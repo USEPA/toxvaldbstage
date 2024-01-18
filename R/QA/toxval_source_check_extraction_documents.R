@@ -1,6 +1,5 @@
 #-------------------------------------------------------------------------------------
 #' @title toxval_source_check_extraction_documents
-#' @description FUNCTION_DESCRIPTION
 #' @description Check which sources do not have "extraction document" associations
 #' in their records (by source hash) and get list of docs with null document_type
 #' @param db The version of toxval source database to use.
