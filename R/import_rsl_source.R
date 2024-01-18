@@ -34,7 +34,6 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2023-11-01")
   dir = paste0(toxval.config()$datapath,"rsl/rsl_files/")
-  dir = ""
 
   # Read from three input files
   file0 = paste0(dir, "rsl_thq01_nov_2023.xlsx")
