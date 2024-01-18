@@ -20,14 +20,12 @@
 #'  \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{mutate_all}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}}
 #'  \code{\link[stringr]{str_trim}}
-#'  \code{\link[purrr]{reexports}}
 #' @rdname import_rsl_source
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr bind_rows mutate_all mutate na_if across where case_when
+#' @importFrom dplyr bind_rows mutate_all mutate na_if across case_when
 #' @importFrom tidyr unite pivot_longer separate drop_na
 #' @importFrom stringr str_squish
-#' @importFrom purrr is_character
 #--------------------------------------------------------------------------------------
 import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -36,6 +34,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2023-11-01")
   dir = paste0(toxval.config()$datapath,"rsl/rsl_files/")
+  dir = ""
 
   # Read from three input files
   file0 = paste0(dir, "rsl_thq01_nov_2023.xlsx")
@@ -174,7 +173,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
     ) %>%
 
     # Replace NAs with actual NA value
-    dplyr::mutate(dplyr::across(dplyr::where(purrr::is_character),
+    dplyr::mutate(dplyr::across(where(is.character),
                                 .fns = ~replace(., . == "NA", NA))) %>%
 
     # Clean values as needed
@@ -198,19 +197,19 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         TRUE ~ toxval_type
       ),
 
-      # Get study_type from subsource field
+      # Get study_type from subsource field (set blank study_type as "cancer")
       study_type = dplyr::case_when(
         grepl("c|n|\\*|m|s", subsource) ~ subsource %>%
           gsub("c", "cancer", .) %>%
           gsub("\\bn|n\\b", "noncancer", .) %>%
-          gsub("\\*\\*", " where noncancer SL < 10X cancer SL, SSL values are based on DAF=1", .) %>%
+          gsub("\\*\\*", " where noncancer SL < 10X cancer SL", .) %>%
           gsub("\\*", " where noncancer SL < 100X cancer SL", .) %>%
           gsub("m", ", ceiling limit exceeded", .) %>%
           gsub("\\bs\\b|s$", ", Csat exceeded", .) %>%
           gsub("G", "", .) %>%
           stringr::str_squish() %>%
           gsub(",$", "", .),
-        TRUE ~ NA
+        TRUE ~ "cancer"
       ),
 
       # Translate subsource values according to key in source docs
@@ -228,9 +227,9 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         subsource == "N" ~ "WI",
         subsource == "W" ~ "TEF applied",
         subsource == "E" ~ "RPF applied",
-        subsource == "G" ~ "see user's guide",
+        subsource == "G" ~ "see user's guide (https://www.epa.gov/risk/regional-screening-levels-rsls-users-guide)",
         grepl("[A-Z]", subsource) ~ subsource,
-        TRUE ~ NA
+        TRUE ~ as.character(NA)
       ),
 
       # Get risk_assessment_type
@@ -239,31 +238,36 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         TRUE ~ ""
       ),
 
-      # Get "toxval_subtype" column for all 'Screening' toxval_type entries with a "cancer" risk_assessment_class
+      # Get "toxval_subtype" column
       toxval_subtype = dplyr::case_when(
-        grepl("Screening Level", toxval_type) & study_type == "cancer"  ~ "TR = 1E-06",
-        grepl("Screening Level", toxval_type) & grepl("\\bcancer where noncancer", study_type) ~ "TR = 1E-06",
-        raw_input_file == "rsl_thq10_nov_2023.xlsx" ~ "Thq = 1",
-        raw_input_file == "rsl_thq01_nov_2023.xlsx" ~ "Thq = 0.1",
+        grepl("Screening Level", toxval_type) & grepl("\\bcancer", study_type) ~ "TR = 1E-06",
+        raw_input_file == "rsl_thq10_nov_2023.xlsx" & (!grepl("\\bcancer", study_type)) ~ "Thq = 1",
+        raw_input_file == "rsl_thq01_nov_2023.xlsx" & (!grepl("\\bcancer", study_type)) ~ "Thq = 0.1",
         TRUE ~ ""
       ),
 
       # Get exposure_route based on toxval_type
       exposure_route = dplyr::case_when(
-        toxval_type =="RfC"  ~ "inhalation",
-        toxval_type =="SRfC"  ~ "inhalation",
-        toxval_type =="RfD"  ~ "oral",
-        toxval_type =="SRfD"  ~ "oral",
-        toxval_type =="Protection of Groundwater: MCL-based SSL"  ~ "oral",
-        toxval_type =="Protection of Groundwater: Risk-based SSL"  ~ "oral",
-        toxval_type =="Screening Level (Resident Soil)"  ~ "oral, dermal, and inhalation",
-        toxval_type =="Screening Level (Industrial Soil)"  ~ "oral and inhalation",
-        toxval_type =="Screening Level (Resident Air)"  ~ "inhalation",
-        toxval_type =="Screening Level (Industrial Air)"  ~ "inhalation",
-        toxval_type =="Screening Level (Tap Water)"  ~ "oral, dermal, and inhalation",
-        toxval_type =="Screening Level (MCL)"  ~ "vary by chemical",
+        grepl("\\(Diet\\)", name) ~ "diet",
+        grepl("\\(Water\\)", name) ~ "water",
+        toxval_type == "RfC" ~ "inhalation",
+        toxval_type == "SRfC" ~ "inhalation",
+        toxval_type == "IUR" ~ "inhalation",
+        toxval_type == "RfD" ~ "oral",
+        toxval_type == "SRfD" ~ "oral",
+        toxval_type == "Protection of Groundwater: MCL-based SSL" ~ "oral",
+        toxval_type == "Protection of Groundwater: Risk-based SSL" ~ "oral",
+        toxval_type == "Screening Level (Resident Soil)" ~ "oral, dermal, and inhalation",
+        toxval_type == "Screening Level (Industrial Soil)" ~ "oral and inhalation",
+        toxval_type == "Screening Level (Resident Air)" ~ "inhalation",
+        toxval_type == "Screening Level (Industrial Air)" ~ "inhalation",
+        toxval_type == "Screening Level (Tap Water)" ~ "oral, dermal, and inhalation",
+        toxval_type == "Screening Level (MCL)" ~ "vary by chemical",
         TRUE ~ ""
       ),
+
+      # Remove (Diet), (Non-diet), and (Water) from names
+      name = gsub(" \\(Diet\\)| \\(Non\\-diet\\)| \\(Water\\)", "", name),
 
       # Get risk_assessment_class based on toxval_type
       risk_assessment_class = dplyr::case_when(
@@ -272,7 +276,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         TRUE ~ "chronic"
       ),
 
-      # Handle entries with "(units in fibers)
+      # Handle entries with "(units in fibers) for Asbestos
       toxval_units = dplyr::case_when(
         grepl("units in fibers", name) ~ gsub("ug|mg", "fibers", toxval_units),
         TRUE ~ toxval_units
@@ -289,8 +293,14 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
       # )
     ) %>%
 
+    # Filter out GIABS and ABSd entries (uncomment to add back in)
+    dplyr::filter(toxval_type != "GIABS" & toxval_type != "ABSd") %>%
+
     # Filter out NA/blank toxval_numeric values
-    tidyr::drop_na(toxval_numeric)
+    tidyr::drop_na(toxval_numeric) %>%
+
+    # Drop duplicate entries
+    dplyr::distinct()
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -314,7 +324,8 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=toxval.config()$hashing_cols)
+                       # Special hashing case for RSL
+                       hashing_cols=c(toxval.config()$hashing_cols, "raw_input_file"))
 }
 
 
