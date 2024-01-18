@@ -59,7 +59,7 @@ import_hawc_source <- function(db,
                  "animal_group.dosing_regime.id","animal_group.dosing_regime.route_of_exposure",
                  "animal_group.dosing_regime.duration_exposure","animal_group.dosing_regime.duration_exposure_text",
                  "animal_group.species","animal_group.strain" ,"animal_group.sex","animal_group.name","animal_group.generation",
-                 "noel_names.noel","noel_names.loel")
+                 "noel_names.noel","noel_names.loel","observation_time","observation_time_units","observation_time_text")
 
   new_hawc <- lapply(hawc_dfs, "[", hawc_cols)
   new_hawc_df <- do.call("rbind", new_hawc)
@@ -129,8 +129,9 @@ import_hawc_source <- function(db,
                   "name","casrn","chemical_source","media","guideline_compliance",
                   "dosing_regime_id","route_of_exposure","exposure_duration_value",
                   "exposure_duration_text","species","strain","sex","population","generation","noel_names","loel_names",
+                  "observation_time","observation_time_units","observation_time_text",
                   "NOEL_values","NOEL_units","LOEL_values",
-                  "LOEL_units","FEL_values","FEL_units","doses","endpoint_url","study_url","source_url")
+                  "LOEL_units","FEL_values","FEL_units","doses","endpoint_url","source_url","assessment_url")
 
   names(new_hawc_df) <- names.list
   new_hawc_df$fel_names <- "FEL"
@@ -138,9 +139,9 @@ import_hawc_source <- function(db,
   # entire full_text_url field is empty, hence assigning as hyphen to maintain character type
   new_hawc_df[which(is.na(new_hawc_df$full_text_url)),"full_text_url"] <- "-"
 
-  h1 <- new_hawc_df[,c(1:33,34,36,37,42:45)]
-  h2 <- new_hawc_df[,c(1:33,35,38,39,42:45)]
-  h3 <- new_hawc_df[,c(1:33,46,40,41,42:45)]
+  h1 <- new_hawc_df[,c(1:33,34,39,40,45:48,36:38)]
+  h2 <- new_hawc_df[,c(1:33,35,41,42,45:48,36:38)]
+  h3 <- new_hawc_df[,c(1:33,49,43,44,45:48,36:38)]
 
   names(h1)[34] <- "toxval_type"
   names(h1)[35] <- "toxval_numeric"
@@ -157,14 +158,14 @@ import_hawc_source <- function(db,
   new_hawc_df_final$study_type <- new_hawc_df_final$experiment_type
   new_hawc_df_final$exposure_route <- new_hawc_df_final$route_of_exposure
   new_hawc_df_final$exposure_method <- new_hawc_df_final$route_of_exposure
-  new_hawc_df_final$study_duration_value <- new_hawc_df_final$exposure_duration_text
-  new_hawc_df_final$study_duration_units <- new_hawc_df_final$exposure_duration_text
+  new_hawc_df_final$study_duration_value <- new_hawc_df_final$observation_time
+  new_hawc_df_final$study_duration_units <- new_hawc_df_final$observation_time_units
 
   #dim(new_hawc_df_final)
   new_hawc_df_final <- new_hawc_df_final[which(!is.na(new_hawc_df_final$toxval_numeric)),]
   #print(dim(new_hawc_df_final))
   new_hawc_df_final[,"source_id"] <- c(1:length(new_hawc_df_final[,1]))
-  new_hawc_df_final <- new_hawc_df_final[,c("source_id",names(new_hawc_df_final[-46]))]
+  new_hawc_df_final <- new_hawc_df_final[,c("source_id",names(new_hawc_df_final[-49]))]
 
   res = new_hawc_df_final
   res = res[!generics::is.element(res$casrn,"NOCAS"),]
@@ -195,77 +196,7 @@ import_hawc_source <- function(db,
   res[injection_vals, "exposure_method"] <- gsub("(.*\\s+)(injection)","\\2",res[injection_vals, "exposure_method"])
   res$exposure_method <- tolower(res$exposure_method)
 
-  ######### fix study duration value and units
-  #hour vals
-  hour_vals <- grep("hour", res$study_duration_value, ignore.case = T)
-  res[hour_vals,"study_duration_units"] <- "hour"
-  res[hour_vals,"study_duration_value"] <- gsub("^([0-9]+)(\\s+)(hours)","\\1",res[hour_vals,"study_duration_value"])
-  # day vals
-  day_vals <- grep("day", res$study_duration_value, ignore.case = T)
-  res[day_vals,"study_duration_units"] <- "day"
-  res[day_vals,"study_duration_value"] <- gsub("^([0-9]+)(\\s+)(days)(.*)","\\1",res[day_vals,"study_duration_value"])
-  day_vals <- grep("day", res$study_duration_value, ignore.case = T)
-  res[day_vals,"study_duration_value"] <- gsub("^([0-9]+\\-)([0-9]+)(\\s+)(days)(.*)","\\2",res[day_vals,"study_duration_value"])
-  #week vals
-  week_vals <- grep("week", res$study_duration_value, ignore.case = T)
-  res[week_vals,"study_duration_units"] <- "week"
-  res[week_vals,"study_duration_value"] <- gsub("^([0-9]+)(\\s+)(weeks)(.*)","\\1",res[week_vals,"study_duration_value"])
-  week_vals <- grep("week", res$study_duration_value, ignore.case = T)
-  res[week_vals,"study_duration_value"] <- gsub("^(.*[^0-9]+)([0-9]+)(\\s+)(weeks)(.*)","\\2",res[week_vals,"study_duration_value"])
-  #month vals (without PND)
-  month_vals <- grep("months$", res$study_duration_value, ignore.case = T)
-  res[month_vals,"study_duration_units"] <- "month"
-  res[month_vals,"study_duration_value"] <- gsub("^([0-9]+)(\\s+)(months)","\\1",res[month_vals,"study_duration_value"])
-  #one time vals
-  one_time_vals <- grep("one time", res$study_duration_value, ignore.case = T)
-  res[one_time_vals,"study_duration_units"] <- "one time"
-  res[one_time_vals,"study_duration_value"] <- "1"
-  # GD range vals
-  GD_vals <- grep("GD\\s+.*\\-[^a-zA-Z]+$", res$study_duration_value, ignore.case = T)
-  res[GD_vals,"study_duration_units"] <- "GD"
-  res[GD_vals,"study_duration_value"] <- gsub("^(GD)(\\s+.*\\-\\s*)(.*)","\\3",res[GD_vals,"study_duration_value"])
-
-  # GD until vals
-  GD_until_vals <- grep("GD.*until.*[^0]$", res$study_duration_value, ignore.case = T)
-  res[GD_until_vals,"study_duration_units"] <- "GD"
-  res[GD_until_vals,"study_duration_value"] <- gsub("^(GD.*GD\\s+)(.*)","\\2",res[GD_until_vals,"study_duration_value"])
-  GD_until_zero_vals <- grep("GD.*until.*[0]$", res$study_duration_value, ignore.case = T)
-  res[GD_until_zero_vals,"study_duration_units"] <- res[GD_until_zero_vals,"study_duration_value"]
-  res[GD_until_zero_vals,"study_duration_value"] <- "0"
-  # GD0 to lactation
-  gd_lac_zero <- grep("GD0 through lactation", res$study_duration_value, ignore.case=TRUE)
-  res[gd_lac_zero,"study_duration_value"] <- "0"
-  # GD and PND zero
-  both_zero <- grep("GD0 to PND0", res$study_duration_value, ignore.case = TRUE)
-  res[both_zero,"study_duration_value"] <- "0"
-
-  #PND range vals
-  PND_vals <- grep(".*PND\\s*.*[^0a-zA-Z]$", res$study_duration_value, ignore.case = T)
-  #res[PND_vals,"study_duration_units"] <- "PND"
-  res[PND_vals,"study_duration_value"] <- gsub("^(.*PND\\s*)(\\d+)","\\2",res[PND_vals,"study_duration_value"])
-  res[which(res$study_duration_value == "2-15"),"study_duration_value"] <- gsub("(\\d+\\-)(\\d+)","\\2",res[which(res$study_duration_value == "2-15"),"study_duration_value"])
-  PND_vals <- grep(".*PND\\s*[^0]\\d+$", res$study_duration_value, ignore.case = T)
-  #res[PND_vals,"study_duration_units"] <- "PND"
-  res[PND_vals,"study_duration_value"] <- gsub("^(.*PND\\s*)(\\d+)(.*?)","\\2",res[PND_vals,"study_duration_value"])
-  res[which(res$study_duration_value == "21, not PND 0" & res$study_duration_units == "PND"),"study_duration_value"] <- gsub("(\\d+)(\\,.*)","\\1",res[which(res$study_duration_value == "21, not PND 0" & res$study_duration_units == "PND"),"study_duration_value"])
-
-  # Remaining GD not zero
-  GD_not_zero <- grep("GD(\\d+)", res$study_duration_value, ignore.case = TRUE)
-  res[GD_not_zero,"study_duration_value"] <- gsub(".*GD(\\d+).*","\\1", res[GD_not_zero,"study_duration_value"])
-  # 1 OR 2 years vals
-  or_vals <- grep("or", res$study_duration_value, ignore.case = T)
-  res[or_vals,"study_duration_units"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\4",res[or_vals,"study_duration_value"])
-  res[or_vals,"study_duration_value"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\2",res[or_vals,"study_duration_value"])
-  # PND 3-10 vals
-  PND_vals <- grep("PND", res$study_duration_value, ignore.case = T)
-  #res[PND_vals,"study_duration_units"] <-"PND"
-  res[PND_vals,"study_duration_value"] <- gsub("(PND.*\\-)(\\d+)","\\2",res[PND_vals,"study_duration_value"])
-  res[which(res$study_duration_value == "-"),"study_duration_value"] <- ""
-  res$study_duration_value <- gsub(",.*", "", res$study_duration_value)
-
-
   res$study_duration_value <- as.numeric(res$study_duration_value)
-
 
   #####################################################################
   cat("Collapse duplicated that just differ by critical effect \n")
