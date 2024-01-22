@@ -198,7 +198,6 @@ set_clowder_id_lineage <- function(source_table,
   # Ensure clowder_id column is provided and/or standardized
   if(is.null(map_clowder_id_field) || is.na(map_clowder_id_field)){
     map_clowder_id_field <- "clowder_id"
-    cat(names(map_file))
     if(!"clowder_id" %in% names(map_file)){
       cat(names(map_file), "\n")
       stop("Must provide a 'map_clowder_id_field' present in the provided 'map_file'...")
