@@ -123,8 +123,8 @@ set_clowder_id_lineage <- function(source_table,
                                                                           "clowder_v3/source_atsdr_pfas_2021_document_map_20231108.xlsx")),
                       "source_chiu" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/source_chiu_document_map_20231109.xlsx")),
-                      "source_dod_meg" = data.frame(clowder_id = "61003ab1e4b01a90a3f9ce11",
-                                                    document_name = "3606a83ea4293730c355bceca0900d9c-Anonymous-2013-Technical .pdf"),
+                      "source_dod_meg" = data.frame(clowder_id = "651c7a8fe4b0d99f5a8c9983",
+                                                    document_name = "TG230MilitaryExposureGuidelines.xls"),
                       "source_doe_benchmarks" = data.frame(clowder_id = "651ef0b2e4b0f0a60ddcffee",
                                                            document_name = "doe_wildlife_benchmarks_1996_tm86r3.pdf"),
                       "source_envirotox" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -198,6 +198,7 @@ set_clowder_id_lineage <- function(source_table,
   # Ensure clowder_id column is provided and/or standardized
   if(is.null(map_clowder_id_field) || is.na(map_clowder_id_field)){
     map_clowder_id_field <- "clowder_id"
+    cat(names(map_file))
     if(!"clowder_id" %in% names(map_file)){
       cat(names(map_file), "\n")
       stop("Must provide a 'map_clowder_id_field' present in the provided 'map_file'...")
