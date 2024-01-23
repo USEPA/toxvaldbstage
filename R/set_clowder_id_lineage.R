@@ -630,14 +630,29 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_cosmos" = {
+                    # Match origin docs
                     res <- res %>%
-                      dplyr::left_join(map_file %>%
-                                         dplyr::select(-source, -new_hash),
-                                       by = c("name", "casrn", "study_type", "species", "study_reference", "year")
-                      ) %>%
-                      dplyr::select(source_hash, fk_doc_id, clowder_id, source_version_date) %>%
-                      dplyr::distinct()
+                      left_join(map_file %>%
+                                  filter(document_type == "origin") %>%
+                                  select(clowder_id, fk_doc_id, document_name,
+                                         name, casrn, study_type, study_reference, species, year) %>%
+                                  distinct(),
+                                by=c("name", "casrn", "study_type", "study_reference", "species", "year")) %>%
+                      dplyr::mutate(source_version_date = "2016-04-02") %>%
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
 
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::mutate(source_version_date = "2016-04-02") %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(document_type == "extraction") %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = dplyr::bind_rows(res, tmp)
+
+                    # Return res
                     res
                   },
                   "source_opp" = {
