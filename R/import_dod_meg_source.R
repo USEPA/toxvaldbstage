@@ -33,13 +33,13 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2013-01-01")
   dir = paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/")
-  file = paste0(dir,"TG230MilitaryExposureGuidelines.xls")
 
+  dir = ""
+  file = paste0(dir,"TG230MilitaryExposureGuidelines.xls")
   res0 = readxl::read_xls(file, sheet = "All MEGs (vertical)")
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-
   res <- res0 %>%
     dplyr::mutate(
       # Get rid of excess whitespace
@@ -55,6 +55,8 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       duration = TIMEFRAME,
       toxval_type = "MEG",
       year = "2013",
+      long_ref = "U.S. Army Public Health Command (2013) TG 230 Military Exposure Guidelines Table. Army Public Health Center.",
+      species = "human",
 
       # Get appropriate subtype
       subtype = dplyr::case_when(
@@ -69,20 +71,10 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
         exposure_method == "Water" ~ "Oral"
       ),
 
-      # Fix symbols in name field
+      # Fix name field
       name = name %>%
-        # Fix micro signs
-        fix.greek.symbols() %>%
-
-        # Remove trademark symbols
-        gsub("\u00ae|<U+00ae>", "", .) %>%
-
-        # Fix whitespace
-        gsub("[\r\n][\r\n]", " ", .) %>%
-
-        # Fix escaped quotation marks
-        gsub("[\\]{1,}'", "'", .) %>%
-        gsub('[\\]{1,}"', '"', .) %>%
+        # Fix unicode symbols
+        fix.replace.unicode() %>%
 
         # Handle extra whitespace
         stringr::str_squish(),
@@ -100,8 +92,11 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
 
       # Fix subsource
       subsource = subsource %>%
-        # Remove * and double-dagger symbols
-        gsub("\\*+|\u2021|<U+2021>", "", .) %>%
+        # Remove *
+        gsub("\\*+", "", .) %>%
+
+        # Fix symbols
+        fix.replace.unicode() %>%
 
         # Remove trailing underscores
         gsub("_$", "", .) %>%
