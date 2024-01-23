@@ -521,21 +521,27 @@ set_clowder_id_lineage <- function(source_table,
                   # },
 
                   "source_pfas_150_sem_v2" = {
-                    # Update map_file so it only contains mapped clowder_id values with long_refs
-                    map_file$clowder_id[map_file$clowder_id == "-"] <- NA
-                    map_file = map_file %>%
-                      select(clowder_id, fk_doc_id, hero_id = `HERO ID`) %>%
-                      mutate(hero_id = as.character(hero_id)) %>%
-                      distinct() %>%
-                      filter(!is.na(clowder_id))
-                    # clear old names
-                    res$document_name <- NULL
-
-                    # match by longref
+                    # Match origin docs
                     res <- res %>%
-                      left_join(map_file,
-                                by = "hero_id") %>%
-                      distinct()
+                      dplyr::mutate(source_version_date = "2022-05-17") %>%
+                      left_join(map_file %>%
+                                  filter(document_type == "origin", !is.na(clowder_id)) %>%
+                                  select(clowder_id, fk_doc_id, hero_id = `HERO ID`) %>%
+                                  mutate(hero_id = as.character(hero_id)) %>%
+                                  distinct(),
+                                by="hero_id") %>%
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::mutate(source_version_date = "2022-05-17") %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(document_type == "extraction") %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = dplyr::bind_rows(res, tmp)
 
                     # Return res
                     res
