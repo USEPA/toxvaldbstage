@@ -30,7 +30,6 @@ import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2021-09-28")
   dir = paste0(toxval.config()$datapath,"envirotox/envirotox_files/")
-  dir=""
   file = paste0(dir, "envirotox_20240102183325.xlsx")
   res0 = readxl::read_xlsx(file, sheet="test")
   #####################################################################
