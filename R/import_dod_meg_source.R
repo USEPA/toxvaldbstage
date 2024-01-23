@@ -33,8 +33,6 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2013-01-01")
   dir = paste0(toxval.config()$datapath,"dod_meg/dod_meg_files/")
-
-  dir = ""
   file = paste0(dir,"TG230MilitaryExposureGuidelines.xls")
   res0 = readxl::read_xls(file, sheet = "All MEGs (vertical)")
   #####################################################################
