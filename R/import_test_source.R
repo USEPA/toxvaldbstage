@@ -1,75 +1,140 @@
 #--------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------
+#' @title import_test_source
 #' @description Load TEST Source data into toxval_source
-#' @param db The version of toxval_source into which the source info is loaded.
-#' @param infile1 The input file ./test/test_files/TEST data.xlsx
-#' @param infile2 The input file ./test/test_files/test_chemicals_invitrodb.csv to map casrn to names from prod_internal_invitrodb_v3_2.chemical
+#' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @param do.reset If TRUE, delete data from the database for this source before inserting new data
+#' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @return None; data is loaded into toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
-#'  \code{\link[openxlsx]{read.xlsx}}
+#' @seealso
+#'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[utils]{read.table}}
-#'  \code{\link[stringr]{str_count}}
+#'  \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{join_by}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{drop_na}}
 #' @rdname import_test_source
-#' @export 
-#' @importFrom openxlsx read.xlsx
+#' @export
+#' @importFrom readxl read_xlsx
 #' @importFrom utils read.csv
-#' @importFrom stringr str_count
-#--------------------------------------------------------------------------------------
-import_test_source <- function(db,
-                               infile1="TEST data.xlsx",
-                               infile2="test_chemicals_invitrodb.csv",
-                               chem.check.halt=T) {
+#' @importFrom dplyr select left_join join_by mutate case_when
+#' @importFrom stringr str_squish
+#' @importFrom tidyr pivot_longer drop_na
+import_test_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
+  source = "TEST"
+  source_table = "source_test"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2019-11-26")
+  dir = paste0(toxval.config()$datapath,"test/test_files/")
+  study_info_file = paste0(dir, "TEST data.xlsx")
+  chemical_info_file = paste0(dir, "test_chemicals_invitrodb.csv")
 
-  infile1 = paste0(toxval.config()$datapath,"test/test_files/",infile1)
-  infile2 = paste0(toxval.config()$datapath,"test/test_files/",infile2)
-
+  res_study_info = readxl::read_xlsx(study_info_file)
+  res_chemical_info = readr::read_csv(chemical_info_file, col_types = readr::cols())
   #####################################################################
-  cat("Build original_test_table and new_test_table \n")
+  cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  res1 <- openxlsx::read.xlsx(infile1, 1, startRow = 1)
-  #runInsertTable(res1,"original_test_table",db,do.halt=T,verbose=F)
-  res1["test_id"] <- c(1:length(res1[,1]))
-  res1 <- res1[c("test_id",names(res1[-7]))]
-  res1["toxval_type"] <- c("LD50")
-  res1["name"] <- "-"
+  # Remove unlabeled column in study_info DF
+  res_study_info = res_study_info %>% dplyr::select(-...2)
 
-  chem_name <- utils::read.csv(infile2, header = T, sep = ',', stringsAsFactors = F)
-  #runInsertTable(chem_name,"test_map_invitrodb_chemicals",db,do.halt=T,verbose=F)
+  # Combine input files
+  res0 = res_study_info %>%
+    dplyr::left_join(res_chemical_info,
+                     by = c("CAS" = "casn"))
 
-  map_casrn <- which(res1$CAS %in% chem_name$casn)
-  name_val <- as.character(chem_name$chnm[res1$CAS %in% chem_name$casn])
-  res1$name[1:nrow(res1) %in% map_casrn] <- name_val
+  # Perform necessary transformations
+  res = res0 %>%
+    dplyr::mutate(
+      # Rename/add basic columns
+      name = fix.replace.unicode(chnm),
+      casrn = CAS,
+      toxval_units = LD50Units,
+      study_type = "acute",
+      species = "rat",
+      source_url = "https://www.epa.gov/chemical-research/toxicity-estimation-software-tool-test",
+      exposure_route = "oral",
 
-  res1$toxval_numeric <- gsub("[^0-9.]","", res1$LD50)
-  res1$toxval_numeric_qualifier <- gsub("[a-zA-Z ]|\\d([\\.]\\d)?","", res1$LD50)
+      # Get reference_url, long_ref, and critical_effect, and remove "Unknown" values
+      reference_url = dplyr::case_when(
+        ReferenceURL == "Unknown" ~ as.character(NA),
+        TRUE ~ ReferenceURL
+      ),
+      long_ref = dplyr::case_when(
+        Reference == "Unknown" ~ as.character(NA),
+        TRUE ~ Reference
+      ),
+      critical_effect = dplyr::case_when(
+        Effect == "Unknown" ~ as.character(NA),
+        TRUE ~ Effect
+      ) %>%
+        # Clean critical_effect
+        gsub("<br><br>", "; ", .) %>%
+        gsub("BEHAVIORAL: MUSCLE CONTRACTION OR SPASTICITY\\)",
+             "BEHAVIORAL: MUSCLE CONTRACTION OR SPASTICITY", .) %>%
+        stringr::str_squish()
+    ) %>%
 
-  res1 <- res1[-9916,]
-  res1$toxval_numeric <- as.numeric(res1$toxval_numeric)
-   #print(str(res1))
+    # Extract toxval_numeric and toxval_type
+    tidyr::pivot_longer(
+      cols = c("LD50"),
+      names_to = "toxval_type",
+      values_to = "toxval_numeric"
+    ) %>%
 
-  res1 <- res1[c(names(res1[1:2]),"name","toxval_type","toxval_numeric","toxval_numeric_qualifier",names(res1[3:7]))]
-  colnames(res1) <- c("test_id", "casrn","name","toxval_type","toxval_numeric","toxval_numeric_qualifier",
-                      "original_toxval_numeric", "toxval_units", "critical_effect", "reference", "reference_url")
+    dplyr::mutate(
+      # Get toxval_numeric_qualifier from toxval_numeric
+      toxval_numeric_qualifier = dplyr::case_when(
+        grepl(">", toxval_numeric) ~ ">",
+        TRUE ~ "="
+      ),
 
-  open_paranthesis_effect <- which(stringr::str_count(res1$critical_effect,"\\(") == 0 & stringr::str_count(res1$critical_effect,"\\)") == 1)
-  open_paranthesis_effect2 <- grep("[^\\)]$",res1[which(stringr::str_count(res1$critical_effect,"\\(") == 0 & stringr::str_count(res1$critical_effect,"\\)") == 1),"critical_effect"])
-  critical_effect_to_clean <- open_paranthesis_effect[open_paranthesis_effect2]
-  res1[critical_effect_to_clean,"critical_effect"] <- gsub("\\)","",res1[critical_effect_to_clean,"critical_effect"])
-  res1[is.na(res1$name),"name"] = "noname"
-  res1[res1$name=="-","name"] = "noname"
+      # Clean toxval_numeric
+      toxval_numeric = toxval_numeric %>%
+        gsub(">|un", "", .) %>%
+        as.numeric()
+    ) %>%
 
-  res = subset(res1,select=-c(test_id))
+    # Drop entries without toxval_numeric
+    tidyr::drop_na(toxval_numeric) %>%
+    # Remove duplicates
+    dplyr::distinct()
+
+  # Hardcode fix for units
+  res$toxval_units[res$toxval_units == "its/kg"] = "units/kg"
+
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="TEST",table="source_test",res=res,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
+
+
+
+

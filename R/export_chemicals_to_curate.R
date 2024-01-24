@@ -24,8 +24,14 @@ export_chemicals_to_curate <- function(db, export_all=FALSE){
     message("......Pulling chemical IDs from active source tables...")
     # Get list of chemical_id values to check
     active_chem_ids <- lapply(tbl_list$source_table, function(src){
-      paste0("SELECT chemical_id FROM ", src) %>%
-        runQuery(., db=db)
+      # Check if table exists
+      tbl_check <- runQuery(paste0("SHOW TABLES LIKE '", src, "'"),
+                            db=db)
+      if(nrow(tbl_check)){
+        paste0("SELECT chemical_id FROM ", src) %>%
+          runQuery(., db=db) %>%
+          return()
+      }
     }) %>%
       dplyr::bind_rows()
 

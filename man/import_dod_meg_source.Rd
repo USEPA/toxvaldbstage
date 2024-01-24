@@ -2,20 +2,29 @@
 % Please edit documentation in R/import_dod_meg_source.R
 \name{import_dod_meg_source}
 \alias{import_dod_meg_source}
-\title{FUNCTION_TITLE}
+\title{import_dod_meg_source}
 \usage{
-import_dod_meg_source(db, chem.check.halt = F)
+import_dod_meg_source(
+  db,
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
+)
 }
 \arguments{
-\item{db}{The version of toxval_source into which the tables are loaded.}
+\item{db}{The version of toxval_source into which the source is loaded.}
 
-\item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+\item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
+
+\item{do.reset}{If TRUE, delete data from the database for this source before}
+
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None. Data is processed into the database
 }
 \description{
-Load DOD MEG to toxval_source. The file to be loaded are in ./dod_meg/dod_meg_files
+Load DOD MEG to toxval_source.
 }
 \details{
 DETAILS
@@ -28,8 +37,8 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[openxlsx]{read.xlsx}}
- \code{\link[stats]{reshape}}
- \code{\link[stringr]{word}}
- \code{\link[tidyr]{reexports}}
+\code{\link[readxl]{read_excel}}
+ \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
+ \code{\link[stringr]{str_trim}}
+ \code{\link[tidyr]{unite}}
 }

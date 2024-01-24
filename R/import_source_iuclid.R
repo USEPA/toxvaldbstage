@@ -187,9 +187,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$media = "-"
   }
 
-  # Fix Greek symbols in units
+  # Fix unicode symbols in units
   res <- res %>%
-    dplyr::mutate(dplyr::across(tidyr::ends_with("_units"), ~fix.greek.symbols(.)))
+    dplyr::mutate(dplyr::across(tidyr::ends_with("_units"), ~fix.replace.unicode(.)))
 
 
   # Standardize the names

@@ -6,16 +6,17 @@
 \usage{
 import_chiu_source(
   db,
-  infile = "Full_RfD_databaseQAed-FINAL.xlsx",
-  chem.check.halt = F
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
 )
 }
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}
 
-\item{infile}{The input file ./chiu/chiu_files/Full_RfD_databaseQAed-FINAL.xlsx}
-
 \item{chem.check.halt}{If TRUE and there are bad chemical names or casrn, #' stop to look at the results in indir/chemcheck.xlsx}
+
+\item{infile}{The input file ./chiu/chiu_files/Full_RfD_databaseQAed-FINAL.xlsx}
 }
 \value{
 OUTPUT_DESCRIPTION
@@ -37,5 +38,8 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[openxlsx]{read.xlsx}}
+\code{\link[readxl]{read_excel}}
+ \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}
+ \code{\link[tidyr]{drop_na}}
+ \code{\link[stringr]{str_remove}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_trim}}
 }

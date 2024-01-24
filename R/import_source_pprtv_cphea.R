@@ -146,7 +146,7 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
   res0$species[res0$study_reference == "Lewis et al. (1979) and Ulrich et al. (1977)"
                & res0$name == "2-Nitropropane"] <- "Rat"
 
-  # Remove Greek letters from character fields
+  # Fix unicode symbols in character fields
   res0 <- dplyr::mutate(res0, dplyr::across(where(is.character), fix.greek.symbols))
 
   # Add missing toxval_units (imputed from RfC/RfD) to NOAEL cases

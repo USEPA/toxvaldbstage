@@ -8,7 +8,9 @@ import_hawc_source(
   db,
   infile1 = "hawc_original_12_06_21.xlsx",
   infile2 = "dose_dict.xlsx",
-  chem.check.halt = T
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
 )
 }
 \arguments{
