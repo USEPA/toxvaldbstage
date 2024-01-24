@@ -38,7 +38,7 @@ import_test_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   chemical_info_file = paste0(dir, "test_chemicals_invitrodb.csv")
 
   res_study_info = readxl::read_xlsx(study_info_file)
-  res_chemical_info = utils::read.csv(chemical_info_file)
+  res_chemical_info = readr::read_csv(chemical_info_file, col_types = readr::cols())
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -46,7 +46,9 @@ import_test_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   res_study_info = res_study_info %>% dplyr::select(-...2)
 
   # Combine input files
-  res0 = dplyr::left_join(res_study_info, res_chemical_info, by = dplyr::join_by(CAS == casn))
+  res0 = res_study_info %>%
+    dplyr::left_join(res_chemical_info,
+                     by = c("CAS" = "casn"))
 
   # Perform necessary transformations
   res = res0 %>%
@@ -58,6 +60,7 @@ import_test_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       study_type = "acute",
       species = "rat",
       source_url = "https://www.epa.gov/chemical-research/toxicity-estimation-software-tool-test",
+      exposure_route = "oral",
 
       # Get reference_url, long_ref, and critical_effect, and remove "Unknown" values
       reference_url = dplyr::case_when(
@@ -73,7 +76,7 @@ import_test_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
         TRUE ~ Effect
       ) %>%
         # Clean critical_effect
-        gsub("<br><br>", ";", .) %>%
+        gsub("<br><br>", "; ", .) %>%
         gsub("BEHAVIORAL: MUSCLE CONTRACTION OR SPASTICITY\\)",
              "BEHAVIORAL: MUSCLE CONTRACTION OR SPASTICITY", .) %>%
         stringr::str_squish()
@@ -95,12 +98,17 @@ import_test_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
       # Clean toxval_numeric
       toxval_numeric = toxval_numeric %>%
-        gsub(">", "", .) %>%
+        gsub(">|un", "", .) %>%
         as.numeric()
     ) %>%
 
     # Drop entries without toxval_numeric
-    tidyr::drop_na(toxval_numeric)
+    tidyr::drop_na(toxval_numeric) %>%
+    # Remove duplicates
+    dplyr::distinct()
+
+  # Hardcode fix for units
+  res$toxval_units[res$toxval_units == "its/kg"] = "units/kg"
 
   # Standardize the names
   names(res) <- names(res) %>%
