@@ -63,7 +63,7 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
   # Export the data as an xlsx (writexl::write_xlsx) to preserve the CASRN values (no CSV date conversion)
   # Find the location where the excel sheet will be out from
   # This will help the user find the output file if they forget where there working directory is
-  out_file = paste0(outputDir, "/qc_prescreening_", src_tbl, ".xlsx")
+  out_file = paste0(outputDir, "/qc_prescreening_", src_tbl, "_", Sys.Date(),".xlsx")
   cat("Outputing excel file as: ", out_file)
   # This saves the raw data and summary table to different sheets in the same file
   writexl::write_xlsx(x = list('raw_data' = in_data,

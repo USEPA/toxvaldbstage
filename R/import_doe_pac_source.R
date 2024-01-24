@@ -90,6 +90,7 @@ import_doe_pac_source <- function(db,
       toxval_units = Units,
       study_type = "acute",
       exposure_route = "inhalation",
+      long_ref = "U.S. Department of Energy (DOE) Protective Action Criteria (PAC). 2023. PAC Chemical Database. Updated 11 October 2023. Available: https://edms3.energy.gov/pac/ (Accessed November 16, 2023)",
       toxval_type = toxval_type %>%
         gsub("\\(ppm\\)", "", .),
       # Remove excess whitespace for all character columns
