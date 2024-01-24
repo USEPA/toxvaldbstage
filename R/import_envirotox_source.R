@@ -60,7 +60,7 @@ import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
       toxval_type = gsub("\\*", "", `Test statistic`),
       # long_ref = "Health and Environmental Sciences Institute (HESI). 2024. EnviroTox Database & Tools. Version 2.0.0 Available: http://www.envirotoxdatabase.org/ (accessed January 02, 2024)",
       source_url = "https://envirotoxdatabase.org/",
-      media = gsub("Both", "Freshwater/Saltwater", Medium),
+      exposure_route = gsub("Both", "Freshwater/Saltwater", Medium),
 
       # Get study_type by translating "Test type" values
       study_type = dplyr::case_when(
@@ -70,22 +70,27 @@ import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
 
       # Get study_duration_value, study_duration_units, and study_duration_qualifier
       study_duration_qualifier = stringr::str_match(Duration, "[~<>=]+") %>% c(),
+
+      # In the case of multiple values separated by ;, select the rightmost value
       study_duration_value = stringr::str_match(Duration, "[0-9\\.;]+") %>%
         gsub("[0-9\\.]+;", "", .) %>%
         as.numeric(),
       study_duration_units = Duration %>%
-        gsub("NR", NA, .) %>%
+        gsub("NR", as.character(NA), .) %>%
         gsub("Day\\(s\\)", "days", .) %>%
         # Hardcode case
         gsub("until hatch", "hours until hatch", .) %>%
+        gsub(" post ", " post-", .) %>%
         stringr::str_match(., "[\\(\\)a-zA-Z\\-\\s]+") %>%
         c() %>%
         stringr::str_squish()
     )
 
-  # study duration lists handling, use their reported days/hours
-  res$study_duration_value[grepl(";", res$Duration) & grepl("days", res$study_duration_units)] = res$`Duration (days)`[grepl(";", res$Duration) & grepl("days", res$study_duration_units)]
-  res$study_duration_value[grepl(";", res$Duration) & grepl("hours", res$study_duration_units)] = res$`Duration (hours)`[grepl(";", res$Duration) & grepl("hours", res$study_duration_units)]
+  # UNCOMMENT BELOW SECTION TO ALTER DURATION LIST HANDLING
+  # USE VALUES IN 'Duration (Days)' AND 'Duration (Hours)' COLUMNS INSTEAD
+  # # study duration lists handling, use their reported days/hours
+  # res$study_duration_value[grepl(";", res$Duration) & grepl("days", res$study_duration_units)] = res$`Duration (days)`[grepl(";", res$Duration) & grepl("days", res$study_duration_units)]
+  # res$study_duration_value[grepl(";", res$Duration) & grepl("hours", res$study_duration_units)] = res$`Duration (hours)`[grepl(";", res$Duration) & grepl("hours", res$study_duration_units)]
 
   # Standardize the names
   names(res) <- names(res) %>%
