@@ -50,7 +50,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   map_orig = readxl::read_xlsx(paste0(toxval.config()$datapath,"iuclid/field_maps/iuclid_field_map.xlsx"))
   map = map_orig %>%
     dplyr::filter(oht == subf,
-                  !grepl("not needed", notes))
+           !grepl("not needed", notes))
 
   if(!nrow(map)) {
     return(paste0("No entries in IUCLID field map for: ", subf))
@@ -66,17 +66,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   }
 
   # Create a named vector to handle renaming from the map
-  map = map %>%
-    dplyr::filter(!is.na(to)) %>%
-    tidyr::separate_rows(to, sep=" : ")
-
-  tmp = map %>%
-    dplyr::pull(from) %T>% {
-      names(.) <- map$to[!is.na(map$to)]
-    }
+  tmp = map$from %T>% {
+    names(.) <- map$to
+  }
 
   res <- res0 %>%
-    # Copy columns and rename new columns
+  # Copy columns and rename new columns
     dplyr::rename(tidyr::all_of(tmp)) %>%
     # Split columns and name them
     tidyr::separate(., study_type, c("study_type","exposure_route"), sep=": ", fill="right", remove=FALSE)
