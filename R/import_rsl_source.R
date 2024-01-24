@@ -196,7 +196,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         TRUE ~ toxval_type
       ),
 
-      # Get study_type from subsource field
+      # Get study_type from subsource field (set blank study_type as "cancer")
       study_type = dplyr::case_when(
         grepl("c|n|\\*|m|s", subsource) ~ subsource %>%
           gsub("c", "cancer", .) %>%
@@ -208,7 +208,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
           gsub("G", "", .) %>%
           stringr::str_squish() %>%
           gsub(",$", "", .),
-        TRUE ~ as.character(NA)
+        TRUE ~ "cancer"
       ),
 
       # Translate subsource values according to key in source docs
@@ -226,7 +226,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         subsource == "N" ~ "WI",
         subsource == "W" ~ "TEF applied",
         subsource == "E" ~ "RPF applied",
-        subsource == "G" ~ "see user's guide",
+        subsource == "G" ~ "see user's guide (https://www.epa.gov/risk/regional-screening-levels-rsls-users-guide)",
         grepl("[A-Z]", subsource) ~ subsource,
         TRUE ~ as.character(NA)
       ),
@@ -237,31 +237,36 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         TRUE ~ ""
       ),
 
-      # Get "toxval_subtype" column for all 'Screening' toxval_type entries with a "cancer" risk_assessment_class
+      # Get "toxval_subtype" column
       toxval_subtype = dplyr::case_when(
-        grepl("Screening Level", toxval_type) & study_type == "cancer"  ~ "TR = 1E-06",
-        grepl("Screening Level", toxval_type) & grepl("\\bcancer where noncancer", study_type) ~ "TR = 1E-06",
-        raw_input_file == "rsl_thq10_nov_2023.xlsx" ~ "Thq = 1",
-        raw_input_file == "rsl_thq01_nov_2023.xlsx" ~ "Thq = 0.1",
+        grepl("Screening Level", toxval_type) & grepl("\\bcancer", study_type) ~ "TR = 1E-06",
+        raw_input_file == "rsl_thq10_nov_2023.xlsx" & (!grepl("\\bcancer", study_type)) ~ "Thq = 1",
+        raw_input_file == "rsl_thq01_nov_2023.xlsx" & (!grepl("\\bcancer", study_type)) ~ "Thq = 0.1",
         TRUE ~ ""
       ),
 
       # Get exposure_route based on toxval_type
       exposure_route = dplyr::case_when(
-        toxval_type =="RfC"  ~ "inhalation",
-        toxval_type =="SRfC"  ~ "inhalation",
-        toxval_type =="RfD"  ~ "oral",
-        toxval_type =="SRfD"  ~ "oral",
-        toxval_type =="Protection of Groundwater: MCL-based SSL"  ~ "oral",
-        toxval_type =="Protection of Groundwater: Risk-based SSL"  ~ "oral",
-        toxval_type =="Screening Level (Resident Soil)"  ~ "oral, dermal, and inhalation",
-        toxval_type =="Screening Level (Industrial Soil)"  ~ "oral and inhalation",
-        toxval_type =="Screening Level (Resident Air)"  ~ "inhalation",
-        toxval_type =="Screening Level (Industrial Air)"  ~ "inhalation",
-        toxval_type =="Screening Level (Tap Water)"  ~ "oral, dermal, and inhalation",
-        toxval_type =="Screening Level (MCL)"  ~ "vary by chemical",
+        grepl("\\(Diet\\)", name) ~ "diet",
+        grepl("\\(Water\\)", name) ~ "water",
+        toxval_type == "RfC" ~ "inhalation",
+        toxval_type == "SRfC" ~ "inhalation",
+        toxval_type == "IUR" ~ "inhalation",
+        toxval_type == "RfD" ~ "oral",
+        toxval_type == "SRfD" ~ "oral",
+        toxval_type == "Protection of Groundwater: MCL-based SSL" ~ "oral",
+        toxval_type == "Protection of Groundwater: Risk-based SSL" ~ "oral",
+        toxval_type == "Screening Level (Resident Soil)" ~ "oral, dermal, and inhalation",
+        toxval_type == "Screening Level (Industrial Soil)" ~ "oral and inhalation",
+        toxval_type == "Screening Level (Resident Air)" ~ "inhalation",
+        toxval_type == "Screening Level (Industrial Air)" ~ "inhalation",
+        toxval_type == "Screening Level (Tap Water)" ~ "oral, dermal, and inhalation",
+        toxval_type == "Screening Level (MCL)" ~ "vary by chemical",
         TRUE ~ ""
       ),
+
+      # Remove (Diet), (Non-diet), and (Water) from names
+      name = gsub(" \\(Diet\\)| \\(Non\\-diet\\)| \\(Water\\)", "", name),
 
       # Get risk_assessment_class based on toxval_type
       risk_assessment_class = dplyr::case_when(
@@ -287,8 +292,14 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
       # )
     ) %>%
 
+    # Filter out GIABS and ABSd entries (uncomment to add back in)
+    dplyr::filter(toxval_type != "GIABS" & toxval_type != "ABSd") %>%
+
     # Filter out NA/blank toxval_numeric values
-    tidyr::drop_na(toxval_numeric)
+    tidyr::drop_na(toxval_numeric) %>%
+
+    # Drop duplicate entries
+    dplyr::distinct()
 
   # Standardize the names
   names(res) <- names(res) %>%
