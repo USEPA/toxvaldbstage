@@ -234,7 +234,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
       # Get risk_assessment_type
       risk_assessment_type = dplyr::case_when(
         toxval_type %in% c("SFO", "IUR") ~ "carcinogenicity",
-        TRUE ~ ""
+        TRUE ~ as.character(NA)
       ),
 
       # Get "toxval_subtype" column
@@ -242,7 +242,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         grepl("Screening Level", toxval_type) & grepl("\\bcancer", study_type) ~ "TR = 1E-06",
         raw_input_file == "rsl_thq10_nov_2023.xlsx" & (!grepl("\\bcancer", study_type)) ~ "Thq = 1",
         raw_input_file == "rsl_thq01_nov_2023.xlsx" & (!grepl("\\bcancer", study_type)) ~ "Thq = 0.1",
-        TRUE ~ ""
+        TRUE ~ as.character(NA)
       ),
 
       # Get exposure_route based on toxval_type
@@ -262,7 +262,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         toxval_type == "Screening Level (Industrial Air)" ~ "inhalation",
         toxval_type == "Screening Level (Tap Water)" ~ "oral, dermal, and inhalation",
         toxval_type == "Screening Level (MCL)" ~ "vary by chemical",
-        TRUE ~ ""
+        TRUE ~ as.character(NA)
       ),
 
       # Remove (Diet), (Non-diet), and (Water) from names
@@ -293,7 +293,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
     ) %>%
 
     # Filter out GIABS and ABSd entries (uncomment to add back in)
-    dplyr::filter(toxval_type != "GIABS" & toxval_type != "ABSd") %>%
+    dplyr::filter(!toxval_type %in% c("GIABS", "ABSd")) %>%
 
     # Filter out NA/blank toxval_numeric values
     tidyr::drop_na(toxval_numeric) %>%
