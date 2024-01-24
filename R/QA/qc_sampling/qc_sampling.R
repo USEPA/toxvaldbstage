@@ -9,6 +9,7 @@
 #' @param data_profiling_file Path to input data profiling file to use for sampling
 #' @param refresh_qc_pull Whether to reset the stored QC RData, toxval_for_qc_prioritization.RData
 #' @param dir_output Custom output directory path. Default of "Repo/qc_sampling"
+#' @param source_specific_filter Boolean whether to apply source specific filtering Default is TRUE.
 #' @return sampled toxval_source records
 #-----------------------------------------------------------------------------------
 qc_sampling <- function(toxval.db="res_toxval_v95",
@@ -18,7 +19,8 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
                         curation_method=NULL,
                         data_profiling_file=NULL,
                         refresh_qc_pull=TRUE,
-                        dir_output = "Repo/qc_sampling") {
+                        dir_output = "Repo/qc_sampling",
+                        source_specific_filter=TRUE) {
   printCurrentFunction(toxval.db)
   # Check input params
   if(is.null(source) || is.na(source)) stop("Input param 'source' must not be NULL or NA.")
@@ -35,8 +37,23 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
   src_n <- runQuery(paste0("SELECT count(*) FROM ", source_table),
                     db=source.db)[,1]
 
+  # Base query
+  query = paste0("SELECT source_hash, source FROM ", source_table, " WHERE qc_status = 'not determined'")
+
+  if(source_specific_filter){
+    # IRIS only sample IRIS Export data, not IRIS Summary, etc.
+    if(source == "IRIS"){
+      src_n <- runQuery(paste0("SELECT count(*) FROM ", source_table,
+                               " WHERE document_type = 'IRIS Export'"),
+                        db=source.db)[,1]
+      query = paste0("SELECT source_hash, source FROM ", source_table,
+                     " WHERE qc_status = 'not determined' ",
+                     "AND document_type = 'IRIS Export'")
+    }
+  }
+
   # Check source records in need of QC
-  src_tbl_to_qc <- runQuery(query=paste0("SELECT source_hash, source FROM ", source_table, " WHERE qc_status = 'not determined'"),
+  src_tbl_to_qc <- runQuery(query=query,
                             db=source.db) %>%
     dplyr::mutate(source_table = !!source_table)
 
