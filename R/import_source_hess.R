@@ -87,7 +87,7 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
     dplyr::mutate(
       name=name %>%
         # Fix unicode symbols
-        # fix.replace.unicode() %>%
+        fix.replace.unicode() %>%
 
         stringr::str_squish())
 
