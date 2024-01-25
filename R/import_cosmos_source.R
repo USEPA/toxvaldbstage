@@ -41,8 +41,12 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
   res = res0 %>%
     dplyr::mutate(
       # Add/rename basic columns as needed
+      source_study_id = `STUDY #`,
+      subsource = `DOCUMENT SOURCE`,
+      quality = `DATA QUALITY`,
       casrn = `REGISTRY NUMBER`,
       long_ref = `STUDY REFERENCE`,
+      title = `STUDY TITLE`,
       year = `YEAR (REPORT/CITATION)` %>%
         as.character() %>%
         gsub("1697", "1967", .) %>%
@@ -54,8 +58,10 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
       critical_effect = dplyr::case_when(
         # Filter for list of key terms generally found in actual effect descriptions
         grepl(paste0("DEMONSTRATE|INCREASE|DECREASE|CHANGE|TOXICITY|DARK|NECROSIS|INFLAMMATION|",
-                     "DEFECTIVE|\\bDIED|ABNORMALITIES|ATROPHY|TUMOR|VOMIT|LESIONS|OBSERVED"),
-              `STUDY RESULT COMMENTS`) ~ `STUDY RESULT COMMENTS`,
+                     "DEFECTIVE|\\bDIED|ABNORMALITIES|ATROPHY|TUMOR|VOMIT|LESIONS|OBSERVED|DISRUPTION|",
+                     "SWOLLEN|CONGESTED|ENLARGED|HISTOPATH|NEOPLASIA|MUTATION|hypertrophy|",
+                     "TERATOGENESIS|ANOPTHTHALOMIA|DELAY|dyscrasia|critical effect|DYSTROPHIC"),
+              `STUDY RESULT COMMENTS`, ignore.case = TRUE) ~ `STUDY RESULT COMMENTS`,
         TRUE ~ as.character(NA)
       ) %>%
         gsub('"|\\*', "", .) %>%
@@ -168,6 +174,8 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
 
       # Ensure toxval_numeric is of numeric type
       toxval_numeric = as.numeric(toxval_numeric),
+      exposure_route = tolower(exposure_route),
+      exposure_method = tolower(exposure_method)
     )
 
   # Standardize the names
