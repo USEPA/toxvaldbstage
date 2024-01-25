@@ -1,125 +1,211 @@
 #--------------------------------------------------------------------------------------
-#' @description Load cosmos Source files into toxval_source
+#' @title import_source_cosmos
+#' @description Load COSMOS source data into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
-#' @param infile1 The input file ./cosmos/cosmos_files/COSMOS_DB_v1_export_2016_04_02_study_data.xlsx
-#' @param infile2 The input file ./cosmos/cosmos_files/COSMOS_DB_v1_export_2016_04_02_cosmetics_inventory.xlsx
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @param do.reset If TRUE, delete data from the database for this source before inserting new data
+#' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @return None; data is loaded into toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
-#'  \code{\link[openxlsx]{loadWorkbook}}, \code{\link[openxlsx]{sheets}}, \code{\link[openxlsx]{readWorkbook}}
-#'  \code{\link[methods]{is}}
-#'  \code{\link[stats]{setNames}}
-#' @rdname import_cosmos_source
-#' @export 
-#' @importFrom openxlsx loadWorkbook sheets readWorkbook
-#' @importFrom methods is
-#' @importFrom stats setNames
+#' @seealso
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{filter}}
+#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{separate}}
+#' @rdname import_source_cosmos
+#' @export
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr mutate case_when filter
+#' @importFrom stringr str_squish
+#' @importFrom tidyr separate_rows drop_na separate
 #--------------------------------------------------------------------------------------
-import_cosmos_source <- function(db,
-                                 infile1="COSMOS_DB_v1_export_2016_04_02_study_data.xlsx",
-                                 infile2="COSMOS_DB_v1_export_2016_04_02_cosmetics_inventory.xlsx",
-                                 chem.check.halt=F) {
+import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  infile1 = paste0(toxval.config()$datapath,"cosmos/cosmos_files/",infile1)
-  infile2 = paste0(toxval.config()$datapath,"cosmos/cosmos_files/",infile2)
-  indir = paste0(toxval.config()$datapath,"cosmos/cosmos_files/")
+  source = "COSMOS"
+  source_table = "source_cosmos"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2016-04-02")
+  dir = paste0(toxval.config()$datapath,"cosmos/cosmos_files/")
+  file = paste0(dir,"COSMOS_DB_v1_export_2016_04_02_study_data.xlsx")
+  res0 = readxl::read_xlsx(file, sheet = "STUDY INFORMATION")
   #####################################################################
-  cat("Build cosmos source tables \n")
+  cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
 
-  # data = list()
-  # for(i in 1:13) {
-  #   temp = openxlsx::read.xlsx(infile1,sheet=i)
-  #   browser()
-  # }
-  cosmos_files <- openxlsx::loadWorkbook(infile1)
-  sheetNames <- openxlsx::sheets(cosmos_files)
-  for(i in 1:length(sheetNames)) {
-    assign(sheetNames[i], openxlsx::readWorkbook(cosmos_files,sheet = i))
-  }
+  res = res0 %>%
+    dplyr::mutate(
+      # Add/rename basic columns as needed
+      source_study_id = `STUDY #`,
+      subsource = `DOCUMENT SOURCE`,
+      quality = `DATA QUALITY`,
+      casrn = `REGISTRY NUMBER`,
+      long_ref = `STUDY REFERENCE`,
+      title = `STUDY TITLE`,
+      year = `YEAR (REPORT/CITATION)` %>%
+        as.character() %>%
+        gsub("1697", "1967", .) %>%
+        as.numeric(),
+      source_url = "https://www.ng.cosmosdb.eu/",
 
-  res <- Filter(function(x) methods::is(x, "data.frame"), mget(ls()))
-  names(res) <- tolower(names(res))
-  names(res) <- paste0("cosmos_", names(res))
-  names(res) <- gsub("\\s+","\\_", names(res))
-  names(res) <- gsub("_-_","_",names(res))
-  res <- lapply(res, function(x) stats::setNames(x, gsub("\\.+","\\_", names(x))))
-  res <- lapply(res, function(x) stats::setNames(x, gsub("\\#","NO", names(x))))
-  res <- lapply(res, function(x) stats::setNames(x, gsub("\\-","\\_", names(x))))
-  res <- lapply(res, function(x) stats::setNames(x, gsub("%","PER", names(x))))
-  res <- lapply(res, function(x) stats::setNames(x, gsub("\\(|\\)","", names(x))))
+      # COMMENT OUT IF DATA QUALITY TOO POOR
+      # Treat STUDY RESULT COMMENTS`field as critical_effect
+      critical_effect = dplyr::case_when(
+        # Filter for list of key terms generally found in actual effect descriptions
+        grepl(paste0("DEMONSTRATE|INCREASE|DECREASE|CHANGE|TOXICITY|DARK|NECROSIS|INFLAMMATION|",
+                     "DEFECTIVE|\\bDIED|ABNORMALITIES|ATROPHY|TUMOR|VOMIT|LESIONS|OBSERVED|DISRUPTION|",
+                     "SWOLLEN|CONGESTED|ENLARGED|HISTOPATH|NEOPLASIA|MUTATION|hypertrophy|",
+                     "TERATOGENESIS|ANOPTHTHALOMIA|DELAY|dyscrasia|critical effect|DYSTROPHIC"),
+              `STUDY RESULT COMMENTS`, ignore.case = TRUE) ~ `STUDY RESULT COMMENTS`,
+        TRUE ~ as.character(NA)
+      ) %>%
+        gsub('"|\\*', "", .) %>%
+        stringr::str_squish(),
 
-  ### create id's for each dataframe
-  res[[1]]["clinical_chemistry_id"] <- c(1:length(res[[1]][,1]))
-  res[[1]] <- res[[1]][c("clinical_chemistry_id",names(res[[1]][-25]))]
+      # Remove string NA values
+      `ROUTE OF EXPOSURE` = gsub("NA", as.character(NA), `ROUTE OF EXPOSURE`),
+      DURATION = gsub("NA", as.character(NA), DURATION),
+      STRAIN = gsub("NA", as.character(NA), STRAIN),
 
-  res[[2]]["hematology_id"] <- c(1:length(res[[2]][,1]))
-  res[[2]] <- res[[2]][c("hematology_id",names(res[[2]][-25]))]
+      # Extract preferred name if available (otherwise, use first name listed)
+      name = dplyr::case_when(
+        grepl("Preferred", `TEST SUBSTANCE NAME`) ~ `TEST SUBSTANCE NAME` %>%
+          gsub(" \\(Preferred Term\\)(?:.+)?", "", .) %>%
+          gsub(".+\\(INCI\\);", "", .) %>%
+          stringr::str_squish(),
+        grepl("INCI", `TEST SUBSTANCE NAME`) ~ `TEST SUBSTANCE NAME` %>%
+          gsub(" \\(INCI\\)(?:.+)?", "", .) %>%
+          stringr::str_squish(),
+        TRUE ~ `TEST SUBSTANCE NAME`
+      ),
 
-  res[[3]]["neuro_fob_id"] <- c(1:length(res[[3]][,1]))
-  res[[3]] <- res[[3]][c("neuro_fob_id",names(res[[3]][-25]))]
+      # Handle typo in data to ensure accurate split
+      `STUDY RESULTS` = gsub("NOEL;", "NOEL:", `STUDY RESULTS`)
+    ) %>%
 
-  res[[4]]["organ_weight_id"] <- c(1:length(res[[4]][,1]))
-  res[[4]] <- res[[4]][c("organ_weight_id",names(res[[4]][-25]))]
+    # Split results into different rows (one per toxval_type)
+    tidyr::separate_rows(
+      `STUDY RESULTS`,
+      sep = ";|\\|"
+    ) %>%
 
-  res[[5]]["pathology_macro_id"] <- c(1:length(res[[5]][,1]))
-  res[[5]] <- res[[5]][c("pathology_macro_id",names(res[[5]][-25]))]
+    # Remove entries without valid STUDY RESULTS values
+    tidyr::drop_na(`STUDY RESULTS`) %>%
+    dplyr::filter(
+      !grepl("Positive|Negative", `STUDY RESULTS`),
+      !grepl("Not established", `STUDY RESULTS`),
+    ) %>%
 
-  res[[6]]["pathology_micro_id"] <- c(1:length(res[[6]][,1]))
-  res[[6]] <- res[[6]][c("pathology_micro_id",names(res[[6]][-25]))]
+    # Prepare STUDY RESULTS column for splitting
+    dplyr::mutate(
+      study_results_split = `STUDY RESULTS` %>%
+        gsub("NOEL=", "NOEL:", .) %>%
+        gsub(":", " ", .) %>%
+        gsub("%", " %", .) %>%
+        gsub("m", " m", .) %>%
+        gsub("\\.$", "", .) %>%
+        stringr::str_squish() %>%
+        fix.replace.unicode()
+    ) %>%
 
-  res[[7]]["repro_dev_adults_id"] <- c(1:length(res[[7]][,1]))
-  res[[7]] <- res[[7]][c("repro_dev_adults_id",names(res[[7]][-26]))]
+    # Get toxval_type, toxval_numeric, and toxval_units from each row
+    tidyr::separate(
+      col = study_results_split,
+      into = c("toxval_type", "toxval_numeric", "toxval_units"),
+      sep = "\\s",
+      remove = TRUE,
+      fill = "right",
+      extra = "merge"
+    ) %>%
 
-  res[[8]]["repro_dev_offspring_id"] <- c(1:length(res[[8]][,1]))
-  res[[8]] <- res[[8]][c("repro_dev_offspring_id",names(res[[8]][-25]))]
+    # Drop entries without toxval_units
+    tidyr::drop_na(toxval_units) %>%
 
-  res[[9]]["repro_offspring_id"] <- c(1:length(res[[9]][,1]))
-  res[[9]] <- res[[9]][c("repro_offspring_id",names(res[[9]][-25]))]
+    # Get study_duration_value and study_duration_units
+    tidyr::separate(
+      col = DURATION,
+      into = c("study_duration_value", "study_duration_units"),
+      sep = " ",
+      remove = FALSE,
+      fill = "left",
+      extra = "merge"
+    ) %>%
 
-  res[[11]]["systemic_id"] <- c(1:length(res[[11]][,1]))
-  res[[11]] <- res[[11]][c("systemic_id",names(res[[11]][-25]))]
+    # Get exposure_route and exposure_method from ROUTE OF EXPOSURE
+    tidyr::separate(
+      col = `ROUTE OF EXPOSURE`,
+      into = c("exposure_route", "exposure_method"),
+      sep = " - ",
+      remove = FALSE,
+      fill = "right"
+    ) %>%
 
-  res[[12]]["tissue_chemistry_id"] <- c(1:length(res[[12]][,1]))
-  res[[12]] <- res[[12]][c("tissue_chemistry_id",names(res[[12]][-25]))]
+    # Conduct final cleaning
+    dplyr::mutate(
+      # Clean toxval_units (handle edge cases)
+      toxval_units = toxval_units %>%
+        gsub("\\(conversion\\)", "", .) %>%
+        gsub("LOEL.+", "", .) %>%
+        gsub(" m", "m", .) %>%
+        gsub("mmole", "mmol", .) %>%
+        gsub("\\/l", "/L", .) %>%
+        gsub("mL", "ml", .) %>%
+        gsub("kd", "kg", .) %>%
+        gsub("Molar \\(M\\)", "mol", .) %>%
+        gsub("M", "mol", .) %>%
+        gsub("-", " ", .) %>%
+        gsub("kg day", "kg\\/day", .) %>%
+        stringr::str_squish(),
 
-  res[[13]]["urinalysis_id"] <- c(1:length(res[[13]][,1]))
-  res[[13]] <- res[[13]][c("urinalysis_id",names(res[[13]][-25]))]
+      # UNCOMMENT TO USE LOWER VALUE FOR STUDY_DURATION_VALUE
+      # study_duration_value = study_duration_value %>%
+      #   gsub("\\-.+", "", .) %>%
+      #   as.numeric(),
 
-  names(res[[7]])[25] <- "COMMENTS1"
-  names(res[[7]])[26] <- "COMMENTS2"
+      # UNCOMMENT TO USE HIGHER VALUE FOR STUDY_DURATION_VALUE
+      # study_duration_value = study_duration_value %>%
+      #   gsub(".+\\-", "", .) %>%
+      #   as.numeric(),
 
-  new_res <- res[[10]]
-  res <- res[-10]
-  res <- lapply(res, function(x) {colnames(x) <- tolower(colnames(x));x})
-  res <- lapply(res, function(x) stats::setNames(x, gsub("test_substance_name", "name", names(x))))
-  res <- lapply(res, function(x) stats::setNames(x, gsub("registry_number", "casrn", names(x))))
-  res <- lapply(res, function(x) stats::setNames(x, gsub("year_report/citation", "year", names(x))))
+      # Ensure toxval_numeric is of numeric type
+      toxval_numeric = as.numeric(toxval_numeric),
+      exposure_route = tolower(exposure_route),
+      exposure_method = tolower(exposure_method),
+      # Remove excess whitespace
+      dplyr::across(where(is.character), stringr::str_squish)
+    ) %>%
+    dplyr::distinct()
 
-  table_names <- tolower(c("cosmos_clinical_chemistry","cosmos_hematology",
-                           "cosmos_neuro_fob","cosmos_organ_weight","cosmos_pathology_macro",
-                           "cosmos_pathology_micro","cosmos_repro_dev_adults","cosmos_repro_dev_offspring","cosmos_repro_offspring",
-                           "cosmos_systemic", "cosmos_tissue_chemistry","cosmos_urinalysis"))
-  #####################################################################
-  cat("Build cosmos_study_information table \n")
-  #####################################################################
-  names(new_res) <- tolower(names(new_res))
-  names(new_res) = c("study_no","study_id","cms_id","name","casrn" ,
-                     "per_purity","per_active","test_substance_comments","study_type","duration",
-                     "route_of_exposure","species","strain","dose_or_conc_levels","dose_comments" ,
-                     "study_design_comments","study_results","study_result_comments","data_quality","document_source",
-                     "document_number","study_title","study_reference","year")
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="COSMOS",table="source_cosmos",res=new_res,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=c(toxval.config()$hashing_cols, "source_study_id"))
 }
+
+
+
 
