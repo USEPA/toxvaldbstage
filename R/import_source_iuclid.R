@@ -34,7 +34,7 @@
 import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = paste0("IUCLID_", subf)
-  source_table = paste0("source_iuclid_", subf) %>% tolower()
+  source_table = paste0("source_", subf) %>% tolower()
   dir = paste0(toxval.config()$datapath,"iuclid/",subf,"/",subf,"_files/")
   file = list.files(dir, pattern=".xlsx", full.names = TRUE)
   if(!length(file)) return(cat("...No files to process...\n"))
