@@ -175,8 +175,11 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
       # Ensure toxval_numeric is of numeric type
       toxval_numeric = as.numeric(toxval_numeric),
       exposure_route = tolower(exposure_route),
-      exposure_method = tolower(exposure_method)
-    )
+      exposure_method = tolower(exposure_method),
+      # Remove excess whitespace
+      dplyr::across(where(is.character), stringr::str_squish)
+    ) %>%
+    dplyr::distinct()
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -200,7 +203,7 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=toxval.config()$hashing_cols)
+                       hashing_cols=c(toxval.config()$hashing_cols, "source_study_id"))
 }
 
 
