@@ -7,18 +7,17 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{loadWorkbook}}, \code{\link[openxlsx]{sheets}}, \code{\link[openxlsx]{readWorkbook}}
 #'  \code{\link[methods]{is}}
 #'  \code{\link[stats]{setNames}}
 #' @rdname import_cosmos_source
-#' @export 
 #' @importFrom openxlsx loadWorkbook sheets readWorkbook
 #' @importFrom methods is
 #' @importFrom stats setNames
