@@ -15,15 +15,17 @@
 #' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
-#'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}}
-#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[tidyselect]{starts_with}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
+#'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{separate}}
 #' @rdname import_doe_benchmarks_source
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr mutate across case_when distinct
-#' @importFrom tidyr starts_with pivot_longer separate drop_na
-#' @importFrom stringr str_squish
+#' @importFrom dplyr mutate row_number select rename bind_rows across case_when distinct
+#' @importFrom tidyselect matches contains
+#' @importFrom stringr str_squish str_extract
+#' @importFrom tidyr pivot_longer drop_na separate
 #--------------------------------------------------------------------------------------
 import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -37,45 +39,96 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  res = res0 %>%
+  # Add sequential IDs for linkages handled in load script
+  res0_numbered = res0 %>%
+    dplyr::mutate(linkage_id = dplyr::row_number())
+
+  # Get data for "test" entries
+  res0_test = res0_numbered %>%
+    # Filter out endpoint-related columns
+    dplyr::select(!tidyselect::matches("Endpoint|Wildlife|Food|Water|Piscivore")) %>%
+    # Add experimental_record and species_type columns
+    dplyr::mutate(
+      experimental_record = "experimental",
+      species_type = "test"
+    ) %>%
+    # Rename species column
+    dplyr::rename(species = "Test Species")
+
+  # Get data for "endpoint" entries
+  res0_endpoint = res0_numbered %>%
+    # Filter out test-related columns
+    dplyr::select(!tidyselect::contains("Test")) %>%
+    # Add experimental_record and species_type columns
+    dplyr::mutate(
+      experimental_record = "interspecies extrapolation",
+      species_type = "endpoint"
+    ) %>%
+    # Rename species column
+    dplyr::rename(species = "Endpoint Species")
+
+  res = dplyr::bind_rows(res0_test, res0_endpoint) %>%
     # Add basic columns as necessary
     dplyr::mutate(
       source_url = URL,
-      species = `Test Species`,
-      media = "food",
       exposure_route = "oral",
-      source_url = "https://rais.ornl.gov/documents/tm86r3.pdf"
+      source_url = "https://rais.ornl.gov/documents/tm86r3.pdf",
+
+      # Clean species column
+      species = species %>%
+        tolower() %>%
+        gsub(".+old", "", .) %>%
+        gsub("chicks", "chick", .) %>%
+        stringr::str_squish()
     ) %>%
 
     # Set appropriate columns to numeric
-    dplyr::mutate(dplyr::across(c(tidyr::starts_with("Test"), -"Test Species"), ~suppressWarnings(as.numeric(.)))) %>%
+    dplyr::mutate(dplyr::across(c(tidyselect::contains("OAEL")), ~suppressWarnings(as.numeric(.)))) %>%
 
-    # Removing this line from the original to align with "keep all data" philosophy
-    # Uncomment if column removal is still desired
-    # dplyr::select(-tidyr::starts_with(c("Wildlife","NOAEL","LOAEL", "Endpoint"))) %>%
-
-    # Extract toxval_type and toxval_numeric
-    tidyr::pivot_longer(cols=c(tidyr::starts_with("Test"), -"Test Species"),
-                        names_to = "toxval_type_units",
+    # Extract source_field and toxval_numeric
+    tidyr::pivot_longer(cols = c(tidyselect::contains("OAEL")),
+                        names_to = "source_field",
                         values_to = "toxval_numeric") %>%
 
+    # Drop entries with empty toxval_numeric
+    tidyr::drop_na(toxval_numeric) %>%
+
     # Split type/units
-    tidyr::separate(col="toxval_type_units",
-                    into=c("toxval_type", "toxval_units"),
-                    sep="\\(") %>%
+    tidyr::separate(col="source_field",
+                    into=c("toxval_type_subtype", "toxval_units"),
+                    sep="\\(",
+                    remove = FALSE) %>%
 
     dplyr::mutate(
       # Clean toxval_units
       toxval_units = gsub("\\)", "", toxval_units) %>%
         gsub("mg/kg/d", "mg/kg-day", ., fixed=TRUE),
 
-      # Clean toxval_type
-      toxval_type = gsub("Test Species", "", toxval_type) %>%
-        stringr::str_squish(),
+      # Get toxval_type
+      toxval_type = stringr::str_extract(toxval_type_subtype, "[a-zA-Z]OAEL") %>% c(),
 
       # Get toxval_subtype
-      toxval_subtype = dplyr::case_when(toxval_type =="NOAEL" ~ "test_species_noael",
-                                        toxval_type =="LOAEL" ~ "test_species_loael")) %>%
+      toxval_subtype = dplyr::case_when(
+        experimental_record == "experimental" ~ ifelse(toxval_type == "NOAEL",
+                                                       "test_species_noael",
+                                                       "test_species_loael"),
+        grepl("Food", toxval_type_subtype) ~ "Food",
+        grepl("Water", toxval_type_subtype) ~ "Water",
+        grepl("Piscivore", toxval_type_subtype) ~ "Piscivore",
+        TRUE ~ ifelse(toxval_type == "NOAEL",
+                      "endpoint_species_noael",
+                      "endpoint_species_loael")
+      ),
+
+      # Add media column ("food" is default to match previous logic)
+      media = dplyr::case_when(
+        toxval_subtype == "Water" ~ "water",
+        TRUE ~ "food"
+      )
+    ) %>%
+
+    # Drop intermediate toxval_type_subtype column
+    dplyr::select(-toxval_type_subtype) %>%
 
     # Drop rows w/o numeric value
     tidyr::drop_na("toxval_numeric") %>%
@@ -89,17 +142,6 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
-
-  res = res %>%
-    # Temporary select out duplicate causing columns
-    # TODO Need team discussion on desired fields
-    # Do we want to keep and process these toxval_type and subtypes?
-    # Do we want to use the endpoint_species as species instead?
-    dplyr::select(-c("endpoint_species", "wildlife_noael_(mg/kg/d)", "noael_food_(mg/kg)",
-                     "noael_water_(mg/l)", "noael_piscivore_(mg/l)", "wildlife_loael_(mg/kg/d)",
-                     "loael_food_(mg/kg)", "loael_water_(mg/l)", "loael_piscivore_(mg/l)",
-                     "form")) %>%
-    dplyr::distinct()
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
