@@ -41,21 +41,26 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
   res = res0 %>%
     dplyr::mutate(
       # Add/rename basic columns as needed
+      source_study_id = `STUDY #`,
+      subsource = `DOCUMENT SOURCE`,
+      quality = `DATA QUALITY`,
       casrn = `REGISTRY NUMBER`,
-      long_ref = `STUDY REFERENCE`,
       year = `YEAR (REPORT/CITATION)` %>%
         as.character() %>%
         gsub("1697", "1967", .) %>%
         as.numeric(),
       source_url = "https://www.ng.cosmosdb.eu/",
+      SPECIES = tolower(SPECIES),
 
       # COMMENT OUT IF DATA QUALITY TOO POOR
       # Treat STUDY RESULT COMMENTS`field as critical_effect
       critical_effect = dplyr::case_when(
         # Filter for list of key terms generally found in actual effect descriptions
         grepl(paste0("DEMONSTRATE|INCREASE|DECREASE|CHANGE|TOXICITY|DARK|NECROSIS|INFLAMMATION|",
-                     "DEFECTIVE|\\bDIED|ABNORMALITIES|ATROPHY|TUMOR|VOMIT|LESIONS|OBSERVED"),
-              `STUDY RESULT COMMENTS`) ~ `STUDY RESULT COMMENTS`,
+                     "DEFECTIVE|\\bDIED|ABNORMALITIES|ATROPHY|TUMOR|VOMIT|LESIONS|OBSERVED|DISRUPTION|",
+                     "SWOLLEN|CONGESTED|ENLARGED|HISTOPATH|NEOPLASIA|MUTATION|hypertrophy|",
+                     "TERATOGENESIS|ANOPTHTHALOMIA|DELAY|dyscrasia|critical effect|DYSTROPHIC"),
+              `STUDY RESULT COMMENTS`, ignore.case = TRUE) ~ `STUDY RESULT COMMENTS`,
         TRUE ~ as.character(NA)
       ) %>%
         gsub('"|\\*', "", .) %>%
@@ -75,11 +80,35 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
         grepl("INCI", `TEST SUBSTANCE NAME`) ~ `TEST SUBSTANCE NAME` %>%
           gsub(" \\(INCI\\)(?:.+)?", "", .) %>%
           stringr::str_squish(),
-        TRUE ~ `TEST SUBSTANCE NAME`
+        TRUE ~ `TEST SUBSTANCE NAME`,
       ),
 
       # Handle typo in data to ensure accurate split
-      `STUDY RESULTS` = gsub("NOEL;", "NOEL:", `STUDY RESULTS`)
+      `STUDY RESULTS` = gsub("NOEL;", "NOEL:", `STUDY RESULTS`),
+
+      # Handle unicode/HTML symbols in long_ref and title fields
+      long_ref = `STUDY REFERENCE` %>%
+        fix.replace.unicode() %>%
+        gsub("&#176;?", "deg", .) %>%
+        gsub("&#252;?", "ue", .) %>%
+        gsub("&#228;?", "ae", .) %>%
+        gsub("&#224;?", "a", .) %>%
+        gsub("&#8220;?", '"', .) %>%
+        gsub("&#8221;?", '"', .) %>%
+        gsub("&#8211;?", "-", .) %>%
+        gsub("&#8216;?", "'", .) %>%
+        gsub("&#8217;?", "'", .),
+      title = `STUDY TITLE` %>%
+        fix.replace.unicode() %>%
+        gsub("&#176;?", "deg", .) %>%
+        gsub("&#252;?", "ue", .) %>%
+        gsub("&#228;?", "ae", .) %>%
+        gsub("&#224;?", "a", .) %>%
+        gsub("&#8220;?", '"', .) %>%
+        gsub("&#8221;?", '"', .) %>%
+        gsub("&#8211;?", "-", .) %>%
+        gsub("&#8216;?", "'", .) %>%
+        gsub("&#8217;?", "'", .),
     ) %>%
 
     # Split results into different rows (one per toxval_type)
@@ -168,7 +197,12 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
 
       # Ensure toxval_numeric is of numeric type
       toxval_numeric = as.numeric(toxval_numeric),
-    )
+      exposure_route = tolower(exposure_route),
+      exposure_method = tolower(exposure_method),
+      # Remove excess whitespace
+      dplyr::across(where(is.character), stringr::str_squish)
+    ) %>%
+    dplyr::distinct()
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -192,7 +226,7 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=toxval.config()$hashing_cols)
+                       hashing_cols=c(toxval.config()$hashing_cols, "source_study_id"))
 }
 
 
