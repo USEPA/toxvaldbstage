@@ -37,7 +37,7 @@ set_clowder_id_lineage <- function(source_table,
     # Switch case to load specific source document map files
     map_file = switch(source_table,
                       "source_caloehha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                   "clowder_v3/cal_oehha_log_with_names_20221019.xlsx")),
+                                                                   "clowder_v3/source_caloehha_document_map_20240130.xlsx")),
                       "source_cosmos" = { readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/cosmos_document_map_05162023.xlsx"),
                                                             guess_max=21474836) %>%
@@ -468,36 +468,35 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_caloehha" = {
-                    # cut the map down to just the webpage PDF documents, no screenshots
-                    map_file <- map_file %>%
-                      filter(subDir1 == "pdf")
-                    # clear old names
-                    res$document_name = NULL
-                    # Match by chemical name first
-                    res = res %>%
-                      left_join(map_file %>%
-                                  select(Chemical, clowder_id),
-                                by=c("name" = "Chemical"))
-                    # Filter to those without a match
-                    res2 = res %>%
-                      filter(is.na(clowder_id))
-                    res = res %>%
-                      filter(!is.na(clowder_id))
-                    # Match by casrn
-                    res2 = res2 %>%
-                      select(-clowder_id) %>%
-                      left_join(map_file %>%
-                                  select(casrn=CASRN, clowder_id),
-                                by="casrn")
-                    # Recombine all matches
-                    res = rbind(res, res2)
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
 
-                    # Match for fk_doc_id field
-                    res <- res %>%
-                      dplyr::left_join(map_file %>%
-                                         dplyr::select(fk_doc_id, clowder_id),
-                                       by="clowder_id")
-                    # Return res
+                    # Separate chemical name lists
+                    origin_docs = origin_docs %>%
+                      tidyr::separate_rows(`name`, sep=";  ")
+
+                    # Perform a left join on chemical names to match chemical names
+                    res1 <- res %>%
+                      dplyr::select(name, source_hash, source_version_date) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(name, clowder_id, fk_doc_id),
+                                       by = "name")
+
+                    # associates each record to the extraction document
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+
+                    # Perform a left join on chemical names to match chemical names
+                    res2 <- res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id, name = "Chemical Name"))
+
+                    # Combine the two associated dataframes back into res
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+
+                    #Return the mapped res with document names and clowder ids
                     res
                   },
 
