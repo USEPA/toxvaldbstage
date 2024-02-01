@@ -45,13 +45,12 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
       subsource = `DOCUMENT SOURCE`,
       quality = `DATA QUALITY`,
       casrn = `REGISTRY NUMBER`,
-      long_ref = `STUDY REFERENCE`,
-      title = `STUDY TITLE`,
       year = `YEAR (REPORT/CITATION)` %>%
         as.character() %>%
         gsub("1697", "1967", .) %>%
         as.numeric(),
       source_url = "https://www.ng.cosmosdb.eu/",
+      SPECIES = tolower(SPECIES),
 
       # COMMENT OUT IF DATA QUALITY TOO POOR
       # Treat STUDY RESULT COMMENTS`field as critical_effect
@@ -85,7 +84,33 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
       ),
 
       # Handle typo in data to ensure accurate split
-      `STUDY RESULTS` = gsub("NOEL;", "NOEL:", `STUDY RESULTS`)
+      `STUDY RESULTS` = gsub("NOEL;", "NOEL:", `STUDY RESULTS`),
+
+      # Handle unicode/HTML symbols in long_ref and title fields
+      long_ref = `STUDY REFERENCE` %>%
+        fix.replace.unicode() %>%
+        # Degree symbol - elected to remove entirely
+        gsub("&#176;?", "", .) %>%
+        gsub("&#252;?", "ue", .) %>%
+        gsub("&#228;?", "ae", .) %>%
+        gsub("&#224;?", "a", .) %>%
+        gsub("&#8220;?", '"', .) %>%
+        gsub("&#8221;?", '"', .) %>%
+        gsub("&#8211;?", "-", .) %>%
+        gsub("&#8216;?", "'", .) %>%
+        gsub("&#8217;?", "'", .),
+      title = `STUDY TITLE` %>%
+        fix.replace.unicode() %>%
+        # Degree symbol - elected to remove entirely
+        gsub("&#176;?", "", .) %>%
+        gsub("&#252;?", "ue", .) %>%
+        gsub("&#228;?", "ae", .) %>%
+        gsub("&#224;?", "a", .) %>%
+        gsub("&#8220;?", '"', .) %>%
+        gsub("&#8221;?", '"', .) %>%
+        gsub("&#8211;?", "-", .) %>%
+        gsub("&#8216;?", "'", .) %>%
+        gsub("&#8217;?", "'", .),
     ) %>%
 
     # Split results into different rows (one per toxval_type)
