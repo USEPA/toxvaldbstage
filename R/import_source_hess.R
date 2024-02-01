@@ -76,7 +76,7 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
 
   # Join back in combined critical_effect groups
   res = res %>%
-    dplyr::select(-critical_effect, -tissue) %>%
+    dplyr::select(-critical_effect, -tissue, -effect, -`organ(tissue)`) %>%
     dplyr::distinct() %>%
     dplyr::left_join(crit_groups,
                      by=c("name", "toxval_type", "toxval_numeric")) %>%
