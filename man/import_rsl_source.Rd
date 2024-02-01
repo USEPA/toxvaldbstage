@@ -4,7 +4,7 @@
 \name{import_rsl_source}
 \alias{import_rsl_source}
 \alias{import_source_atsdr_mrls}
-\title{FUNCTION_TITLE}
+\title{import_rsl_source}
 \usage{
 import_rsl_source(
   db,
@@ -32,12 +32,12 @@ import_source_atsdr_mrls(
 \item{infile3}{The input file ./rsl/rsl_files/rsl_subchronic_nov_2022.xlsx}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is sent to toxval_source
 
 OUTPUT_DESCRIPTION
 }
 \description{
-Import of rsl 2022 source into toxval_source
+Import of RSL 2023 source into toxval_source
 
 Import of ATSDR MRLs 2022 source into toxval_source
 }
@@ -60,10 +60,9 @@ if(interactive()){
 }
 \seealso{
 \code{\link[readxl]{read_excel}}
- \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}
- \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{bind}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}
- \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
- \code{\link[tibble]{add_column}}
+ \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{mutate_all}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}
+ \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}}
+ \code{\link[stringr]{str_trim}}
 
 \code{\link[readxl]{read_excel}}
  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}
