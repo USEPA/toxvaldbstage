@@ -67,7 +67,30 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
     # Rename species column
     dplyr::rename(species = "Endpoint Species")
 
-  res = dplyr::bind_rows(res0_test, res0_endpoint) %>%
+  res0_endpoint_N = res0_endpoint %>%
+    dplyr::select(!tidyselect::contains("LOAEL"))
+
+  res0_endpoint_L = res0_endpoint %>%
+    dplyr::select(!tidyselect::contains("NOAEL"))
+
+  # Replace Wildlife NOAEL/LOAEL param fields with type labels if value present
+  for(param in names(res0_endpoint_N)[startsWith(names(res0_endpoint_N), "NOAEL")]){
+    res0_endpoint_N[[param]][!is.na(res0_endpoint_N[[param]])] = stringr::str_split_i(param, " ", 2)
+  }
+  for(param in names(res0_endpoint_L)[startsWith(names(res0_endpoint_L), "LOAEL")]){
+    res0_endpoint_L[[param]][!is.na(res0_endpoint_L[[param]])] = stringr::str_split_i(param, " ", 2)
+  }
+
+  res0_endpoint_N = res0_endpoint_N %>%
+    tidyr::unite(col = "toxval_subtype", starts_with("NOAEL"),
+                 sep = ", ",
+                 na.rm = TRUE)
+  res0_endpoint_L = res0_endpoint_L %>%
+    tidyr::unite(col = "toxval_subtype", starts_with("LOAEL"),
+                 sep = ", ",
+                 na.rm = TRUE)
+
+  res = dplyr::bind_rows(res0_test, res0_endpoint_N, res0_endpoint_L) %>%
     # Add basic columns as necessary
     dplyr::mutate(
       source_url = URL,
@@ -83,7 +106,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
     ) %>%
 
     # Set appropriate columns to numeric
-    dplyr::mutate(dplyr::across(c(tidyselect::contains("OAEL")), ~suppressWarnings(as.numeric(.)))) %>%
+    dplyr::mutate(dplyr::across(c(tidyselect::contains("OAEL")), ~as.numeric(.))) %>%
 
     # Extract source_field and toxval_numeric
     tidyr::pivot_longer(cols = c(tidyselect::contains("OAEL")),
@@ -95,7 +118,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
 
     # Split type/units
     tidyr::separate(col="source_field",
-                    into=c("toxval_type_subtype", "toxval_units"),
+                    into=c("toxval_type", "toxval_units"),
                     sep="\\(",
                     remove = FALSE) %>%
 
@@ -105,19 +128,18 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
         gsub("mg/kg/d", "mg/kg-day", ., fixed=TRUE),
 
       # Get toxval_type
-      toxval_type = stringr::str_extract(toxval_type_subtype, "[a-zA-Z]OAEL") %>% c(),
+      toxval_type = stringr::str_extract(toxval_type, "[a-zA-Z]OAEL") %>% c(),
 
       # Get toxval_subtype
       toxval_subtype = dplyr::case_when(
         experimental_record == "experimental" ~ ifelse(toxval_type == "NOAEL",
-                                                       "test_species_noael",
-                                                       "test_species_loael"),
-        grepl("Food", toxval_type_subtype) ~ "Food",
-        grepl("Water", toxval_type_subtype) ~ "Water",
-        grepl("Piscivore", toxval_type_subtype) ~ "Piscivore",
+                                                       "Test Species NOAEL",
+                                                       "Test Species LOAEL"),
+
         TRUE ~ ifelse(toxval_type == "NOAEL",
-                      "endpoint_species_noael",
-                      "endpoint_species_loael")
+                      paste0("Endpoint Species NOAEL ", toxval_subtype),
+                      paste0("Endpoint Species LOAEL ", toxval_subtype)
+                      )
       ),
 
       # Add media column ("food" is default to match previous logic)
@@ -126,9 +148,6 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
         TRUE ~ "food"
       )
     ) %>%
-
-    # Drop intermediate toxval_type_subtype column
-    dplyr::select(-toxval_type_subtype) %>%
 
     # Drop rows w/o numeric value
     tidyr::drop_na("toxval_numeric") %>%
