@@ -96,7 +96,9 @@ import_doe_pac_source <- function(db,
       # Remove excess whitespace for all character columns
       dplyr::across(where(is.character), ~stringr::str_squish(.))
     ) %>%
-    dplyr::select(-`No.`)
+    dplyr::select(-`No.`) %>%
+    # Split CASRN lists
+    tidyr::separate_rows(casrn, sep = " ")
 
   # Fill LEL units
   res$toxval_units[res$toxval_type == "LEL"] = "ppm"
