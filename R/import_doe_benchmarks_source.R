@@ -177,7 +177,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=c(toxval.config()$hashing_cols), "linkage_id")
+                       hashing_cols=c(toxval.config()$hashing_cols, "linkage_id"))
 }
 
 
