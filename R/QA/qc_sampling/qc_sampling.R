@@ -34,11 +34,18 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
   source_table = runQuery(query=paste0("SELECT source_table FROM chemical_source_index WHERE source = '", source,"'"),
                           db=source.db)[,1]
   # Get source record count
-  src_n <- runQuery(paste0("SELECT count(*) FROM ", source_table),
-                    db=source.db)[,1]
-
-  # Base query
-  query = paste0("SELECT source_hash, source FROM ", source_table, " WHERE qc_status = 'not determined'")
+  if(source_table == "direct load"){
+    src_n = runQuery(paste0("SELECT count(*) FROM toxval WHERE source = '", source, "'"),
+                     db=toxval.db)[,1]
+    # Base query
+    query = paste0("SELECT source_hash, source FROM toxval ",
+                   "WHERE source = '", source, "'")# AND qc_status = 'not determined'")
+  } else {
+    src_n <- runQuery(paste0("SELECT count(*) FROM ", source_table),
+                      db=source.db)[,1]
+    # Base query
+    query = paste0("SELECT source_hash, source FROM ", source_table, " WHERE qc_status = 'not determined'")
+  }
 
   if(source_specific_filter){
     # IRIS only sample IRIS Export data, not IRIS Summary, etc.
@@ -54,7 +61,7 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
 
   # Check source records in need of QC
   src_tbl_to_qc <- runQuery(query=query,
-                            db=source.db) %>%
+                            db=ifelse(src_tbl == "direct load", toxval.db, source.db)) %>%
     dplyr::mutate(source_table = !!source_table)
 
   # Return wihtout sampling if no records to QC in source table
@@ -168,13 +175,23 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
   # }
 
   # Pull all data for sampled records
-  full_source = runQuery(query=paste0("SELECT * FROM ", source_table, " WHERE source_hash in ('",
-                                      paste0(sampled_records$source_hash, collapse="', '"),
-                                      "')"),
-                         db=source.db)
-  # Export QC Sample
-  writexl::write_xlsx(full_source,
-                      paste0(dir_output,"/toxval_qc_", source_table, "_",Sys.Date(),".xlsx"))
+  if(source_table == "direct load"){
+    full_source = runQuery(query=paste0("SELECT * FROM toxval WHERE source_hash in ('",
+                                        paste0(sampled_records$source_hash, collapse="', '"),
+                                        "')"),
+                           db=toxval.db)
+    # Export QC Sample
+    writexl::write_xlsx(full_source,
+                        paste0(dir_output,"/toxval_qc_", source, "_",Sys.Date(),".xlsx"))
+  } else {
+    full_source = runQuery(query=paste0("SELECT * FROM ", source_table, " WHERE source_hash in ('",
+                                        paste0(sampled_records$source_hash, collapse="', '"),
+                                        "')"),
+                           db=source.db)
+    # Export QC Sample
+    writexl::write_xlsx(full_source,
+                        paste0(dir_output,"/toxval_qc_", source_table, "_",Sys.Date(),".xlsx"))
+  }
 
   # Return sampled data
   return(full_source)
