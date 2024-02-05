@@ -54,15 +54,12 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       subsource = "USACE_ERDC_ERED_database_10_25_2019",
       name = ChemName,
       casrn = CAS %>%
-        gsub("N/A", "", .),
+        gsub("N/A", NA, .),
       toxval_type = Risk %>%
-        gsub("N/A|N/R|<\\s?", "", .),
+        gsub("N/A|N/R|<\\s?", NA, .),
       species = tolower(GenusSpecies),
       exposure_route = Route %>%
-        gsub("N/I", "", .),
-      long_ref = paste(source, Origin) %>%
-        # Remove NA Origin
-        gsub(" NA$", "", .),
+        gsub("N/I", NA, .),
       year = as.numeric(Time),
       habitat = environment,
       # Extract and translate study_type
@@ -76,12 +73,12 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       # Handle toxval_numeric noise
       toxval_numeric = expConc %>%
         stringr::str_extract("[0-9\\.]+") %>%
-        gsub("N/A|N/I|N/R", "", .) %>%
+        gsub("N/A|N/I|N/R", NA, .) %>%
         as.numeric(),
 
       # Extract and clean toxval_units
       toxval_units = ExpConcUnits %>%
-        gsub("N/A|N/I|N/R|N/S", "", .),
+        gsub("N/A|N/I|N/R|N/S", NA, .),
 
       # Extract toxval_numeric_qualifier
       toxval_numeric_qualifier = expConc %>%
@@ -153,9 +150,11 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         TRUE ~ NA_character_
       )
     ) %>%
+    # Create long_ref from source reference and origin columns
+    tidyr::unite(col="long_ref", source, Origin, sep=" ", na.rm=TRUE, remove=FALSE) %>%
 
-    # Drop rows without toxval_numeric
-    tidyr::drop_na(toxval_numeric) %>%
+    # Drop rows without toxval_numeric or type
+    tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
 
     # Rename columns as specified in previous import script
     dplyr::rename(ered_id="EREDid", ref_id="REFid", common_name="CommonName",
