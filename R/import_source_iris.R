@@ -229,12 +229,12 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::select(`CHEMICAL ID`, critical_effect_tumor_type,
                   toxval_type, toxval_numeric, toxval_units) %>%
     dplyr::filter(toxval_type %in% c("RfC", "RfD")) %>%
-    tidyr::unite(col="compare", sep="_", remove = FALSE)
+    tidyr::unite(col="compare", sep="_", remove = FALSE, na.rm = TRUE)
 
   tmp2 <- rfc_rfd %>%
     dplyr::select(`CHEMICAL ID`, critical_effect_tumor_type = `PRINCIPAL CRITICAL DESCRIPTION`,
                   toxval_type, toxval_numeric, toxval_units) %>%
-    tidyr::unite(col="compare", sep="_", remove = FALSE)
+    tidyr::unite(col="compare", sep="_", remove = FALSE, na.rm = TRUE)
 
   # Check if any records present in one but not the other
   if(length(tmp1$compare[!tmp1$compare %in% tmp2$compare]) |
@@ -265,7 +265,10 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   endpoint = `PRINCIPAL CRITICAL EFFECT SYSTEM`,
                   risk_assessment_duration = DURATION,
                   study_reference = `STUDY CITATION`) %>%
-    dplyr::mutate(toxval_units = fix.replace.unicode(toxval_units))
+    dplyr::mutate(toxval_units = fix.replace.unicode(toxval_units),
+                  study_reference = study_reference %>%
+                    fix.replace.unicode() %>%
+                    stringr::str_squish())
 
 
   # Check joins (identified issue with float/double versus character toxval_numeric join)
@@ -395,11 +398,12 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::rename(exposure_route=route,
                   study_type = assessment_type,
                   study_duration_class=risk_assessment_duration) %>%
-    tidyr::unite(col="study_type", study_type, principal_study, sep=" - ", remove = FALSE) %>%
+    tidyr::unite(col="study_type", study_type, principal_study, sep=" - ", remove = FALSE, na.rm = TRUE) %>%
     # Combine endpoint and critical_effect
-    tidyr::unite(col="critical_effect", endpoint, critical_effect, sep=": ", remove = FALSE) %>%
+    tidyr::unite(col="critical_effect", endpoint, critical_effect, sep=": ", remove = FALSE, na.rm = TRUE) %>%
     dplyr::mutate(critical_effect = critical_effect %>%
-                    gsub("-: ", "", .),
+                    gsub("-: ", "", .) %>%
+                    stringr::str_squish(),
                   study_type = study_type %>%
                     gsub(" - -| - NA", "", .),
                   exposure_route = tolower(exposure_route)) %>%
