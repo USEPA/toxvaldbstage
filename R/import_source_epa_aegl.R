@@ -99,6 +99,7 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       subsource = "EPA OW",
       source_url = "https://www.epa.gov/aegl/access-acute-exposure-guideline-levels-aegls-values#chemicals",
       risk_assessment_class = "acute",
+      study_type = "acute",
       exposure_route = "inhalation",
 
       # Clean toxval_numeric
@@ -200,7 +201,3 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
