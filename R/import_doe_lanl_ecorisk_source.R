@@ -109,7 +109,8 @@ import_doe_lanl_ecorisk_source <- function(db, chem.check.halt=FALSE, do.reset=F
 
       # Remove whitespace
       # stringr::str_squish()
-    )
+    ) %>%
+    tidyr::drop_na(toxval_numeric, toxval_units)
 
   # Standardize the names
   names(res) <- names(res) %>%
