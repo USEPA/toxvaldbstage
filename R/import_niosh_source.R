@@ -52,6 +52,8 @@ import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
 
       # Extract long_ref
       long_ref = toxval_numeric_details %>%
+        # Fix case of NIOSH Pub missing space
+        gsub("NIOSHPub.", "NIOSH Pub.", .) %>%
         stringr::str_extract("NIOSH Pub\\. No\\. \\d{4}\\-\\d{3}") %>%
         c() %>% stringr::str_squish(),
 
