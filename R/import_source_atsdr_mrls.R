@@ -136,7 +136,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=toxval.config()$hashing_cols)
+                       hashing_cols=c(toxval.config()$hashing_cols, "total_factors"))
 }
 
 
