@@ -55,15 +55,13 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     # Split each row into two (one row per substance)
     tidyr::separate_rows(CASRN, Name, sep = " and ")
 
-
   # Replace entries with multiple names/casrn
   # Switch the commented and un-commented filter lines if splitting HFE-7100
   # res0 = res0 %>% dplyr::filter(!grepl("and", CASRN))
-  res0 = res0 %>%
+  res = res0 %>%
     dplyr::filter(!grepl("Jet Fuels", Name)) %>%
-    dplyr::bind_rows(res0_multiple_substance)
+    dplyr::bind_rows(res0_multiple_substance) %>%
 
-  res0 <- res0 %>%
     # Extract study duration
     tidyr::pivot_longer(cols = c('10 min', '30 min', '60 min', '4 hr', '8 hr'),
                         names_to = 'study_duration',
@@ -77,19 +75,30 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     dplyr::mutate(toxval_units = Units)
 
   # Handle case of multiple values/units reported
-  res_2_units = res0 %>%
+  res_first_units = res %>%
+    dplyr::filter(grepl("\\[|\\(", toxval_units)) %>%
+    # Extract first values listed
+    dplyr::mutate(
+      toxval_numeric = toxval_numeric %>%
+        gsub("\\(.+\\)|\\[.+\\]", "", .) %>%
+        stringr::str_squish(),
+      toxval_units = toxval_units %>%
+        gsub("\\(.+\\)|\\[.+\\]", "", .) %>%
+        stringr::str_squish(),
+    )
+  res_second_units = res %>%
     dplyr::filter(grepl("\\[|\\(", toxval_units)) %>%
     # Extract values between () and []
     dplyr::mutate(toxval_numeric = stringr::str_extract(string = toxval_numeric,
-                                                        pattern = "(?<=\\(|\\[).*(?=\\)|\\])"),
+                                                        pattern = "(?<=\\(|\\[).*(?=\\)|\\])") %>% c(),
                   toxval_units = stringr::str_extract(string = toxval_units,
-                                                        pattern = "(?<=\\(|\\[).*(?=\\)|\\])")
+                                                        pattern = "(?<=\\(|\\[).*(?=\\)|\\])") %>% c()
                   )
 
   # Recombine
-  res = res0 %>%
+  res = res %>%
     dplyr::filter(!grepl("\\[|\\(", toxval_units)) %>%
-    dplyr::bind_rows(res_2_units) %>%
+    dplyr::bind_rows(res_first_units, res_second_units) %>%
     # Remove non-numeric values in toxval_numeric column
     dplyr::filter(toxval_numeric != "NR" & toxval_numeric != "ND") %>%
     # Add other columns as necessary
@@ -99,14 +108,12 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       subsource = "EPA OW",
       source_url = "https://www.epa.gov/aegl/access-acute-exposure-guideline-levels-aegls-values#chemicals",
       risk_assessment_class = "acute",
-      study_type = "acute",
       exposure_route = "inhalation",
 
       # Clean toxval_numeric
       toxval_numeric = toxval_numeric %>%
         gsub("\\*|,", "", .) %>%
-        stringr::str_squish() %>%
-        as.numeric(),
+        stringr::str_squish(),
       # Get year by splitting date and ensuring YYYY format
       # https://stackoverflow.com/questions/13764514/how-to-change-multiple-date-formats-in-same-column
       year = lubridate::parse_date_time(Date,
@@ -116,9 +123,6 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     ) %>%
 
     dplyr::distinct()
-
-  # Check Date year extraction
-  # View(res %>% select(Date, year) %>% distinct())
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -157,8 +161,7 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         gsub(",", "", .) %>%
         # Pull lower end of range
         sub('to.*', '', .) %>%
-        stringr::str_squish() %>%
-        as.numeric()
+        stringr::str_squish()
     )
 
   # Concatenate data
@@ -166,7 +169,6 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   ##############################################################################
   ###########################END LEL/LOA DATA SECTION###########################
   ##############################################################################
-
   res = res %>%
     # Remove LEL values
     dplyr::filter(toxval_type!="LEL") %>%
@@ -181,7 +183,10 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         gsub("Final AEGLs", "(final)", .) %>%
         gsub("Holding AEGLs", "(holding)", .) %>%
         gsub("Interim AEGLs", "(interim)", .) %>%
-        gsub("Proposed AEGLs", "(proposed)", .)
+        gsub("Proposed AEGLs", "(proposed)", .),
+
+      # Set toxval_numeric to numeric type
+      toxval_numeric = as.numeric(toxval_numeric)
     )
 
   # Fill blank hashing cols
@@ -201,3 +206,7 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
+
+
+
+
