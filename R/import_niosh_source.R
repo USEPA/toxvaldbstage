@@ -52,11 +52,22 @@ import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
 
       # Extract long_ref
       long_ref = toxval_numeric_details %>%
+        # Fix case of NIOSH Pub missing space
+        gsub("NIOSHPub.", "NIOSH Pub.", .) %>%
         stringr::str_extract("NIOSH Pub\\. No\\. \\d{4}\\-\\d{3}") %>%
         c() %>% stringr::str_squish(),
 
       # Ensure toxval_numeric is of numeric type
-      toxval_numeric = as.numeric(toxval_numeric)
+      toxval_numeric = as.numeric(toxval_numeric),
+
+      # Fix "fluor" names
+      name = name %>%
+        gsub(" uor", "fluor", .) %>%
+        # Address edge cases
+        gsub("Hydrogenfluor", "Hydrogen fluor", .) %>%
+        gsub("Perchlorylfluor", "Perchloryl fluor", .) %>%
+        gsub("Sodiumfluor", "Sodium fluor", .) %>%
+        gsub("Sulfurylfluor", "Sulfuryl fluor", .)
     ) %>%
 
     # Remove entries without necessary toxval columns
