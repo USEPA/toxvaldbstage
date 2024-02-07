@@ -62,7 +62,11 @@ import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE,
                                         "", toxval_numeric),
                   toxval_numeric = gsub("zero", 0, toxval_numeric),
                   toxval_numeric = gsub("(^--> )?n/a$", "N/A", toxval_numeric),
-                  toxval_numeric = gsub(" MFL$", " million fibers per liter", toxval_numeric)) %>%
+                  toxval_numeric = gsub(" MFL$", " million fibers per liter", toxval_numeric),
+                  name = name %>%
+                    gsub("Quick reference guide|Rule information|Consumer fact sheet", "", .) %>%
+                    stringr::str_squish()
+                    ) %>%
     dplyr::mutate(dplyr::across(c("toxval_type", "toxval_numeric", "toxval_units"),
                          ~stringr::str_squish(.))) %>%
     dplyr::rename(critical_effect="Potential Health Effects from Long-Term Exposure Above the MCL (unless specified as short-term)") %>%
@@ -100,8 +104,9 @@ import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE,
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
-  # Placeholder cas field since none provided
-  res$casrn <- NA
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -111,7 +116,8 @@ import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE,
                        res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
 
 
