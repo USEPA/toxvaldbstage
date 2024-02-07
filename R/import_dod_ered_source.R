@@ -25,7 +25,7 @@
 #' @importFrom stringr str_extract str_squish
 #' @importFrom tidyr replace_na drop_na
 #--------------------------------------------------------------------------------------
-import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_dod_ered_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "DOD ERED"
   source_table = "source_dod_ered"
@@ -137,11 +137,15 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       # Assign missing units
       # Duration units for long term studies (NOEC,LOEC) as d (days) - "NOEC|LOEC"
       # Duration units for short term studies (ED,LC) as d (days) if duration value > 4 and as h (hours) if <= 4 - "ED|LC"
-      # Duration units for the rest of the short term studies as h (hours) - "NOEC|LOEC|ED|LC"
-      study_duration_units = ifelse(!is.na(study_duration_units), study_duration_units,
-                                    ifelse(!grepl("NOEC|LOEC|ED|LC", toxval_type), study_duration_units,
-                                           ifelse(grepl("NOEC|LOEC", toxval_type), "days",
-                                                  ifelse(study_duration_value > 4, "days", "hours")))),
+      # Duration units for the rest of the short term studies as h (hours) - "ED|LC"
+      study_duration_units = dplyr::case_when(
+        !is.na(study_duration_units) ~ study_duration_units,
+        is.na(study_duration_value) ~ as.character(NA),
+        grepl("NOEC|LOEC", toxval_type) ~ "days",
+        grepl("ED|LC", toxval_type) & study_duration_value > 4 ~ "days",
+        grepl("ED|LC", toxval_type) ~ "hours",
+        TRUE ~ study_duration_units
+      ),
 
       # Size column has sex information for some entries
       sex = dplyr::case_when(
