@@ -58,10 +58,12 @@ import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
       subsource = "California DPH",
       source_url = "https://www.waterboards.ca.gov/drinking_water/certlic/drinkingwater/Chemicalcontaminants.html",
       risk_assessment_class = "chronic",
+      study_type = "chronic",
       exposure_route = "oral",
       detection_limit = `State DLR` %>%
         # stringr::str_split_i(., " ", 1) %>%
         gsub('[",*]', "", .) %>%
+        gsub('MFL', "", .) %>%
         as.numeric()
     ) %>%
 
@@ -151,7 +153,7 @@ import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
     dplyr::select(!dplyr::any_of("Federal MCLG"))
 
   # Hardcode special case for Asbestos
-  res$toxval_units[res$name == "Asbestos"] = "million fibers per liter"
+  res$toxval_units[res$name == "Asbestos"] = "million fibers/L"
 
   # Standardize the names
   names(res) <- names(res) %>%
