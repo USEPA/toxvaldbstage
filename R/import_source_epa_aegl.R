@@ -187,7 +187,8 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
 
       # Set toxval_numeric to numeric type
       toxval_numeric = as.numeric(toxval_numeric)
-    )
+    ) %>%
+    tidyr::drop_na(toxval_numeric)
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
