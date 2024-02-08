@@ -15,15 +15,15 @@
 #' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[dplyr]{mutate}}
-#'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}
-#'  \code{\link[tidyr]{drop_na}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
+#'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}}
 #' @rdname import_niosh_source
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr mutate
-#' @importFrom stringr str_extract str_squish
-#' @importFrom tidyr drop_na
+#' @importFrom dplyr mutate case_when
+#' @importFrom stringr str_squish str_extract
+#' @importFrom tidyr separate drop_na
 #--------------------------------------------------------------------------------------
 import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -32,42 +32,75 @@ import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2019-10-08")
   dir = paste0(toxval.config()$datapath,"niosh/niosh_files/")
-  file = paste0(dir,"niosh_IDLH_2020.xlsx")
+  file = paste0(dir,"updated_niosh_extraction_20240207.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
   res = res0 %>%
     dplyr::mutate(
-      # Add hard-coded values
+      # Rename cols/add hard-coded values
+      name = Substance,
       toxval_type = "NIOSH IDLH Concentration",
       exposure_route = "inhalation",
+      source_url = "https://www.cdc.gov/niosh/idlh/intridl4.html",
 
-      # UNCOMMENT if old load script source_url is preferred
-      # source_url = "https://www.cdc.gov/niosh/idlh/default.html",
-
-      # Standardize compound-specific units
-      toxval_units = toxval_units %>%
-        gsub("mg [a-zA-Z]{1,2}\\/m3", "mg/m3", .),
+      # Remove casrn noise
+      casrn = `CAS no.` %>%
+        gsub("\\(.+\\)", "", .) %>%
+        stringr::str_squish(),
 
       # Extract long_ref
-      long_ref = toxval_numeric_details %>%
+      long_ref = `New/Updated Values (2016-present)**` %>%
         # Fix case of NIOSH Pub missing space
         gsub("NIOSHPub.", "NIOSH Pub.", .) %>%
         stringr::str_extract("NIOSH Pub\\. No\\. \\d{4}\\-\\d{3}") %>%
         c() %>% stringr::str_squish(),
 
-      # Ensure toxval_numeric is of numeric type
-      toxval_numeric = as.numeric(toxval_numeric),
+      # Get toxval_numeric_units by combining base IDLH and updated values fields
+      toxval_numeric_units = dplyr::case_when(
+        # If updated value is available, use it
+        !is.na(`New/Updated Values (2016-present)**`) ~ stringr::str_extract(
+          `New/Updated Values (2016-present)**`,
+          "[0-9,\\.]+?\\sppm"
+        ) %>% c(),
+        # Replace "Unknown" with NA
+        grepl("Unknown", `IDLH Value (1994)*`, ignore.case=TRUE) ~ as.character(NA),
+        # Use default value
+        TRUE ~ `IDLH Value (1994)*`
+      ),
 
-      # Fix "fluor" names
-      name = name %>%
-        gsub(" uor", "fluor", .) %>%
-        # Address edge cases
-        gsub("Hydrogenfluor", "Hydrogen fluor", .) %>%
-        gsub("Perchlorylfluor", "Perchloryl fluor", .) %>%
-        gsub("Sodiumfluor", "Sodium fluor", .) %>%
-        gsub("Sulfurylfluor", "Sulfuryl fluor", .)
+      # Get year
+      year = dplyr::case_when(
+        # Use year of update, if available
+        !is.na(long_ref) ~ stringr::str_extract(long_ref, "\\d{4}")%>% c() %>% as.numeric(),
+        # Otherwise, use 1994
+        TRUE ~ 1994
+      ),
+    ) %>%
+
+    # Separate toxval_numeric and toxval_units
+    tidyr::separate(
+      toxval_numeric_units,
+      into = c("toxval_numeric", "toxval_units"),
+      sep = " ",
+      extra = "merge",
+    ) %>%
+
+    # Conduct final cleaning operations
+    dplyr::mutate(
+      # Clean toxval_units
+      toxval_units = toxval_units %>%
+        # Standardize substance-specific mg/m3
+        gsub("mg.*\\/.*m3", "mg/m3", .) %>%
+        # Remove noise contained in brackets or parentheses
+        gsub("\\(.+\\)|\\[.+\\]", "", .) %>%
+        stringr::str_squish(),
+
+      # Ensure toxval_numeric is numeric type
+      toxval_numeric = toxval_numeric %>%
+        gsub(",", "", .) %>%
+        as.numeric()
     ) %>%
 
     # Remove entries without necessary toxval columns
