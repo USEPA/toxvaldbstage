@@ -1,13 +1,13 @@
 #--------------------------------------------------------------------------------------
-#' @description A generic template for adding data to toxval_source for a new source
+#' @description Import IUCLID data to ToxVal Source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param subf The subfolder containing the IUCLID subsource
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title import_source_iuclid
+#' @return None; data is sent to ToxVal
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -17,23 +17,30 @@
 #' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{select}}
-#'  \code{\link[writexl]{write_xlsx}}
-#'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
-#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{context}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{pull}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{select}}
+#'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{drop_na}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}}
+#'  \code{\link[tidyselect]{starts_with}}, \code{\link[tidyselect]{all_of}}
 #'  \code{\link[textclean]{mgsub}}
 #' @rdname import_source_iuclid
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr filter rename mutate across select
-#' @importFrom writexl write_xlsx
-#' @importFrom tidyr all_of separate pivot_longer starts_with pivot_wider separate_rows unite matches ends_with
-#' @importFrom stringr str_squish
+#' @importFrom dplyr filter group_by mutate row_number n case_when pull rename select
+#' @importFrom tidyr separate_rows all_of separate unite pivot_longer starts_with pivot_wider drop_na matches
+#' @importFrom stringr str_squish str_extract regex
+#' @importFrom tidyselect starts_with any_of
 #' @importFrom textclean mgsub
 #--------------------------------------------------------------------------------------
 import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = paste0("IUCLID_", subf)
+
+  # Do not upload BasicToxicokinetics OHT data
+  if (subf == "iuclid_basictoxicokinetics") {
+    cat("Skipping BasicToxicokinetics OHT\n")
+    return(0)
+  }
+
+  source = gsub("iuclid", "IUCLID", subf)
   source_table = paste0("source_", subf) %>% tolower()
   dir = paste0(toxval.config()$datapath,"iuclid/",subf,"/",subf,"_files/")
   file = list.files(dir, pattern=".xlsx", full.names = TRUE)
@@ -56,30 +63,59 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     return(paste0("No entries in IUCLID field map for: ", subf))
   }
 
-  # Check for field mapping issues
-  map_check = map$from[!map$from %in% names(res0)]
-  if(length(map_check)){
-    map_orig$map_confirmed[(map_orig$oht == subf) & (map_orig$from %in% map_check)] <- 0
-    # Update the map to help with curation of field names
-    writexl::write_xlsx(map_orig, paste0(toxval.config()$datapath,"iuclid/field_maps/iuclid_field_map.xlsx"))
-    return(cat(paste0("Need to remap the following fields: ", toString(map_check)), "\n"))
-  }
-
   # Create a named vector to handle renaming from the map
   map = map %>%
     dplyr::filter(!is.na(to)) %>%
-    tidyr::separate_rows(to, sep=" : ")
+    tidyr::separate_rows(to, sep=" : ") %>%
+
+    # Add "occurrence" stem to duplicate values
+    dplyr::group_by(to) %>%
+    dplyr::mutate(
+      # Get nth time that field name has appeared so far
+      appearance_num = dplyr::row_number(),
+
+      # Get total number of appearances for that field name
+      tot_appearances = dplyr::n(),
+
+      # Add appearance_num stem when necessary
+      to = dplyr::case_when(
+        tot_appearances == 1 ~ to,
+        TRUE ~ paste0(to, "_", appearance_num)
+      )
+    )
 
   tmp = map %>%
-    dplyr::pull(from) %T>% {
-      names(.) <- map$to[!is.na(map$to)]
-    }
+    dplyr::pull(from, to)
 
   res <- res0 %>%
+    # Rename original "name" column to avoid renaming conflicts
+    dplyr::rename(study_name = name) %>%
+
     # Copy columns and rename new columns
     dplyr::rename(tidyr::all_of(tmp)) %>%
+
     # Split columns and name them
-    tidyr::separate(., study_type, c("study_type","exposure_route"), sep=": ", fill="right", remove=FALSE)
+    tidyr::separate(study_type_1, c("study_type_1","exposure_route"), sep=": ", fill="right", remove=TRUE) %>%
+
+    # Fix exposure_method column
+    dplyr::mutate(
+      exposure_method = gsub(".+:", "", exposure_method) %>%
+        stringr::str_squish()
+    )
+
+  # Unite duplicate columns
+  for (field in map$to) {
+    if (field %in% names(res) & grepl("_1", field)) {
+      core_field = gsub("_1", "", field)
+      res = res %>%
+        tidyr::unite(
+          col = !!core_field,
+          tidyselect::starts_with(core_field),
+          sep = "|",
+          na.rm = TRUE
+        )
+    }
+  }
 
   # Handle developmental fetus vs. maternal studies
   if(grepl("developmental", subf) && any(grepl("fetus_|maternal_", names(res)))){
@@ -97,74 +133,168 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       tidyr::pivot_wider(names_from = field, values_from=value)
   }
 
-  # Removed since we only want to use the reference_* chemical information fields
-  # The other chemical_* fields come from ECHA
-  # ## Chemical cleaning
-  # # Handle chemical name reassignment ("-" or NA values)
-  # res$name[res$name == "-" | is.na(res$name)] <- res$chemical_name[res$name == "-" | is.na(res$name)]
-  # # Replace 'not available', 'no iupac name', etc.
-  # res$name[grepl("available|no iupac name|Not allocated|see remarks|confidential", res$name, ignore.case = TRUE)] <-
-  #   res$chemical_name[grepl("available|no iupac name|Not allocated|see remarks|confidential", res$name, ignore.case = TRUE)]
-  # # Handle casrn reassignment ("-" or NA values)
-  # res$casrn[res$casrn == "-" | is.na(res$casrn)] <- res$chemical_CASnumber[res$casrn == "-" | is.na(res$casrn)]
-  # # Replace "to be assigned", "Not assigned", "not yet assigned"
-  # res$casrn[grepl("assigned", res$casrn, ignore.case = TRUE)] <- res$chemical_CASnumber[grepl("assigned", res$casrn, ignore.case = TRUE)]
-
-  # Split chemical mixtures/lists
   res = res %>%
-    dplyr::mutate(casrn = gsub(" and", ",", casrn)) %>%
-    tidyr::separate_rows(name, sep=";") %>%
-    tidyr::separate_rows(casrn, sep=";") %>%
-    tidyr::separate_rows(casrn, sep=",") %>%
-    # Squish extra whitespace
-    dplyr::mutate(dplyr::across(c("name", "casrn"), ~stringr::str_squish(.)))
+    # Handle toxval_numeric (use toxval_subtype to set upper or lower)
+    tidyr::pivot_longer(
+      cols = c("toxval_numeric_lower", "toxval_numeric_upper"),
+      names_to = "toxval_subtype",
+      values_to = "toxval_numeric"
+    ) %>%
+    dplyr::mutate(
+      # Fill "-" name and casrn with NA
+      name = dplyr::case_when(
+        name == "-" ~ as.character(NA),
+        TRUE ~ name
+      ),
+      casrn = dplyr::case_when(
+        casrn == "-" ~ as.character(NA),
+        TRUE ~ casrn
+      ),
 
-  # Fill "-" name and casrn with NA
-  res$name[res$name == "-" | res$name == ""] = NA
-  res$casrn[res$casrn == "-" | res$casrn == ""] = NA
-  # Filter out incomplete cases, keep partial cases (has something for name or casrn)
-  res = res %>%
-    dplyr::filter(!(is.na(name) & is.na(casrn)))
-  # View(res %>% filter(is.na(name)) %>% select(name, casrn) %>% distinct())
-  # View(res %>% filter(is.na(casrn)) %>% select(name, casrn) %>% distinct())
+      # Clean toxval_units/make value substitutions when necessary
+      toxval_units = dplyr::case_when(
+        toxval_units == "other:" ~ toxval_units_other,
+        TRUE ~ toxval_units
+      ) %>%
+        gsub("diet", "", .) %>%
+        gsub("drinking water", "", .) %>%
+        gsub("\\(.+\\)", "", .) %>%
+        stringr::str_squish()
+    ) %>%
 
-  # Handle case where exposure was mapped to exposure_form and exposure_method in the map
-  if("exposure" %in% names(res)){
-    res = res %>%
-      tidyr::separate(., exposure, c(NA,"exposure_method"), sep=": ", fill="right", remove=FALSE)
-  }
-  # Continue transformations
-  res = res %>%
+    # Filter out entries with inadequate toxval_type
+    dplyr::filter(!grepl("dose|other", toxval_type)) %>%
+    # Drop entries without necessary toxval columns
+    tidyr::drop_na(toxval_numeric, toxval_units, toxval_type) %>%
+    # Drop entries without either name or casrn
+    dplyr::filter((name != "" | casrn != "")) %>%
     # Combine columns and name them
-    tidyr::unite(toxval_numeric, toxval_numeric_lower, toxval_numeric_upper, na.rm = TRUE, sep='-') %>%
-    tidyr::unite(toxval_qualifier, toxval_qualifier_lower, toxval_qualifier_upper, na.rm = TRUE, sep=' ') %>%
-    #select(-matches("CrossReference.*.uuid")) %>%
-    dplyr::select(-tidyr::matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation"))
+    dplyr::select(-tidyr::matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation")) %>%
 
-  # Replace column value with another column value based on a condition ("other:")
-  if(all(c("toxval_units", "toxval_units_other") %in% names(res))){
-    res$toxval_units[res$toxval_units == 'other:' & !is.na(res$toxval_units)] <- res$toxval_units_other[res$toxval_units == 'other:' & !is.na(res$toxval_units)]
-  }
-  if(all(c("toxval_type", "toxval_type_other") %in% names(res))){
-    res$toxval_type[res$toxval_type == 'other:' & !is.na(res$toxval_type)] <- res$toxval_type_other[res$toxval_type == 'other:' & !is.na(res$toxval_type)]
-  }
-  if(all(c("species", "species_other") %in% names(res))){
-    res$species[res$species == 'other:' & !is.na(res$species)] <- res$species_other[res$species == 'other:' & !is.na(res$species)]
-  }
-  if(all(c("strain", "strain_other") %in% names(res))){
-    res$strain[res$strain == 'other:' & !is.na(res$strain)] <- res$strain_other[res$strain == 'other:' & !is.na(res$strain)]
-  }
-  if(all(c("guideline", "guideline_other") %in% names(res))){
-    res$guideline[res$guideline == 'other:' & !is.na(res$guideline)] <- res$guideline_other[res$guideline == 'other:' & !is.na(res$guideline)]
-  }
-  if(all(c("exposure", "exposure_other") %in% names(res))){
-    res$exposure[res$exposure == 'other:' & !is.na(res$exposure)] <- res$exposure_other[res$exposure == 'other:' & !is.na(res$exposure)]
-  }
+    # Conduct most cleaning operations after dropping rows to improve runtime
+    dplyr::mutate(
+      # Clean critical_effect column
+      critical_effect = critical_effect %>%
+        gsub("Results:", "", ., ignore.case=TRUE) %>%
+        stringr::str_squish(),
 
-  # Fix: effect_level_basis TBD
-  # Fix: media TBD
-  # Fix: reference_type TBD
-  # Fix: dose_units TBD
+      # Extract study_duration_value and study_duration_units
+      study_duration = study_duration_units,
+      # Use first number appearance (range possible) as study_duration_value
+      study_duration_value = study_duration %>%
+        stringr::str_extract(stringr::regex(paste0("(\\d+(?:\\-\\d+)?).*?",
+                                                   "(?:hour|\\bh\\b|[0-9]h\\b|",
+                                                   "day|\\bd\\b|[0-9]d\\b|",
+                                                   "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
+                                                   "month|\\bm\\b|[0-9]m\\b|",
+                                                   "year|\\by\\b|[0-9]y\\b|yr)"),
+                                            ignore_case = TRUE), group=1) %>%
+        c() %>% stringr::str_squish(),
+      # Use first "timeframe" appearance as study_duration_units
+      study_duration_units = study_duration %>%
+        stringr::str_extract(stringr::regex(paste0("\\d+(?:\\-\\d+)?.*?",
+                                                   "(hour|\\bh\\b|[0-9]h\\b|",
+                                                   "day|\\bd\\b|[0-9]d\\b|",
+                                                   "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek",
+                                                   "month|\\bm\\b|[0-9]m\\b|",
+                                                   "year|\\by\\b|[0-9]y\\b|yr)"),
+                                            ignore_case = TRUE), group=1) %>%
+        c(),
+      # Perform final processing
+      study_duration_units = dplyr::case_when(
+        grepl("h", study_duration_units) ~ "hours",
+        grepl("d", study_duration_units) ~ "days",
+        grepl("w", study_duration_units) ~ "weeks",
+        grepl("m", study_duration_units) ~ "months",
+        grepl("y", study_duration_units) ~ "years",
+        TRUE ~ as.character(NA)
+      ),
+      # Set both cols to NA if only one value is present
+      study_duration_units = dplyr::case_when(
+        study_duration_value == as.character(NA) ~ as.character(NA),
+        TRUE ~ study_duration_units
+      ),
+      study_duration_value = dplyr::case_when(
+        study_duration_units == as.character(NA) ~ as.character(NA),
+        TRUE ~ study_duration_value
+      ),
+
+      # Clean species column
+      species = species %>%
+        tolower() %>%
+        gsub(":", "", .) %>%
+        stringr::str_squish(),
+
+      # Clean strain column
+      strain = strain %>%
+        tolower() %>%
+        gsub("(?:animal )?strain:", "", ., ignore.case=TRUE) %>%
+        gsub("WIST", "wistar", .) %>%
+        gsub(":", ": ", .) %>%
+        stringr::str_squish(),
+      # After cleaning, further refine strain
+      strain = dplyr::case_when(
+        # Filter out entries too long to be a strain (generally study details)
+        nchar(strain) > 40 ~ as.character(NA),
+        # Filter out entries with "age"
+        grepl("age", strain, ignore.case=TRUE) ~ as.character(NA),
+        TRUE ~ strain
+      ),
+
+      # Clean toxval_type
+      toxval_type = toxval_type %>%
+        gsub(":", "", .),
+
+      # Extract and clean toxval_units
+      toxval_units = dplyr::case_when(
+        toxval_units == "other:" ~ toxval_units_other,
+        TRUE ~ toxval_units
+      ) %>%
+        gsub("\\(.+\\)", "", .) %>%
+        gsub("in diet", "", .) %>%
+        gsub("diet", "", .) %>%
+        gsub("drinking water", "", .) %>%
+        stringr::str_squish(),
+
+      # Clean sex field
+      sex = dplyr::case_when(
+        grepl("no", sex) ~ as.character(NA),
+        TRUE ~ sex
+      ),
+
+      # Ensure normal range for year
+      year = dplyr::case_when(
+        is.na(year) ~ NA,
+        as.numeric(year) >= 1800 & as.numeric(year) <= 2024 ~ as.numeric(year),
+        TRUE ~ NA
+      ),
+
+      # Select and clean appropriate toxval_numeric_qualifier
+      toxval_numeric_qualifier = dplyr::case_when(
+        toxval_subtype == "toxval_numeric_lower" ~ toxval_qualifier_lower,
+        toxval_subtype == "toxval_numeric_upper" ~ toxval_qualifier_upper,
+        TRUE ~ as.character(NA)
+      ) %>% gsub("ca\\.", "~", .),
+
+      # Add toxval_numeric_qualifier when not present in data (per Jira guidelines)
+      toxval_numeric_qualifier = dplyr::case_when(
+        !is.na(toxval_numeric_qualifier) ~ toxval_numeric_qualifier,
+        toxval_subtype == "toxval_numeric_lower" ~ ">",
+        toxval_subtype == "toxval_numeric_upper" ~ "<",
+        TRUE ~ toxval_numeric_qualifier
+      ),
+
+      # Ensure that toxval_numeric is of numeric type
+      toxval_numeric = as.numeric(toxval_numeric),
+
+      # Call fix.replace.unicode after previous cleaning operations to improve runtime
+      name = fix.replace.unicode(name),
+      critical_effect = fix.replace.unicode(critical_effect),
+      strain = fix.replace.unicode(strain)
+    ) %>%
+
+    # Drop unused toxval_qualifier cols
+    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper")))
 
   # Check for acute OHTs without a mapped duration field
   if(grepl("acute", subf, ignore.case = TRUE)){
@@ -175,27 +305,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     }
   }
 
-  # Perform study duration split if needed
-  if("study_duration_original" %in% names(res)){
-    # Fix study duration with various regex
-    res = fix_numeric_units_split(df = res,
-                                  to_split = "study_duration_original",
-                                  value_to = "study_duration_value",
-                                  units_to = "study_duration_units")
-  }
-
   # Check for media column, or put as blank
   if(!"media" %in% names(res)){
     message("Media field is missing a mapping, defaulting to blank for now...")
-    # Pause for user to see warning message
-    Sys.sleep(5)
     res$media = "-"
   }
-
-  # Fix unicode symbols in units
-  res <- res %>%
-    dplyr::mutate(dplyr::across(tidyr::ends_with("_units"), ~fix.replace.unicode(.)))
-
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -208,20 +322,27 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                      pattern = c("__", "administrativedata", "materialsandmethods", "administrationexposure", "administration",
                                  "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity", "inhalation",
                                  "developmental", "maternal", "fetuses", "fetal", "results", "abnormalities", "animals",
-                                 "fetus", "remarks"
+                                 "fetus", "remarks", "details", "concentration", "observation", "examination", "material",
+                                 "background", "publication", "description", "attach", "histopath", "observe", "overall",
+                                 "docsforpub", "severity"
                      ),
-                     replace = c("_", "admindata", "matnmet", "adminexposure", "admin",
-                                 "mat", "resndisc", "efflvs", "sys", "tox", "inhale",
-                                 "devmtl", "mtnl", "fts", "ftl", "res", "abnorm", "anim",
-                                 "fts", "remrk")) %>%
-    gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .)
+                     replace = c("_", "addata", "matmet", "adexp", "ad",
+                                 "mat", "resdisc", "efflvs", "sys", "tox", "inh",
+                                 "dvmtl", "mtnl", "fts", "ftl", "res", "abnrm", "anim",
+                                 "fts", "rmrk", "dtls", "conc", "obs", "exam", "mat",
+                                 "bgrd", "pub", "desc", "atch", "hist", "obs", "ovrll",
+                                 "pubdocs", "sev")) %>%
+    gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .) %>%
+    gsub("targetsysorgantox", "trgsysorgtox", .)
 
   # Halt if field names are still too long
   if(any(nchar(names(res)) >= 65)){
-    message("Error: fieldnames too long: ", names(res)[nchar(names(res)) >= 65] %>% toString())
+    message("Error: field names too long: ", names(res)[nchar(names(res)) >= 65] %>% toString())
     browser()
   }
 
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
   #####################################################################
   cat("Load the data\n")
   #####################################################################
