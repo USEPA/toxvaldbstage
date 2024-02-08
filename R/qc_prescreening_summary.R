@@ -33,7 +33,10 @@ qc_prescreening_summary <- function(src_tbl=NULL, source_name=NULL, outputDir=NU
   if(src_tbl == "direct load"){
     # Use the runQuery function to extract a source table "src_tbl" from a database "db"
     cat(paste0("Retrieving ", source_name," data from database", "\n"))
-    in_data = runQuery(paste0("SELECT * FROM toxval WHERE source = '", source_name, "'"), db)
+    in_data = runQuery(paste0(
+      "SELECT b.raw_name, b.raw_casrn, a.* from toxval a ",
+      "LEFT JOIN source_chemical b on a.chemical_id = b.chemical_id ",
+      "WHERE b.source = '", source_name, "'"), db)
   } else {
     # Use the runQuery function to extract a source table "src_tbl" from a database "db"
     cat(paste0("Retrieving ", src_tbl," data from database", "\n"))

@@ -176,10 +176,13 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
 
   # Pull all data for sampled records
   if(source_table == "direct load"){
-    full_source = runQuery(query=paste0("SELECT * FROM toxval WHERE source_hash in ('",
-                                        paste0(sampled_records$source_hash, collapse="', '"),
-                                        "')"),
-                           db=toxval.db)
+    full_source = runQuery(query=paste0(
+      "SELECT b.raw_name, b.raw_casrn, a.* from toxval a ",
+      "LEFT JOIN source_chemical b on a.chemical_id = b.chemical_id ",
+      "WHERE source_hash in ('",
+      paste0(sampled_records$source_hash, collapse="', '"),
+      "')"),
+      db=toxval.db)
     # Export QC Sample
     writexl::write_xlsx(full_source,
                         paste0(dir_output,"/toxval_qc_", source, "_",Sys.Date(),".xlsx"))
