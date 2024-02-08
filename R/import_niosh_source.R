@@ -111,6 +111,8 @@ import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
+    # Remove *
+    gsub("\\*", "", .) %>%
     tolower()
 
   # Fill blank hashing cols
