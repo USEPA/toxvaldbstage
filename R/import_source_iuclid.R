@@ -26,9 +26,9 @@
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr filter group_by mutate row_number n case_when pull rename select
-#' @importFrom tidyr separate_rows all_of separate unite pivot_longer starts_with pivot_wider drop_na matches
+#' @importFrom tidyr separate_rows separate unite pivot_longer starts_with pivot_wider drop_na matches
 #' @importFrom stringr str_squish str_extract regex
-#' @importFrom tidyselect starts_with any_of
+#' @importFrom tidyselect starts_with any_of all_of
 #' @importFrom textclean mgsub
 #--------------------------------------------------------------------------------------
 import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
@@ -92,7 +92,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::rename(study_name = name) %>%
 
     # Copy columns and rename new columns
-    dplyr::rename(tidyr::all_of(tmp)) %>%
+    dplyr::rename(tidyselect::all_of(tmp)) %>%
 
     # Split columns and name them
     tidyr::separate(study_type_1, c("study_type_1","exposure_route"), sep=": ", fill="right", remove=TRUE) %>%
@@ -124,7 +124,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$maternal_sex = "female"
     res = res %>%
       # Get all maternal and fetus fields in one field
-      tidyr::pivot_longer(cols=tidyr::starts_with("fetus_") | tidyr::starts_with("maternal_"),
+      tidyr::pivot_longer(cols=tidyselect::starts_with("fetus_") | tidyselect::starts_with("maternal_"),
                           names_to = "dev_field",
                           values_transform = list(value=as.character)) %>%
       # Split by maternal vs. fetus fields with "generation_type"
