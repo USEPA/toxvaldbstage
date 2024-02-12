@@ -231,12 +231,15 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         tolower() %>%
         gsub("(?:animal )?strain:", "", ., ignore.case=TRUE) %>%
         gsub("WIST", "wistar", .) %>%
+        gsub("no data", "", .) %>%
+        gsub("other:?", "", .) %>%
+        gsub("not specified", "", .) %>%
         gsub(":", ": ", .) %>%
         stringr::str_squish(),
       # After cleaning, further refine strain
       strain = dplyr::case_when(
         # Filter out entries too long to be a strain (generally study details)
-        nchar(strain) > 40 ~ as.character(NA),
+        nchar(strain) > 100 ~ as.character(NA),
         # Filter out entries with "age"
         grepl("age", strain, ignore.case=TRUE) ~ as.character(NA),
         TRUE ~ strain
