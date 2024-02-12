@@ -111,7 +111,9 @@ import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     ) %>%
 
     # Remove entries without necessary toxval columns
-    tidyr::drop_na(toxval_numeric, toxval_units)
+    tidyr::drop_na(toxval_numeric, toxval_units) %>%
+    # Remove "version" column from pivot
+    dplyr::select(-version)
 
   # Standardize the names
   names(res) <- names(res) %>%
