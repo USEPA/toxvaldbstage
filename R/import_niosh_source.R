@@ -17,13 +17,13 @@
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
-#'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}}
+#'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}} \code{\link[tidyr]{pivot_longer}}
 #' @rdname import_niosh_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate case_when
 #' @importFrom stringr str_squish str_extract
-#' @importFrom tidyr separate drop_na
+#' @importFrom tidyr separate drop_na pivot_longer
 #--------------------------------------------------------------------------------------
 import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -38,6 +38,13 @@ import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
   res = res0 %>%
+    # Get toxval_numeric_units (maintain separate entries for updated/original values)
+    tidyr::pivot_longer(
+      cols = c("IDLH Value (1994)*", "New/Updated Values (2016-present)**"),
+      names_to = "version",
+      values_to = "toxval_numeric_units"
+    ) %>%
+
     dplyr::mutate(
       # Rename cols/add hard-coded values
       name = Substance,
@@ -51,23 +58,23 @@ import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         stringr::str_squish(),
 
       # Extract long_ref
-      long_ref = `New/Updated Values (2016-present)**` %>%
+      long_ref = toxval_numeric_units %>%
         # Fix case of NIOSH Pub missing space
         gsub("NIOSHPub.", "NIOSH Pub.", .) %>%
         stringr::str_extract("NIOSH Pub\\. No\\. \\d{4}\\-\\d{3}") %>%
         c() %>% stringr::str_squish(),
 
-      # Get toxval_numeric_units by combining base IDLH and updated values fields
+      # Extract clean values from toxval_numeric_units
       toxval_numeric_units = dplyr::case_when(
-        # If updated value is available, use it
-        !is.na(`New/Updated Values (2016-present)**`) ~ stringr::str_extract(
-          `New/Updated Values (2016-present)**`,
+        # If updated value is available, handle appropriately
+        version == "New/Updated Values (2016-present)**" ~ stringr::str_extract(
+          toxval_numeric_units,
           "[0-9,\\.]+?\\sppm"
         ) %>% c(),
         # Replace "Unknown" with NA
-        grepl("Unknown", `IDLH Value (1994)*`, ignore.case=TRUE) ~ as.character(NA),
-        # Use default value
-        TRUE ~ `IDLH Value (1994)*`
+        grepl("Unknown", toxval_numeric_units, ignore.case=TRUE) ~ as.character(NA),
+        # Keep value as-is
+        TRUE ~ toxval_numeric_units
       ),
 
       # Get year
@@ -76,7 +83,7 @@ import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         !is.na(long_ref) ~ stringr::str_extract(long_ref, "\\d{4}")%>% c() %>% as.numeric(),
         # Otherwise, use 1994
         TRUE ~ 1994
-      ),
+      )
     ) %>%
 
     # Separate toxval_numeric and toxval_units
