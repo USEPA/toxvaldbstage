@@ -42,6 +42,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   source = gsub("iuclid", "IUCLID", subf)
   source_table = paste0("source_", subf) %>% tolower()
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2023-08-01")
   dir = paste0(toxval.config()$datapath,"iuclid/",subf,"/",subf,"_files/")
   file = list.files(dir, pattern=".xlsx", full.names = TRUE)
   if(!length(file)) return(cat("...No files to process...\n"))
@@ -103,18 +105,17 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         stringr::str_squish()
     )
 
-  # Unite duplicate columns
-  for (field in map$to) {
-    if (field %in% names(res) & grepl("_1", field)) {
-      core_field = gsub("_1", "", field)
-      res = res %>%
-        tidyr::unite(
-          col = !!core_field,
-          tidyselect::starts_with(core_field),
-          sep = "|",
-          na.rm = TRUE
-        )
-    }
+  # Unite duplicate columns with numbered stems
+  for (field in map$to[grepl("_1", map$to) & map$to %in% names(res)]) {
+
+    core_field = gsub("_1", "", field)
+    res = res %>%
+      tidyr::unite(
+        col = !!core_field,
+        tidyselect::starts_with(core_field),
+        sep = "|",
+        na.rm = TRUE
+      )
   }
 
   # Handle developmental fetus vs. maternal studies
@@ -288,9 +289,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       toxval_numeric = as.numeric(toxval_numeric),
 
       # Call fix.replace.unicode after previous cleaning operations to improve runtime
-      name = fix.replace.unicode(name),
-      critical_effect = fix.replace.unicode(critical_effect),
-      strain = fix.replace.unicode(strain)
+      name = fix.replace.unicode(name) %>%
+        stringr::str_squish(),
+      critical_effect = fix.replace.unicode(critical_effect) %>%
+        stringr::str_squish(),
+      strain = fix.replace.unicode(strain) %>%
+        stringr::str_squish()
     ) %>%
 
     # Drop unused toxval_qualifier cols
@@ -343,14 +347,17 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Load the data\n")
   #####################################################################
-  source_prep_and_load(db,
+  source_prep_and_load(db=db,
                        source=source,
                        table=source_table,
                        res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
