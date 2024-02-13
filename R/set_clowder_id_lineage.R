@@ -164,8 +164,8 @@ set_clowder_id_lineage <- function(source_table,
                           readxl::read_xlsx() %>%
                           fix.non_ascii.v2(.,"map.icf")
                       },
-                      "source_hess" = data.frame(clowder_id = "652d6ad3e4b045b9ff7a35de",
-                                                 document_name = "hess_20230517_fixed.xlsx"),
+                      "source_hess" = data.frame(clowder_id = "65cba45be4b063812d69d110",
+                                                 document_name = "hess_20231109_fixed.xlsx"),
                       "source_copper" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/source_copper_document_map.xlsx")),
 
