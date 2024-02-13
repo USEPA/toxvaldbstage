@@ -169,6 +169,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type) %>%
     # Drop entries without either name or casrn
     dplyr::filter((name != "" | casrn != "")) %>%
+    # Drop entries with no CASRN and inadequate name
+    dplyr::filter((name != "[No public or meaningful name is available]" | casrn != "")) %>%
     # Combine columns and name them
     dplyr::select(-tidyr::matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation")) %>%
 
@@ -273,6 +275,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ NA
       ),
 
+      # Set appropriate experimental flag
+      experimental_flag = dplyr::case_when(
+        experimental_flag == "experimental_study" ~ 1,
+        TRUE ~ NA
+      ) %>% as.numeric(),
+
       # Select and clean appropriate toxval_numeric_qualifier
       toxval_numeric_qualifier = dplyr::case_when(
         toxval_subtype == "toxval_numeric_lower" ~ toxval_qualifier_lower,
@@ -293,6 +301,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Call fix.replace.unicode after previous cleaning operations to improve runtime
       name = fix.replace.unicode(name) %>%
+        # Remove "no name" info
+        gsub("\\|?\\[No public or meaningful name is available\\]\\|?", "", .) %>%
         stringr::str_squish(),
       critical_effect = fix.replace.unicode(critical_effect) %>%
         stringr::str_squish(),
