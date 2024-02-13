@@ -196,7 +196,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         stringr::str_extract(stringr::regex(paste0("\\d+(?:\\-\\d+)?.*?",
                                                    "(hour|\\bh\\b|[0-9]h\\b|",
                                                    "day|\\bd\\b|[0-9]d\\b|",
-                                                   "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek",
+                                                   "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
                                                    "month|\\bm\\b|[0-9]m\\b|",
                                                    "year|\\by\\b|[0-9]y\\b|yr)"),
                                             ignore_case = TRUE), group=1) %>%
