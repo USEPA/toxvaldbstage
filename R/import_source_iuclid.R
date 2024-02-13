@@ -142,11 +142,27 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       values_to = "toxval_numeric"
     ) %>%
     dplyr::mutate(
-      # Fill "-" name and casrn with NA
+      # Create new name field using name_primary and name_secondary values
       name = dplyr::case_when(
-        name == "-" ~ as.character(NA),
-        TRUE ~ name
+        # Primary exists: if semicolon does not separate different chemicals, use value as-is
+        stringr::str_detect(name_primary, "\\[[^\\]]+;[^\\]]+\\]") ~ name_primary,
+        # Primary exists: if semicolon separates different chemicals, choose the first
+        grepl(";", name_primary) ~ gsub(";.+", "", name_primary),
+        # Use primary name if it exists
+        !is.na(name_primary) & name_primary != "-" ~ name_primary,
+
+        # Secondary exists: if semicolon does not separate different chemicals, use value as-is
+        stringr::str_detect(name_secondary, "\\[[^\\]]+;[^\\]]+\\]") ~ name_secondary,
+        # Secondary exists: if semicolon separates different chemicals, choose the first
+        grepl(";", name_secondary) ~ gsub(";.+", "", name_secondary),
+        # Use secondary name if it exists
+        !is.na(name_secondary) & name_secondary != "-" ~ name_secondary,
+
+        # Return NA if there is not a valid name value
+        TRUE ~ as.character(NA)
       ),
+
+      # Fill "-" casrn with NA
       casrn = dplyr::case_when(
         casrn == "-" ~ as.character(NA),
         TRUE ~ casrn
@@ -173,6 +189,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::filter((name != "[No public or meaningful name is available]" | casrn != "")) %>%
     # Combine columns and name them
     dplyr::select(-tidyr::matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation")) %>%
+    # Remove unused name columns
+    dplyr::select(!tidyselect::any_of(c("name_primary", "name_secondary"))) %>%
 
     # Conduct most cleaning operations after dropping rows to improve runtime
     dplyr::mutate(
