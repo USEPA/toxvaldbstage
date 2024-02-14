@@ -142,23 +142,34 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       values_to = "toxval_numeric"
     ) %>%
     dplyr::mutate(
-      # Create new name field using name_primary and name_secondary values
+      # OLD NAME LOGIC, WHERE FIRST NAME IN LIST IS SELECTED
+      # # Create new name field using name_primary and name_secondary values
+      # name = dplyr::case_when(
+      #   # Primary exists: if semicolon does not separate different chemicals, use value as-is
+      #   stringr::str_detect(name_primary, "\\[[^\\]]+;[^\\]]+\\]") ~ name_primary,
+      #   # Primary exists: if semicolon separates different chemicals, choose the first
+      #   grepl(";", name_primary) ~ gsub(";.+", "", name_primary),
+      #   # Use primary name if it exists
+      #   !is.na(name_primary) & name_primary != "-" ~ name_primary,
+      #
+      #   # Secondary exists: if semicolon does not separate different chemicals, use value as-is
+      #   stringr::str_detect(name_secondary, "\\[[^\\]]+;[^\\]]+\\]") ~ name_secondary,
+      #   # Secondary exists: if semicolon separates different chemicals, choose the first
+      #   grepl(";", name_secondary) ~ gsub(";.+", "", name_secondary),
+      #   # Use secondary name if it exists
+      #   !is.na(name_secondary) & name_secondary != "-" ~ name_secondary,
+      #
+      #   # Return NA if there is not a valid name value
+      #   TRUE ~ as.character(NA)
+      # ),
       name = dplyr::case_when(
-        # Primary exists: if semicolon does not separate different chemicals, use value as-is
-        stringr::str_detect(name_primary, "\\[[^\\]]+;[^\\]]+\\]") ~ name_primary,
-        # Primary exists: if semicolon separates different chemicals, choose the first
-        grepl(";", name_primary) ~ gsub(";.+", "", name_primary),
-        # Use primary name if it exists
-        !is.na(name_primary) & name_primary != "-" ~ name_primary,
-
-        # Secondary exists: if semicolon does not separate different chemicals, use value as-is
-        stringr::str_detect(name_secondary, "\\[[^\\]]+;[^\\]]+\\]") ~ name_secondary,
-        # Secondary exists: if semicolon separates different chemicals, choose the first
-        grepl(";", name_secondary) ~ gsub(";.+", "", name_secondary),
-        # Use secondary name if it exists
-        !is.na(name_secondary) & name_secondary != "-" ~ name_secondary,
-
-        # Return NA if there is not a valid name value
+        # Primary name exists and is valid (not NA, -, or list)
+        !is.na(name_primary) & name_primary != "-" & !grepl(";", name_primary) ~ name_primary,
+        # Secondary name exists and is valid (not NA, -, or list)
+        !is.na(name_secondary) & name_secondary != "-" & !grepl(";", name_secondary) ~ name_secondary,
+        # Primary or secondary name is semicolon separated list
+        grepl(";", name_primary) | grepl(";", name_secondary) ~ "DROP THIS NAME",
+        # Simply return NA
         TRUE ~ as.character(NA)
       ),
 
@@ -187,6 +198,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::filter((name != "" | casrn != "")) %>%
     # Drop entries with no CASRN and inadequate name
     dplyr::filter((name != "[No public or meaningful name is available]" | casrn != "")) %>%
+    # Drop entries with a list of names separated by semicolons
+    dplyr::filter(name != "DROP THIS NAME") %>%
     # Combine columns and name them
     dplyr::select(-tidyr::matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation")) %>%
     # Remove unused name columns
