@@ -195,6 +195,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ toxval_units
       ) %>%
         gsub("diet", "", .) %>%
+        gsub("air", "", .) %>%
         gsub("drinking water", "", .) %>%
         gsub("\\(.+\\)", "", .) %>%
         stringr::str_squish()
