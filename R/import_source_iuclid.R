@@ -98,13 +98,16 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::rename(tidyselect::all_of(tmp)) %>%
 
     # Split columns and name them
-    tidyr::separate(study_type_1, c("study_type_1","exposure_route"), sep=": ", fill="right", remove=TRUE) %>%
+    tidyr::separate(study_type_1, c("study_type_1","exposure_route"), sep=": ", fill="right", remove=TRUE)
 
-    # Fix exposure_method column
-    dplyr::mutate(
-      exposure_method = gsub(".+:", "", exposure_method) %>%
-        stringr::str_squish()
-    )
+  # If exposure_method column is present, fix it
+  if ("exposure_method" %in% names(res)) {
+    res = res %>%
+      dplyr::mutate(
+        exposure_method = gsub(".+:", "", exposure_method) %>%
+          stringr::str_squish()
+      )
+  }
 
   # Unite duplicate columns with numbered stems
   for (field in map$to[grepl("_1", map$to) & map$to %in% names(res)]) {
@@ -299,6 +302,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("drinking water", "", .) %>%
         stringr::str_squish(),
 
+      # Clean exposure_method
+      exposure_method = exposure_method %>%
+        gsub("\\|other:|other:\\|", "", .) %>%
+        gsub("\\|not specified|not specified\\|", "", .) %>%
+        stringr::str_squish(),
+
       # Clean sex field
       sex = dplyr::case_when(
         grepl("no", sex) ~ as.character(NA),
@@ -346,7 +355,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         stringr::str_squish(),
       strain = fix.replace.unicode(strain) %>%
         stringr::str_squish(),
-      toxval_units = fix.replace.unicode(toxval_units)
+      toxval_units = fix.replace.unicode(toxval_units) %>%
+        stringr::str_squish()
     ) %>%
 
     # Drop unused toxval_qualifier cols
