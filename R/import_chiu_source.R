@@ -32,7 +32,7 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   src_version_date = as.Date("2018-06-28")
   dir = paste0(toxval.config()$datapath,"chiu/chiu_files/")
   file = paste0(dir,"RfD_HDMI_mc_results.csv")
-  res0 = readr::read_csv(file)
+  res0 = readr::read_csv(file, col_types = readr::cols())
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -45,7 +45,8 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   "record_url"="strHyperlink",
                   "long_ref"="strReference",
                   "toxval_units"="strUnitsPOD",
-                  "critical_effect"="strCriticalEffect",
+                  "critical_effect_1"="Effect",
+                  "critical_effect_2"="strCriticalEffect",
                   "year"="strDateAssessed",
                   "species"="Species",
                   "strain"="Strain",
@@ -74,6 +75,7 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   res <- res1 %>%
     dplyr::mutate(year = ifelse(stringr::str_detect(year, "/"), stringr::str_extract(year, "\\d{4}"), year)) %>%
     dplyr::mutate(year = ifelse(stringr::str_detect(year, " "), stringr::str_trim(str_extract(year, "(?<=\\s)/S+")), year)) %>%
+    tidyr::unite(critical_effect_1, critical_effect_2, col="critical_effect", sep = ": ", na.rm=TRUE) %>%
     dplyr::mutate(
       # Remove extraneous whitespace
       dplyr::across(where(is.character), stringr::str_squish),
@@ -104,8 +106,6 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::ungroup() %>%
     dplyr::distinct() %>%
     tidyr::drop_na(toxval_numeric)
-
-  res$year[res$year == -1] = NA
 
   # Standardize the names
   names(res) <- names(res) %>%
