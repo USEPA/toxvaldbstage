@@ -42,6 +42,8 @@ fix.replace.unicode <- function(df) {
   alpha = c("<U+1D6C2>", "<U+1D6FC>", "<U+1D736>", "<U+1D770>", "<U+1D7AA>",
             "\u03B1", "\u1D6C2", "\u1D6FC", "\u1D736", "\u1D770", "\u1D7AA", "<U+03B1>")
 
+  apostrophe_alpha = c("\u0386")
+
   beta = c("<U+03B2>", "<U+03D0>", "<U+1D6C3>", "<U+1D6FD>", "<U+1D737>", "<U+1D771>", "<U+1D7AB>",
            "<U+0392>", "<U+1D6A9>", "<U+1D6E3>", "<U+1D71D>", "<U+1D757>", "<U+1D791>", "<U+1D5D>",
            "<U+1D66>", "<U+00df?",
@@ -140,9 +142,12 @@ fix.replace.unicode <- function(df) {
 
   phi = c("\u03c6")
 
+  psi = c("\u03c8")
+
   df = df %>%
     # Replacements from: https://www.rapidtables.com/math/symbols/greek_alphabet.html
     gsub(paste0(alpha, collapse="|"), "a", .) %>%
+    gsub(paste0(apostrophe_alpha, collapse="|"), "'a", .) %>%
     gsub(paste0(beta, collapse="|"), "b", .) %>%
     gsub(paste0(gamma, collapse="|"), "g", .) %>%
     gsub(paste0(epsilon, collapse="|"), "e", .) %>%
@@ -164,6 +169,7 @@ fix.replace.unicode <- function(df) {
     gsub(paste0(pi, collapse="|"), "p", .) %>%
     gsub(paste0(chi, collapse="|"), "ch", .) %>%
     gsub(paste0(phi, collapse="|"), "ph", .) %>%
+    gsub(paste0(psi, collapse="|"), "ps", .) %>%
 
     # Fix omega with preceding letter
     gsub("<U+33C0>|\u33c0", "KO", .) %>%
@@ -250,6 +256,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u2030|<U+2030>", "%o", .) %>%
     gsub("\u00ac", "-", .) %>%
     gsub("\u00bd", "1/2", .) %>%
+    gsub("\u2153", "1/3", .) %>%
     gsub("\u00be", "3/4", .) %>%
     gsub("\u215b", "1/8", .) %>%
     gsub("\u215c", "3/8", .) %>%
@@ -272,6 +279,7 @@ fix.replace.unicode <- function(df) {
     gsub("\uff3b", "[", .) %>%
     gsub("\u00ab", "<<", .) %>%
     gsub("\u00bb", ">>", .) %>%
+    gsub("\u2329", "<", .) %>%
 
     # Fix roman numeral 2
     gsub("\u2161","II", .) %>%
@@ -287,6 +295,9 @@ fix.replace.unicode <- function(df) {
 
     # Fix fullwidth digit 7
     gsub("\uff17", 7, .) %>%
+
+    # Fix divider
+    gsub("\u2223", "|", .) %>%
 
     # Fix miscellaneous letters
     gsub("\u0067", "g", .) %>%
