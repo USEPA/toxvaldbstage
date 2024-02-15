@@ -1,13 +1,10 @@
 #--------------------------------------------------------------------------------------
-#' @#' Load chiu Source into dev_toxval_source_v3.
-#' Data from the Chiu et al. paper on RfD values
-#'
+#' @description Load chiu Source into toxval_source, only HDMI values
 #' @param db The version of toxval_source into which the source is loaded.
-#' @param infile The input file ./chiu/chiu_files/Full_RfD_databaseQAed-FINAL.xlsx
+#' @param infile The input file ./chiu/chiu_files/RfD_HDMI_mc_results.csv
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn, #' stop to look at the results in indir/chemcheck.xlsx
-#' @title FUNCTION_TITLE
-#' @description FUNCTION_DESCRIPTION
-#' @return OUTPUT_DESCRIPTION
+#' @title import_chiu_source
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -22,10 +19,10 @@
 #'  \code{\link[stringr]{str_remove}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_chiu_source
 #' @export
-#' @importFrom readxl read_xlsx
+#' @importFrom readr read_csv
 #' @importFrom dplyr select mutate distinct
 #' @importFrom tidyr drop_na
-#' @importFrom stringr str_remove fixed str_squish
+#' @importFrom stringr str_remove fixed str_squish str_trim str_extract str_detect
 #--------------------------------------------------------------------------------------
 import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -34,8 +31,8 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2018-06-28")
   dir = paste0(toxval.config()$datapath,"chiu/chiu_files/")
-  file = paste0(dir,"Full_RfD_databaseQAed-FINAL.xlsx")
-  res0 = readxl::read_xlsx(file, sheet="Full_RfD_database_QAed")
+  file = paste0(dir,"RfD_HDMI_mc_results.csv")
+  res0 = readr::read_csv(file, col_types = readr::cols())
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -44,19 +41,18 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   "name"="strName",
                   "subsource"="Source",
                   "toxval_type"="Type",
-                  "toxval_numeric"="numValue",
-                  "toxval_type"="POD.type",
-                  "toxval_numeric"="numPOD",
+                  "toxval_numeric"="PrRfD.approx",
                   "record_url"="strHyperlink",
                   "long_ref"="strReference",
                   "toxval_units"="strUnitsPOD",
-                  "critical_effect"="strCriticalEffect",
+                  "critical_effect_1"="Effect",
+                  "critical_effect_2"="strCriticalEffect",
                   "year"="strDateAssessed",
                   "species"="Species",
                   "strain"="Strain",
                   "study_duration_value"="strDuration",
                   "study_duration_units"="Duration type",
-                  "sex"="tblOrgan_strSex",
+                  "sex"="tblEffect_strSex",
                   "uf"="numUF",
                   "ufa"="numUFa",
                   "ufh"="numUFh",
@@ -66,9 +62,7 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   "ufother"="numUFother",
                   "exposure_route"="Route")
 
-  # Select non-POD data
   res1 <- res0 %>%
-    dplyr::select(-POD.type, -numPOD, -strUnitsPOD) %>%
     dplyr::rename(any_of(rename_list)) %>%
     dplyr::select(any_of(names(rename_list))) %>%
     dplyr::distinct() %>%
@@ -77,25 +71,20 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::mutate(toxval_units = toxval_units %>%
                     gsub("\\)", "", .))
 
-  # Select only POD data
-  res2 <- res0 %>%
-    dplyr::select(-Type, -numValue) %>%
-    dplyr::rename(any_of(rename_list)) %>%
-    dplyr::select(any_of(names(rename_list))) %>%
-    dplyr::distinct()
-
   # Mutate columns in combined data as needed
   res <- res1 %>%
-    bind_rows(res2) %>%
+    dplyr::mutate(year = ifelse(stringr::str_detect(year, "/"), stringr::str_extract(year, "\\d{4}"), year)) %>%
+    dplyr::mutate(year = ifelse(stringr::str_detect(year, " "), stringr::str_trim(str_extract(year, "(?<=\\s)/S+")), year)) %>%
+    tidyr::unite(critical_effect_1, critical_effect_2, col="critical_effect", sep = ": ", na.rm=TRUE) %>%
     dplyr::mutate(
       # Remove extraneous whitespace
       dplyr::across(where(is.character), stringr::str_squish),
       casrn = as.character(casrn),
       year = as.numeric(year),
-      study_duration_units = tolower(study_duration_units),
       # Moved from deprecated load script
       exposure_method = "-",
       risk_assessment_class = "chronic",
+      toxval_type = "HDMI",
       study_type = "chronic",
       toxval_units = "mg/kg-day",
       exposure_method = ifelse(grepl("other", tolower(exposure_route)), "other",
@@ -117,8 +106,6 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::ungroup() %>%
     dplyr::distinct() %>%
     tidyr::drop_na(toxval_numeric)
-
-  res$year[res$year == -1] = NA
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -144,7 +131,4 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
 
