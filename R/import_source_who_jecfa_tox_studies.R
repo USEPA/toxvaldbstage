@@ -100,6 +100,7 @@ import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.re
   # Join back the range split rows
   res <- res %>%
     dplyr::filter(!grepl("-(?![eE])", toxval_numeric, perl=TRUE)) %>%
+    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
     dplyr::bind_rows(., ranged)
 
   # Standardize the names
