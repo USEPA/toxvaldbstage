@@ -89,6 +89,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   tmp = map %>%
     dplyr::pull(from, to)
 
+
   res <- res0 %>%
     # Rename original "name" column to avoid renaming conflicts
     dplyr::rename(study_name = name) %>%
@@ -132,6 +133,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       tidyr::separate(dev_field, into=c("generation_type", "field"), sep="_", extra="merge") %>%
       # Spread out fields again, now without theif "fetus_" or "maternal_" prefixes (now stored in "generation_type")
       tidyr::pivot_wider(names_from = field, values_from=value)
+  }
+
+  # Add NA toxval_units_other column if it doesn't exist
+  if (!("toxval_units_other" %in% names(res))) {
+    res$toxval_units_other = as.character(NA)
   }
 
   res = res %>%
@@ -181,7 +187,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Clean toxval_units/make value substitutions when necessary
       toxval_units = dplyr::case_when(
-        toxval_units == "other:" ~ toxval_units_other,
+        grepl("other:", toxval_units) ~ toxval_units_other,
         TRUE ~ toxval_units
       ) %>%
         gsub("diet", "", .) %>%
@@ -327,8 +333,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ toxval_numeric_qualifier
       ),
 
-      # Ensure that toxval_numeric is of numeric type
-      toxval_numeric = as.numeric(toxval_numeric),
+      # COMMENTED OUT FOR NOW TO ALLOW FOR RANGE VALUES
+      # # Ensure that toxval_numeric is of numeric type
+      # toxval_numeric = as.numeric(toxval_numeric),
 
       # Call fix.replace.unicode after previous cleaning operations to improve runtime
       name = fix.replace.unicode(name) %>%
@@ -338,7 +345,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       critical_effect = fix.replace.unicode(critical_effect) %>%
         stringr::str_squish(),
       strain = fix.replace.unicode(strain) %>%
-        stringr::str_squish()
+        stringr::str_squish(),
+      toxval_units = fix.replace.unicode(toxval_units)
     ) %>%
 
     # Drop unused toxval_qualifier cols
