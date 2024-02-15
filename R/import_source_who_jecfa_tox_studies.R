@@ -78,6 +78,29 @@ import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.re
                   toxval_type != "-") %>%
     dplyr::distinct()
 
+  # Separate toxval_numeric ranges, range_relationship_id created for Load toxval_relationship purposes
+  ranged <- res %>%
+    dplyr::filter(grepl("-(?![eE])", toxval_numeric, perl=TRUE))
+  # Check if any available
+  if(nrow(ranged)){
+    ranged = ranged %>%
+      dplyr::mutate(range_relationship_id = 1:n()) %>%
+      tidyr::separate_rows(toxval_numeric, sep="-") %>%
+      dplyr::group_by(range_relationship_id) %>%
+      dplyr::mutate(
+        toxval_subtype = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
+      ) %>%
+      ungroup()
+  } else {
+    # Empty dataframe with res cols to bind_rows()
+    ranged = res[0,]
+  }
+
+  # Join back the range split rows
+  res <- res %>%
+    dplyr::filter(!grepl("-(?![eE])", toxval_numeric, perl=TRUE)) %>%
+    dplyr::bind_rows(., ranged)
+
   # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
