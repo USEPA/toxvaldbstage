@@ -78,6 +78,34 @@ import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.re
                   toxval_type != "-") %>%
     dplyr::distinct()
 
+  # Deal with toxval_numeric ranges on the basis of toxval_type
+  res <- res %>%
+    dplyr::mutate(
+      toxval_numeric = case_when(
+        grepl("-(?![eE])", toxval_numeric, perl=TRUE) & (toxval_type == "LOAEL" | toxval_type == "LOEL") ~
+          sub("-.*", "", toxval_numeric),
+        grepl("-", toxval_numeric, perl=TRUE) & (toxval_type == "NOAEL" | toxval_type == "NOEL") ~
+          sub(".*-", "", toxval_numeric),
+        TRUE ~ toxval_numeric
+      )
+    )
+  # Separate toxval_numeric ranges for BMDL10, PTDI, PMTDI
+  ranged <- res %>%
+    dplyr::filter((toxval_type == 'BMDL10' | toxval_type == "PTDI" | toxval_type == "PMTDI") &
+                    grepl("-(?![eE])", toxval_numeric, perl=TRUE)) %>%
+    tidyr::separate_rows(toxval_numeric, sep="-") %>%
+    dplyr::group_by(who_jecfa_chemical_id) %>%
+    mutate(
+      toxval_subtype = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
+    ) %>%
+    ungroup()
+  if (nrow(ranged) > 0){
+    res <- res %>%
+      dplyr::filter(!((toxval_type %in% "BMDL10" | toxval_type %in% "PTDI" | toxval_type %in% "PMTDI")
+                      & (grepl("-", toxval_numeric, perl=TRUE))))
+    res <- dplyr::bind_rows(res, ranged)
+  }
+
   # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
