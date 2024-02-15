@@ -89,11 +89,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   tmp = map %>%
     dplyr::pull(from, to)
 
+  # If "name" field exists in source data, rename to avoid conflicts
+  if ("name" %in% names(res0)) {
+    res0 = res0 %>% dplyr::rename(study_name = name)
+  }
 
   res <- res0 %>%
-    # Rename original "name" column to avoid renaming conflicts
-    dplyr::rename(study_name = name) %>%
-
     # Copy columns and rename new columns
     dplyr::rename(tidyselect::all_of(tmp)) %>%
 
@@ -212,8 +213,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Combine columns and name them
     dplyr::select(-tidyr::matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation")) %>%
     # Remove unused name columns
-    dplyr::select(!tidyselect::any_of(c("name_primary", "name_secondary"))) %>%
+    dplyr::select(!tidyselect::any_of(c("name_primary", "name_secondary")))
 
+  # If hashing columns still missing, fill them with "-" to avoid conflicts with later logic
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  res = res %>%
     # Conduct most cleaning operations after dropping rows to improve runtime
     dplyr::mutate(
       # Clean critical_effect column
@@ -407,8 +412,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     browser()
   }
 
-  # Fill blank hashing cols
-  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
   #####################################################################
