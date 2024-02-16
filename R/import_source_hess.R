@@ -85,11 +85,11 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   # Clean up name field
   res = res %>%
     dplyr::mutate(
-      name=name %>%
-        # Fix unicode symbols
-        fix.replace.unicode() %>%
-
-        stringr::str_squish())
+      dplyr::across(c(name, critical_effect, `repeated_dose_(hess)`),
+                    # Fix unicode symbols
+                    ~fix.replace.unicode(.) %>%
+                      stringr::str_squish())
+      )
 
   # Handle case of chemical names with "?" in name due to unicode symbols
   tmp = res %>%
