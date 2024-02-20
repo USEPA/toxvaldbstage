@@ -144,14 +144,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$toxval_units_other = as.character(NA)
   }
 
-  res = res %>%
-    # Handle toxval_numeric (use toxval_subtype to set upper or lower)
-    tidyr::pivot_longer(
-      cols = c("toxval_numeric_lower", "toxval_numeric_upper"),
-      names_to = "toxval_subtype",
-      values_to = "toxval_numeric"
-    ) %>%
-    dplyr::mutate(
+  # Handle name assignment (check if secondary name is supplied)
+  if (!("name_secondary" %in% names(res))) {
+    res$name = res$name_primary
+  } else {
+    res = res %>% dplyr::mutate(
       # OLD NAME LOGIC, WHERE FIRST NAME IN LIST IS SELECTED
       # # Create new name field using name_primary and name_secondary values
       # name = dplyr::case_when(
@@ -181,8 +178,18 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         grepl(";", name_primary) | grepl(";", name_secondary) ~ "DROP THIS NAME",
         # Simply return NA
         TRUE ~ as.character(NA)
-      ),
+      )
+    )
+  }
 
+  res = res %>%
+    # Handle toxval_numeric (use toxval_subtype to set upper or lower)
+    tidyr::pivot_longer(
+      cols = c("toxval_numeric_lower", "toxval_numeric_upper"),
+      names_to = "toxval_subtype",
+      values_to = "toxval_numeric"
+    ) %>%
+    dplyr::mutate(
       # Fill "-" casrn with NA
       casrn = dplyr::case_when(
         casrn == "-" ~ as.character(NA),
