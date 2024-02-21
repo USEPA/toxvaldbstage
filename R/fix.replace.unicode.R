@@ -93,7 +93,9 @@ fix.replace.unicode <- function(df) {
   apostrophe_omega = c("<U+038F>", "<U+1F68>", "<U+1F69>", "<U+1FFA>",
                        "\u038f", "\u1f68", "\u1f69", "\u1ffa")
 
-  omicron = c("\u03bf|\u039f")
+  omicron = c("\u03bf", "\u039f")
+
+  apostrophe_omicron = c("\u038c")
 
   eta = c("<U+03B7>", "<U+03AE>", "<U+1F20>", "<U+1F21>", "<U+1F74>", "<U+1FC3>", "<U+1FC6>",
           "<U+1D6C8>", "<U+1D702>", "<U+1D73C>", "<U+1D776>", "<U+1D7B0>", "<U+0397>",
@@ -126,15 +128,15 @@ fix.replace.unicode <- function(df) {
 
   upsilon = c("\u03c5")
 
-  iota = c("\u03b9|\u0399")
+  iota = c("\u03b9", "\u0399")
 
-  mu = c("\u039c|\u03bc")
+  mu = c("\u039c", "\u03bc")
 
-  nu = c("\u039d")
+  nu = c("\u039d", "\u03bd")
 
   tau = c("\u03c4")
 
-  theta = c("\u03b8")
+  theta = c("\u03b8", "\u0398")
 
   pi = c("\u03c0", "\u03a0")
 
@@ -143,6 +145,8 @@ fix.replace.unicode <- function(df) {
   phi = c("\u03c6")
 
   psi = c("\u03c8")
+
+  zeta = c("\u03b6")
 
   df = df %>%
     # Replacements from: https://www.rapidtables.com/math/symbols/greek_alphabet.html
@@ -157,6 +161,7 @@ fix.replace.unicode <- function(df) {
     gsub(paste0(omega, collapse="|"), "o", .) %>%
     gsub(paste0(apostrophe_omega, collapse="|"), "'o", .) %>%
     gsub(paste0(omicron, collapse="|"), "o", .) %>%
+    gsub(paste0(apostrophe_omicron, collapse="|"), "'o", .) %>%
     gsub(paste0(eta, collapse="|"), "h", .) %>%
     gsub(paste0(apostrophe_eta, collapse="|"), "'h", .) %>%
     gsub(paste0(delta, collapse="|"), "d", .) %>%
@@ -170,6 +175,7 @@ fix.replace.unicode <- function(df) {
     gsub(paste0(chi, collapse="|"), "ch", .) %>%
     gsub(paste0(phi, collapse="|"), "ph", .) %>%
     gsub(paste0(psi, collapse="|"), "ps", .) %>%
+    gsub(paste0(zeta, collapse="|"), "z", .) %>%
 
     # Fix omega with preceding letter
     gsub("<U+33C0>|\u33c0", "KO", .) %>%
@@ -220,7 +226,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u00ce\u00b1", "a", .) %>%
 
     # Handle dashes/bullets
-    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70", "-", .) %>%
+    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70|\u25a1", "-", .) %>%
 
     # Fix quotations and apostrophes
     gsub("\u201c|<U+201C>|\u201d|<U+201D>|\u201e", '"', .) %>%
@@ -271,6 +277,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u2248", "~", .) %>%
     gsub("\u222a", "U", .) %>%
     gsub("\u2229", "^", .) %>%
+    gsub("\u221a", "sqrt", .) %>%
 
     # Fix parentheses and brackets
     gsub("\uff08", "(", .) %>%

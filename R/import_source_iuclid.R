@@ -205,6 +205,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("air", "", .) %>%
         gsub("drinking water", "", .) %>%
         gsub("\\(.+\\)", "", .) %>%
+        gsub("micro", "u", .) %>%
+        gsub(" per ", "/", .) %>%
         stringr::str_squish()
     ) %>%
 
@@ -403,14 +405,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                                  "developmental", "maternal", "fetuses", "fetal", "results", "abnormalities", "animals",
                                  "fetus", "remarks", "details", "concentration", "observation", "examination", "material",
                                  "background", "publication", "description", "attach", "histopath", "observe", "overall",
-                                 "docsforpub", "severity"
+                                 "docsforpub", "severity", "dermal", "incidence"
                      ),
                      replace = c("_", "addata", "matmet", "adexp", "ad",
                                  "mat", "resdisc", "efflvs", "sys", "tox", "inh",
                                  "dvmtl", "mtnl", "fts", "ftl", "res", "abnrm", "anim",
                                  "fts", "rmrk", "dtls", "conc", "obs", "exam", "mat",
                                  "bgrd", "pub", "desc", "atch", "hist", "obs", "ovrll",
-                                 "pubdocs", "sev")) %>%
+                                 "pubdocs", "sev", "derm", "inc")) %>%
     gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .) %>%
     gsub("targetsysorgantox", "trgsysorgtox", .)
 
