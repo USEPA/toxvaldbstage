@@ -18,6 +18,13 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
   casrn.OK = TRUE
   checksum.OK = TRUE
 
+  query = "select casrn, name from source_fda_cedi"
+  res = runQuery(query,source.db,TRUE,FALSE)
+  res0 = res
+  res0 = res0 %>%
+    tidyr::unite(col="chemical_index", all_of(c("casrn", "name")), sep=" ", remove=FALSE)
+
+
   cat(">>> Deal with name\n")
   chem.check.name <- function(in_name, source, verbose){
     n0 = in_name %>%
@@ -94,6 +101,123 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
   res0 = res0 %>%
     dplyr::select(-name, -n0, -n1) %>%
     dplyr::rename(name = n2)
+  res0$name_comment <- NA
+  res2 = res0 %>%
+    mutate(corrected = correct_formula(df=res0,col='name',comment='name_comment'))
+
+  # Correct Formula
+  correct_formula <- function(df, col='chemical_name',comment='name_comment'){
+    df$name_is_formula <- sapply(df[[col]], find_formula)
+    idx <- df$name_is_formula
+    df[idx, comment] <- apply(df[idx, c(comment, col)], 1, function(x){
+      append_col(x=x[comment], s=x[col], comment="Name only formula")
+    })
+    df[idx, col] <- NA
+    df <- df[, !(names(df) %in% 'name_is_formula')]
+    return(df)
+  }
+
+  find_formula <- function(x) {
+    if (is.character(x)) {
+      regex <- '([A-Z][a-z]?)(\\d*(?:(?:[\\.|\\,])\\d+(?:\\%)?)?)|(?:[\\(|\\[])([^()]*(?:(?:[\\(|\\[]).*(?:[\\)|\\]]))?[^()]*)(?:[\\)|\\]])(\\d*(?:(?:[\\.|\\,]?)\\d+(?:\\%)?))'
+      s <- regmatches(x, gregexpr(regex, x))
+      s <- unlist(s)
+      if (length(s) < 1) {
+        s <- ''
+      } else {
+        s <- paste(s, collapse = "")
+        c <- regmatches(s, gregexpr('\\d', s))
+        c <- unlist(c)
+        if (length(c) < 1) {
+
+          if (s != "NaCl") {
+            s <- ''
+          }
+        }
+      }
+    } else {
+      s <- ''
+    }
+    if (is.na(x)) {
+      x <- 'empty'
+    }
+    return(identical(s, x))
+  }
+
+
+
+  append_col <- function(x, s, comment, sep="|") {
+    if (is.character(x)) {
+      if (is.character(s)) {
+        s <- paste(comment, s, sep=": ")
+        y <- paste(trimws(x), trimws(s), sep=sep)
+      } else {
+        y <- x
+      }
+    } else if (is.na(x)) {
+      if (!is.na(s)) {
+        s <- paste(comment, trimws(s), sep=": ")
+      }
+      y <- s
+    } else {
+      y <- NA
+    }
+    return(y)
+  }
+
+  # Drop terminal phrases
+
+  # Drop foods
+  foods <- function() {
+    food <- c('yeast culture', 'food starch', 'sweet whey',
+              'salted fish', 'beverage')
+    return(paste(food, collapse = "|"))
+  }
+
+  drop_foods <- function(df, col='chemical_name', comment='name_comment'){
+    df <- df %>%
+      mutate(contains_food = str_detect(tolower(!!sym(col)), foods())) %>%
+      mutate(!!sym(comment) := ifelse(contains_food, paste0(!!sym(comment), "Name is food"), !!sym(comment))) %>%
+      mutate(!!sym(col) := ifelse(contains_food, NA_character_, !!sym(col))) %>%
+      select(-contains_food)
+    return(df)
+  }
+
+  # Drop stoppers
+  stops <- function(){
+    stop_words <- c('proprietary', 'ingredient', 'hazard', 'blend', 'inert', 'stain',
+                    'other', 'withheld', 'cas |cas-|casrn',
+                    'secret', "herbal",
+                    'confidential', 'bacteri', 'treatment', 'contracept', 'emission',
+                    "agent", "eye", "resin", "citron", 'bio', 'smoke', 'fiber', 'adult',
+                    'boy', 'girl', 'infant', 'child', 'other organosilane', 'material')
+    return(stop_words)
+  }
+
+  drop_stoppers <- function(df, col='chemical_name', comment='name_comment'){
+    df <- df %>%
+      mutate(contains_stop_word = str_detect(tolower(!!sym(col)), paste(stops(), collapse="|"))) %>%
+      mutate(is_ambiguous = contains_stop_word & !str_detect(tolower(!!sym(col)), "yl")) %>%
+      mutate(is_polymer = tolower(!!sym(col)) %in% c("polymer", "plymers", "wax", "mixture")) %>%
+      mutate(is_citron = str_detect(tolower(!!sym(col)), "citron")) %>%
+      mutate(is_compound = str_detect(tolower(!!sym(col)), "compound")) %>%
+      mutate(!!sym(comment) := case_when(
+        is_ambiguous ~ append_col(!!sym(comment), !!sym(col), "Ambiguous name"),
+        is_polymer | is_citron | is_compound ~ append_col(!!sym(comment), !!sym(col), "Ambiguous name"),
+        TRUE ~ !!sym(comment))) %>%
+      mutate(!!sym(col) := case_when(
+        is_ambiguous | is_polymer | is_citron | is_compound ~ NA_character_, TRUE ~ !!sym(col))) %>%
+      select(-contains_stop_word, -is_ambiguous, -is_polymer, - is_citron, -is_compound)
+    return(df)
+  }
+
+  # Drop text
+
+  # Drop salts
+
+  # Drop terminal phrases
+
+  # String cleaning
 
   cat("\n>>> Deal with CASRN\n")
   chem.check.casrn <- function(in_cas, verbose){
