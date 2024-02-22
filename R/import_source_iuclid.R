@@ -112,7 +112,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   # Unite duplicate columns with numbered stems
   for (field in map$to[grepl("_1", map$to) & map$to %in% names(res)]) {
-
+    cat("...Combining duplicate column mapping: ", field, "\n")
     core_field = gsub("_1", "", field)
     res = res %>%
       tidyr::unite(
@@ -218,9 +218,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::filter((name != "" | casrn != "")) %>%
     # Drop entries with no CASRN and inadequate name
     dplyr::filter((name != "[No public or meaningful name is available]" | casrn != "")) %>%
-    # Drop entries with a list of names separated by semicolons
+    # Drop entries with a list of names separated by semicolons (flagged earlier)
     dplyr::filter(name != "DROP THIS NAME") %>%
-    # Combine columns and name them
+    # Remove CrossReference columns
     dplyr::select(-tidyr::matches("CrossReference.*.uuid|CrossReference.*.RelatedInformation")) %>%
     # Remove unused name columns
     dplyr::select(!tidyselect::any_of(c("name_primary", "name_secondary")))
@@ -332,7 +332,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # Ensure normal range for year
       year = dplyr::case_when(
         is.na(year) ~ NA,
-        as.numeric(year) >= 1800 & as.numeric(year) <= 2024 ~ as.numeric(year),
+        # Between 1800 and current year
+        as.numeric(year) >= 1800 & as.numeric(year) <= as.numeric(format(Sys.Date(), "%Y")) ~ as.numeric(year),
         TRUE ~ NA
       ),
 
