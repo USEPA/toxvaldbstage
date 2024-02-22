@@ -77,9 +77,7 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
       bmd_notes = gsub("[NA\\,\\\n]+", NA, bmd_notes),
       confidence_interval = gsub("[NA\\,\\\n]+", NA, confidence_interval),
       animal_group.experiment.study.block_id = gsub("[NA\\,\\\n]+", NA, animal_group.experiment.study.block_id)
-    ) %>%
-    # strip begining and ending quotation marks
-    as.data.frame(sapply(., function(x) gsub("\"", "", x)))
+    )
 
   # Read in dose data
   res_dose3 = readxl::read_xlsx(infile2, col_types = "text") %>%
@@ -341,10 +339,12 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
       casrn = gsub("([a-zA-Z]+\\s+[a-zA-Z]*\\:*\\s*)(.*)", "\\2", casrn),
 
       # Fix exposure details
-      exposure_route = gsub("(^[a-zA-Z]+)(\\s*.*)", "\\1", route_of_exposure),
+      exposure_route = gsub("(^[a-zA-Z]+)(\\s*.*)", "\\1", route_of_exposure) %>%
+        tolower(),
       exposure_method = route_of_exposure %>%
         gsub("(^[a-zA-Z]+\\s*)(.*)", "\\2", .) %>%
-      gsub("^\\-\\s+", "", .),
+        gsub("^\\-\\s+", "", .) %>%
+        dplyr::na_if(., ""),
 
       # OLD LOGIC (updated to Tidyverse)
       # # Fix fields related to study_duration
@@ -444,6 +444,9 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
   res2$target = NA
   res2 = res2[,!names(res2)%in%c("hashkey")]
   res = res2
+
+  # strip begining and ending quotation marks
+  res <- as.data.frame(sapply(res, function(x) gsub("\"", "", x)))
 
   # Standardize the names
   names(res) <- names(res) %>%
