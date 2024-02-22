@@ -3,14 +3,14 @@
 #' @return None, file directory structure generated
 #' @title FUNCTION_TITLE
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
 #' @rdname initialize_source_iuclid_directory
-#' @export 
+#' @export
 #
 #--------------------------------------------------------------------------------------
 initialize_source_iuclid_directory <- function() {
@@ -24,9 +24,8 @@ initialize_source_iuclid_directory <- function() {
   files <- list.files(pattern=".xlsx") %>%
     .[!. %in% c("iuclid_field_map.xlsx")]
   for(f in files){
-    # Get source name
-    #source <- substring(f, 1, nchar(f)-16)
-    source = gsub(".xlsx", "", f) %>%
+    # Get source name (remove date and filetype stem)
+    source = gsub("_[0-9]+.xlsx", "", f) %>%
       paste0("iuclid_", .) %>%
       tolower()
     # Create source directory if not already present
@@ -34,7 +33,7 @@ initialize_source_iuclid_directory <- function() {
       dir.create(source)
     }
     # Create source subdirectories if not already present
-    for(s in c("_files", "_MySQL", "_R")){
+    for(s in c("_files", "_MySQL", "_code")){
       n_dir = paste0(source, "/", source, s)
       if(!dir.exists(n_dir)) dir.create(n_dir)
     }
