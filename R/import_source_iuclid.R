@@ -253,28 +253,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::bind_rows(ranged)
 
   res = res %>%
-    # # Handle toxval_numeric (use toxval_subtype to set upper or lower)
-    # tidyr::pivot_longer(
-    #   cols = c("toxval_numeric_lower", "toxval_numeric_upper"),
-    #   names_to = "toxval_subtype",
-    #   values_to = "toxval_numeric"
-    # ) %>%
     dplyr::mutate(
       # Fill "-" casrn with NA
       casrn = dplyr::case_when(
         casrn == "-" ~ as.character(NA),
         TRUE ~ casrn
       ),
-
-      # # Translate toxval_subtype values
-      # toxval_subtype = dplyr::case_when(
-      #   # Do not set toxval_subtype if value was not part of a range
-      #   is.na(subtype_flag) ~ as.character(NA),
-      #   # Otherwise, set appropriate range subtypes
-      #   grepl("lower", toxval_subtype) ~ "Lower Range",
-      #   grepl("upper", toxval_subtype) ~ "Upper Range",
-      #   TRUE ~ toxval_subtype
-      # ),
 
       # Clean toxval_units/make value substitutions when necessary
       toxval_units = dplyr::case_when(
