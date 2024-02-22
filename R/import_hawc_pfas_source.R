@@ -44,6 +44,9 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
   infile2 = paste0(toxval.config()$datapath,
                    "hawc_pfas_",hawc_num,"/hawc_pfas_",hawc_num,"_files/",
                    "hawc_pfas_",hawc_num,"_doses3.xlsx")
+  infile3 = paste0(toxval.config()$datapath,
+                   "hawc_pfas_",hawc_num,"/hawc_pfas_",hawc_num,"_files/",
+                   "hawc_pfas_",hawc_num,"_groups3.xlsx")
 
   source = paste0("HAWC PFAS ", hawc_num)
   source_table = paste0("source_hawc_pfas_", hawc_num)
@@ -83,6 +86,14 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     dplyr::select(tidyselect::all_of(c("dose_regime", "dose_group_id", "dose", "dose_units.name"))) %>%
     dplyr::distinct()
 
+  # Read in dose groups
+  res_groups3 <- openxlsx::read.xlsx(infile3) %>%
+    dplyr::select(#endpoint,
+      dose_group_id) %>%
+    dplyr::distinct()
+
+  res_groups3[] = lapply(res_groups3, as.character)
+
   # Select relevant columns
   hawc_pfas = res_pfas3 %>%
     dplyr::select(tidyselect::all_of(c("assessment","name" ,"organ","NOEL","LOEL",
@@ -100,6 +111,8 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
 
   # Create ordered dose_dict
   dose_dict <- res_dose3 %>%
+    dplyr::left_join(res_groups3,
+                     by="dose_group_id") %>%
     dplyr::arrange(dose_regime, dose_units.name, dose)
 
   # Maintain unaltered dose_dict
@@ -117,7 +130,9 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     tidyr::pivot_wider(id_cols = c("dose_regime", "dose_units.name", "dose_units.name_n"),
                        names_from = "dose_group_id",
                        values_from = "dose") %>%
-    tidyr::unite("dose", -dose_regime, -dose_units.name, -dose_units.name_n, sep=", ") %>%
+    tidyr::unite("dose",
+                 -dose_regime, -dose_units.name, -dose_units.name_n,
+                 sep=", ", na.rm = TRUE) %>%
     dplyr::mutate(dose = gsub(", NA", "", dose))
 
   # Helper function to manage the multiple dosing weirdness but maintain value-unit pairs
@@ -142,11 +157,11 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
   # Sort out dose value - unit pairs for regimes with multiples
   doses = dose_dict %>%
     dplyr::select(dose_regime, dose, dose_units.name) %>%
-    tidyr::unite("dose_dose_units", -dose_regime, sep = "||") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, sep = "||", na.rm = TRUE) %>%
     tidyr::pivot_wider(id_cols = dose_regime,
                        names_from = "dose_dose_units",
                        values_from = "dose_dose_units") %>%
-    tidyr::unite("dose_dose_units", -dose_regime, sep="; ") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, sep="; ", na.rm = TRUE) %>%
     dplyr::mutate(dose_dose_units = gsub("; NA|NA; ", "", dose_dose_units)) %>%
     dplyr::mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
                   dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
@@ -167,11 +182,11 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     dplyr::arrange(dose_regime, dose_units.name, dose)
   # Sort out the NOEL values and units by combining and splitting
   noel_values = noel_dict %>%
-    tidyr::unite("dose_dose_units", -dose_regime, -NOEL, sep = "||") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -NOEL, sep = "||", na.rm = TRUE) %>%
     tidyr::pivot_wider(id_cols = c("dose_regime", "NOEL"),
                        names_from = "dose_dose_units",
                        values_from = "dose_dose_units") %>%
-    tidyr::unite("dose_dose_units", -dose_regime, -NOEL, sep="; ") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -NOEL, sep="; ", na.rm=TRUE) %>%
     dplyr::mutate(dose_dose_units = gsub("; NA|NA; ", "", dose_dose_units)) %>%
     dplyr::mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
                   dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
@@ -188,11 +203,11 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     dplyr::arrange(dose_regime, dose_units.name, dose)
   # Sort out the LOEL values and units by combining and splitting
   loel_values = loel_dict %>%
-    tidyr::unite("dose_dose_units", -dose_regime, -LOEL, sep = "||") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -LOEL, sep = "||", na.rm = TRUE) %>%
     tidyr::pivot_wider(id_cols = c("dose_regime", "LOEL"),
                        names_from = "dose_dose_units",
                        values_from = "dose_dose_units") %>%
-    tidyr::unite("dose_dose_units", -dose_regime, -LOEL, sep="; ") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -LOEL, sep="; ", na.rm = TRUE) %>%
     dplyr::mutate(dose_dose_units = gsub("; NA|NA; ", "", dose_dose_units)) %>%
     dplyr::mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
                   dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
@@ -209,11 +224,11 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     dplyr::arrange(dose_regime, dose_units.name, dose)
   # Sort out the FEL values and units by combining and splitting
   fel_values = fel_dict %>%
-    tidyr::unite("dose_dose_units", -dose_regime, -FEL, sep = "||") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -FEL, sep = "||", na.rm=TRUE) %>%
     tidyr::pivot_wider(id_cols = c("dose_regime", "FEL"),
                        names_from = "dose_dose_units",
                        values_from = "dose_dose_units") %>%
-    tidyr::unite("dose_dose_units", -dose_regime, -FEL, sep="; ") %>%
+    tidyr::unite("dose_dose_units", -dose_regime, -FEL, sep="; ", na.rm = TRUE) %>%
     dplyr::mutate(dose_dose_units = gsub("; NA|NA; ", "", dose_dose_units)) %>%
     dplyr::mutate(dose = purrr::map2_chr(dose_dose_units, TRUE, split_dose_dose_units),
                   dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
@@ -289,17 +304,18 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     ) %>%
 
     # Pivot the NOEL, LOEL, and FEL fields to long form
-    tidyr::unite(noel_names, NOEL_values, NOEL_units,
+    tidyr::unite(noel_names, NOEL_values, NOEL_units, NOEL_original,
                  col="NOEL", sep="|") %>%
-    tidyr::unite(loel_names, LOEL_values, LOEL_units,
+    tidyr::unite(loel_names, LOEL_values, LOEL_units, LOEL_original,
                  col="LOEL", sep="|") %>%
-    tidyr::unite(fel_names, FEL_values, FEL_units,
+    tidyr::unite(fel_names, FEL_values, FEL_units, FEL_original,
                  col="FEL", sep="|") %>%
     tidyr::pivot_longer(cols = c("NOEL", "LOEL", "FEL"),
                         names_to = NULL,
                         values_to = "toxval_transform") %>%
+    # Preserve the toxval_numeric dose index
     tidyr::separate(col = toxval_transform,
-                    into = c("toxval_type", "toxval_numeric", "toxval_units"),
+                    into = c("toxval_type", "toxval_numeric", "toxval_units", "toxval_numeric_dose_index"),
                     sep = "\\|") %>%
     dplyr::mutate(toxval_type = gsub("NA", NA, toxval_type),
                   toxval_numeric = gsub("NA", NA, toxval_numeric),
@@ -309,37 +325,6 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     tidyr::drop_na(toxval_numeric, toxval_type, toxval_units) %>%
     dplyr::filter(toxval_numeric != "-999",
                   toxval_units != "Normal")
-
-  #####################################################################
-  cat("Collapse duplicated that just differ by critical effect \n")
-  #####################################################################
-  res2 = res %>%
-    dplyr::select(-c("critical_effect","endpoint_url_original","record_url","target"))
-
-  res2$hashkey = NA
-  res$hashkey = NA
-  for(i in 1:nrow(res2)) {
-    hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
-    res2[i,"hashkey"] = hashkey
-    res[i,"hashkey"] = hashkey
-  }
-  res2 = dplyr::distinct(res2)
-  res2$critical_effect = NA
-  for(i in 1:nrow(res2)) {
-    hashkey = res2[[i,"hashkey"]]
-    res3 = res[res$hashkey==hashkey,]
-    x = res3$target
-    y = res3$critical_effect
-    ce = ""
-    for(j in 1:length(x)) ce=paste0(ce,x[j],":",y[j],"|")
-    ce = substr(ce,1,(nchar(ce)-1))
-    res2[i,"critical_effect"] = ce
-  }
-  res2$endpoint_url_original = NA
-  res2$record_url = NA
-  res2$target = NA
-  res2 = res2[,!names(res2)%in%c("hashkey")]
-  res = res2
 
   # Final transformations moved from load script
   res = res %>%
@@ -429,6 +414,37 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
       study_type = gsub("(^\\w+\\-*\\w*)(\\s*.*)", "\\1", study_type_original)
     )
 
+  #####################################################################
+  cat("Collapse duplicated that just differ by critical effect \n")
+  #####################################################################
+  res2 = res %>%
+    dplyr::select(-c("critical_effect","endpoint_url_original","record_url","target"))
+
+  res2$hashkey = NA
+  res$hashkey = NA
+  for(i in 1:nrow(res2)) {
+    hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
+    res2[i,"hashkey"] = hashkey
+    res[i,"hashkey"] = hashkey
+  }
+  res2 = dplyr::distinct(res2)
+  res2$critical_effect = NA
+  for(i in 1:nrow(res2)) {
+    hashkey = res2[[i,"hashkey"]]
+    res3 = res[res$hashkey==hashkey,]
+    x = res3$target
+    y = res3$critical_effect
+    ce = ""
+    for(j in 1:length(x)) ce=paste0(ce,x[j],":",y[j],"|")
+    ce = substr(ce,1,(nchar(ce)-1))
+    res2[i,"critical_effect"] = ce
+  }
+  res2$endpoint_url_original = NA
+  res2$record_url = NA
+  res2$target = NA
+  res2 = res2[,!names(res2)%in%c("hashkey")]
+  res = res2
+
   # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
@@ -441,6 +457,10 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
+
+  # Check toxval_numeric and dose/dose index values
+  # View(res %>% select(toxval_type, toxval_numeric, toxval_units, toxval_numeric_dose_index, doses, doses_units),
+  #      title="numeric_index_dose_check")
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -451,9 +471,5 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=toxval.config()$hashing_cols)
+                       hashing_cols=c(toxval.config()$hashing_cols, "data_location"))
 }
-
-
-
-
