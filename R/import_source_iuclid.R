@@ -182,6 +182,94 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     )
   }
 
+  # Before handling range relationships, check for unhandled edge cases
+  # CASE 1: NA lower/upper with a toxval_numeric hyphen range
+  # CASE 2: Nested range
+  # Both cases handled in following logic:
+  if("toxval_numeric_lower" %in% names(res) & "toxval_numeric_upper" %in% names(res)) {
+    res = res %>%
+      dplyr::mutate(
+        edge_case_check = dplyr::case_when(
+          grepl("-(?![eE])", toxval_numeric_lower, perl=TRUE) ~ 1,
+          grepl("-(?![eE])", toxval_numeric_upper, perl=TRUE) ~ 1,
+          TRUE ~ 0
+        )
+      )
+    if(1 %in% res$edge_case_check) {
+      cat("\nRange relationship edge case identified\n")
+      cat("Check for hyphenated range in toxval_numeric_lower/upper\n")
+      stop()
+    }
+    res = res %>% dplyr::select(-edge_case_check)
+  }
+
+  # Handle case where toxval_numeric only is supplied (not upper/lower)
+  if("toxval_numeric" %in% names(res)) {
+    res = res %>%
+      # Split ranged values into toxval_numeric_lower and toxval_numeric_upper
+      tidyr::separate(
+        col = toxval_numeric,
+        into = c("toxval_numeric_lower", "toxval_numeric_upper"),
+        sep = "-",
+        remove = TRUE,
+        fill = "right"
+      ) %>%
+
+      dplyr::mutate(
+        # Repair cases where scientific notation was mistakenly split
+        toxval_numeric_lower = dplyr::case_when(
+          grepl("[eE]", paste0(toxval_numeric_lower, toxval_numeric_upper)) ~ paste0(toxval_numeric_lower,
+                                                                                     "-",
+                                                                                     toxval_numeric_upper),
+          TRUE ~ toxval_numeric_lower
+        ),
+        toxval_numeric_upper = dplyr::case_when(
+          grepl("[eE]", paste0(toxval_numeric_lower, toxval_numeric_upper)) ~ as.character(NA),
+          TRUE ~ toxval_numeric_lower
+        ),
+
+        # Set flag for toxval_subtype to be used later
+        # Reasoning: non-range toxval_numeric entries should not be treated as "Lower Range"
+        subtype_flag = dplyr::case_when(
+          !is.na(toxval_numeric_upper) ~ 1,
+          TRUE ~ NA
+        )
+      )
+  } else {
+    # toxval_numeric_upper/lower directly supplied
+    res$subtype_flag = 1
+  }
+
+  # Handle case where only toxval_numeric_qualifier is supplied (or no qualifier)
+  if(!("toxval_qualifier_upper" %in% names(res) & "toxval_qualifier_lower" %in% names(res))) {
+    if(!"toxval_numeric_qualifier" %in% names(res)) {
+      res$toxval_numeric_qualifier = as.character(NA)
+    }
+    # Set both upper and lower qualifiers to single qualifier supplied
+    res = res %>% dplyr::mutate(
+      toxval_qualifier_upper = toxval_numeric_qualifier,
+      toxval_qualifier_lower = toxval_numeric_qualifier
+    )
+  }
+
+  # Add relationship ID to handle ranged values
+  ranged <- res %>%
+    # Define ranged entry as entry with both toxval_numeric_lower and toxval_numeric_upper
+    dplyr::filter(!is.na(toxval_numeric_lower) & !is.na(toxval_numeric_upper))
+  # Check if any available
+  if(nrow(ranged)){
+    ranged = ranged %>% dplyr::mutate(range_relationship_id = 1:n())
+  } else {
+    # Empty dataframe with res cols to bind_rows()
+    ranged = res[0,]
+  }
+
+  # Join back the range split rows
+  res <- res %>%
+    dplyr::filter(is.na(toxval_numeric_lower) | is.na(toxval_numeric_upper)) %>%
+    dplyr::mutate(range_relationship_id = NA) %>%
+    dplyr::bind_rows(ranged)
+
   res = res %>%
     # Handle toxval_numeric (use toxval_subtype to set upper or lower)
     tidyr::pivot_longer(
@@ -194,6 +282,16 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       casrn = dplyr::case_when(
         casrn == "-" ~ as.character(NA),
         TRUE ~ casrn
+      ),
+
+      # Translate toxval_subtype values
+      toxval_subtype = dplyr::case_when(
+        # Do not set toxval_subtype if value was not part of a range
+        is.na(subtype_flag) ~ as.character(NA),
+        # Otherwise, set appropriate range subtypes
+        grepl("lower", toxval_subtype) ~ "Lower Range",
+        grepl("upper", toxval_subtype) ~ "Upper Range",
+        TRUE ~ toxval_subtype
       ),
 
       # Clean toxval_units/make value substitutions when necessary
@@ -209,6 +307,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub(" per ", "/", .) %>%
         stringr::str_squish()
     ) %>%
+    # Drop subtype helper col
+    dplyr::select(-subtype_flag) %>%
 
     # Filter out entries with inadequate toxval_type
     dplyr::filter(!grepl("dose|other", toxval_type)) %>%
@@ -353,8 +453,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # Add toxval_numeric_qualifier when not present in data (per Jira guidelines)
       toxval_numeric_qualifier = dplyr::case_when(
         !is.na(toxval_numeric_qualifier) ~ toxval_numeric_qualifier,
-        toxval_subtype == "toxval_numeric_lower" ~ ">",
-        toxval_subtype == "toxval_numeric_upper" ~ "<",
+        toxval_subtype == "toxval_numeric_lower" ~ ">=",
+        toxval_subtype == "toxval_numeric_upper" ~ "<=",
         TRUE ~ toxval_numeric_qualifier
       ),
 
