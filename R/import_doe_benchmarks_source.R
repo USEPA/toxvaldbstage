@@ -41,6 +41,8 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
   #####################################################################
   # Add sequential IDs for linkages handled in load script
   res0_numbered = res0 %>%
+    # Remove Form which causes duplicates
+    dplyr::select(-Form) %>%
     dplyr::mutate(linkage_id = dplyr::row_number())
 
   # Get data for "test" entries
@@ -167,6 +169,30 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
+
+  # Dedup/handle linkage_id dups
+  res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
+  res$source_hash = res.temp$source_hash
+
+  # Check for immediate duplicate hashes
+  dup_hashes = res %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::summarise(n = dplyr::n()) %>%
+    dplyr::filter(n > 1)
+
+  # Collapse ID field to improve conversion speeds (only convert unique cases once)
+  res_zip = res %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::summarise(linkage_id = toString(linkage_id)) %>%
+    dplyr::ungroup()
+  # Map back the collapsed groupings for linkage_id
+  res = res %>%
+    dplyr::select(-linkage_id) %>%
+    dplyr::left_join(res_zip,
+                     by="source_hash") %>%
+    dplyr::select(-source_hash) %>%
+    dplyr::distinct()
+
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -177,7 +203,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=c(toxval.config()$hashing_cols, "linkage_id"))
+                       hashing_cols=toxval.config()$hashing_cols)
 }
 
 
