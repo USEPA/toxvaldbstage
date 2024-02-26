@@ -56,7 +56,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_hawc_pfas_430" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                         "clowder_v3/source_hawc_pfas_430_document_map_20231114.xlsx")),
                       "source_pfas_150_sem_v2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                          "clowder_v3/pfas_150_sem_document_map_10032022_mmille16.xlsx")),
+                                                                          "clowder_v3/source_pfas_150_sem_document_map_20240221_jnhope.xlsx")),
                       "source_hpvis" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                 "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx")),
                       "source_oppt" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -523,18 +523,16 @@ set_clowder_id_lineage <- function(source_table,
                   "source_pfas_150_sem_v2" = {
                     # Match origin docs
                     res <- res %>%
-                      dplyr::mutate(source_version_date = "2022-05-17") %>%
-                      left_join(map_file %>%
-                                  filter(document_type == "origin", !is.na(clowder_id)) %>%
-                                  select(clowder_id, fk_doc_id, hero_id = `HERO ID`) %>%
-                                  mutate(hero_id = as.character(hero_id)) %>%
-                                  distinct(),
-                                by="hero_id") %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::filter(document_type == "origin", !is.na(clowder_id)) %>%
+                                         dplyr::select(clowder_id, fk_doc_id, hero_id = `HERO ID`) %>%
+                                         dplyr::mutate(hero_id = as.character(hero_id)) %>%
+                                         dplyr::distinct(),
+                                       by="hero_id") %>%
                       dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
 
                     # Match to extraction doc
                     tmp = res %>%
-                      dplyr::mutate(source_version_date = "2022-05-17") %>%
                       dplyr::select(source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(document_type == "extraction") %>%
@@ -638,18 +636,16 @@ set_clowder_id_lineage <- function(source_table,
                   "source_cosmos" = {
                     # Match origin docs
                     res <- res %>%
-                      left_join(map_file %>%
-                                  filter(document_type == "origin") %>%
-                                  select(clowder_id, fk_doc_id, document_name,
-                                         name, casrn, study_type, study_reference, species, year) %>%
-                                  distinct(),
-                                by=c("name", "casrn", "study_type", "study_reference", "species", "year")) %>%
-                      dplyr::mutate(source_version_date = "2016-04-02") %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::filter(document_type == "origin") %>%
+                                         dplyr::select(clowder_id, fk_doc_id, document_name,
+                                                       name, casrn, study_type, study_reference, species, year) %>%
+                                         dplyr::distinct(),
+                                       by=c("name", "casrn", "study_type", "study_reference", "species", "year")) %>%
                       dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
 
                     # Match to extraction doc
                     tmp = res %>%
-                      dplyr::mutate(source_version_date = "2016-04-02") %>%
                       dplyr::select(source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(document_type == "extraction") %>%
