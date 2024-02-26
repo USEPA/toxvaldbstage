@@ -191,14 +191,21 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res = res %>%
       dplyr::mutate(
         edge_case_check = dplyr::case_when(
-          grepl("-(?![eE])", toxval_numeric_lower, perl=TRUE) ~ 1,
-          grepl("-(?![eE])", toxval_numeric_upper, perl=TRUE) ~ 1,
-          TRUE ~ 0
+          grepl("\\-(?![eE])", toxval_numeric_lower, perl=TRUE) ~ as.character(toxval_numeric_lower),
+          grepl("\\-(?![eE])", toxval_numeric_upper, perl=TRUE) ~ as.character(toxval_numeric_upper),
+          TRUE ~ "PASSED"
+        ),
+        # Further translate values
+        edge_case_check = dplyr::case_when(
+          edge_case_check == "PASSED" ~ "PASSED",
+          !is.na(suppressWarnings(as.numeric(edge_case_check))) ~ "PASSED",
+          TRUE ~ "FAILED"
         )
       )
-    if(1 %in% res$edge_case_check) {
+    if(nrow(res %>% dplyr::filter(edge_case_check == "FAILED")) > 0) {
       cat("\nRange relationship edge case identified\n")
       cat("Check for hyphenated range in toxval_numeric_lower/upper\n")
+      writexl::write_xlsx(res %>% dplyr::filter(edge_case_check == "FAILED"), paste0(subf, "_edge_case_check.xlsx"))
       stop()
     }
     res = res %>% dplyr::select(-edge_case_check)
@@ -229,7 +236,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   # Separate toxval_numeric ranges, range_relationship_id created for Load toxval_relationship purposes
   ranged <- res %>%
-    dplyr::filter(grepl("-(?![eE])", toxval_numeric, perl=TRUE))
+    dplyr::filter(grepl("-(?![eE])", toxval_numeric, perl=TRUE),
+                  !is.na(suppressWarnings(toxval_numeric)))
   # Check if any available
   if(nrow(ranged)){
     ranged = ranged %>%
@@ -248,9 +256,15 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   # Join back the range split rows
   res <- res %>%
-    dplyr::filter(!grepl("-(?![eE])", toxval_numeric, perl=TRUE)) %>%
+    dplyr::filter(!grepl("-(?![eE])", toxval_numeric, perl=TRUE),
+                  !is.na(suppressWarnings(toxval_numeric))) %>%
     dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
     dplyr::bind_rows(ranged)
+
+  # Handle case where study_duration_class is not supplied
+  if(!("study_duration_class" %in% names(res))) {
+    res$study_duration_class = as.character(NA)
+  }
 
   res = res %>%
     dplyr::mutate(
@@ -340,6 +354,15 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ study_duration_value
       ),
 
+      # Select only first study_type value when pipe is used
+      study_type = gsub("\\|.+", "", study_type),
+
+      # Add "chronic" study_duration_class for T25 toxval_type
+      study_duration_class = dplyr::case_when(
+        toxval_type == "T25" ~ "chronic",
+        TRUE ~ study_duration_class
+      ),
+
       # Clean species column
       species = species %>%
         tolower() %>%
@@ -359,7 +382,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # After cleaning, further refine strain
       strain = dplyr::case_when(
         # Filter out entries too long to be a strain (generally study details)
-        nchar(strain) > 100 ~ as.character(NA),
+        # Remove for now
+        # nchar(strain) > 100 ~ as.character(NA),
         # Filter out entries with "age"
         grepl("age", strain, ignore.case=TRUE) ~ as.character(NA),
         TRUE ~ strain
@@ -416,8 +440,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # Add toxval_numeric_qualifier when not present in data (per Jira guidelines)
       toxval_numeric_qualifier = dplyr::case_when(
         !is.na(toxval_numeric_qualifier) ~ toxval_numeric_qualifier,
-        toxval_subtype == "Lower Range" ~ ">=",
-        toxval_subtype == "Upper Range" ~ "<=",
+        toxval_subtype == "Lower Range" ~ "<=",
+        toxval_subtype == "Upper Range" ~ ">=",
         TRUE ~ toxval_numeric_qualifier
       ),
 
@@ -434,11 +458,24 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       strain = fix.replace.unicode(strain) %>%
         stringr::str_squish(),
       toxval_units = fix.replace.unicode(toxval_units) %>%
-        stringr::str_squish()
+        stringr::str_squish(),
+
+      # Add fda_chem_id column and adjust name values accordingly
+      fda_chem_id = dplyr::case_when(
+        grepl("NDA[0-9]+\\-", name) ~ gsub("\\-.+", "", name),
+        TRUE ~ as.character(NA)
+      ),
+      name = dplyr::case_when(
+        grepl("NDA[0-9]+\\-", name) ~ gsub(".+\\-", "", name),
+        TRUE ~ name
+      )
     ) %>%
 
     # Drop unused toxval_qualifier cols
-    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper")))
+    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper"))) %>%
+    # Remove entries with "conc. level" toxval_type or "%" toxval_units
+    dplyr::filter(!grepl("conc\\. level", toxval_type),
+                  !grepl("%", toxval_units))
 
   # Check for acute OHTs without a mapped duration field
   if(grepl("acute", subf, ignore.case = TRUE)){
@@ -454,6 +491,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     message("Media field is missing a mapping, defaulting to blank for now...")
     res$media = "-"
   }
+
+  # Drop duplicates
+  res = dplyr::distinct(res)
 
   # Standardize the names
   names(res) <- names(res) %>%
