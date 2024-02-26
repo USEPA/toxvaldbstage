@@ -142,14 +142,7 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       ),
 
       # Prepare critical_effect columns for uniting
-      critical_effect_class = dplyr::case_when(
-        critical_effect_class == "-" ~ as.character(NA),
-        TRUE ~ critical_effect_class
-      ),
-      critical_effect = dplyr::case_when(
-        critical_effect == "-" ~ as.character(NA),
-        TRUE ~ critical_effect
-      )
+      dplyr::across(c(critical_effect_class, critical_effect), ~na_if(., "-")),
     ) %>%
 
     # Combine critical_effect information to build critical_effect column
