@@ -490,7 +490,7 @@ set_clowder_id_lineage <- function(source_table,
                     res2 <- res %>%
                       dplyr::select(source_hash, source_version_date) %>%
                       merge(extraction_docs %>%
-                              dplyr::select(clowder_id, fk_doc_id, name = "Chemical Name"))
+                              dplyr::select(clowder_id, fk_doc_id, name))
 
                     # Combine the two associated dataframes back into res
                     res <- rbind(res1, res2) %>%
