@@ -324,6 +324,50 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     dplyr::filter(toxval_numeric != "-999",
                   toxval_units != "Normal")
 
+  # Collapse duplicated that just differ by critical effect
+  res2 = res %>%
+    dplyr::select(-c("critical_effect","endpoint_url_original","record_url","target"))
+
+  res2$hashkey = NA
+  res$hashkey = NA
+  for(i in 1:nrow(res2)) {
+    hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
+    res2[i,"hashkey"] = hashkey
+    res[i,"hashkey"] = hashkey
+  }
+  res2 = dplyr::distinct(res2)
+  res2$critical_effect = NA
+  for(i in 1:nrow(res2)) {
+    hashkey = res2[[i,"hashkey"]]
+    res3 = res[res$hashkey==hashkey,]
+    x = res3$target
+    y = res3$critical_effect
+    ce = ""
+    for(j in 1:length(x)) ce=paste0(ce,x[j],":",y[j],"|")
+    ce = substr(ce,1,(nchar(ce)-1))
+    res2[i,"critical_effect"] = ce
+  }
+  res2$endpoint_url_original = NA
+  res2$record_url = NA
+  res2$target = NA
+  res2 = res2[,!names(res2)%in%c("hashkey")]
+  res = res2
+
+  # strip begining and ending quotation marks
+  res <- as.data.frame(sapply(res, function(x) gsub("\"", "", x)))
+
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  # Drop data_location for deduping purposes
+  res = res %>%
+    dplyr::select(-data_location) %>%
+    dplyr::distinct()
+
   # Handle relationship linkages
   relationship <- res %>%
     dplyr::filter(grepl(";", toxval_numeric),
@@ -349,14 +393,9 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
 
   # Final transformations moved from load script
   res = res %>%
-    # Separate entries with multiple corresponding toxval_numeric and toxval_units
+    # Separate entries with multiple corresponding toxval_numeric, toxval_units, and dose values
     tidyr::separate_rows(
-      c(toxval_numeric, toxval_units),
-      sep = ";"
-    ) %>%
-    # Separate entries with multiple corresponding doses and doses_units
-    tidyr::separate_rows(
-      c(doses, doses_units),
+      c(doses, doses_units, toxval_numeric, toxval_units),
       sep = ";"
     ) %>%
 
@@ -373,32 +412,6 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
         gsub("(^[a-zA-Z]+\\s*)(.*)", "\\2", .) %>%
         gsub("^\\-\\s+", "", .) %>%
         dplyr::na_if(., ""),
-
-      # OLD LOGIC (updated to Tidyverse)
-      # # Fix fields related to study_duration
-      # study_duration_value = exposure_duration_text %>%
-      #   gsub("(^\\d+)(\\s+.*)", "\\1", .) %>%
-      #   gsub("(^\\d+)(.*)", "\\1", .),
-      # # Account for range vals
-      # study_duration_value = dplyr::case_when(
-      #   grepl("\\-", study_duration_value) ~ exposure_duration_value_original,
-      #   TRUE ~ study_duration_value
-      # ) %>%
-      #   as.numeric(),
-      # study_duration_units = exposure_duration_text %>%
-      #   gsub("(^GD)(\\s+.*)", "\\1", .) %>%
-      #   gsub("(^\\d+\\s+)(\\w+)(\\s*.*)", "\\2", .) %>%
-      #   gsub("(.*)(\\d+\\s+)(\\w+)(\\s*.*)", "\\3", .) %>%
-      #   gsub("(\\d+\\s*)(\\w+)(\\s*.*)", "\\2", .),
-      # # Translate study_duration_units
-      # study_duration_units = dplyr::case_when(
-      #   grepl("d", study_duration_units, ignore.case = TRUE) ~ "days",
-      #   grepl("w", study_duration_units, ignore.case = TRUE) ~ "weeks",
-      #   grepl("y", study_duration_units, ignore.case = TRUE) ~ "years",
-      #   grepl("m", study_duration_units, ignore.case = TRUE) ~ "minutes",
-      #   grepl("h", study_duration_units, ignore.case = TRUE) ~ "hours",
-      #   TRUE ~ study_duration_units
-      # ),
 
       # Fix fields related to study_duration
       study_duration_value = dplyr::case_when(
@@ -442,81 +455,12 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
       study_type = gsub("(^\\w+\\-*\\w*)(\\s*.*)", "\\1", study_type_original)
     )
 
-  #####################################################################
-  cat("Collapse duplicated that just differ by critical effect \n")
-  #####################################################################
-  res2 = res %>%
-    dplyr::select(-c("critical_effect","endpoint_url_original","record_url","target"))
-
-  res2$hashkey = NA
-  res$hashkey = NA
-  for(i in 1:nrow(res2)) {
-    hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
-    res2[i,"hashkey"] = hashkey
-    res[i,"hashkey"] = hashkey
-  }
-  res2 = dplyr::distinct(res2)
-  res2$critical_effect = NA
-  for(i in 1:nrow(res2)) {
-    hashkey = res2[[i,"hashkey"]]
-    res3 = res[res$hashkey==hashkey,]
-    x = res3$target
-    y = res3$critical_effect
-    ce = ""
-    for(j in 1:length(x)) ce=paste0(ce,x[j],":",y[j],"|")
-    ce = substr(ce,1,(nchar(ce)-1))
-    res2[i,"critical_effect"] = ce
-  }
-  res2$endpoint_url_original = NA
-  res2$record_url = NA
-  res2$target = NA
-  res2 = res2[,!names(res2)%in%c("hashkey")]
-  res = res2
-
-  # strip begining and ending quotation marks
-  res <- as.data.frame(sapply(res, function(x) gsub("\"", "", x)))
-
-  # Standardize the names
-  names(res) <- names(res) %>%
-    stringr::str_squish() %>%
-    # Replace whitespace and periods with underscore
-    gsub("[[:space:]]|[.]", "_", .) %>%
-    tolower()
-
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
 
-  # ATTEMPT AT DEDUPING
-  # # Dedup/handle relationship_id dups
-  # res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
-  # res$source_hash = res.temp$source_hash
-  #
-  # # Check for immediate duplicate hashes
-  # dup_hashes = res %>%
-  #   dplyr::group_by(source_hash) %>%
-  #   dplyr::summarise(n = dplyr::n()) %>%
-  #   dplyr::filter(n > 1)
-  #
-  # # Collapse ID field to improve conversion speeds (only convert unique cases once)
-  # res_zip = res %>%
-  #   dplyr::group_by(source_hash) %>%
-  #   dplyr::summarise(relationship_id = toString(relationship_id)) %>%
-  #   dplyr::ungroup()
-  # # Map back the collapsed groupings for relationship_id
-  # res = res %>%
-  #   dplyr::select(-relationship_id) %>%
-  #   dplyr::left_join(res_zip,
-  #                    by="source_hash") %>%
-  #   dplyr::select(-source_hash) %>%
-  #   dplyr::mutate(relationship_id = gsub("NA,?\\s?", "", relationship_id)) %>%
-  #   dplyr::distinct()
-
-  # Check toxval_numeric and dose/dose index values
-  # View(res %>% select(toxval_type, toxval_numeric, toxval_units, toxval_numeric_dose_index, doses, doses_units),
-  #      title="numeric_index_dose_check")
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
