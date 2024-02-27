@@ -54,7 +54,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   iris_files <- paste0(toxval.config()$datapath,"iris/iris_files/") %>%
     list.files(full.names = TRUE) %>%
     # No longer using WOE files
-    .[!grepl("woe", ., ignore.case = TRUE)]
+    .[!grepl("woe|draft", ., ignore.case = TRUE)]
 
   # Load iris files in named list
   iris_data <- lapply(iris_files, function(f) {
@@ -186,6 +186,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
     dplyr::distinct()
 
+  iris_data$RfC_Toxicity_Values.xlsx$`POD VALUE`[is.na(iris_data$RfC_Toxicity_Values.xlsx$`POD VALUE`)] <- "NO-POD"
   ####################################################
   ### Transform RfD_Toxicity_Values.xlsx
   ####################################################
@@ -203,6 +204,8 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                     gsub("<sup>", "", ., fixed=TRUE) %>%
                     gsub("</sup>", "", ., fixed=TRUE)) %>%
     dplyr::distinct()
+
+  iris_data$RfD_Toxicity_Values.xlsx$`POD VALUE`[is.na(iris_data$RfD_Toxicity_Values.xlsx$`POD VALUE`)] <- "NO-POD"
 
   #######################################################
   ### Join files
@@ -226,12 +229,12 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::select(`CHEMICAL ID`, critical_effect_tumor_type,
                   toxval_type, toxval_numeric, toxval_units) %>%
     dplyr::filter(toxval_type %in% c("RfC", "RfD")) %>%
-    tidyr::unite(col="compare", sep="_", remove = FALSE)
+    tidyr::unite(col="compare", sep="_", remove = FALSE, na.rm = TRUE)
 
   tmp2 <- rfc_rfd %>%
     dplyr::select(`CHEMICAL ID`, critical_effect_tumor_type = `PRINCIPAL CRITICAL DESCRIPTION`,
                   toxval_type, toxval_numeric, toxval_units) %>%
-    tidyr::unite(col="compare", sep="_", remove = FALSE)
+    tidyr::unite(col="compare", sep="_", remove = FALSE, na.rm = TRUE)
 
   # Check if any records present in one but not the other
   if(length(tmp1$compare[!tmp1$compare %in% tmp2$compare]) |
@@ -262,7 +265,10 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   endpoint = `PRINCIPAL CRITICAL EFFECT SYSTEM`,
                   risk_assessment_duration = DURATION,
                   study_reference = `STUDY CITATION`) %>%
-    dplyr::mutate(toxval_units = fix.replace.unicode(toxval_units))
+    dplyr::mutate(toxval_units = fix.replace.unicode(toxval_units),
+                  study_reference = study_reference %>%
+                    fix.replace.unicode() %>%
+                    stringr::str_squish())
 
 
   # Check joins (identified issue with float/double versus character toxval_numeric join)
@@ -360,9 +366,11 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     # Split POD value into value and units
     tidyr::separate(col = "toxval_numeric",
                     into = c("toxval_numeric", "toxval_units"),
-                    sep=" ", extra = "merge") %>%
+                    sep=" ", extra = "merge", fill="right") %>%
     # dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
-    dplyr::distinct()
+    dplyr::distinct() %>%
+    # Remove NA POD Value entries relabeled as NO-POD
+    dplyr::filter(toxval_numeric != "NO-POD")
   # Check toxval_type missingness
   # Known missing POD for CHEMICAL ID 17, 31, 32, 92, 93, 101, 106, 199
   # pod_fix %>% filter(is.na(toxval_type)) %>% select(`CHEMICAL ID`) %>% unique()
@@ -370,7 +378,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Combine POD values to main dataset
   res0 <- res0 %>%
     dplyr::select(-`EXPERIMENTAL DOSE TYPE`, -`POD VALUE`) %>%
-    rbind(pod_fix)
+    dplyr::bind_rows(pod_fix)
 
   # Hardcode species as human for RfD, RfD, HED, HED, Slope Factor, Unit Risk
   human_toxval_type = c("RfD", "Inhalation Unit Risk", "RfC", "Oral Slope Factor", "HED", "HEC")
@@ -390,13 +398,15 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::rename(exposure_route=route,
                   study_type = assessment_type,
                   study_duration_class=risk_assessment_duration) %>%
-    tidyr::unite(col="study_type", study_type, principal_study, sep=" - ", remove = FALSE) %>%
+    tidyr::unite(col="study_type", study_type, principal_study, sep=" - ", remove = FALSE, na.rm = TRUE) %>%
     # Combine endpoint and critical_effect
-    tidyr::unite(col="critical_effect", endpoint, critical_effect, sep=": ", remove = FALSE) %>%
+    tidyr::unite(col="critical_effect", endpoint, critical_effect, sep=": ", remove = FALSE, na.rm = TRUE) %>%
     dplyr::mutate(critical_effect = critical_effect %>%
-                    gsub("-: ", "", .),
+                    gsub("-: ", "", .) %>%
+                    stringr::str_squish(),
                   study_type = study_type %>%
-                    gsub(" - -| - NA", "", .)) %>%
+                    gsub(" - -| - NA", "", .),
+                  exposure_route = tolower(exposure_route)) %>%
     # Team decision to remove uncertainty_factor, modifying_factor, and dose_type (causing unnecessary duplicates)
     dplyr::select(-uncertainty_factor, -modifying_factor, -dose_type) %>%
     dplyr::distinct()
@@ -406,6 +416,13 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   res0 = res0 %>%
     dplyr::left_join(iris_year_map,
                      by="iris_chemical_id")
+
+  # Fix toxval_units where needed (RfC listed as None)
+  res0$toxval_units[res0$toxval_type == "RfC" & res0$toxval_units %in% c("None")] = "mg/m3"
+  # inhalation with oral units (inhalation = mg/m3)
+  res0$toxval_units[res0$exposure_route == "inhalation" & res0$toxval_units == "mg/kg-day"] = "mg/m3"
+  # oral with inalation units (oral = mg/kg-day)
+  res0$toxval_units[res0$exposure_route == "oral" & res0$toxval_units == "mg/m3"] = "mg/kg-day"
 
   ################################################################################
   ### Append IRIS Summary information
@@ -420,14 +437,15 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Add summary data to df before prep and load
   if(do.summary_data){
     # Import manually curated IRIS Summary information
-    res1 <- iris_data$test_source_iris_summary_curation_2023125.xlsx %>%
+    res1 <- iris_data$source_iris_summary_curation_20240122.xlsx %>%
       dplyr::mutate(
         source_version_date = src_version_date,
         document_type = 'IRIS Summary',
         key_finding = 'No',
         iris_chemical_id = url %>%
           sub('.*=', '', .) %>%
-          as.numeric()) %>%
+          as.numeric(),
+        route = tolower(route)) %>%
       # Remove IRIS Export fields
       # dplyr::select(-principal_study, -document_type, -endpoint) %>%
       dplyr::rename(

@@ -2,26 +2,26 @@
 % Please edit documentation in R/import_test_source.R
 \name{import_test_source}
 \alias{import_test_source}
-\title{FUNCTION_TITLE}
+\title{import_test_source}
 \usage{
 import_test_source(
   db,
-  infile1 = "TEST data.xlsx",
-  infile2 = "test_chemicals_invitrodb.csv",
-  chem.check.halt = T
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
 )
 }
 \arguments{
-\item{db}{The version of toxval_source into which the source info is loaded.}
-
-\item{infile1}{The input file ./test/test_files/TEST data.xlsx}
-
-\item{infile2}{The input file ./test/test_files/test_chemicals_invitrodb.csv to map casrn to names from prod_internal_invitrodb_v3_2.chemical}
+\item{db}{The version of toxval_source into which the source is loaded.}
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+
+\item{do.reset}{If TRUE, delete data from the database for this source before inserting new data}
+
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is loaded into toxval_source
 }
 \description{
 Load TEST Source data into toxval_source
@@ -37,7 +37,9 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[openxlsx]{read.xlsx}}
+\code{\link[readxl]{read_excel}}
  \code{\link[utils]{read.table}}
- \code{\link[stringr]{str_count}}
+ \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{join_by}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}
+ \code{\link[stringr]{str_trim}}
+ \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{drop_na}}
 }

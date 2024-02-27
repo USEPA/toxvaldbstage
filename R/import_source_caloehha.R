@@ -80,7 +80,8 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                     chronic_inhalation_rel_units = "ug/m3",
                     mcl_units = "mg/L",
                     phg_units = "mg/L",
-                    notification_level_units = "ug/L") %>%
+                    notification_level_units = "ug/L",
+                    chrfd_units = ifelse(!is.na(chrfd) & !grepl("E", chrfd), sub("^[0-9.]+\\s+","",chrfd), NA)) %>%
       dplyr::distinct() %>%
       dplyr::mutate(dplyr::across(where(is.character), ~na_if(., "--")),
                     dplyr::across(where(is.character), ~na_if(., "n/a")),
@@ -134,6 +135,9 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
         res[[f_units]][grepl(unit, res[[f]], fixed=TRUE)] <- unit
       }
     }
+
+    # Special case for chrfd
+    res$chrfd = ifelse(!is.na(res$chrfd) & !grepl("E", res$chrfd), sub("\\s.*","",res$chrfd), res$chrfd)
 
     # Better handling of year fields where conversion to text (e.g., 6/10/2023) converted to a numeric
     # Also normalizes mm/dd/yyyy to just year
@@ -514,12 +518,15 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                      } else if(grepl("nsrl", f_name)){
                        tmp$toxval_type = "OEHHA NSRL"
                        tmp$toxval_subtype = "-"
+                       tmp$toxval_units = "ug/day"
                      } else if(grepl("madl", f_name)){
                        tmp$toxval_type = "OEHHA MADL"
                        tmp$toxval_subtype = ifelse(is.na(res$toxval_subtype), "-", res$toxval_subtype)
+                       tmp$toxval_units = "ug/day"
                      } else if(f_name == "chrfd"){
                        tmp$toxval_type = "RfD"
                        tmp$toxval_subtype = "Child RfD"
+                       tmp$toxval_units = ifelse(is.na(res$chrfd_units), "mg/kg-day", res$chrfd_units)
                      } else if(f_name == "notification_level"){
                        tmp$toxval_type = "OEHHA notification level"
                        # Set study_type and exposure_route for OEHHA notification level
@@ -553,6 +560,10 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                     ) %>%
       # Fix severity
       dplyr::distinct()
+
+    # Set species to 'human' for Human Data
+    res <- res %>%
+      dplyr::mutate(species = ifelse(res$`Human Data` == "Yes" & res$species == "-", tolower("human"), tolower(species)))
 
     # Replace NA with -
     res$critical_effect <- str_replace_all(res$critical_effect, "NA", "-")

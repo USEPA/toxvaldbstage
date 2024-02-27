@@ -25,7 +25,7 @@
 #' @importFrom stringr str_extract str_squish
 #' @importFrom tidyr replace_na drop_na
 #--------------------------------------------------------------------------------------
-import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_dod_ered_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "DOD ERED"
   source_table = "source_dod_ered"
@@ -54,15 +54,12 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       subsource = "USACE_ERDC_ERED_database_10_25_2019",
       name = ChemName,
       casrn = CAS %>%
-        gsub("N/A", "", .),
+        gsub("N/A", NA, .),
       toxval_type = Risk %>%
-        gsub("N/A|N/R|<\\s?", "", .),
+        gsub("N/A|N/R|<\\s?", NA, .),
       species = tolower(GenusSpecies),
       exposure_route = Route %>%
-        gsub("N/I", "", .),
-      long_ref = paste(source, Origin) %>%
-        # Remove NA Origin
-        gsub(" NA$", "", .),
+        gsub("N/I", NA, .),
       year = as.numeric(Time),
       habitat = environment,
       # Extract and translate study_type
@@ -76,12 +73,12 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       # Handle toxval_numeric noise
       toxval_numeric = expConc %>%
         stringr::str_extract("[0-9\\.]+") %>%
-        gsub("N/A|N/I|N/R", "", .) %>%
+        gsub("N/A|N/I|N/R", NA, .) %>%
         as.numeric(),
 
       # Extract and clean toxval_units
       toxval_units = ExpConcUnits %>%
-        gsub("N/A|N/I|N/R|N/S", "", .),
+        gsub("N/A|N/I|N/R|N/S", NA, .),
 
       # Extract toxval_numeric_qualifier
       toxval_numeric_qualifier = expConc %>%
@@ -140,11 +137,15 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       # Assign missing units
       # Duration units for long term studies (NOEC,LOEC) as d (days) - "NOEC|LOEC"
       # Duration units for short term studies (ED,LC) as d (days) if duration value > 4 and as h (hours) if <= 4 - "ED|LC"
-      # Duration units for the rest of the short term studies as h (hours) - "NOEC|LOEC|ED|LC"
-      study_duration_units = ifelse(!is.na(study_duration_units), study_duration_units,
-                                    ifelse(!grepl("NOEC|LOEC|ED|LC", toxval_type), study_duration_units,
-                                           ifelse(grepl("NOEC|LOEC", toxval_type), "days",
-                                                  ifelse(study_duration_value > 4, "days", "hours")))),
+      # Duration units for the rest of the short term studies as h (hours) - "ED|LC"
+      study_duration_units = dplyr::case_when(
+        !is.na(study_duration_units) ~ study_duration_units,
+        is.na(study_duration_value) ~ as.character(NA),
+        grepl("NOEC|LOEC", toxval_type) ~ "days",
+        grepl("ED|LC", toxval_type) & study_duration_value > 4 ~ "days",
+        grepl("ED|LC", toxval_type) ~ "hours",
+        TRUE ~ study_duration_units
+      ),
 
       # Size column has sex information for some entries
       sex = dplyr::case_when(
@@ -153,9 +154,11 @@ import_dod_ered_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         TRUE ~ NA_character_
       )
     ) %>%
+    # Create long_ref from source reference and origin columns
+    tidyr::unite(col="long_ref", source, Origin, sep=" ", na.rm=TRUE, remove=FALSE) %>%
 
-    # Drop rows without toxval_numeric
-    tidyr::drop_na(toxval_numeric) %>%
+    # Drop rows without toxval_numeric or type
+    tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
 
     # Rename columns as specified in previous import script
     dplyr::rename(ered_id="EREDid", ref_id="REFid", common_name="CommonName",

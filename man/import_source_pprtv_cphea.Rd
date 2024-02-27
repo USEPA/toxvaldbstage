@@ -10,7 +10,8 @@ import_source_iris(
   db,
   chem.check.halt = FALSE,
   do.reset = FALSE,
-  do.insert = FALSE
+  do.insert = FALSE,
+  do.summary_data = FALSE
 )
 
 import_source_pprtv_cphea(
@@ -28,6 +29,8 @@ import_source_pprtv_cphea(
 \item{do.reset}{If TRUE, delete data from the database for this source before}
 
 \item{do.insert}{If TRUE, insert data into the database, default FALSE}
+
+\item{do.summary_data}{If TRUE, add IRIS Summary data to table before insertion}
 }
 \value{
 OUTPUT_DESCRIPTION
