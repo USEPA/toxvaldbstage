@@ -34,6 +34,10 @@
 import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
 
+  # Add endpoint_uuid to hashing_cols to help resolve false duplicates due to replicate studies
+  hashing_cols = c(toxval.config()$hashing_cols,
+                   "endpoint_uuid")
+
   # Do not upload BasicToxicokinetics OHT data
   if (subf == "iuclid_basictoxicokinetics") {
     cat("Skipping BasicToxicokinetics OHT\n")
@@ -303,7 +307,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::select(!tidyselect::any_of(c("name_primary", "name_secondary")))
 
   # If hashing columns still missing, fill them with "-" to avoid conflicts with later logic
-  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+  res[, hashing_cols[hashing_cols %in% names(res)]] <- "-"
 
   res = res %>%
     # Conduct most cleaning operations after dropping rows to improve runtime
@@ -529,13 +533,13 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   res$source_version_date <- src_version_date
 
   # Check for duplicate records early
-  res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
+  res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
   res$source_hash = res.temp$source_hash
 
   # Dedup by collapsing non hashing columns to dedup
   res = res %>%
     dplyr::group_by(source_hash) %>%
-    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", toxval.config()$hashing_cols)),
+    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", hashing_cols)),
                                 ~paste0(., collapse=" |::| ") %>%
                                   na_if("NA"))) %>%
     # dplyr::summarise(linkage_id = toString(linkage_id)) %>%
@@ -569,5 +573,5 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=toxval.config()$hashing_cols)
+                       hashing_cols=hashing_cols)
 }
