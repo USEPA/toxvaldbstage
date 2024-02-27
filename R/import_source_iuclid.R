@@ -307,7 +307,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::select(!tidyselect::any_of(c("name_primary", "name_secondary")))
 
   # If hashing columns still missing, fill them with "-" to avoid conflicts with later logic
-  res[, hashing_cols[hashing_cols %in% names(res)]] <- "-"
+  res[, hashing_cols[!hashing_cols %in% names(res)]] <- "-"
 
   res = res %>%
     # Conduct most cleaning operations after dropping rows to improve runtime
@@ -451,6 +451,17 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Ensure that toxval_numeric is of numeric type
       toxval_numeric = as.numeric(toxval_numeric),
+
+      # Handle sex column duplicates
+      sex = dplyr::case_when(
+        grepl("male", sex, ignore.case=TRUE) & grepl("female", sex, ignore.case=TRUE) ~ "male/female",
+        grepl("female", sex, ignore.case=TRUE) ~ "female",
+        grepl("male", sex, ignore.case=TRUE) ~ "male",
+        grepl("m", sex, ignore.case=TRUE) & grepl("f", sex, ignore.case=TRUE) ~ "male/female",
+        grepl("f", sex, ignore.case=TRUE) ~ "female",
+        grepl("m", sex, ignore.case=TRUE) ~ "male",
+        TRUE ~ as.character(NA)
+      ),
 
       # Call fix.replace.unicode after previous cleaning operations to improve runtime
       name = fix.replace.unicode(name) %>%
