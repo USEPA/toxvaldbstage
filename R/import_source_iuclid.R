@@ -123,7 +123,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       )
   }
 
-  # Handle developmental fetus vs. maternal studies
+  # TODO Handle developmental fetus vs. maternal studies as needed
   if(grepl("developmental", subf) && any(grepl("fetus_|maternal_", names(res)))){
     message("Handling developmental OHT fetus vs. maternal field pivots...")
     # Fill default maternal sex
@@ -205,7 +205,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     if(nrow(res %>% dplyr::filter(edge_case_check == "FAILED")) > 0) {
       cat("\nRange relationship edge case identified\n")
       cat("Check for hyphenated range in toxval_numeric_lower/upper\n")
-      writexl::write_xlsx(res %>% dplyr::filter(edge_case_check == "FAILED"), paste0(subf, "_edge_case_check.xlsx"))
+      # Export log file to review
+      writexl::write_xlsx(res %>% dplyr::filter(edge_case_check == "FAILED"),
+                          paste0(toxval.config()$datapath,"iuclid/",subf,"/",
+                                 subf, "_edge_case_check.xlsx"))
       stop()
     }
     res = res %>% dplyr::select(-edge_case_check)
@@ -269,10 +272,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   res = res %>%
     dplyr::mutate(
       # Fill "-" casrn with NA
-      casrn = dplyr::case_when(
-        casrn == "-" ~ as.character(NA),
-        TRUE ~ casrn
-      ),
+      casrn = dplyr::na_if(casrn, "-"),
 
       # Clean toxval_units/make value substitutions when necessary
       toxval_units = dplyr::case_when(
@@ -432,12 +432,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Select and clean appropriate toxval_numeric_qualifier
       toxval_numeric_qualifier = dplyr::case_when(
-        toxval_subtype == "Lower Range" ~ toxval_qualifier_lower,
-        toxval_subtype == "Upper Range" ~ toxval_qualifier_upper,
+        !is.na(toxval_qualifier_lower) ~ toxval_qualifier_lower,
+        !is.na(toxval_qualifier_upper) ~ toxval_qualifier_upper,
         TRUE ~ toxval_numeric_qualifier
       ) %>% gsub("ca\\.", "~", .),
 
-      # Add toxval_numeric_qualifier when not present in data (per Jira guidelines)
+      # Add toxval_numeric_qualifier for range toxval_subtypes
       toxval_numeric_qualifier = dplyr::case_when(
         !is.na(toxval_numeric_qualifier) ~ toxval_numeric_qualifier,
         toxval_subtype == "Lower Range" ~ "<=",
@@ -527,6 +527,38 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
+
+  # Check for duplicate records early
+  res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
+  res$source_hash = res.temp$source_hash
+
+  # Dedup by collapsing non hashing columns to dedup
+  res = res %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", toxval.config()$hashing_cols)),
+                                ~paste0(., collapse=" |::| ") %>%
+                                  na_if("NA"))) %>%
+    # dplyr::summarise(linkage_id = toString(linkage_id)) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct()
+
+  # # Check for immediate duplicate hashes
+  # dup_hashes = res %>%
+  #   dplyr::group_by(source_hash) %>%
+  #   dplyr::summarise(n = dplyr::n()) %>%
+  #   dplyr::filter(n > 1)
+  #
+  # # Stop if duplicate source_hash values present
+  # if(nrow(dup_hashes)){
+  #   cat("Duplicate source_hash values present in res...\n")
+  #   # Export log file to review
+  #   writexl::write_xlsx(res %>% dplyr::filter(source_hash %in% dup_hashes$source_hash),
+  #                       paste0(toxval.config()$datapath,"iuclid/",subf,"/",
+  #                              subf, "_dup_records_check.xlsx"))
+  #   browser()
+  #   stop("Duplicate source_hash values present in res...")
+  # }
+
   #####################################################################
   cat("Load the data\n")
   #####################################################################
