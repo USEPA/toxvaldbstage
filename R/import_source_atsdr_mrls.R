@@ -5,6 +5,7 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @param do.toxicological_profile If TRUE, add toxicological profile data to table before insertion
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
@@ -25,7 +26,7 @@
 #' @importFrom dplyr mutate case_when
 #' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
-import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.toxicological_profile=FALSE) {
   printCurrentFunction(db)
   source = "ATSDR MRLs"
   source_table = "source_atsdr_mrls"
@@ -45,7 +46,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
       sep = " ",
       remove = FALSE
     ) %>%
-
+    dplyr::rename(name = `Name`) %>%
     dplyr::mutate(
       # Basic renaming/add general information
       casrn = `CAS Number`,
@@ -61,7 +62,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
         format(., "%Y"),
 
       # Remove symbols from name and units
-      Name = fix.replace.unicode(Name),
+      name = fix.replace.unicode(name),
       toxval_units = fix.replace.unicode(toxval_units),
 
       # Ensure toxval_numeric is of numeric type
@@ -113,6 +114,24 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
         TRUE ~ "="
       )
     )
+
+
+  # Add summary data to df before prep and load
+  if(do.toxicological_profile){
+    # Import manually curated IRIS Summary information
+    summary_file = paste0(dir,"source_atsdr_mrls_manual_pod_awebb01_20231219.xlsx")
+    res1 <- readxl::read_xlsx(summary_file) %>%
+      dplyr::filter(toxval_type != "MRL") %>%
+      dplyr::mutate(document_type = "ATSDR MRLs Toxicological Profile")
+    res <- res %>% dplyr::mutate(document_type = "ATSDR MRLs")
+  } else {
+    res1 <- res %>%
+      dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric) * as.numeric(`Total Factors`), toxval_type = "NOAEL",
+                    toxval_subtype = 'Provisional: MRL multiplied by UF')
+  }
+  res = res %>%
+    dplyr::bind_rows(res1) %>%
+    dplyr::distinct()
 
   # Standardize the names
   names(res) <- names(res) %>%
