@@ -452,17 +452,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # Ensure that toxval_numeric is of numeric type
       toxval_numeric = as.numeric(toxval_numeric),
 
-      # Handle sex column duplicates
-      sex = dplyr::case_when(
-        grepl("male", sex, ignore.case=TRUE) & grepl("female", sex, ignore.case=TRUE) ~ "male/female",
-        grepl("female", sex, ignore.case=TRUE) ~ "female",
-        grepl("male", sex, ignore.case=TRUE) ~ "male",
-        grepl("m", sex, ignore.case=TRUE) & grepl("f", sex, ignore.case=TRUE) ~ "male/female",
-        grepl("f", sex, ignore.case=TRUE) ~ "female",
-        grepl("m", sex, ignore.case=TRUE) ~ "male",
-        TRUE ~ as.character(NA)
-      ),
-
       # Call fix.replace.unicode after previous cleaning operations to improve runtime
       name = fix.replace.unicode(name) %>%
         # Remove "no name" info
@@ -491,6 +480,21 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Remove entries with "conc. level" toxval_type or "%" toxval_units
     dplyr::filter(!grepl("conc\\. level", toxval_type),
                   !grepl("%", toxval_units))
+
+  # Handle sex column duplicates
+  res = res %>%
+    dplyr::rowwise() %>%
+    # Create unique list of entries, then collapse
+    dplyr::mutate(sex = sex %>%
+                    gsub("/|\\|", ",", .) %>%
+                    strsplit(",") %>%
+                    unlist() %>%
+                    unique() %>%
+                    paste0(collapse="/")) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(sex = sex %>%
+                    dplyr::na_if("") %>%
+                    dplyr::na_if("NA"))
 
   # Check for acute OHTs without a mapped duration field
   if(grepl("acute", subf, ignore.case = TRUE)){
@@ -551,8 +555,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   res = res %>%
     dplyr::group_by(source_hash) %>%
     dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", hashing_cols)),
-                                ~paste0(., collapse=" |::| ") %>%
-                                  na_if("NA"))) %>%
+                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
+                                  na_if("NA") %>%
+                                  na_if("")
+                                )) %>%
     # dplyr::summarise(linkage_id = toString(linkage_id)) %>%
     dplyr::ungroup() %>%
     dplyr::distinct()
