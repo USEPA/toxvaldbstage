@@ -400,6 +400,7 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     ) %>%
 
     dplyr::mutate(
+      dplyr::across(c(doses, doses_units, toxval_numeric, toxval_units), stringr::str_squish),
       species = tolower(species),
       toxval_numeric = as.numeric(toxval_numeric),
       toxval_units = toxval_units %>% stringr::str_squish(),

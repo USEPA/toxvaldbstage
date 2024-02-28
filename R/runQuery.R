@@ -7,17 +7,17 @@
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
 #'  \code{\link[utils]{flush.console}}
 #' @rdname runQuery
@@ -48,7 +48,13 @@ runQuery <- function(query=NULL,db,do.halt=T,verbose=F) {
     cat("db: ",db,"\n")
   }
   tryCatch({
-    con <- RMySQL::dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
+    con <- RMySQL::dbConnect(drv=RMySQL::MySQL(),
+                             user=DB.USER,
+                             password=DB.PASSWORD,
+                             host=DB.SERVER,
+                             dbname=db,
+                             port=as.numeric(ifelse(!is.null(DB.PORT), DB.PORT, 3306))
+                             )
     rs <- suppressWarnings(RMySQL::dbSendQuery(con, query))
     d1 <- RMySQL::dbFetch(rs, n = -1)
     if(verbose) {
