@@ -226,7 +226,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u00ce\u00b1", "a", .) %>%
 
     # Handle dashes/bullets
-    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70|\u25a1", "-", .) %>%
+    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70|\u25a1|\u2756", "-", .) %>%
 
     # Fix quotations and apostrophes
     gsub("\u201c|<U+201C>|\u201d|<U+201D>|\u201e", '"', .) %>%
@@ -311,7 +311,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u0067", "g", .) %>%
     gsub("\u00fc", "u", .) %>%
     gsub("\u00a5", "y", .) %>%
-    gsub("\u00c2|\u00c3|\u00c4", "A", .) %>%
+    gsub("\u00c2|\u00c3|\u00c4|\u0391", "A", .) %>%
     gsub("\u00ba|\u00f6|\u00f8|\u00f2", "o", .) %>%
     gsub("\u00e9|\u00e8", "e", .) %>%
     gsub("\u00ce|\u00cf", "I", .) %>%
@@ -324,6 +324,7 @@ fix.replace.unicode <- function(df) {
     gsub(" \u017e", "z", .) %>%
     gsub("\u0165", "t'", .) %>%
     gsub("\u0127", "h", .) %>%
+    gsub("\u03a4", "T", .) %>%
 
     # Fix arrows
     gsub("\u2192", "->", .) %>%
