@@ -285,12 +285,11 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     # Rename columns as appropriate
     dplyr::rename(
       exposure_duration_value_original = exposure_duration_value,
-      study_type_original = experiment_type
+      study_type = experiment_type
     ) %>%
 
     # Add final values
     dplyr::mutate(
-      study_type = study_type_original,
       fel_names = "FEL",
       source = !!source,
       source_table = !!source_table,
@@ -448,8 +447,11 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
         TRUE ~ study_duration_units
       ),
 
-      study_type = gsub("(^\\w+\\-*\\w*)(\\s*.*)", "\\1", study_type_original)
+      study_type = gsub("(^\\w+\\-*\\w*)(\\s*.*)", "\\1", study_type)
     )
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Check for duplicate records early
   res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
@@ -467,8 +469,6 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     dplyr::ungroup() %>%
     dplyr::distinct()
 
-  # Fill blank hashing cols
-  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
