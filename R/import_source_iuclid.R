@@ -544,9 +544,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     browser()
   }
 
-  # Add version date. Can be converted to a mutate statement as needed
-  res$source_version_date <- src_version_date
-
   # Check for duplicate records early
   res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
   res$source_hash = res.temp$source_hash
@@ -562,6 +559,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # dplyr::summarise(linkage_id = toString(linkage_id)) %>%
     dplyr::ungroup() %>%
     dplyr::distinct()
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
 
   # # Check for immediate duplicate hashes
   # dup_hashes = res %>%
