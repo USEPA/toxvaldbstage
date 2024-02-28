@@ -60,7 +60,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_hpvis" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                 "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx")),
                       "source_oppt" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_oppt_doc_map_20231017.xlsx")),
+                                                               "clowder_v3/source_epa_oppt_document_map_20240227.xlsx")),
                       "source_efsa" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/source_efsa_20231018.xlsx"), col_types = "text"),
                       "source_hawc" = {
