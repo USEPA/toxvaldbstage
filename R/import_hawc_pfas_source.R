@@ -363,11 +363,6 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  # Drop data_location for deduping purposes
-  res = res %>%
-    dplyr::select(-data_location) %>%
-    dplyr::distinct()
-
   # Handle relationship linkages
   relationship <- res %>%
     dplyr::filter(grepl(";", toxval_numeric),
@@ -456,6 +451,22 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
       study_type = gsub("(^\\w+\\-*\\w*)(\\s*.*)", "\\1", study_type_original)
     )
 
+  # Check for duplicate records early
+  res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
+  res$source_hash = res.temp$source_hash
+
+  # Dedup by collapsing non hashing columns to dedup
+  res = res %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", toxval.config()$hashing_cols)),
+                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
+                                  na_if("NA") %>%
+                                  na_if("")
+    )) %>%
+    # dplyr::summarise(linkage_id = toString(linkage_id)) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct()
+
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
@@ -472,5 +483,5 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=c(toxval.config()$hashing_cols, "data_location"))
+                       hashing_cols=toxval.config()$hashing_cols)
 }
