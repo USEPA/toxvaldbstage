@@ -95,17 +95,17 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
   # Select relevant columns
   hawc_pfas = res_pfas3 %>%
     dplyr::select(tidyselect::all_of(c("assessment","name" ,"organ","NOEL","LOEL",
-                                     "FEL","url", "data_location",
-                                     "bmd","animal_group.experiment.study.id","animal_group.experiment.study.title" ,"animal_group.experiment.study.authors_short",
-                                     "animal_group.experiment.study.authors","animal_group.experiment.study.year","animal_group.experiment.study.journal",
-                                     "animal_group.experiment.study.full_text_url","animal_group.experiment.study.short_citation","animal_group.experiment.study.full_citation",
-                                     "animal_group.experiment.study.url","animal_group.experiment.name","animal_group.experiment.type",
-                                     "animal_group.experiment.chemical","animal_group.experiment.cas","animal_group.experiment.chemical_source",
-                                     "animal_group.experiment.vehicle","animal_group.experiment.guideline_compliance",
-                                     "animal_group.dosing_regime.id","animal_group.dosing_regime.route_of_exposure",
-                                     "animal_group.dosing_regime.duration_exposure","animal_group.dosing_regime.duration_exposure_text",
-                                     "animal_group.species","animal_group.strain" ,"animal_group.sex","animal_group.name","animal_group.generation",
-                                     "noel_names.noel","noel_names.loel")))
+                                       "FEL","url", "data_location",
+                                       "bmd","animal_group.experiment.study.id","animal_group.experiment.study.title" ,"animal_group.experiment.study.authors_short",
+                                       "animal_group.experiment.study.authors","animal_group.experiment.study.year","animal_group.experiment.study.journal",
+                                       "animal_group.experiment.study.full_text_url","animal_group.experiment.study.short_citation","animal_group.experiment.study.full_citation",
+                                       "animal_group.experiment.study.url","animal_group.experiment.name","animal_group.experiment.type",
+                                       "animal_group.experiment.chemical","animal_group.experiment.cas","animal_group.experiment.chemical_source",
+                                       "animal_group.experiment.vehicle","animal_group.experiment.guideline_compliance",
+                                       "animal_group.dosing_regime.id","animal_group.dosing_regime.route_of_exposure",
+                                       "animal_group.dosing_regime.duration_exposure","animal_group.dosing_regime.duration_exposure_text",
+                                       "animal_group.species","animal_group.strain" ,"animal_group.sex","animal_group.name","animal_group.generation",
+                                       "noel_names.noel","noel_names.loel")))
 
   # Create ordered dose_dict
   dose_dict <- res_dose3 %>%
@@ -324,15 +324,78 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     dplyr::filter(toxval_numeric != "-999",
                   toxval_units != "Normal")
 
+  # Collapse duplicated that just differ by critical effect
+  res2 = res %>%
+    dplyr::select(-c("critical_effect","endpoint_url_original","record_url","target"))
+
+  res2$hashkey = NA
+  res$hashkey = NA
+  for(i in 1:nrow(res2)) {
+    hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
+    res2[i,"hashkey"] = hashkey
+    res[i,"hashkey"] = hashkey
+  }
+  res2 = dplyr::distinct(res2)
+  res2$critical_effect = NA
+  for(i in 1:nrow(res2)) {
+    hashkey = res2[[i,"hashkey"]]
+    res3 = res[res$hashkey==hashkey,]
+    x = res3$target
+    y = res3$critical_effect
+    ce = ""
+    for(j in 1:length(x)) ce=paste0(ce,x[j],":",y[j],"|")
+    ce = substr(ce,1,(nchar(ce)-1))
+    res2[i,"critical_effect"] = ce
+  }
+  res2$endpoint_url_original = NA
+  res2$record_url = NA
+  res2$target = NA
+  res2 = res2[,!names(res2)%in%c("hashkey")]
+  res = res2
+
+  # strip begining and ending quotation marks
+  res <- as.data.frame(sapply(res, function(x) gsub("\"", "", x)))
+
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  # Handle relationship linkages
+  relationship <- res %>%
+    dplyr::filter(grepl(";", toxval_numeric),
+                  grepl(";", toxval_units),
+                  grepl(";", doses),
+                  grepl(";", doses_units))
+  # Check if any available
+  if(nrow(relationship)){
+    relationship = relationship %>%
+      dplyr::mutate(relationship_id = 1:n())
+  } else {
+    # Empty dataframe with res cols to bind_rows()
+    relationship = res[0,]
+  }
+
+  # Join back the relationship split rows
+  res <- res %>%
+    dplyr::filter(!grepl(";", toxval_numeric),
+                  !grepl(";", toxval_units),
+                  !grepl(";", doses),
+                  !grepl(";", doses_units)) %>%
+    dplyr::bind_rows(relationship)
+
   # Final transformations moved from load script
   res = res %>%
-    # Separate entries with multiple corresponding toxval_numeric and toxval_units
+    # Separate entries with multiple corresponding toxval_numeric, toxval_units, and dose values
     tidyr::separate_rows(
-      c(toxval_numeric, toxval_units),
+      c(doses, doses_units, toxval_numeric, toxval_units),
       sep = ";"
     ) %>%
 
     dplyr::mutate(
+      dplyr::across(c(doses, doses_units, toxval_numeric, toxval_units), stringr::str_squish),
       species = tolower(species),
       toxval_numeric = as.numeric(toxval_numeric),
       toxval_units = toxval_units %>% stringr::str_squish(),
@@ -345,32 +408,6 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
         gsub("(^[a-zA-Z]+\\s*)(.*)", "\\2", .) %>%
         gsub("^\\-\\s+", "", .) %>%
         dplyr::na_if(., ""),
-
-      # OLD LOGIC (updated to Tidyverse)
-      # # Fix fields related to study_duration
-      # study_duration_value = exposure_duration_text %>%
-      #   gsub("(^\\d+)(\\s+.*)", "\\1", .) %>%
-      #   gsub("(^\\d+)(.*)", "\\1", .),
-      # # Account for range vals
-      # study_duration_value = dplyr::case_when(
-      #   grepl("\\-", study_duration_value) ~ exposure_duration_value_original,
-      #   TRUE ~ study_duration_value
-      # ) %>%
-      #   as.numeric(),
-      # study_duration_units = exposure_duration_text %>%
-      #   gsub("(^GD)(\\s+.*)", "\\1", .) %>%
-      #   gsub("(^\\d+\\s+)(\\w+)(\\s*.*)", "\\2", .) %>%
-      #   gsub("(.*)(\\d+\\s+)(\\w+)(\\s*.*)", "\\3", .) %>%
-      #   gsub("(\\d+\\s*)(\\w+)(\\s*.*)", "\\2", .),
-      # # Translate study_duration_units
-      # study_duration_units = dplyr::case_when(
-      #   grepl("d", study_duration_units, ignore.case = TRUE) ~ "days",
-      #   grepl("w", study_duration_units, ignore.case = TRUE) ~ "weeks",
-      #   grepl("y", study_duration_units, ignore.case = TRUE) ~ "years",
-      #   grepl("m", study_duration_units, ignore.case = TRUE) ~ "minutes",
-      #   grepl("h", study_duration_units, ignore.case = TRUE) ~ "hours",
-      #   TRUE ~ study_duration_units
-      # ),
 
       # Fix fields related to study_duration
       study_duration_value = dplyr::case_when(
@@ -414,46 +451,21 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
       study_type = gsub("(^\\w+\\-*\\w*)(\\s*.*)", "\\1", study_type_original)
     )
 
-  #####################################################################
-  cat("Collapse duplicated that just differ by critical effect \n")
-  #####################################################################
-  res2 = res %>%
-    dplyr::select(-c("critical_effect","endpoint_url_original","record_url","target"))
+  # Check for duplicate records early
+  res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
+  res$source_hash = res.temp$source_hash
 
-  res2$hashkey = NA
-  res$hashkey = NA
-  for(i in 1:nrow(res2)) {
-    hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
-    res2[i,"hashkey"] = hashkey
-    res[i,"hashkey"] = hashkey
-  }
-  res2 = dplyr::distinct(res2)
-  res2$critical_effect = NA
-  for(i in 1:nrow(res2)) {
-    hashkey = res2[[i,"hashkey"]]
-    res3 = res[res$hashkey==hashkey,]
-    x = res3$target
-    y = res3$critical_effect
-    ce = ""
-    for(j in 1:length(x)) ce=paste0(ce,x[j],":",y[j],"|")
-    ce = substr(ce,1,(nchar(ce)-1))
-    res2[i,"critical_effect"] = ce
-  }
-  res2$endpoint_url_original = NA
-  res2$record_url = NA
-  res2$target = NA
-  res2 = res2[,!names(res2)%in%c("hashkey")]
-  res = res2
-
-  # strip begining and ending quotation marks
-  res <- as.data.frame(sapply(res, function(x) gsub("\"", "", x)))
-
-  # Standardize the names
-  names(res) <- names(res) %>%
-    stringr::str_squish() %>%
-    # Replace whitespace and periods with underscore
-    gsub("[[:space:]]|[.]", "_", .) %>%
-    tolower()
+  # Dedup by collapsing non hashing columns to dedup
+  res = res %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", toxval.config()$hashing_cols)),
+                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
+                                  na_if("NA") %>%
+                                  na_if("")
+    )) %>%
+    # dplyr::summarise(linkage_id = toString(linkage_id)) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct()
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
@@ -461,9 +473,6 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
 
-  # Check toxval_numeric and dose/dose index values
-  # View(res %>% select(toxval_type, toxval_numeric, toxval_units, toxval_numeric_dose_index, doses, doses_units),
-  #      title="numeric_index_dose_check")
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -474,5 +483,5 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=c(toxval.config()$hashing_cols, "data_location"))
+                       hashing_cols=toxval.config()$hashing_cols)
 }
