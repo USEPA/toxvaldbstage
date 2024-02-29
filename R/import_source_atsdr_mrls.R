@@ -115,6 +115,12 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
       )
     )
 
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
 
   # Add summary data to df before prep and load
   if(do.toxicological_profile){
@@ -135,16 +141,13 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
                     toxval_type = "NOAEL",
                     toxval_subtype = 'Provisional: MRL multiplied by UF')
   }
+  # Combine with manual or provisional
   res = res %>%
     dplyr::bind_rows(res1) %>%
     dplyr::distinct()
 
-  # Standardize the names
-  names(res) <- names(res) %>%
-    stringr::str_squish() %>%
-    # Replace whitespace and periods with underscore
-    gsub("[[:space:]]|[.]", "_", .) %>%
-    tolower()
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Check for duplicate records early
   res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
@@ -161,9 +164,6 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
     # dplyr::summarise(linkage_id = toString(linkage_id)) %>%
     dplyr::ungroup() %>%
     dplyr::distinct()
-
-  # Fill blank hashing cols
-  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
