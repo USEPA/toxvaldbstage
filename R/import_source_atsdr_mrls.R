@@ -44,7 +44,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
       col = "MRL",
       into = c("toxval_numeric", "toxval_units"),
       sep = " ",
-      remove = FALSE
+      remove = TRUE
     ) %>%
     dplyr::rename(name = `Name`) %>%
     dplyr::mutate(
@@ -122,11 +122,17 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
     summary_file = paste0(dir,"source_atsdr_mrls_manual_pod_awebb01_20231219.xlsx")
     res1 <- readxl::read_xlsx(summary_file) %>%
       dplyr::filter(toxval_type != "MRL") %>%
-      dplyr::mutate(document_type = "ATSDR MRLs Toxicological Profile")
-    res <- res %>% dplyr::mutate(document_type = "ATSDR MRLs")
+      dplyr::mutate(document_type = "ATSDR MRLs Toxicological Profile") %>%
+      dplyr::rename(long_ref = full_study_reference,
+                    source_url = document_url,
+                    species = species_original)
+    res <- res %>%
+      dplyr::mutate(document_type = "ATSDR MRLs")
   } else {
+    # If no manual curation of PODs, provisionally calculate NOAEL with UF
     res1 <- res %>%
-      dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric) * as.numeric(`Total Factors`), toxval_type = "NOAEL",
+      dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric) * as.numeric(`Total Factors`),
+                    toxval_type = "NOAEL",
                     toxval_subtype = 'Provisional: MRL multiplied by UF')
   }
   res = res %>%
@@ -139,6 +145,22 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
+
+  # Check for duplicate records early
+  res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
+  res$source_hash = res.temp$source_hash
+
+  # Dedup by collapsing non hashing columns to dedup
+  res = res %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", toxval.config()$hashing_cols)),
+                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
+                                  na_if("NA") %>%
+                                  na_if("")
+    )) %>%
+    # dplyr::summarise(linkage_id = toString(linkage_id)) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct()
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
@@ -155,7 +177,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=c(toxval.config()$hashing_cols, "total_factors"))
+                       hashing_cols=toxval.config()$hashing_cols)
 }
 
 
