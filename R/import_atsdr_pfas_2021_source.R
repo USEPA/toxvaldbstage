@@ -16,7 +16,7 @@
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[janitor]{remove_empty}}
-#'  \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{summarise}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{select}}
+#'  \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{summarise}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{group_by}}
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{drop_na}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_replace}}
 #'  \code{\link[tibble]{enframe}}
@@ -25,7 +25,7 @@
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom janitor remove_empty
-#' @importFrom dplyr bind_rows summarise mutate arrange distinct case_when select
+#' @importFrom dplyr bind_rows summarise mutate arrange distinct case_when select group_by ungroup
 #' @importFrom tidyr separate_rows separate pivot_longer drop_na
 #' @importFrom stringr str_squish str_extract str_replace_all
 #' @importFrom tibble deframe
@@ -162,6 +162,7 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
       # Extract exposure_route/form and study type info from study_type_exposure_route
       exposure_route = study_type_exposure_route %>%
         gsub("(.*\\-\\s+)(.*)", "\\2", .) %>%
+        tolower() %>%
         stringr::str_squish(),
       exposure_form = study_type_exposure_form %>%
         gsub("(.*\\s+\\(+)(.*)(\\s*\\)+)", "\\2", .) %>%
@@ -173,7 +174,7 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
         !is.na(study_type_exposure_route) ~ gsub("(.*)(\\s+\\-\\s+.*)", "\\1", study_type_exposure_route),
         TRUE ~ as.character(NA)
       ) %>%
-        gsub("exposure", "", .) %>%
+        gsub("\\s.+", "", .) %>%
         tolower() %>%
         stringr::str_squish(),
 
@@ -262,7 +263,7 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
       study_duration_value = dplyr::case_when(
         study_duration_units == "GD" ~ as.character(study_duration_high - study_duration_low + 1),
         TRUE ~ study_duration_value
-      ),
+      ) %>% stringr::str_squish(),
 
       study_duration_units = gsub("GD", "day", study_duration_units)
     ) %>%
@@ -390,6 +391,32 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
       toxval_numeric = as.numeric(toxval_numeric),
       year = as.integer(year),
 
+      # Separate "less_serious" and "serious" into toxval_subtype
+      toxval_subtype = dplyr::case_when(
+        grepl("_less_serious", toxval_type) ~ "Less Serious",
+        grepl("_serious", toxval_type) ~ "Serious",
+        TRUE ~ as.character(NA)
+      ),
+      toxval_type = gsub("_.+", "", toxval_type),
+
+      # Use information stored in ref to fix line with shifted data
+      # Ref: Zhao Y, Tan YS, Haslam SZ, et al. 2010. Perfluorooctanoic
+      # acid effects on steroid hormone and growth factor levels mediate
+      # stimulation of peripubertal mammary gland development in C57B1/6 mice.
+      # Toxicol Sci 115(1):214-224
+      strain = dplyr::case_when(
+        species == "2-5" ~ "C57B1/6",
+        TRUE ~ strain
+      ),
+      sex = dplyr::case_when(
+        species == "2-5" ~ "female",
+        TRUE ~ sex
+      ),
+      species = dplyr::case_when(
+        species == "2-5" ~ "mouse",
+        TRUE ~ species
+      ),
+
       # Add columns previously handled in load
       human_eco = "human_health",
       toxval_numeric_qualifier = "=",
@@ -410,6 +437,21 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Check for duplicate records early
+  res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
+  res$source_hash = res.temp$source_hash
+
+  # Dedup by collapsing endpoint column
+  res = res %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::mutate(
+      endpoint = paste0(endpoint, collapse="; ") %>%
+        gsub("NA;\\s|NA", "", .) %>%
+        stringr::str_squish()
+      ) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct()
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
