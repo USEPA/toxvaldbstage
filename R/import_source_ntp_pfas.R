@@ -1,12 +1,11 @@
 #--------------------------------------------------------------------------------------
-#' @description A functio for adding source NTP PFAS data to toxval_source
-#'
+#' @title import_source_ntp_pfas
+#' @description A function for adding source NTP PFAS data to toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -16,11 +15,15 @@
 #' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[stringr]{str_trim}}
-#' @rdname import_generic_source
+#'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{c("rowwise", "rowwise")}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{case_when}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{drop_na}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
+#' @rdname import_source_ntp_pfas
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom stringr str_squish
+#' @importFrom dplyr rename mutate across bind_rows distinct rowwise select filter left_join case_when
+#' @importFrom tidyr pivot_longer separate unite drop_na
+#' @importFrom stringr str_squish str_extract
 #--------------------------------------------------------------------------------------
 import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -33,12 +36,6 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
 
   # Load all files and combine
   res0 <- lapply(list.files(dir, full.names = TRUE, pattern = ".xlsx"), function(f){
@@ -82,9 +79,6 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  # Add version date. Can be converted to a mutate statement as needed
-  res0$source_version_date <- src_version_date
-
   # Read in manually curated data
   res1 <- lapply(list.files(paste0(dir, "/manual_curation"), full.names = TRUE, pattern = ".xlsx"), function(f){
     readxl::read_xlsx(f, sheet="manual_dose") %>%
@@ -122,29 +116,50 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   # Combine all data
   res = dplyr::bind_rows(res0_ok, res0_updated) %>%
     dplyr::rename(toxval_numeric = dose_value,
-                  toxval_units = dose_units)
+                  toxval_units = dose_units,
+                  exposure_route = administration_route)
 
   # Post manual curation edits to whole (did not want to affect joining)
   res = res %>%
-    tidyr::unite(col="critical_effect",
-                 critical_effect_class, critical_effect,
-                 sep=" - ") %>%
-    # Hardcode report year
-    dplyr::mutate(year = 2019)
+    # Add information and conduct final cleaning operations
+    dplyr::mutate(
+      year = 2019,
+      study_type = "short-term 28-day",
+      sex = tolower(sex),
 
-  # Add long_ref for documents
-  res$long_ref = ifelse(res$ntp_study_identifier == "TOX-96",
-                        paste0("National Toxicology Program. 2019. ",
-                               "NTP Technical Report on the Toxicity Studies of Perfluoroalkyl Sulfonates ",
-                               "(Perfluorobutane Sulfonic Acid, Perfluorohexane Sulfonate Potassium Salt, and Perfluorooctane Sulfonic Acid) ",
-                               "Administered by Gavage to Sprague Dawley (Hsd:Sprague Dawley SD) Rats (Revised) ",
-                               "Toxicity Report 96. https://ntp.niehs.nih.gov/sites/default/files/ntp/htdocs/st_rpts/tox096_508.pdf."),
-                        paste0("National Toxicology Program. 2019. ",
-                               "NTP Technical Report on the Toxicity Studies of Perfluoroalkyl Carboxylates ",
-                               "(Perfluorohexanoic Acid, Perfluorooctanoic Acid, Perfluorononanoic Acid, and Perfluorodecanoic Acid) ",
-                               "Administered by Gavage to Sprague Dawley (Hsd:Sprague Dawley SD) Rats (Revised) ",
-                               "Toxicity Report 97. https://ntp.niehs.nih.gov/sites/default/files/ntp/htdocs/st_rpts/tox097_508.pdf."))
+      # Set long_ref based on study
+      long_ref = dplyr::case_when(
+        ntp_study_identifier == "TOX-96" ~ paste0("National Toxicology Program. 2019. ",
+                                                  "NTP Technical Report on the Toxicity Studies of Perfluoroalkyl Sulfonates ",
+                                                  "(Perfluorobutane Sulfonic Acid, Perfluorohexane Sulfonate Potassium Salt, and Perfluorooctane Sulfonic Acid) ",
+                                                  "Administered by Gavage to Sprague Dawley (Hsd:Sprague Dawley SD) Rats (Revised) ",
+                                                  "Toxicity Report 96. https://ntp.niehs.nih.gov/sites/default/files/ntp/htdocs/st_rpts/tox096_508.pdf."),
+        TRUE ~ paste0("National Toxicology Program. 2019. ",
+                      "NTP Technical Report on the Toxicity Studies of Perfluoroalkyl Carboxylates ",
+                      "(Perfluorohexanoic Acid, Perfluorooctanoic Acid, Perfluorononanoic Acid, and Perfluorodecanoic Acid) ",
+                      "Administered by Gavage to Sprague Dawley (Hsd:Sprague Dawley SD) Rats (Revised) ",
+                      "Toxicity Report 97. https://ntp.niehs.nih.gov/sites/default/files/ntp/htdocs/st_rpts/tox097_508.pdf.")
+      ),
 
+      # Prepare critical_effect columns for uniting
+      dplyr::across(c(critical_effect_class, critical_effect), ~na_if(., "-")),
+    ) %>%
+
+    # Combine critical_effect information to build critical_effect column
+    tidyr::unite(
+      col="critical_effect",
+      critical_effect_class, critical_effect,
+      na.rm = TRUE
+    ) %>%
+
+    # Remove entries that do not have required ToxVal values
+    tidyr::drop_na(toxval_numeric, toxval_units, toxval_type) %>%
+
+    # Drop duplicates
+    dplyr::distinct()
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res0$source_version_date <- src_version_date
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
   #####################################################################
