@@ -514,6 +514,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Drop duplicates
   res = dplyr::distinct(res)
 
+  # Replace with NA
+  res[res == ""] = NA
+
   # Standardize the names
   names(res) <- names(res) %>%
     # Replace whitespace and periods with underscore
@@ -579,6 +582,19 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   #   browser()
   #   stop("Duplicate source_hash values present in res...")
   # }
+
+  # Select down columns due to MySQL row size constrictions
+  res = res %>%
+    dplyr::select(
+      -dplyr::any_of(c(
+        "substance_uuid_entity_uuid_",
+        "datasource_reference_i6:key",
+        "resdisc_efflvs_efflevel_@i6:uuid"
+        )
+      ),
+    -dplyr::matches(paste0("resdisc_trgsysorgtox_entry_[0-9]+_@i6:uuid|",
+                           "matmet_adexp_dosesconcs_entry_[0-9]+_@|",
+                           "matmet_guideline_entry_[0-9]+_@")))
 
   #####################################################################
   cat("Load the data\n")
