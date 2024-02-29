@@ -439,6 +439,7 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Check for duplicate records early
+  hashing_cols = toxval.config()$hashing_cols
   res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
   res$source_hash = res.temp$source_hash
 
