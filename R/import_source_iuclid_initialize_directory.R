@@ -16,8 +16,8 @@
 initialize_source_iuclid_directory <- function() {
   # Don't run the script unless you're in the right directory
   # Eventually change to using an input parameter directory
-  if(getwd() != "/ccte/ACToR1/ToxValDB9/Repo/iuclid") {
-    stop("Working directory must be '/ccte/ACToR1/ToxValDB9/Repo/iuclid'")
+  if(!grepl(paste0(toxval.config()$datapath,"iuclid$"), getwd())) {
+    stop("Working directory must be in 'Repo/iuclid'")
   }
 
   # Create subdirectories and move files - only IUCLID files

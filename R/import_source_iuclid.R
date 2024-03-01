@@ -33,6 +33,7 @@
 #--------------------------------------------------------------------------------------
 import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
+  message("Import for: ", subf)
 
   # Add endpoint_uuid to hashing_cols to help resolve false duplicates due to replicate studies
   hashing_cols = c(toxval.config()$hashing_cols,
@@ -52,8 +53,15 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   file = list.files(dir, pattern=".xlsx", full.names = TRUE)
   if(!length(file)) return(cat("...No files to process...\n"))
   if(length(file) > 1) stop("More than 1 IUCLID file stored in '", dir, "'")
-  # guess_max used due to large file with some columns guessed as NA/logical when not
-  res0 = readxl::read_xlsx(file, guess_max=21474836)
+
+  # Try to open file (Windows file nesting issue)
+  res0 = tryCatch({
+    # guess_max used due to large file with some columns guessed as NA/logical when not
+    readxl::read_xlsx(file, guess_max=21474836)
+  },
+  error = function(e) {
+    message(e); return(data.frame())
+  })
 
   if(!nrow(res0)){
     return("...No rows found in file...skipping")
@@ -99,8 +107,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   }
 
   res <- res0 %>%
-    # Copy columns and rename new columns
-    dplyr::rename(tidyselect::all_of(tmp)) %>%
+    # # Copy columns and rename new columns
+    # dplyr::rename(dplyr::all_of(tmp)) %>%
+    # Select only to mapped ToxVal fields
+    dplyr::select(dplyr::any_of(tmp)) %>%
 
     # Split columns and name them
     tidyr::separate(study_type_1, c("study_type_1","exposure_route"), sep=": ", fill="right", remove=TRUE)
