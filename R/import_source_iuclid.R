@@ -438,6 +438,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ NA
       ),
 
+      # Add temp column to decide which rows to drop relating to experimental_flag/data_purpose_category
+      temp_to_drop = dplyr::case_when(
+        data_purpose_category == "disregarded due to major methodological deficiencies" ~ 1,
+        experimental_flag == "experimental_study" ~ 0,
+        data_purpose_category %in% c("key study", "supporting study", "weight of evidence") ~ 0,
+        TRUE ~ 1
+      ),
+
       # Set appropriate experimental flag
       experimental_flag = dplyr::case_when(
         experimental_flag == "experimental_study" ~ 1,
@@ -484,6 +492,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ name
       )
     ) %>%
+
+    # Remove entries that should be dropped due to experimental_flag/data_purpose_category
+    dplyr::filter(temp_to_drop == 0) %>%
+    dplyr::select(!temp_to_drop) %>%
 
     # Drop unused toxval_qualifier cols
     dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper"))) %>%
