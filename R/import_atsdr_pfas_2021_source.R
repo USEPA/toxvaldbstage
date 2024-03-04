@@ -37,7 +37,7 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
   source_table = "source_atsdr_pfas_2021"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2021-05-01")
-  dir = paste0(toxval.config()$datapath,"atsdr_pfas/atsdr_pfas_2021/atsdr_pfas_2021_files/")
+  dir = paste0(toxval.config()$datapath,"atsdr_pfas/atsdr_pfas_files/")
 
   # Get all 6 filepaths
   file1 = paste0(dir,"ATSDR_TP_2021_Perfluoroalkyls_Oral.xlsx")
@@ -214,7 +214,7 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
       ),
 
       # Extract document name from source url
-      document_name = gsub("(.*\\/)(.*)", "\\2", source_url),
+      extraction_document_name = gsub("(.*\\/)(.*)", "\\2", source_url),
 
       # Extract exposure_method from duration (File 1 only)
       exposure_method = dplyr::case_when(
@@ -320,7 +320,7 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
         grepl("Oral", filename) ~ "Oral",
         grepl("Dermal", filename) ~ "Dermal",
         TRUE ~ as.character(NA)
-      ),
+      ) %>% tolower(),
 
       # Extract year info from short_ref
       year = gsub("(.*)([0-9]{4})(.*)", "\\2", short_ref),
@@ -468,7 +468,3 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
