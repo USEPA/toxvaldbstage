@@ -211,16 +211,16 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         ),
         # Further translate values
         edge_case_check = dplyr::case_when(
-          edge_case_check == "PASSED" ~ "PASSED",
+          edge_case_check %in% c("PASSED") ~ "PASSED",
           !is.na(suppressWarnings(as.numeric(edge_case_check))) ~ "PASSED",
           TRUE ~ "FAILED"
         )
       )
-    if(nrow(res %>% dplyr::filter(edge_case_check == "FAILED")) > 0) {
+    if(nrow(res %>% dplyr::filter(edge_case_check %in% ("FAILED"))) > 0) {
       cat("\nRange relationship edge case identified\n")
       cat("Check for hyphenated range in toxval_numeric_lower/upper\n")
       # Export log file to review
-      writexl::write_xlsx(res %>% dplyr::filter(edge_case_check == "FAILED"),
+      writexl::write_xlsx(res %>% dplyr::filter(edge_case_check %in% c("FAILED")),
                           paste0(toxval.config()$datapath,"iuclid/",subf,"/",
                                  subf, "_edge_case_check.xlsx"))
       stop()
@@ -373,7 +373,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Add "chronic" study_duration_class for T25 toxval_type
       study_duration_class = dplyr::case_when(
-        toxval_type == "T25" ~ "chronic",
+        toxval_type %in% c("T25") ~ "chronic",
         TRUE ~ study_duration_class
       ),
 
@@ -409,7 +409,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Extract and clean toxval_units
       toxval_units = dplyr::case_when(
-        toxval_units == "other:" ~ toxval_units_other,
+        toxval_units %in% c("other:") ~ toxval_units_other,
         TRUE ~ toxval_units
       ) %>%
         gsub("\\(.+\\)", "", .) %>%
@@ -440,15 +440,15 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Add temp column to decide which rows to drop relating to experimental_flag/data_purpose_category
       temp_to_drop = dplyr::case_when(
-        data_purpose_category == "disregarded due to major methodological deficiencies" ~ 1,
-        experimental_flag == "experimental_study" ~ 0,
+        data_purpose_category %in% c("disregarded due to major methodological deficiencies") ~ 1,
+        experimental_flag %in% c("experimental_study") ~ 0,
         data_purpose_category %in% c("key study", "supporting study", "weight of evidence") ~ 0,
         TRUE ~ 1
       ),
 
       # Set appropriate experimental flag
       experimental_flag = dplyr::case_when(
-        experimental_flag == "experimental_study" ~ 1,
+        experimental_flag %in% c("experimental_study") ~ 1,
         TRUE ~ NA
       ) %>% as.numeric(),
 
@@ -462,8 +462,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # Add toxval_numeric_qualifier for range toxval_subtypes
       toxval_numeric_qualifier = dplyr::case_when(
         !is.na(toxval_numeric_qualifier) ~ toxval_numeric_qualifier,
-        toxval_subtype == "Lower Range" ~ "<=",
-        toxval_subtype == "Upper Range" ~ ">=",
+        toxval_subtype %in% c("Lower Range") ~ "<=",
+        toxval_subtype %in% c("Upper Range") ~ ">=",
         TRUE ~ toxval_numeric_qualifier
       ),
 
