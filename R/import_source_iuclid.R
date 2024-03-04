@@ -441,14 +441,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # Add temp column to decide which rows to drop relating to experimental_flag/data_purpose_category
       temp_to_drop = dplyr::case_when(
         data_purpose_category %in% c("disregarded due to major methodological deficiencies") ~ 1,
-        experimental_flag %in% c("experimental_study") ~ 0,
+        experimental_flag %in% c("experimental study") ~ 0,
         data_purpose_category %in% c("key study", "supporting study", "weight of evidence") ~ 0,
         TRUE ~ 1
       ),
 
       # Set appropriate experimental flag
       experimental_flag = dplyr::case_when(
-        experimental_flag %in% c("experimental_study") ~ 1,
+        experimental_flag %in% c("experimental study") ~ 1,
         TRUE ~ NA
       ) %>% as.numeric(),
 
