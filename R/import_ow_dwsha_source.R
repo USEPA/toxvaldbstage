@@ -80,7 +80,12 @@ import_ow_dwsha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       critical_effect = dplyr::case_when(
         grepl("Cancer", toxval_subtype) ~ toxval_subtype,
         TRUE ~ as.character(NA)
-      )
+      ),
+
+      name = name %>%
+        gsub("(fibers/l >10Fm length)", "", ., fixed = TRUE) %>%
+        stringr::str_squish() %>%
+        fix.replace.unicode()
     )
 
   # Handle ranged toxval_numeric values
