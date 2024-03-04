@@ -115,7 +115,12 @@ import_ow_dwsha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   res = res %>%
     dplyr::filter(!grepl("to", toxval_numeric)) %>%
     dplyr::bind_rows(ranged_res) %>%
-    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric))
+    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
+    # Combine numeric_relationship_description with toxval_subtype
+    tidyr::unite(col="toxval_subtype", toxval_subtype, numeric_relationship_description,
+                 sep = " ",
+                 remove = FALSE,
+                 na.rm = TRUE)
 
   # Standardize the names
   names(res) <- names(res) %>%
