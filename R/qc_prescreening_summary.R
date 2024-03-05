@@ -1,9 +1,10 @@
 #--------------------------------------------------------------------------------------
 #' @description Runs a database query and returns a result set
 #'
-#' @param src_tbl a toxval source table name
-#' @param outputDir optional directory path to save output file in
-#' @param db the name of the database
+#' @param src_tbl a toxval source table name.
+#' @param source_name a toxval source name (used for direct load types).
+#' @param outputDir optional directory path to save output file in.
+#' @param db the name of the database.
 #' @export
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
@@ -23,13 +24,24 @@
 #' @importFrom dplyr everything group_by summarise
 #' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
-qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
+qc_prescreening_summary <- function(src_tbl=NULL, source_name=NULL, outputDir=NULL, db=NULL) {
   if(is.null(src_tbl)) stop("No source table name provided...")
   if(is.null(db)) stop("No database name provided...")
   if(is.null(outputDir)) outputDir = getwd()
-  # Use the runQuery function to extract a source table "src_tbl" from a database "db"
-  cat(paste0("Retrieving ",src_tbl," data from database", "\n"))
-  in_data = runQuery(paste0("select * from ",src_tbl),db)
+  if(src_tbl == "direct load" & is.null(source_name)) stop("Direct load 'src_tbl' must have 'source_name'")
+
+  if(src_tbl == "direct load"){
+    # Use the runQuery function to extract a source table "src_tbl" from a database "db"
+    cat(paste0("Retrieving ", source_name," data from database", "\n"))
+    in_data = runQuery(paste0(
+      "SELECT b.raw_name, b.raw_casrn, a.* from toxval a ",
+      "LEFT JOIN source_chemical b on a.chemical_id = b.chemical_id ",
+      "WHERE b.source = '", source_name, "'"), db)
+  } else {
+    # Use the runQuery function to extract a source table "src_tbl" from a database "db"
+    cat(paste0("Retrieving ", src_tbl," data from database", "\n"))
+    in_data = runQuery(paste0("select * from ",src_tbl),db)
+  }
 
   # Use tidyr pivot longer function to put data in long form
   # These columns are not necessary and are just unique identification numbers for the document
@@ -63,7 +75,10 @@ qc_prescreening_summary <- function(src_tbl=NULL, outputDir=NULL, db=NULL) {
   # Export the data as an xlsx (writexl::write_xlsx) to preserve the CASRN values (no CSV date conversion)
   # Find the location where the excel sheet will be out from
   # This will help the user find the output file if they forget where there working directory is
-  out_file = paste0(outputDir, "/qc_prescreening_", src_tbl, ".xlsx")
+
+  out_file = paste0(outputDir, "/qc_prescreening_",
+                    ifelse(src_tbl == "direct load", source_name, src_tbl),
+                    "_", Sys.Date(),".xlsx")
   cat("Outputing excel file as: ", out_file)
   # This saves the raw data and summary table to different sheets in the same file
   writexl::write_xlsx(x = list('raw_data' = in_data,

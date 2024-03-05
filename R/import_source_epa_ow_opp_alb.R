@@ -78,11 +78,20 @@ import_source_epa_ow_opp_alb <- function(db, chem.check.halt=FALSE, do.reset=FAL
     # Separate "species" into "species" and "study_type" by "_"
     tidyr::separate(species, c("species", "study_type"),
                     sep = "_", extra = "merge", fill = "right", remove = FALSE
-    )
+    ) %>%
+    # Normalize species
+    dplyr::mutate(species = tolower(species) %>%
+                    stringr::str_squish()) %>%
+    # Drop NA toxval_numeric
+    tidyr::drop_na(toxval_numeric) %>%
+    dplyr::distinct()
 
-  # Set toxval_type based on species
-  res$toxval_type <- ifelse(res$species == "Office of Water  Aquatic Life Criteria",
+  # Set toxval_type based on extracted species
+  res$toxval_type <- ifelse(res$species == "office of water aquatic life criteria",
                             "Office of Water Aquatic Life Criteria", "OPP Aquatic Life Benchmarks")
+
+  # Remove species from "Office of Water Aquatic Life Criteria" toxval_type
+  res$species[res$toxval_type == "Office of Water Aquatic Life Criteria"] <- "-"
 
   # Standardize the names
   names(res) <- names(res) %>%

@@ -111,8 +111,6 @@ import_source_penn_dep_toxvalues <- function(db,chem.check.halt=FALSE, do.reset=
     ) %>%
 
     dplyr::mutate(
-      # Remove parentheses form toxval_units
-      toxval_units = gsub("[\\(\\)]", "", toxval_units),
 
       # Set toxval_numeric as numeric
       toxval_numeric = as.numeric(toxval_numeric),
@@ -141,6 +139,10 @@ import_source_penn_dep_toxvalues <- function(db,chem.check.halt=FALSE, do.reset=
         TRUE ~ NA_character_,
       )
     )
+
+  # Remove parentheses form toxval_units (but not case of ^-1)
+  res$toxval_units[grepl("\\)$", res$toxval_units)] = res$toxval_units[grepl("\\)$", res$toxval_units)] %>%
+    gsub("[\\(\\)]", "", .)
 
   # Standardize the names
   names(res) <- names(res) %>%

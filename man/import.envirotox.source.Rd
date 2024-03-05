@@ -6,14 +6,15 @@
 \usage{
 import_envirotox_source(
   db,
-  infile = "envirotox_taxonomy clean casrn.xlsx",
-  chem.check.halt = F
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
 )
 }
 \arguments{
-\item{infile}{The input file ./envirotox/envirotox_files/envirotox_taxonomy.xlsx}
-
 \item{toxval.db}{The version of toxval into which the source info is loaded.}
+
+\item{infile}{The input file ./envirotox/envirotox_files/envirotox_taxonomy.xlsx}
 }
 \value{
 OUTPUT_DESCRIPTION

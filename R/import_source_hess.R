@@ -22,24 +22,18 @@
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #--------------------------------------------------------------------------------------
-import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "HESS"
   source_table = "source_hess"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2023-05-17")
+  src_version_date = as.Date("2023-11-09")
   dir = paste0(toxval.config()$datapath,"hess/hess_files/")
   file = paste0(dir,"hess_20231109_fixed.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
 
   # Standardize the names
   names(res0) <- names(res0) %>%
@@ -50,17 +44,19 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   res <- res0 %>%
     # Creating toxval columns
-    dplyr::rename(casrn=cas_number,
+    dplyr::mutate(casrn=cas_number,
                   ec_number=additional_ids,
                   study_type=endpointpath,
                   critical_effect=effect,
                   toxval_type=endpoint,
                   tissue=`organ(tissue)`,
                   strain=strain,
-                  species=`test_organisms_(species)`,
+                  species=`test_organisms_(species)` %>%
+                    tolower(),
                   toxval_numeric=value_meanvalue,
                   toxval_numeric_qualifier=value_qualifier,
                   toxval_units=value_unit,
+                  source_url = "https://www.nite.go.jp/en/chem/qsar/hess-e.html"
                   ) %>%
     tidyr::separate(`chemical_name(s)`,
                     into=c("name", "name_extra"),
@@ -80,7 +76,7 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   # Join back in combined critical_effect groups
   res = res %>%
-    dplyr::select(-critical_effect, -tissue) %>%
+    dplyr::select(-critical_effect, -tissue, -effect, -`organ(tissue)`) %>%
     dplyr::distinct() %>%
     dplyr::left_join(crit_groups,
                      by=c("name", "toxval_type", "toxval_numeric")) %>%
@@ -89,11 +85,11 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Clean up name field
   res = res %>%
     dplyr::mutate(
-      name=name %>%
-        # Fix unicode symbols
-        fix.replace.unicode() %>%
-
-        stringr::str_squish())
+      dplyr::across(c(name, critical_effect, `repeated_dose_(hess)`),
+                    # Fix unicode symbols
+                    ~fix.replace.unicode(.) %>%
+                      stringr::str_squish())
+      )
 
   # Handle case of chemical names with "?" in name due to unicode symbols
   tmp = res %>%
@@ -132,9 +128,6 @@ import_source_hess <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     # Splitting route_of_administration field into exposure_route and exposure_method
     tidyr::separate(route_of_administration, c("exposure_route", "exposure_method"),
                     sep=" ", fill="right", extra = "merge", remove=FALSE)
-
-  # Check route_of_administration splitting
-  # View(res %>% select(route_of_administration, exposure_route, exposure_method) %>% distinct())
 
   # Omit blank rows
   res <- res[rowSums(is.na(res)) != ncol(res), ]

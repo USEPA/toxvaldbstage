@@ -2,23 +2,26 @@
 % Please edit documentation in R/import_envirotox_source.R
 \name{import_envirotox_source}
 \alias{import_envirotox_source}
-\title{FUNCTION_TITLE}
+\title{import_envirotox_source}
 \usage{
 import_envirotox_source(
   db,
-  infile = "envirotox_taxonomy clean casrn.xlsx",
-  chem.check.halt = F
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
 )
 }
 \arguments{
-\item{db}{The version of toxval_source into which the source info is loaded.}
-
-\item{infile}{The input file ./envirotox/envirotox_files/envirotox_taxonomy.xlsx}
+\item{db}{The version of toxval_source into which the source is loaded.}
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+
+\item{do.reset}{If TRUE, delete data from the database for this source before inserting new data}
+
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is loaded into toxval_source
 }
 \description{
 Load EnviroTox.V2 Source data into toxval_source
@@ -34,5 +37,7 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[openxlsx]{read.xlsx}}
+\code{\link[readxl]{read_excel}}
+ \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{case_when}}
+ \code{\link[stringr]{str_match}}, \code{\link[stringr]{str_trim}}
 }

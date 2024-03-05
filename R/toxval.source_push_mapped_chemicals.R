@@ -30,6 +30,7 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
                                                 ignore.curation.dups=TRUE, match.chemical.id=FALSE,
                                                 reset.mapping=FALSE, bulk.push = TRUE){
 
+  message("Pushing mapped chemicals for chemical_source_index ToxVal", source.index)
   # Map chemical information from curated files and select source.index
   out = map_curated_chemicals(source.index=source.index, curated.path=curated.path,
                               ignore.curation.dups=ignore.curation.dups, match.chemical.id = match.chemical.id)
@@ -65,6 +66,7 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
 
   if(!nrow(out)){
     message("...no new chemical maps to push. Set reset.mapping to TRUE to reset mappings")
+    return()
   }
   # Clean curated chemical information (sometimes has utf8 encoding issues)
   result = chem.check(out,name.col="name",casrn.col="casrn",verbose=FALSE,source="-")

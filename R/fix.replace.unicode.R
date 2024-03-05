@@ -42,6 +42,8 @@ fix.replace.unicode <- function(df) {
   alpha = c("<U+1D6C2>", "<U+1D6FC>", "<U+1D736>", "<U+1D770>", "<U+1D7AA>",
             "\u03B1", "\u1D6C2", "\u1D6FC", "\u1D736", "\u1D770", "\u1D7AA", "<U+03B1>")
 
+  apostrophe_alpha = c("\u0386")
+
   beta = c("<U+03B2>", "<U+03D0>", "<U+1D6C3>", "<U+1D6FD>", "<U+1D737>", "<U+1D771>", "<U+1D7AB>",
            "<U+0392>", "<U+1D6A9>", "<U+1D6E3>", "<U+1D71D>", "<U+1D757>", "<U+1D791>", "<U+1D5D>",
            "<U+1D66>", "<U+00df?",
@@ -91,6 +93,10 @@ fix.replace.unicode <- function(df) {
   apostrophe_omega = c("<U+038F>", "<U+1F68>", "<U+1F69>", "<U+1FFA>",
                        "\u038f", "\u1f68", "\u1f69", "\u1ffa")
 
+  omicron = c("\u03bf", "\u039f")
+
+  apostrophe_omicron = c("\u038c")
+
   eta = c("<U+03B7>", "<U+03AE>", "<U+1F20>", "<U+1F21>", "<U+1F74>", "<U+1FC3>", "<U+1FC6>",
           "<U+1D6C8>", "<U+1D702>", "<U+1D73C>", "<U+1D776>", "<U+1D7B0>", "<U+0397>",
           "<U+1FCC>", "<U+1D6AE>", "<U+1D6E8>", "<U+1D722>", "<U+1D75C>", "<U+1D796>",
@@ -120,135 +126,216 @@ fix.replace.unicode <- function(df) {
             "\u03b4", "\u0394", "\u1d6ab", "\u1d6e5", "\u1d71f", "\u1d759", "\u1d793",
             "\u1d5f", "\u1d6c5", "\u1d6ff", "\u1d739", "\u1d773", "\u1d7ad")
 
+  upsilon = c("\u03c5")
+
+  iota = c("\u03b9", "\u0399")
+
+  mu = c("\u039c", "\u03bc")
+
+  nu = c("\u039d", "\u03bd")
+
+  tau = c("\u03c4")
+
+  theta = c("\u03b8", "\u0398")
+
+  pi = c("\u03c0", "\u03a0")
+
+  chi = c("\u03c7")
+
+  phi = c("\u03c6")
+
+  psi = c("\u03c8")
+
+  zeta = c("\u03b6")
+
   df = df %>%
     # Replacements from: https://www.rapidtables.com/math/symbols/greek_alphabet.html
-    gsub(paste0(alpha, collapse="|"), "a", ., ignore.case=TRUE) %>%
-    gsub(paste0(beta, collapse="|"), "b", ., ignore.case=TRUE) %>%
-    gsub(paste0(gamma, collapse="|"), "g", ., ignore.case=TRUE) %>%
-    gsub(paste0(epsilon, collapse="|"), "e", ., ignore.case=TRUE) %>%
-    gsub(paste0(apostrophe_epsilon, collapse="|"), "'e", ., ignore.case=TRUE) %>%
-    gsub(paste0(lambda, collapse="|"), "l", ., ignore.case=TRUE) %>%
-    gsub(paste0(kappa, collapse="|"), "k", ., ignore.case=TRUE) %>%
-    gsub(paste0(omega, collapse="|"), "o", ., ignore.case=TRUE) %>%
-    gsub(paste0(apostrophe_omega, collapse="|"), "'o", ., ignore.case=TRUE) %>%
-    gsub(paste0(eta, collapse="|"), "h", ., ignore.case=TRUE) %>%
-    gsub(paste0(apostrophe_eta, collapse="|"), "'h", ., ignore.case=TRUE) %>%
-    gsub(paste0(delta, collapse="|"), "'d", ., ignore.case=TRUE) %>%
+    gsub(paste0(alpha, collapse="|"), "a", .) %>%
+    gsub(paste0(apostrophe_alpha, collapse="|"), "'a", .) %>%
+    gsub(paste0(beta, collapse="|"), "b", .) %>%
+    gsub(paste0(gamma, collapse="|"), "g", .) %>%
+    gsub(paste0(epsilon, collapse="|"), "e", .) %>%
+    gsub(paste0(apostrophe_epsilon, collapse="|"), "'e", .) %>%
+    gsub(paste0(lambda, collapse="|"), "l", .) %>%
+    gsub(paste0(kappa, collapse="|"), "k", .) %>%
+    gsub(paste0(omega, collapse="|"), "o", .) %>%
+    gsub(paste0(apostrophe_omega, collapse="|"), "'o", .) %>%
+    gsub(paste0(omicron, collapse="|"), "o", .) %>%
+    gsub(paste0(apostrophe_omicron, collapse="|"), "'o", .) %>%
+    gsub(paste0(eta, collapse="|"), "h", .) %>%
+    gsub(paste0(apostrophe_eta, collapse="|"), "'h", .) %>%
+    gsub(paste0(delta, collapse="|"), "d", .) %>%
+    gsub(paste0(upsilon, collapse="|"), "u", .) %>%
+    gsub(paste0(iota, collapse="|"), "i", .) %>%
+    gsub(paste0(mu, collapse="|"), "m", .) %>%
+    gsub(paste0(nu, collapse="|"), "n", .) %>%
+    gsub(paste0(tau, collapse="|"), "t", .) %>%
+    gsub(paste0(theta, collapse="|"), "th", .) %>%
+    gsub(paste0(pi, collapse="|"), "p", .) %>%
+    gsub(paste0(chi, collapse="|"), "ch", .) %>%
+    gsub(paste0(phi, collapse="|"), "ph", .) %>%
+    gsub(paste0(psi, collapse="|"), "ps", .) %>%
+    gsub(paste0(zeta, collapse="|"), "z", .) %>%
 
     # Fix omega with preceding letter
-    gsub("<U+33C0>|\u33c0", "KO", ., ignore.case=TRUE) %>%
-    gsub("<U+33C1>|\u33c1", "MO", ., ignore.case=TRUE) %>%
+    gsub("<U+33C0>|\u33c0", "KO", .) %>%
+    gsub("<U+33C1>|\u33c1", "MO", .) %>%
 
     # For "micro" units like micrograms (ug)
-    gsub(paste0(mu, collapse="|"), "u", ., ignore.case=TRUE) %>%
-    gsub(paste0(rho, collapse="|"), "r", ., ignore.case=TRUE) %>%
-    gsub(paste0(apostrophe_rho, collapse="|"), "'r", ., ignore.case=TRUE) %>%
-    gsub(paste0(sigma, collapse="|"), "s", ., ignore.case=TRUE) %>%
+    gsub(paste0(mu, collapse="|"), "u", .) %>%
+    gsub(paste0(rho, collapse="|"), "r", .) %>%
+    gsub(paste0(apostrophe_rho, collapse="|"), "'r", .) %>%
+    gsub(paste0(sigma, collapse="|"), "s", .) %>%
 
     ##############################################################################
     ############################ HANDLE OTHER SYMBOLS ############################
     ##############################################################################
 
     # Remove trademark/copyright symbols
-    gsub("\u00ae|<U+00ae>|\u00a9|\u2122", "", ., ignore.case=TRUE) %>%
+    gsub("\u00ae|<U+00ae>|\u00a9|\u2122", "", .) %>%
 
     # Fix whitespace
-    gsub("[\r\n][\r\n]", " ", ., ignore.case=TRUE) %>%
-    gsub("\u00a0|<U+00A0>", " ", ., ignore.case=TRUE) %>%
+    gsub("[\r\n][\r\n]", " ", .) %>%
+    gsub("\u00a0|<U+00A0>|\u2003", " ", .) %>%
+    gsub("\u200b", "", .) %>%
 
     # Fix escaped quotation marks
-    gsub("\\\\{1,}'", "'", ., ignore.case=TRUE) %>%
-    gsub('\\\\{1,}"', '"', ., ignore.case=TRUE) %>%
+    gsub("\\\\{1,}'", "'", .) %>%
+    gsub('\\\\{1,}"', '"', .) %>%
 
     # Remove double-dagger symbols
-    gsub("\u2021|<U+2021>", "", ., ignore.case=TRUE) %>%
+    gsub("\u2021|<U+2021>", "", .) %>%
 
     # Replace prime symbols
-    gsub("\u00b4|<U+00B4>|\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>|\u2032", "'", .,
-         ignore.case=TRUE) %>%
+    gsub("\u00b4|<U+00B4>|\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>|\u2032", "'", .) %>%
 
     # Handle special case for micro sign
-    gsub("\u00c2\u00b5|\u00c2u", "u", ., ignore.case=TRUE) %>%
+    gsub("\u00c2|\u00b5|\u00c2u", "u", .) %>%
 
     # Remove euro/pound currency symbol unicode
-    gsub("\u20ac|u00a3", "", ., ignore.case=TRUE) %>%
+    gsub("\u20ac|u00a3", "", .) %>%
     # Replace LATIN CAPITAL LETTER Z WITH CARON
-    gsub("\u017d|<U+017D>", "Z", ., ignore.case = TRUE) %>%
+    gsub("\u017d|<U+017D>", "Z", .) %>%
     # Replace Latin small letter a with circumflex
-    gsub("\u00e2|<U+00E2>", "a", ., ignore.case = TRUE) %>%
+    gsub("\u00e2|<U+00E2>", "a", .) %>%
+
+    # Handle cent sign
+    gsub("\u00a2", "c", .) %>%
 
     # Handle special case for Alpha
-    gsub("\u00ce\u00b1", "a", ., ignore.case=TRUE) %>%
+    gsub("\u00ce\u00b1", "a", .) %>%
 
-    # Handle dashes
-    gsub("\u2013|\u2014|\u2212|\u2010", "-", ., ignore.case=TRUE) %>%
+    # Handle dashes/bullets
+    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70|\u25a1|\u2756", "-", .) %>%
 
     # Fix quotations and apostrophes
-    gsub("\u201c|<U+201C>|\u201d|<U+201D>", '"', ., ignore.case=TRUE) %>%
-    gsub("\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>", "'", ., ignore.case=TRUE) %>%
+    gsub("\u201c|<U+201C>|\u201d|<U+201D>|\u201e", '"', .) %>%
+    gsub("\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>", "'", .) %>%
 
     # Fix superscript/subscript
-    gsub("\u00b3|<U+00B3>", "3", ., ignore.case=TRUE) %>%
-    gsub("\u00b9|<U+00B9>", "1", ., ignore.case=TRUE) %>%
-    gsub("\u2070|<U+2070>", "0", ., ignore.case=TRUE) %>%
-    gsub("\u00b2|<U+00B2>", "2", ., ignore.case=TRUE) %>%
-    gsub("\u2079|<U+2079>", "9", ., ignore.case=TRUE) %>%
-    gsub("\u2078|<U+2078>", "8", ., ignore.case=TRUE) %>%
-    gsub("\u2074|<U+2074>", "4", ., ignore.case=TRUE) %>%
-    gsub("\u2077|<U+2077>", "7", ., ignore.case=TRUE) %>%
-    gsub("\u2076|<U+2076>", "6", ., ignore.case=TRUE) %>%
+    gsub("\u00b3|<U+00B3>", "3", .) %>%
+    gsub("\u00b9|<U+00B9>", "1", .) %>%
+    gsub("\u2070|<U+2070>", "0", .) %>%
+    gsub("\u00b2|<U+00B2>", "2", .) %>%
+    gsub("\u2079|<U+2079>", "9", .) %>%
+    gsub("\u2078|<U+2078>", "8", .) %>%
+    gsub("\u2074|<U+2074>", "4", .) %>%
+    gsub("\u2077|<U+2077>|\u2087", "7", .) %>%
+    gsub("\u2076|<U+2076>", "6", .) %>%
+    gsub("\u2075", "5", .) %>%
 
     # Fix general punctuation
-    gsub("\u00b4|<U+00B4>", "'", ., ignore.case=TRUE) %>%
-    gsub("\u00bf|<U+00BF>", "?", ., ignore.case=TRUE) %>%
-    gsub("\u2026|<U+2026>", "...", ., ignore.case=TRUE) %>%
-    gsub("\u02c6", "^", ., ignore.case=TRUE) %>%
+    gsub("\u00b4|<U+00B4>", "'", .) %>%
+    gsub("\u00bf|<U+00BF>", "?", .) %>%
+    gsub("\u2026|<U+2026>", "...", .) %>%
+    gsub("\u02c6", "^", .) %>%
 
     # Fix math symbols
-    gsub("\u2265|<U+2265>", ">=", ., ignore.case=TRUE) %>%
-    gsub("\u2264|<U+2264>", "<=", ., ignore.case=TRUE) %>%
-    gsub("\u00b1|<U+00B1>", "+/-", ., ignore.case=TRUE) %>%
-    gsub("\u00b0|<U+00B0>", "", ., ignore.case=TRUE) %>%
-    gsub("\u00b0|<U+00B0>", "", ., ignore.case=TRUE) %>%
-    gsub("\u2032|<U+2032>", "", ., ignore.case=TRUE) %>%
-    gsub("\u00b7|<U+00B7>|\u00d7|<U+00D7>", "*", ., ignore.case=TRUE) %>%
-    gsub("\u2030|<U+2030>", "%o", ., ignore.case=TRUE) %>%
+    gsub("\u2265|<U+2265>", ">=", .) %>%
+    gsub("\u2264|<U+2264>", "<=", .) %>%
+    gsub("\u2260", "!=", .) %>%
+    gsub("\u00b1|<U+00B1>", "+/-", .) %>%
+    gsub("\u00b0|<U+00B0>", "", .) %>%
+    gsub("\u00b0|<U+00B0>", "", .) %>%
+    gsub("\u2032|<U+2032>", "", .) %>%
+    gsub("\u00b7|<U+00B7>|\u00d7|<U+00D7>", "*", .) %>%
+    gsub("\u2030|<U+2030>", "%o", .) %>%
+    gsub("\u00ac", "-", .) %>%
+    gsub("\u00bd", "1/2", .) %>%
+    gsub("\u2153", "1/3", .) %>%
+    gsub("\u00be", "3/4", .) %>%
+    gsub("\u215b", "1/8", .) %>%
+    gsub("\u215c", "3/8", .) %>%
+    gsub("\u215d", "5/8", .) %>%
+    gsub("\u215e", "7/8", .) %>%
+    gsub("\u00bc", "1/4", .) %>%
+    gsub("\u00a3", "#", .) %>%
+    gsub("\u2215|\u00f7", "/", .) %>%
+    gsub("\u2261", "==", .) %>%
+    gsub("\u221e", "inf", .) %>%
+    gsub("\u220f", "II", .) %>%
+    gsub("\u2248", "~", .) %>%
+    gsub("\u222a", "U", .) %>%
+    gsub("\u2229", "^", .) %>%
+    gsub("\u221a", "sqrt", .) %>%
 
     # Fix parentheses and brackets
-    gsub("\uff08", "(", ., ignore.case=TRUE) %>%
-    gsub("\uff09", ")", ., ignore.case=TRUE) %>%
-    gsub("\uff3d", "]", ., ignore.case=TRUE) %>%
-    gsub("\uff3b", "[", ., ignore.case=TRUE) %>%
+    gsub("\uff08", "(", .) %>%
+    gsub("\uff09", ")", .) %>%
+    gsub("\uff3d", "]", .) %>%
+    gsub("\uff3b", "[", .) %>%
+    gsub("\u00ab", "<<", .) %>%
+    gsub("\u00bb", ">>", .) %>%
+    gsub("\u2329", "<", .) %>%
+    gsub("\uff5b", "{", .) %>%
 
     # Fix roman numeral 2
-    gsub("\u2161","II", ., ignore.case=TRUE) %>%
+    gsub("\u2161","II", .) %>%
 
     # Fix fullwidth latin small letter o
-    gsub("\uff4f", "o", ., ignore.case=TRUE) %>%
+    gsub("\uff4f", "o", .) %>%
 
     # Fix fullwidth digit 1
-    gsub("\uff11", 1, ., ignore.case=TRUE) %>%
+    gsub("\uff11", 1, .) %>%
 
     # Fix fullwidth digit 3
-    gsub("\uff13", 3, ., ignore.case=TRUE) %>%
+    gsub("\uff13", 3, .) %>%
 
     # Fix fullwidth digit 7
-    gsub("\uff17", 7, ., ignore.case=TRUE) %>%
+    gsub("\uff17", 7, .) %>%
+
+    # Fix divider
+    gsub("\u2223", "|", .) %>%
 
     # Fix miscellaneous letters
-    gsub("\u0067", "g", ., ignore.case=TRUE) %>%
-    gsub("\u00fc", "u", ., ignore.case=TRUE) %>%
-    gsub("\u00a5", "y", ., ignore.case=TRUE) %>%
-    gsub("\u00c2|\u00c3", "A", ., ignore.case=TRUE) %>%
-    gsub("\u00ba|\u00f6|\u00f8", "o", ., ignore.case=TRUE) %>%
-    gsub("\u00e9", "e", ., ignore.case=TRUE) %>%
-    gsub("\u00ce", "I", ., ignore.case=TRUE) %>%
-    gsub("\u00e7", "c", ., ignore.case=TRUE) %>%
-    gsub("\u00e2|\u00e4", "a", ., ignore.case=TRUE) %>%
-    gsub("\ufb02", "fl", ., ignore.case=TRUE) %>%
+    gsub("\u0067", "g", .) %>%
+    gsub("\u00fc", "u", .) %>%
+    gsub("\u00a5", "y", .) %>%
+    gsub("\u00c2|\u00c3|\u00c4|\u0391", "A", .) %>%
+    gsub("\u00ba|\u00f6|\u00f8|\u00f2|\u00f3", "o", .) %>%
+    gsub("\u00e9|\u00e8", "e", .) %>%
+    gsub("\u00ce|\u00cf", "I", .) %>%
+    gsub("\u00e7", "c", .) %>%
+    gsub("\u00e2|\u00e4|\u00e1", "a", .) %>%
+    gsub("\ufb02", "fl", .) %>%
+    gsub("\u00c9", "E", .) %>%
+    gsub("\u00ef|\u00ec", "i", .) %>%
+    gsub("\u00dc", "U", .) %>%
+    gsub(" \u017e", "z", .) %>%
+    gsub("\u0165", "t'", .) %>%
+    gsub("\u0127", "h", .) %>%
+    gsub("\u03a4", "T", .) %>%
+
+    # Fix arrows
+    gsub("\u2192", "->", .) %>%
+    gsub("\u2191|\u25b3", "^", .) %>%
+    gsub("\u25ba", ">", .) %>%
+
+    # Down arrow - no good substitution
+    gsub("\u2193", "", .) %>%
 
     # Remove unidentified characters
-    gsub("\ufffd", "", ., ignore.case=TRUE)
+    gsub("\ufffd", "", .)
 
   # Identify and print unicode symbols that were not handled
   not_handled = df %>%
@@ -259,6 +346,8 @@ fix.replace.unicode <- function(df) {
     stringi::stri_escape_unicode() %>%
 
     .[grepl("\\\\[uU][a-zA-Z0-9]{4,8}", .)] %>%
+    stringr::str_extract("\\\\[uU][a-zA-Z0-9]{4,8}") %>%
+    c() %>%
 
     # Make characters lowercase
     tolower() %>%
