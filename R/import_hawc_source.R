@@ -74,6 +74,7 @@ import_hawc_source <- function(db,
     dplyr::distinct()
   res_dose3[] = lapply(res_dose3, as.character)
   dose_dict <- res_dose3 %>%
+    dplyr::mutate(dose_group_id = as.numeric(dose_group_id)) %>%
     dplyr::arrange(dose_regime, dose_group_id, name, dose)
   dose_dict_orig = dose_dict
   # Get counts of dose entries per dose_regime - units pairs
@@ -297,6 +298,25 @@ import_hawc_source <- function(db,
   res = res2
   cat(nrow(res),"\n")
 
+  res = res %>%
+    # Add additional toxval_type details from units
+    dplyr::mutate(toxval_type_2 = toxval_units %>%
+                    stringr::str_extract("TAD|HED") %>%
+                    paste0(")") %>%
+                    gsub("NA\\)", NA, .),
+                  toxval_units = toxval_units %>%
+                    gsub("TAD|HED", "", .) %>%
+                    stringr::str_squish(),
+                  # Lowercase species
+                  species = species %>%
+                    tolower(),
+                  sex = sex %>%
+                    gsub("Combined", "male/female", .) %>%
+                    tolower()) %>%
+    tidyr::unite("toxval_type", toxval_type, toxval_type_2,
+                 sep = " (",
+                 na.rm=TRUE)
+
   # Remove excess whitespace
   res = res %>%
     dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish))
@@ -314,6 +334,22 @@ import_hawc_source <- function(db,
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
+  # Check for duplicate records early
+  hashing_cols = toxval.config()$hashing_cols
+  res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
+  res$source_hash = res.temp$source_hash
+
+  # Dedup by collapsing non hashing columns
+  res = res %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::mutate(dplyr::across(tidyselect::all_of(c("experiment_id")),
+                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
+                                  dplyr::na_if("NA") %>%
+                                  dplyr::na_if("")
+    )) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct()
+
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
   #####################################################################
@@ -326,6 +362,6 @@ import_hawc_source <- function(db,
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=c(toxval.config()$hashing_cols, "experiment_id"))
+                       hashing_cols=toxval.config()$hashing_cols)
 }
 
