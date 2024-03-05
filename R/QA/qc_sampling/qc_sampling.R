@@ -89,6 +89,11 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
   sub_res <- TOXVAL_ALL %>%
     dplyr::filter(source == !!source | source_table == !!source_table)
 
+  if(grepl("IUCLID", source)){
+    sub_res <- TOXVAL_ALL %>%
+      dplyr::filter(source == "ECHA IUCLID")
+  }
+
   # Sample by record type
   if(!nrow(sub_res)){
     message("Source '", source,"' not found in TOXVAL_ALL...skipping...")
