@@ -191,7 +191,7 @@ set_clowder_id_lineage <- function(source_table,
     # IUCLID sources in a combined map
     if(grepl("iuclid", source_table)){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/source_echa_iuclid_doc_map.xlsx"))
+                                          "clowder_v3/source_echa_iuclid_doc_map_20240305.xlsx"))
     }
   }
 
