@@ -54,6 +54,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   if(!length(file)) return(cat("...No files to process...\n"))
   if(length(file) > 1) stop("More than 1 IUCLID file stored in '", dir, "'")
 
+  file = "AcuteToxicityOtherRoutes_02282024.xlsx"
   # Try to open file (Windows file nesting issue)
   res0 = tryCatch({
     # guess_max used due to large file with some columns guessed as NA/logical when not
@@ -110,10 +111,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # # Copy columns and rename new columns
     # dplyr::rename(dplyr::all_of(tmp)) %>%
     # Select only to mapped ToxVal fields
-    dplyr::select(dplyr::any_of(tmp)) %>%
+    dplyr::select(dplyr::any_of(tmp))
 
-    # Split columns and name them
-    tidyr::separate(study_type_1, c("study_type_1","exposure_route"), sep=": ", fill="right", remove=TRUE)
+  # Split columns and name them (handle case where exposure_route is already provided)
+  if("exposure_route" %in% names(res) | "exposure_route_1" %in% names(res)) {
+    res = res %>% tidyr::separate(study_type_1, c("study_type_1","exposure_route_other"), sep=": ", fill="right", remove=TRUE)
+  } else {
+    res = res %>% tidyr::separate(study_type_1, c("study_type_1","exposure_route"), sep=": ", fill="right", remove=TRUE)
+  }
 
   # If exposure_method column is present, fix it
   if ("exposure_method" %in% names(res)) {
@@ -303,6 +308,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     ) %>%
     # Filter out entries with inadequate toxval_type
     dplyr::filter(!grepl("dose|other", toxval_type)) %>%
+    # Filter out entries with "other" species
+    dplyr::filter(!grepl("\\bother\\b", species, ignore.case=TRUE)) %>%
     # Drop entries without necessary toxval columns
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type) %>%
     # Drop entries without either name or casrn
@@ -421,7 +428,16 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # Clean exposure_method
       exposure_method = exposure_method %>%
         gsub("\\|other:|other:\\|", "", .) %>%
+        gsub("\\|unspecified|unspecified\\|", "", .) %>%
         gsub("\\|not specified|not specified\\|", "", .) %>%
+        stringr::str_squish(),
+
+      # Clean exposure_route
+      exposure_route = exposure_route %>%
+        gsub(":", "", .) %>%
+        gsub("\\|?other\\|?", "", .) %>%
+        gsub("\\|?unspecified\\|?", "", .) %>%
+        gsub("\\|?not specified\\|?", "", .) %>%
         stringr::str_squish(),
 
       # Clean sex field
@@ -462,8 +478,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # Add toxval_numeric_qualifier for range toxval_subtypes
       toxval_numeric_qualifier = dplyr::case_when(
         !is.na(toxval_numeric_qualifier) ~ toxval_numeric_qualifier,
-        toxval_subtype %in% c("Lower Range") ~ "<=",
-        toxval_subtype %in% c("Upper Range") ~ ">=",
+        toxval_subtype %in% c("Lower Range") ~ ">=",
+        toxval_subtype %in% c("Upper Range") ~ "<=",
         TRUE ~ toxval_numeric_qualifier
       ),
 
