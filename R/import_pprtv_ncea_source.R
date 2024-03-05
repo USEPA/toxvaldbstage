@@ -1,11 +1,12 @@
 #--------------------------------------------------------------------------------------
-#' @description Load PPRTV NCEA Source Info into toxval_source
-#' @param db The version of toxval_source into which the source info is loaded.
-#' @param csvfile The input csv file ./pprtv_ncea/pprtv_ncea_files/dose_reg2.csv
-#' @param scrapepath The path for new_pprtv_ncea_scrape_table file ./pprtv_ncea/PPRTV_scrape2020-04-08.xlsx
-#' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#--------------------------------------------------------------------------------------
+#' @title import_pprtv_ncea_source
+#' @description Load PPRTV (NCEA) data to toxval_source
+#' @param db The version of toxval_source into which the source is loaded.
+#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @param do.reset If TRUE, delete data from the database for this source before
+#' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @return None; data is pushed to ToxVal
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -14,92 +15,91 @@
 #'  }
 #' }
 #' @seealso
-#'  \code{\link[openxlsx]{read.xlsx}}
-#'  \code{\link[utils]{read.table}}, \code{\link[utils]{type.convert}}
-#'  \code{\link[stats]{setNames}}
-#'  \code{\link[janitor]{excel_numeric_to_date}}
-#' @rdname import_pprtv_ncea_source
+#'  \code{\link[purrr]{map}}
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[readr]{read_delim}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{summarise}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{across}}
+#'  \code{\link[tidyselect]{all_of}}
+#'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{drop_na}}
+#'  \code{\link[stringr]{str_trim}}
+#' @rdname import_generic_source
 #' @export
-#' @importFrom openxlsx read.xlsx
-#' @importFrom utils read.csv type.convert
-#' @importFrom stats setNames
-#' @importFrom janitor excel_numeric_to_date
-#--------------------------------------------------------------------------------------
-import_pprtv_ncea_source <- function(db,
-                                     csvfile="dose_reg2.csv",
-                                     scrapepath="PPRTV_scrape2020-04-08.xlsx",
-                                     chem.check.halt=F) {
+#' @importFrom purrr map
+#' @importFrom readxl read_xlsx
+#' @importFrom readr read_csv
+#' @importFrom dplyr mutate left_join select group_by summarize filter case_when rename distinct na_if across ungroup
+#' @importFrom tidyselect all_of any_of
+#' @importFrom tidyr separate unite drop_na
+#' @importFrom stringr str_squish
+import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
+  source <- "PPRTV (NCEA)"
+  source_table = "source_pprtv_ncea"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2020-04-08")
 
-  filepath = paste0(toxval.config()$datapath,"pprtv_ncea/pprtv_ncea_files")
+  # Maintain old logic (with Tidyverse updates where applicable) for reading files
+
+  # Initialize filepaths
+  csvfile="dose_reg2.csv"
+  scrapepath="PPRTV_scrape2020-04-08.xlsx"
+  filepath = paste0(toxval.config()$datapath,"pprtv_ncea/pprtv_ncea_files/")
   csvfile = paste0(toxval.config()$datapath,"pprtv_ncea/pprtv_ncea_files/",csvfile)
   scrapepath = paste0(toxval.config()$datapath,"pprtv_ncea/",scrapepath)
 
   #####################################################################
-  cat("Build all input pprtv_ncea tables \n")
+  cat("Build input pprtv_ncea tibble\n")
   #####################################################################
+  # Get list of relevant files
   files.list <- list.files(path = filepath, pattern = "*.xlsx")
-  any_temp_files <- grep("^\\~\\$.*", files.list, value = T)
+  any_temp_files <- grep("^\\~\\$.*", files.list, value = TRUE)
   files.list <- files.list[! files.list %in% any_temp_files]
-  files.list <- paste0( filepath, '/',files.list)
-  res <- lapply(files.list,openxlsx::read.xlsx)
-  pprtv_ncea_25 <- utils::read.csv(csvfile, header = T, sep = ",")
-  res <- c(res,list(pprtv_ncea_25))
+  files.list <- paste0(filepath, files.list)
+
+  # Read files into tibbles
+  res_list <- files.list %>%
+    purrr::map(\(x) readxl::read_xlsx(x, col_types = "text"))
+
+  # Add CSV and scrape file information to res_list
+  pprtv_ncea_25 <- readr::read_csv(csvfile, show_col_types=FALSE)
+  res_list <- c(res_list, list(pprtv_ncea_25))
+  pprtv_ncea_26 <- readxl::read_xlsx(scrapepath, sheet=1)
+  res_list <- c(res_list, list(pprtv_ncea_26))
+
+  # Delete separate CSV/scrape tibble objects
   rm(pprtv_ncea_25)
-  pprtv_ncea_26 <- openxlsx::read.xlsx(scrapepath,1)
-  res <- c(res, list(pprtv_ncea_26))
   rm(pprtv_ncea_26)
 
   #####################################################################
-  cat("Provide dataframe names prefixed with pprtv_ncea and update column names by making necessary substitutions \n")
+  cat("Provide dataframe names prefixed with pprtv_ncea and update column names by making necessary substitutions\n")
   #####################################################################
-  res_names <- c('assessment_study', 'assessments','cancer_tt','cancer_types','cancer','chem_groups',
-                 'dose_reg','dose','dosimetry_lkp', 'dosimetry_rqd', 'endpoints',
+  res_list_names <- c('assessment_study', 'assessments','cancer', 'cancer_tt','cancer_types','chem_groups',
+                 'dose','dose_reg','dosimetry_lkp', 'dosimetry_rqd', 'endpoints',
                  'endpoints_tier','exposure_route','exposure_units','PPRTV_scrape_11_2017',
-                 'ref_value_type','ref_value_units','reference_tt','reference','species',
-                 'study_type','study', 'tissue_gen_types','tissue_gen','dose_reg2','new_scrape_table')
-
-  names(res) <- paste0("pprtv_ncea_", res_names)
+                 'ref_value_type','ref_value_units','reference','reference_tt','species',
+                 'study','study_type', 'tissue_gen','tissue_gen_types','dose_reg2','new_scrape_table')
+  names(res_list) <- paste0("pprtv_ncea_", res_list_names)
 
   # Handle difference between Linux and Windows file sorting (flips endpoints and endpoints_tier load order)
-  if(is.null(res$pprtv_ncea_endpoints$Details)){
-    names(res)[names(res) == "pprtv_ncea_endpoints"] <- "tmp_swap"
-    names(res)[names(res) == "pprtv_ncea_endpoints_tier"] <- "pprtv_ncea_endpoints"
-    names(res)[names(res) == "tmp_swap"] <- "pprtv_ncea_endpoints_tier"
-  }
-
-  # Fix names
-  res <- lapply(res, function(x) stats::setNames(x, gsub("\\.+","\\_", names(x))))
-  res <- lapply(res, function(x) stats::setNames(x, gsub("\\'|\\?","", names(x))))
-
-  #####################################################################
-  cat("Subset the source list of dataframes by excluding duplicated dataframes(cancer and reference) \n")
-  #####################################################################
-  res <- res[!(names(res)) %in% c("pprtv_ncea_cancer_tt","pprtv_ncea_reference_tt")]
-
-  #####################################################################
-  cat("Endpoints file has a header column in row 65534, hence have to remove it \n")
-  #####################################################################
-  res$pprtv_ncea_endpoints <- res$pprtv_ncea_endpoints[-65534,]
-
-  #####################################################################
-  cat("Assign appropriate data types \n")
-  #####################################################################
-  for (i in 1:length(res)) {
-    res[[i]] <- lapply(res[[i]], function(x) utils::type.convert(as.character(x), as.is = T))
-    res[[i]] <- data.frame(res[[i]], stringsAsFactors = F)
+  if(is.null(res_list$pprtv_ncea_endpoints$Details)){
+    names(res_list)[names(res_list) == "pprtv_ncea_endpoints"] <- "tmp_swap"
+    names(res_list)[names(res_list) == "pprtv_ncea_endpoints_tier"] <- "pprtv_ncea_endpoints"
+    names(res_list)[names(res_list) == "tmp_swap"] <- "pprtv_ncea_endpoints_tier"
   }
 
   #####################################################################
-  cat("Assign columns with all NA values as empty \n")
+  cat("Subset the source list of dataframes by excluding duplicated dataframes(cancer and reference)\n")
   #####################################################################
-  for (i in 1:length(res)) {
-    res[[i]][sapply(res[[i]], function(x) all(is.na(x) == T))] <- ""
-  }
+  res_list <- res_list[!(names(res_list)) %in% c("pprtv_ncea_cancer_tt","pprtv_ncea_reference_tt")]
+
+  #####################################################################
+  cat("Endpoints file has a header column in row 65534, hence have to remove it\n")
+  #####################################################################
+  res_list$pprtv_ncea_endpoints <- res_list$pprtv_ncea_endpoints[-65534,]
 
   #####################################################################
   cat("Create a data frame to house all replacement column names and use it to
-      replace the existing column names \n")
+      replace the existing column names\n")
   #####################################################################
   cols_2_rename <- c("No_Value_Document", "InChlID","Date_Created","Date_QAd", "Cancer_Value_Type", "Study", "Source_of_POD","Dose_Regimen_ID",
                      "Body_Weight_Provided", "Body_Weight","Body_Weight_Units","Food_Consumption_Value","Food_Consumption_Units",
@@ -118,156 +118,229 @@ import_pprtv_ncea_source <- function(db,
                     "TisGen_ID", "DoseReg_ID", "TissueOrGen","Co_Crit","LOC_CancerEffect","NOELConfidence","Tissue_Types")
   colnames_res_to_change <-  data.frame(cols_2_rename, renamed_cols, stringsAsFactors = F)
 
-  #runInsertTable(colnames_res_to_change, "pprtv_ncea_modified_colnames",db,do.halt=T,verbose=F )
-  for (i in 1:length(res)){
+  for (i in 1:length(res_list)){
     for (j in 1:nrow(colnames_res_to_change)){
-      names(res[[i]])[match(colnames_res_to_change$cols_2_rename[j], names(res[[i]]))] = colnames_res_to_change$renamed_cols[j]
+      names(res_list[[i]])[match(colnames_res_to_change$cols_2_rename[j], names(res_list[[i]]))] = colnames_res_to_change$renamed_cols[j]
     }
   }
 
   #####################################################################
-  cat("Fix date conversions for Created_Date and QAd_Date in all dataframes with these fields \n")
+  cat("Fix encoding changes\n")
   #####################################################################
-  Date_to_fix <- lapply(res, function(x) {
-    grep("Date", names(x), ignore.case = T, value = T)
-  })
-  Date_to_fix2 <-""
-  for (i in 1:length(res)){
-    Date_to_fix2[i]<- lapply(res[i], "[", Date_to_fix[[i]])
-  }
-  for (i in 1:length(res)){
-    for (j in 1:ncol(Date_to_fix2[[i]])){
-      if (ncol(Date_to_fix2[[i]]) != 0){
-        if (names(Date_to_fix2[[i]])[j] %in% names(res[[i]])) {
-          res[[i]][,names(Date_to_fix2[[i]])[j]] <- janitor::excel_numeric_to_date(as.numeric(as.character(res[[i]][,names(Date_to_fix2[[i]])[j]])), date_system = "modern")
-          res[[i]][,names(Date_to_fix2[[i]])[j]] <- format(res[[i]][,names(Date_to_fix2[[i]])[j]], format = "%d-%b-%y")
-        }
-      }
-    }
-  }
-  # #####################################################################
-  # cat("Fix encoding changes \n")
-  # #####################################################################
-  res$pprtv_ncea_endpoints$Details <- iconv(res$pprtv_ncea_endpoints$Details,"UTF-8","ASCII","-")
-  res$pprtv_ncea_PPRTV_scrape_11_2017$Effect_Level <- iconv(res$pprtv_ncea_PPRTV_scrape_11_2017$Effect_Level,"UTF-8","ASCII"," ")
-  res$pprtv_ncea_new_scrape_table$Effect_Level = iconv(res$pprtv_ncea_new_scrape_table$Effect_Level,"latin1","ASCII","~")
-  res$pprtv_ncea_new_scrape_table$toxval_numeric = iconv(res$pprtv_ncea_new_scrape_table$toxval_numeric,"latin1","ASCII","~")
-  res$pprtv_ncea_new_scrape_table$Species <- iconv(res$pprtv_ncea_new_scrape_table$Species,"UTF-8","ASCII"," ")
-  res$pprtv_ncea_new_scrape_table$Route <- iconv(res$pprtv_ncea_new_scrape_table$Route,"UTF-8","ASCII"," ")
-  res$pprtv_ncea_new_scrape_table$Duration <- iconv(res$pprtv_ncea_new_scrape_table$Duration,"UTF-8","ASCII"," ")
-  res$pprtv_ncea_new_scrape_table$Confidence <- iconv(res$pprtv_ncea_new_scrape_table$Confidence,"UTF-8","ASCII"," ")
-  res$pprtv_ncea_new_scrape_table$Target <- iconv(res$pprtv_ncea_new_scrape_table$Target,"UTF-8","ASCII"," ")
-  res$pprtv_ncea_new_scrape_table$Critical_Effect <- iconv(res$pprtv_ncea_new_scrape_table$Critical_Effect,"UTF-8","ASCII"," ")
-  res$pprtv_ncea_new_scrape_table$UF <- iconv(res$pprtv_ncea_new_scrape_table$UF,"UTF-8","ASCII"," ")
-  #####################################################################
-  cat("convert character UF to numeric in pprtv_ncea_new_scrape_table  \n")
-  #####################################################################
-  res$pprtv_ncea_new_scrape_table$UF <- as.numeric(res$pprtv_ncea_new_scrape_table$UF)
+  res_list$pprtv_ncea_endpoints = res_list$pprtv_ncea_endpoints %>%
+    dplyr::mutate(Details = iconv(Details,"UTF-8","ASCII","-"))
 
-  #####################################################################
-  cat("Create PPRTV Source tables \n")
-  #####################################################################
-  table_names <- tolower(c("pprtv_ncea_tbl_Assessment_Study","pprtv_ncea_tbl_Assessment",
-                           "pprtv_ncea_ztbl_Cancer_Type","pprtv_ncea_tbl_Cancer","pprtv_ncea_ztbl_ChemGroups",
-                           "pprtv_ncea_tbl_DoseReg","pprtv_ncea_tbl_Dose","pprtv_ncea_ztbl_DosimetryLkp","pprtv_ncea_ztbl_DosimetryRqd",
-                           "pprtv_ncea_ztbl_Endpoints_tier","pprtv_ncea_tbl_Endpoints", "pprtv_ncea_ztbl_ExpRoute","pprtv_ncea_ztbl_ExpUnits","pprtv_ncea_ztbl_Scrape11_2017",
-                           "pprtv_ncea_ztbl_RfV_Type","pprtv_ncea_ztbl_RfV_Units","pprtv_ncea_tbl_Reference","pprtv_ncea_ztbl_Species",
-                           "pprtv_ncea_ztbl_StudyType","pprtv_ncea_tbl_Study","pprtv_ncea_ztbl_TissueGenTypes","pprtv_ncea_tbl_Tis_Gen","pprtv_ncea_ztbl_DoseReg2","pprtv_ncea_ztbl_new_scrape_2020"))
-  stop = FALSE
-  for( i in 1:length(res)){
-    for (j in 1:length(table_names)){
-      res[[i]] = fix.non_ascii.v2(res[[i]],table_names[j])
-      runInsertTable(res[[i]],table_names[j],db,do.halt=T,verbose=F)
-      i <- i+1
-      if (i == length(res)+1){
-        stop = TRUE
-        break
-      }
-    }
-    if (stop){break}
-  }
+  res_list$pprtv_ncea_PPRTV_scrape_11_2017 =  res_list$pprtv_ncea_PPRTV_scrape_11_2017 %>%
+    dplyr::mutate(`Effect Level` = iconv(`Effect Level`,"UTF-8","ASCII"," "))
+
+  res_list$pprtv_ncea_new_scrape_table = res_list$pprtv_ncea_new_scrape_table %>%
+    dplyr::mutate(
+      `Effect Level` = iconv(`Effect Level`,"latin1","ASCII","~"),
+      toxval_numeric = iconv(toxval_numeric,"latin1","ASCII","~"),
+      Species = iconv(Species,"UTF-8","ASCII"," "),
+      Route = iconv(Route,"UTF-8","ASCII"," "),
+      Duration = iconv(Duration,"UTF-8","ASCII"," "),
+      Confidence = iconv(Confidence,"UTF-8","ASCII"," "),
+      Target = iconv(Target,"UTF-8","ASCII"," "),
+      `Critical Effect` = iconv(`Critical Effect`,"UTF-8","ASCII"," "),
+      UF = iconv(UF,"UTF-8","ASCII"," "),
+    )
 
   ####################################################################
-  cat("Build new_pprtv_ncea \n")
+  cat("Build res from input files\n")
   #####################################################################
-  query2 <- "select casrn,chemical_name as name,RFV_ID,Type as toxval_type,reference_value as toxval_numeric,
-  RFV_Units as toxval_units,studytype as study_type,tissue_gen as toxval_subtype,endpoint as phenotype,
-  Point_Of_Departure as POD_numeric,PoD_Source as POD_type,PoD_Units as POD_units,
-  UF_A,UF_D,UF_H,UF_L,UF_S,UF_C,Study_Year as year,author,study_title as title,Full_Reference as long_ref,
-  species,strain,sex,substring_index(Route_of_Exposure,' - ',1) as exposure_route,
-  substring_index(Route_of_Exposure,' - ',-1) as exposure_method,Duration_Class as study_duration_class,
-  Duration_of_Study as study_duration_value,Duration_Units as study_duration_units, c.HERO as hero_id
-  from pprtv_ncea_tbl_assessment_study a
-  inner join pprtv_ncea_tbl_assessment c on c.Assessment_ID = a.Assessment_ID
-  inner join pprtv_ncea_tbl_study e on e.Study_ID = a.Study_ID
-  inner join
-  (select AsmtStudy_ID, Species, Strain, Route_of_Exposure, Duration_Class, Duration_of_Study, Duration_Units, group_concat(distinct Gender) as sex
-    from pprtv_ncea_tbl_dosereg
-    group by AsmtStudy_ID, Species, Strain, Route_of_Exposure, Duration_Class, Duration_of_Study, Duration_Units) d on d.AsmtStudy_ID = a.AsmtStudy_ID
-  inner join pprtv_ncea_tbl_reference b on a.Assessment_ID = b.Assessment_ID and a.Study_ID = b.StudyID;"
+  # Transition to using dplyr rather than creating database tables
+  res0 = res_list$pprtv_ncea_assessment_study %>%
+    dplyr::mutate(raw_input_file="pprtv_ncea_assessment_study") %>%
+    dplyr::left_join(res_list$pprtv_ncea_assessments %>%
+                       dplyr::mutate(raw_input_file="pprtv_ncea_assessment"),
+                     by = "Assessment ID") %>%
 
-  # # Transition to using dplyr rather than creating database tables
-  # new_pprtv_ncea <- res$pprtv_ncea_assessment_study %>%
-  #   left_join(res$pprtv_ncea_assessments,
-  #             by = "Assessment_ID") %>%
-  #   left_join(res$pprtv_ncea_study,
-  #             by = "Study_ID") %>%
-  #   left_join(res$pprtv_ncea_dose_reg %>%
-  #               select(AsmtStudy_ID, Species, Strain, Route_of_Exposure, Duration_Class, Duration_of_Study, Duration_Units, Gender) %>%
-  #               group_by(AsmtStudy_ID, Species, Strain, Route_of_Exposure, Duration_Class, Duration_of_Study, Duration_Units) %>%
-  #               summarize(sex = toString(unique(Gender)), .groups = "keep"),
-  #             by = "AsmtStudy_ID") %>%
-  #   left_join(res$pprtv_ncea_reference,
-  #             by = c("Assessment_ID", "Study_ID" = "StudyID")) %>%
-  #   select(casrn=CASRN,name=Chemical_Name,RFV_ID,toxval_type=Type,toxval_numeric=Reference_Value,
-  #          toxval_units=RfV_Units,study_type=StudyType,toxval_subtype=Tissue_Gen,phenotype=Endpoint,
-  #          POD_numeric=Point_of_Departure,POD_type=POD_Source,POD_units=PoD_Units,
-  #          UF_A,UF_D,UF_H,UF_L,UF_S,UF_C,year=Study_Year,Author,title=Study_Title,long_ref=Full_Reference,
-  #          Species,Strain,sex,Route_of_Exposure, study_duration_class=Duration_Class,
-  #          study_duration_value=Duration_of_Study,study_duration_units=Duration_Units,
-  #          raw_input_file.x, raw_input_file.x.x, raw_input_file.y, raw_input_file.y.y) %>%
-  #   # exposure_route = substring_index(Route_of_Exposure,' - ',1)
-  #   # exposure_method = substring_index(Route_of_Exposure,' - ',-1)
-  #   tidyr::separate(Route_of_Exposure, c("exposure_route", "exposure_method"), sep = " - ", fill = "right") %>%
-  #   tidyr::unite(col="raw_input_file", raw_input_file.x, raw_input_file.x.x, raw_input_file.y, raw_input_file.y.y, sep="; ")
+    dplyr::left_join(res_list$pprtv_ncea_study %>%
+                       dplyr::mutate(raw_input_file="pprtv_ncea_study"),
+                     by = "Study ID") %>%
 
-  new_pprtv_ncea <- runQuery(query2, db)
-  print(new_pprtv_ncea[new_pprtv_ncea$casrn=="110-54-3","name"])
+    dplyr::left_join(res_list$pprtv_ncea_dose_reg %>%
+                       dplyr::select(tidyselect::all_of(c("AsmtStudy_ID", "Animal Species", "Animal Strain",
+                                                          "Route of Exposure", "Duration Classification",
+                                                          "Duration of Study", "Duration Units", "Gender"))) %>%
+                       dplyr::mutate(raw_input_file="pprtv_ncea_dose_reg") %>%
+                       dplyr::group_by(`AsmtStudy_ID`, `Animal Species`, `Animal Strain`, `Route of Exposure`,
+                                       `Duration Classification`, `Duration of Study`, `Duration Units`) %>%
+                       dplyr::summarize(sex = toString(unique(Gender)), .groups = "keep"),
+                     by = "AsmtStudy_ID") %>%
 
-  new_pprtv_ncea["pprtv_ncea_id"] <- c(1:length(new_pprtv_ncea[,1]))
-  print(new_pprtv_ncea[new_pprtv_ncea$casrn=="110-54-3","name"])
+    dplyr::left_join(res_list$pprtv_ncea_reference %>%
+                       dplyr::mutate(raw_input_file="pprtv_ncea_reference"),
+              by = c("Assessment ID", "Study ID" = "StudyID"),
+              relationship="many-to-many") %>%
 
-  #new_pprtv_ncea <- new_pprtv_ncea[c("pprtv_ncea_id",names(new_pprtv_ncea[-31]))]
-  new_pprtv_ncea <- new_pprtv_ncea[c("pprtv_ncea_id",names(new_pprtv_ncea)[!names(new_pprtv_ncea) %in% c("pprtv_ncea_id")])]
-  print(new_pprtv_ncea[new_pprtv_ncea$casrn=="110-54-3","name"])
+    dplyr::select(casrn=CASRN,name=`Chemical Name`,RFV_ID,toxval_type=`Reference Value Type`,toxval_numeric=`Reference Value`,
+           toxval_units=`RfV Units`,study_type=StudyType,toxval_subtype=`Tissue_Gen`,phenotype=Endpoint,
+           POD_numeric=`Point of Departure`,POD_type=`Source of POD`,POD_units=`PoD Units`,
+           UF_A,UF_D,UF_H,UF_L,UF_S,UF_C,year=`Study_Year`,Author,title=`Study_Title`,long_ref=`Full Reference`,
+           species=`Animal Species`,strain=`Animal Strain`,sex,`Route of Exposure`,study_duration_class=`Duration Classification`,
+           study_duration_value=`Duration of Study`,study_duration_units=`Duration Units`,
+           raw_input_file.x, raw_input_file.x.x, raw_input_file.y, raw_input_file.y.y) %>%
 
-  res = as.data.frame(new_pprtv_ncea)
-  res = res[!generics::is.element(res$casrn,"VARIOUS"),]
+    tidyr::separate(`Route of Exposure`, c("exposure_route", "exposure_method"), sep = " - ", fill = "right") %>%
+    tidyr::unite(col="raw_input_file",
+                 raw_input_file.x, raw_input_file.x.x, raw_input_file.y, raw_input_file.y.y,
+                 sep="; ",
+                 remove=TRUE,
+                 na.rm=TRUE)
 
-  res = subset(res,select=-c(pprtv_ncea_id))
-  nlist = c("casrn","name","rfv_id","toxval_type",
-            "toxval_numeric","toxval_units","study_type","toxval_subtype","phenotype",
-            "pod_numeric","pod_type","pod_units",
-            "uf_a","uf_d","uf_h","uf_l","uf_s","uf_c",
-            "year","author","title","long_ref","species","strain",
-            "sex","exposure_route","exposure_method",
-            "study_duration_class","study_duration_value","study_duration_units",
-            "hero_id")
-  names(res) = nlist
-  res[generics::is.element(res$casrn,"64724-95-6"),"casrn"] = "64742-95-6"
-  ###
-  # Find pprtv_ncea Intermdiate tables
-  tblList = runQuery(query = paste0("SHOW TABLES FROM ", db),
-                     db=db) %>% unlist() %>% unname() %>%
-    # Filter to those named "pprtv_ncea_*"
-    .[grepl("^pprtv_ncea", .)]
-  # Drop intermediate tables
-  lapply(tblList, function(tbl){
-    runQuery(paste0("DROP TABLE ", tbl), db)
-  }) %>%
-    invisible()
+  #####################################################################
+  cat("Do any non-generic steps to get the data ready\n")
+  #####################################################################
+  res = res0 %>%
+    # Add transformations from old load script
+    dplyr::filter(casrn != "VARIOUS") %>%
+
+    dplyr::mutate(
+      # Add new columns
+      critical_effect = stringr::str_squish(phenotype),
+      subsource = "EPA ORD",
+      source_url = "https://www.epa.gov/pprtv/basic-information-about-provisional-peer-reviewed-toxicity-values-pprtvs",
+      human_eco = "human_health",
+      species = species %>%
+        tolower() %>%
+        stringr::str_squish(),
+      strain = strain %>%
+        tolower() %>%
+        stringr::str_squish(),
+
+      # Manually adjust erroneous casrn
+      casrn = dplyr::case_when(
+        name == "Inorganic Phosphates" ~ "98059-61-1",
+        TRUE ~ casrn
+      ),
+
+      # Clean study fields (keep ranged values in import)
+      study_duration_value = study_duration_value %>%
+        gsub(" \\- ", "-", .) %>%
+        stringr::str_squish(),
+      study_duration_units = study_duration_units %>%
+        tolower() %>%
+        stringr::str_squish(),
+      study_duration_class = study_duration_class %>%
+        tolower(),
+      study_type = study_type %>%
+        tolower() %>%
+        stringr::str_squish(),
+
+      # Clean exposure fields
+      exposure_route = exposure_route %>%
+        gsub("\\s.+", "", .) %>%
+        tolower() %>%
+        stringr::str_squish(),
+      exposure_method = exposure_method %>%
+        tolower() %>%
+        stringr::str_squish(),
+
+      # Clean sex field
+      sex = dplyr::case_when(
+        grepl("F", sex) & grepl("M", sex) ~ "male/female",
+        grepl("F", sex) ~ "female",
+        grepl("M", sex) ~ "male",
+        TRUE ~ as.character(NA),
+      )
+    )
+
+  # Separate out POD data and add back to res
+  pod_res = res %>%
+    dplyr::select(!tidyselect::any_of(c("toxval_type", "toxval_numeric", "toxval_units"))) %>%
+    dplyr::rename(toxval_type=POD_type, toxval_numeric=POD_numeric, toxval_units=POD_units)
+  res = res %>%
+    dplyr::select(!tidyselect::any_of(c("POD_type", "POD_numeric", "POD_units"))) %>%
+    rbind(pod_res) %>%
+
+    dplyr::distinct() %>%
+
+    dplyr::mutate(
+      # Preserve toxval_type additional detail from units
+      toxval_type_2 = toxval_units %>%
+        stringr::str_extract("ADD|HED|HEC") %>%
+        # Add ending parentheses for later unite with toxval_type
+        paste0(")") %>%
+        gsub("NA\\)", NA, .),
+      # Clean toxval_units
+      toxval_units = toxval_units %>%
+        fix.replace.unicode() %>%
+        gsub("ADD|HED|HEC", "", .) %>%
+        stringr::str_squish(),
+
+      # Add appropriate species/human_ra based on toxval_type
+      species = dplyr::case_when(
+        grepl("RfC|RfD", toxval_type) ~ as.character(NA),
+        TRUE ~ species
+      ),
+      human_ra = dplyr::case_when(
+        grepl("RfC|RfD", toxval_type) ~ "Y",
+        TRUE ~ "N"
+      ),
+      target_species = dplyr::case_when(
+        grepl("RfC|RfD", toxval_type) ~ "human",
+        TRUE ~ as.character(NA)
+      ),
+      strain = dplyr::case_when(
+        is.na(species) ~ as.character(NA),
+        TRUE ~ strain
+      ),
+
+      # Ensure numeric fields are of numeric type
+      toxval_numeric = as.numeric(toxval_numeric),
+      year = year %>%
+        dplyr::na_if("ND") %>%
+        as.numeric(year)
+    ) %>%
+    tidyr::unite(col="toxval_type", toxval_type, toxval_type_2, sep = " (", na.rm = TRUE) %>%
+
+    # Drop entries missing required fields (both name and casrn blank for same entries)
+    tidyr::drop_na(toxval_numeric, toxval_units, toxval_type, name) %>%
+    dplyr::distinct()
+
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Check for duplicate records early
+  hashing_cols = toxval.config()$hashing_cols
+  res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
+  res$source_hash = res.temp$source_hash
+
+  # Dedup by collapsing non hashing columns
+  res = res %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::mutate(dplyr::across(tidyselect::all_of(c("uf_a", "uf_d", "uf_h", "uf_l", "uf_s", "uf_c", "rfv_id")),
+                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
+                                  dplyr::na_if("NA") %>%
+                                  dplyr::na_if("")
+    )) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct()
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  source_prep_and_load(db,source="PPRTV (NCEA)",table="source_pprtv_ncea",res=res,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
+
+
+
+
