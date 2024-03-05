@@ -223,6 +223,8 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
       study_duration_units = study_duration_units %>%
         tolower() %>%
         stringr::str_squish(),
+      study_duration_class = study_duration_class %>%
+        tolower(),
       study_type = study_type %>%
         tolower() %>%
         stringr::str_squish(),
@@ -256,6 +258,12 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
     dplyr::distinct() %>%
 
     dplyr::mutate(
+      # Preserve toxval_type additional detail from units
+      toxval_type_2 = toxval_units %>%
+        stringr::str_extract("ADD|HED|HEC") %>%
+        # Add ending parentheses for later unite with toxval_type
+        paste0(")") %>%
+        gsub("NA\\)", NA, .),
       # Clean toxval_units
       toxval_units = toxval_units %>%
         fix.replace.unicode() %>%
@@ -286,6 +294,7 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
         dplyr::na_if("ND") %>%
         as.numeric(year)
     ) %>%
+    tidyr::unite(col="toxval_type", toxval_type, toxval_type_2, sep = " (", na.rm = TRUE) %>%
 
     # Drop entries missing required fields (both name and casrn blank for same entries)
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type, name) %>%
