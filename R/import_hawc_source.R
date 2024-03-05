@@ -342,7 +342,7 @@ import_hawc_source <- function(db,
   # Dedup by collapsing non hashing columns
   res = res %>%
     dplyr::group_by(source_hash) %>%
-    dplyr::mutate(dplyr::across(tidyselect::all_of(c("experiment_id")),
+    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", hashing_cols)),
                                 ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
                                   dplyr::na_if("NA") %>%
                                   dplyr::na_if("")
