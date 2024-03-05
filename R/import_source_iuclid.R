@@ -54,7 +54,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   if(!length(file)) return(cat("...No files to process...\n"))
   if(length(file) > 1) stop("More than 1 IUCLID file stored in '", dir, "'")
 
-  file = "AcuteToxicityOtherRoutes_02282024.xlsx"
   # Try to open file (Windows file nesting issue)
   res0 = tryCatch({
     # guess_max used due to large file with some columns guessed as NA/logical when not
