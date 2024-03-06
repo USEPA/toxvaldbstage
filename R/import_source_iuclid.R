@@ -141,20 +141,41 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       )
   }
 
-  # TODO Handle developmental fetus vs. maternal studies as needed
+  # Handle developmental fetus vs. maternal studies as needed
   if(grepl("developmental", subf) && any(grepl("fetus_|maternal_", names(res)))){
     message("Handling developmental OHT fetus vs. maternal field pivots...")
     # Fill default maternal sex
     res$maternal_sex = "female"
-    res = res %>%
-      # Get all maternal and fetus fields in one field
-      tidyr::pivot_longer(cols=tidyselect::starts_with("fetus_") | tidyselect::starts_with("maternal_"),
-                          names_to = "dev_field",
-                          values_transform = list(value=as.character)) %>%
-      # Split by maternal vs. fetus fields with "generation_type"
-      tidyr::separate(dev_field, into=c("generation_type", "field"), sep="_", extra="merge") %>%
-      # Spread out fields again, now without theif "fetus_" or "maternal_" prefixes (now stored in "generation_type")
-      tidyr::pivot_wider(names_from = field, values_from=value)
+
+    # Handle fetus and maternal fields separately, tracking origin with generation_type
+    res_fetus = res %>%
+      dplyr::select(-tidyselect::starts_with("maternal_")) %>%
+      dplyr::mutate(generation_type="fetus") %>%
+      dplyr::rename_with(function(x) gsub("fetus_", "", x))
+    res_maternal = res %>%
+      dplyr::select(-tidyselect::starts_with("fetus_")) %>%
+      dplyr::mutate(generation_type="maternal") %>%
+      dplyr::rename_with(function(x) gsub("maternal_", "", x))
+
+    # Recombine fetus and maternal data
+    res = dplyr::bind_rows(res_fetus, res_maternal)
+  }
+
+  # Handle reproduction offspring vs. parental studies as needed
+  if(subf == "iuclid_toxicityreproduction"){
+    message("Handling reproduction OHT offspring vs. parental field pivots...")
+    # Handle offspring and parental fields separately, tracking origin with generation_type
+    res_offspring = res %>%
+      dplyr::select(-tidyselect::starts_with("parental_")) %>%
+      dplyr::mutate(generation_type="offspring") %>%
+      dplyr::rename_with(function(x) gsub("offspring_", "", x))
+    res_parental = res %>%
+      dplyr::select(-tidyselect::starts_with("offspring_")) %>%
+      dplyr::mutate(generation_type="parental") %>%
+      dplyr::rename_with(function(x) gsub("parental_", "", x))
+
+    # Recombine offspring and parental data
+    res = dplyr::bind_rows(res_offspring, res_parental)
   }
 
   # Add NA toxval_units_other column if it doesn't exist
@@ -448,6 +469,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         grepl("feed", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "feed",
         grepl("aerosol", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "aerosol",
         grepl("capsule", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "capsule",
+        grepl("dust", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "dust",
+        grepl("mixture", exposure_route) & exposure_method %in% c("-", as.character(NA))~ stringr::str_extract(exposure_route,
+                                                                                                                    "mixture.+") %>% c(),
         TRUE ~ exposure_method
       ),
 
@@ -457,7 +481,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("\\|?other\\|?", "", .) %>%
         gsub("\\|?unspecified\\|?", "", .) %>%
         gsub("\\|?not specified\\|?", "", .) %>%
-        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule", "", ., ignore.case=TRUE) %>%
+        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule|mixture.+|dust", "", ., ignore.case=TRUE) %>%
         stringr::str_squish(),
 
       # Clean sex field
