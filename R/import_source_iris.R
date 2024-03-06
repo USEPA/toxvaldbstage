@@ -383,8 +383,6 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Hardcode species as human for RfD, RfD, HED, HED, Slope Factor, Unit Risk
   human_toxval_type = c("RfD", "Inhalation Unit Risk", "RfC", "Oral Slope Factor", "HED", "HEC")
   res0$species[res0$toxval_type %in% human_toxval_type] = "human"
-  # Add source version date
-  res0$source_version_date <- src_version_date
 
   # Fix names
   names(res0) <- names(res0) %>%
@@ -439,7 +437,6 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     # Import manually curated IRIS Summary information
     res1 <- iris_data$source_iris_summary_curation_20240122.xlsx %>%
       dplyr::mutate(
-        source_version_date = src_version_date,
         document_type = 'IRIS Summary',
         key_finding = 'No',
         iris_chemical_id = url %>%
@@ -478,9 +475,51 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     # Remove qualifier symbols
     dplyr::mutate(toxval_numeric = gsub("[<>=~]", "", toxval_numeric))
 
+  # Handle ranged toxval_numeric values
+  ranged_res = res %>% dplyr::filter(grepl("[0-9]+-[0-9]+", toxval_numeric))
+  if(nrow(ranged_res)) {
+    ranged_res = ranged_res %>%
+      dplyr::mutate(
+        numeric_relationship_id = dplyr::row_number()
+      ) %>%
+      tidyr::separate(
+        col = toxval_numeric,
+        into = c("Lower Range", "Upper Range"),
+        sep = "-",
+        remove = TRUE
+      ) %>%
+      tidyr::pivot_longer(
+        cols = c("Lower Range", "Upper Range"),
+        values_to = "toxval_numeric",
+        names_to = "numeric_relationship_description"
+      )
+  } else {
+    # Empty dataframe with res cols to bind_rows()
+    ranged_res = res[0,]
+  }
+
+  if(!"toxval_subtype" %in% names(res)){
+    res$toxval_subtype = NA
+  }
+
+  # Add ranged data to res
+  res = res %>%
+    dplyr::filter(!grepl("[0-9]+-[0-9]+", toxval_numeric)) %>%
+    dplyr::bind_rows(ranged_res) %>%
+    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
+    # Combine numeric_relationship_description with toxval_subtype
+    tidyr::unite(col="toxval_subtype", toxval_subtype, numeric_relationship_description,
+                 sep = " ",
+                 remove = FALSE,
+                 na.rm = TRUE) %>%
+    dplyr::mutate(toxval_subtype = toxval_subtype %>%
+                    dplyr::na_if(""))
+
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
+  # Add source version date
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
