@@ -162,6 +162,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$toxval_units_other = as.character(NA)
   }
 
+  # Add special toxval_units "score" case for certain OHTs
+  if (subf %in% c("iuclid_eyeirritation", "iuclid_skinirritationcorrosion", "iuclid_skinsensitisation")) {
+    toxval_units = "score"
+  }
+
   # Handle name assignment (check if secondary name is supplied)
   if (!("name_secondary" %in% names(res))) {
     res$name = res$name_primary
@@ -272,7 +277,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       ungroup()
   } else {
     # Empty dataframe with res cols to bind_rows()
-    ranged = res[0,]
+    ranged = res[0,] %>%
+      dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric))
   }
 
   # Join back the range split rows
@@ -300,6 +306,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("diet", "", .) %>%
         gsub("air", "", .) %>%
         gsub("drinking water", "", .) %>%
+        gsub("sediment", "", .) %>%
         gsub("\\(.+\\)", "", .) %>%
         gsub("micro", "u", .) %>%
         gsub(" per ", "/", .) %>%
@@ -330,8 +337,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::mutate(
       # Clean critical_effect column
       critical_effect = critical_effect %>%
-        gsub("Results:", "", ., ignore.case=TRUE) %>%
-        stringr::str_squish(),
+        gsub("Results:|other:|not specified", "", ., ignore.case=TRUE) %>%
+        stringr::str_squish() %>%
+        dplyr::na_if("") %>%
+        dplyr::na_if(" ") %>%
+        dplyr::na_if(":"),
 
       # Extract study_duration_value and study_duration_units
       study_duration = study_duration_units,
@@ -425,11 +435,21 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         stringr::str_squish(),
 
       # Clean exposure_method
-      exposure_method = exposure_method %>%
+      exposure_method =  exposure_method %>%
         gsub("\\|other:|other:\\|", "", .) %>%
         gsub("\\|unspecified|unspecified\\|", "", .) %>%
         gsub("\\|not specified|not specified\\|", "", .) %>%
         stringr::str_squish(),
+      exposure_method = dplyr::case_when(
+        grepl("gavage", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "gavage",
+        grepl("gas", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "gas",
+        grepl("vapour", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "vapour",
+        grepl("drinking water", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "drinking water",
+        grepl("feed", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "feed",
+        grepl("aerosol", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "aerosol",
+        grepl("capsule", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "capsule",
+        TRUE ~ exposure_method
+      ),
 
       # Clean exposure_route
       exposure_route = exposure_route %>%
@@ -437,6 +457,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("\\|?other\\|?", "", .) %>%
         gsub("\\|?unspecified\\|?", "", .) %>%
         gsub("\\|?not specified\\|?", "", .) %>%
+        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule", "", ., ignore.case=TRUE) %>%
         stringr::str_squish(),
 
       # Clean sex field
@@ -531,7 +552,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::ungroup() %>%
     dplyr::mutate(sex = sex %>%
                     dplyr::na_if("") %>%
-                    dplyr::na_if("NA"))
+                    dplyr::na_if("NA") %>%
+                    # Standardize "both" order
+                    ifelse(. == "female/male", "male/female", .))
 
   # Check for acute OHTs without a mapped duration field
   if(grepl("acute", subf, ignore.case = TRUE)){
