@@ -173,12 +173,15 @@ set_clowder_id_lineage <- function(source_table,
                                                                       "clowder_v3/source_gestis_dnel_document_map.xlsx"),
                                                                col_types = "text", guess_max=21474836),
 
+                      "source_heast" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                 "clowder_v3/source_heast_document_map.xlsx"), col_types = "text"),
+
                       # No source match, return empty
                       data.frame()
     )
 
     # Sources with a single document in a combined map
-    if(source_table %in% c("source_heast", "source_mass_mmcl",
+    if(source_table %in% c("source_mass_mmcl",
                            "source_cal_dph", "source_dod_ered",
                            "source_doe_lanl_ecorisk", "source_doe_pac")){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -1071,6 +1074,62 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Combine origin and extraction document associations
                     res = dplyr::bind_rows(res, tmp)
+
+                    # Return res
+                    res
+                  },
+
+                  "source_heast" = {
+                    # associates each origin document to specific record
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+
+                    # Separate rows based on chemical name
+                    origin_docs = origin_docs %>%
+                      tidyr::separate_rows(`Chemical`, sep="; ")
+
+                    # Match origin docs
+                    # Match based on chemical names
+                    res1 <- res %>%
+                      dplyr::select(source_hash, source_version_date, name) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::filter(!is.na(clowder_id)) %>%
+                                         dplyr::select(clowder_id, fk_doc_id, name = "Chemical") %>%
+                                         dplyr::distinct(), relationship = "many-to-many",
+                                       by = "name")
+
+                    # Hard code matches with grep for chemical name
+                    unmatched_names = c("Boron Trifluoride", "Bromophos", "Chlorpyrifos Methyl", "Chlorthiophos",
+                                        "Chromium III", "Copper", "Diazinon", "Dichloroethylene",
+                                        "Dichlorophenoxy)", "Dimethoate", "Dimethylterephthalate",
+                                        "Endothall", "EPTC", "Hexachlorophene",
+                                        "Isopropalin", "Mancozeb", "Maneb", "Mephosfolan",
+                                        "Octamethylpyrophosphoramide", "Pebulate", "Phorate", "Phthalic Acid, p-", "Profluralin", "Ronnel",
+                                        "Silver", "Temephos", "Terbufos", "Thiocyanomethylthio)", "Thiofanox", "Tin",
+                                        "Trichloro-2'-Hydroxydiphenylether, 2,2,4'-", "Zinc")
+
+                    # Find matches for those missing matches with grep name to chemical name
+                    for(u_name in unmatched_names){
+                      origin_replace = unique(origin_docs$clowder_id[grep(paste0("^", u_name), origin_docs$Chemical)])
+                      # if(length(origin_replace) > 1) stop("origin_replace too long")
+                      # if(length(origin_replace) == 0) stop("No replacement")
+                      res1$clowder_id[grep(u_name, res1$name)] = origin_replace
+                      res1$fk_doc_id[grep(u_name, res1$name)] = unique(origin_docs$fk_doc_id[origin_docs$clowder_id %in% origin_replace])
+                    }
+
+                    # associates each record to the extraction document
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+
+                    # Perform a left join on chemical names to match chemical names
+                    res2 <- res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id, name = "Chemical"))
+
+                    # Combine the two associated dataframes back into res
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
 
                     # Return res
                     res
