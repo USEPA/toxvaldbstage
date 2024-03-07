@@ -453,22 +453,8 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
-  # Check for duplicate records early
-  res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
-  res$source_hash = res.temp$source_hash
-
-  # Dedup by collapsing non hashing columns to dedup
-  res = res %>%
-    dplyr::group_by(source_hash) %>%
-    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", toxval.config()$hashing_cols)),
-                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
-                                  na_if("NA") %>%
-                                  na_if("")
-    )) %>%
-    # dplyr::summarise(linkage_id = toString(linkage_id)) %>%
-    dplyr::ungroup() %>%
-    dplyr::distinct()
-
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

@@ -334,21 +334,8 @@ import_hawc_source <- function(db,
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
-  # Check for duplicate records early
-  hashing_cols = toxval.config()$hashing_cols
-  res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
-  res$source_hash = res.temp$source_hash
-
-  # Dedup by collapsing non hashing columns
-  res = res %>%
-    dplyr::group_by(source_hash) %>%
-    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", hashing_cols)),
-                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
-                                  dplyr::na_if("NA") %>%
-                                  dplyr::na_if("")
-    )) %>%
-    dplyr::ungroup() %>%
-    dplyr::distinct()
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

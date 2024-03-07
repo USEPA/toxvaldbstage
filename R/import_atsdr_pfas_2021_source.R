@@ -438,21 +438,8 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
-  # Check for duplicate records early
-  hashing_cols = toxval.config()$hashing_cols
-  res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
-  res$source_hash = res.temp$source_hash
-
-  # Dedup by collapsing endpoint column
-  res = res %>%
-    dplyr::group_by(source_hash) %>%
-    dplyr::mutate(
-      endpoint = paste0(endpoint, collapse="; ") %>%
-        gsub("NA;\\s|NA", "", .) %>%
-        stringr::str_squish()
-      ) %>%
-    dplyr::ungroup() %>%
-    dplyr::distinct()
+  # Perform deduping
+  res = toxval.source.import.dedup(res, dedup_fields=c("endpoint"), delim="; ")
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
