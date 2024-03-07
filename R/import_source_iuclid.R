@@ -335,8 +335,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     ) %>%
     # Filter out entries with inadequate toxval_type
     dplyr::filter(!grepl("dose|other", toxval_type)) %>%
-    # Filter out entries with "other" species
-    dplyr::filter(!grepl("\\bother\\b", species, ignore.case=TRUE)) %>%
     # Drop entries without necessary toxval columns
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type) %>%
     # Drop entries without either name or casrn
@@ -561,7 +559,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper"))) %>%
     # Remove entries with "conc. level" toxval_type or "%" toxval_units
     dplyr::filter(!grepl("conc\\. level", toxval_type),
-                  !grepl("%", toxval_units))
+                  !grepl("%", toxval_units))  %>%
+    # Filter out entries with "other" species
+    dplyr::filter(!grepl("\\bother\\b", species, ignore.case=TRUE))
 
   # Handle sex column duplicates
   res = res %>%
