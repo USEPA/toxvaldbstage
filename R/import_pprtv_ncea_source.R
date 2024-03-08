@@ -310,21 +310,9 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
-  # Check for duplicate records early
-  hashing_cols = toxval.config()$hashing_cols
-  res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
-  res$source_hash = res.temp$source_hash
-
-  # Dedup by collapsing non hashing columns
-  res = res %>%
-    dplyr::group_by(source_hash) %>%
-    dplyr::mutate(dplyr::across(tidyselect::all_of(c("uf_a", "uf_d", "uf_h", "uf_l", "uf_s", "uf_c", "rfv_id")),
-                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
-                                  dplyr::na_if("NA") %>%
-                                  dplyr::na_if("")
-    )) %>%
-    dplyr::ungroup() %>%
-    dplyr::distinct()
+  # Perform deduping
+  res = toxval.source.import.dedup(res,
+                                   dedup_fields=c("uf_a", "uf_d", "uf_h", "uf_l", "uf_s", "uf_c", "rfv_id"))
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

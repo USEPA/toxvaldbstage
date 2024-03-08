@@ -175,29 +175,10 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
 
-  # Dedup/handle species_relationship_id dups
-  res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
-  res$source_hash = res.temp$source_hash
-
-  # Check for immediate duplicate hashes
-  dup_hashes = res %>%
-    dplyr::group_by(source_hash) %>%
-    dplyr::summarise(n = dplyr::n()) %>%
-    dplyr::filter(n > 1)
-
-  # Collapse ID field to improve conversion speeds (only convert unique cases once)
-  res_zip = res %>%
-    dplyr::group_by(source_hash) %>%
-    dplyr::summarise(species_relationship_id = toString(species_relationship_id)) %>%
-    dplyr::ungroup()
-  # Map back the collapsed groupings for species_relationship_id
-  res = res %>%
-    dplyr::select(-species_relationship_id) %>%
-    dplyr::left_join(res_zip,
-                     by="source_hash") %>%
-    dplyr::select(-source_hash) %>%
-    dplyr::distinct()
-
+  # Perform deduping
+  res = toxval.source.import.dedup(res,
+                                   dedup_fields=c("species_relationship_id"),
+                                   delim=", ")
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -210,7 +191,3 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-

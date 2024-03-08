@@ -631,21 +631,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     browser()
   }
 
-  # Check for duplicate records early
-  res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
-  res$source_hash = res.temp$source_hash
-
-  # Dedup by collapsing non hashing columns to dedup
-  res = res %>%
-    dplyr::group_by(source_hash) %>%
-    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", hashing_cols)),
-                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
-                                  na_if("NA") %>%
-                                  na_if("")
-                                )) %>%
-    # dplyr::summarise(linkage_id = toString(linkage_id)) %>%
-    dplyr::ungroup() %>%
-    dplyr::distinct()
+  # Perform deduping
+  res = toxval.source.import.dedup(res, hashing_cols=hashing_cols)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
