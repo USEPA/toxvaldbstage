@@ -561,8 +561,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::filter(!grepl("conc\\. level", toxval_type),
                   !grepl("%", toxval_units))  %>%
     # Filter out entries with "other" species
-    dplyr::filter(!grepl("\\bother\\b", species, ignore.case=TRUE)) %>%
-    # Filter out entries with "other" species
     dplyr::filter(!grepl("\\bother\\b", species, ignore.case=TRUE))
 
   # Handle sex column duplicates

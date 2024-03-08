@@ -125,13 +125,15 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
   # Add summary data to df before prep and load
   if(do.toxicological_profile){
     # Import manually curated IRIS Summary information
-    summary_file = paste0(dir,"source_atsdr_mrls_manual_pod_awebb01_20231219.xlsx")
+    summary_file = paste0(dir,"source_atsdr_mrls_manual_pod_awebb01_20240307.xlsx")
     res1 <- readxl::read_xlsx(summary_file) %>%
       dplyr::filter(toxval_type != "MRL") %>%
       dplyr::mutate(document_type = "ATSDR MRLs Toxicological Profile") %>%
       dplyr::rename(long_ref = full_study_reference,
                     source_url = document_url,
-                    species = species_original)
+                    species = species_original) %>%
+      # Squish all character fields
+      dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish))
     res <- res %>%
       dplyr::mutate(document_type = "ATSDR MRLs")
   } else {

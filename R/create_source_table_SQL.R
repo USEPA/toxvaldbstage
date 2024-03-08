@@ -60,6 +60,7 @@ create_source_table_SQL <- function(source, res, src_version, db, do.halt=TRUE, 
     gsub("snew_source", source, .) %>%
     # Insert custom fields
     gsub("source_custom_fields", src_fields, .)
+
     # IUCLID is special because it's a nested subfolder structure
     if(grepl("iuclid", source)){
       writeLines(src_sql$snew_source,
@@ -89,6 +90,29 @@ create_source_table_SQL <- function(source, res, src_version, db, do.halt=TRUE, 
     }
     # Export a copy
 
+  # Parse filepath to save copy
+  sql_file = paste0(toxval.config()$datapath,
+                    gsub("source_", "", source),
+                    "/",
+                    gsub("source_", "", source),
+                    "_MySQL/",
+                    source, "_",
+                    src_version,
+                    ".sql")
+  # IUCLID is special because it's a nested subfolder structure
+  if(grepl("iuclid", source)){
+    sql_file = paste0(toxval.config()$datapath,
+                      "iuclid/",
+                      gsub("source_", "", source),
+                      "/",
+                      gsub("source_", "", source),
+                      "_MySQL/",
+                      source, "_",
+                    src_version,
+                    ".sql")
+  }
+  # Export a copy
+  writeLines(src_sql$snew_source, sql_file)
 
   # Push the new table to database
   runQuery(query = src_sql$snew_source, db=db)
