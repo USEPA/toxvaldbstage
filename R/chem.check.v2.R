@@ -18,11 +18,23 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
   casrn.OK = TRUE
   checksum.OK = TRUE
 
-  query = "select casrn, name from source_fda_cedi"
-  res = runQuery(query,source.db,TRUE,FALSE)
   res0 = res
-  res0 = res0 %>%
-    tidyr::unite(col="chemical_index", all_of(c("casrn", "name")), sep=" ", remove=FALSE)
+
+  res1 <- res0 %>%
+    mutate(casrn= casrn %>%
+             str_trim() %>%
+             str_replace_all("\\.\\.\\.", "") %>%
+             str_replace_all(" \\(registered trademark\\)", "") %>%
+             str_replace_all("#", "") %>%
+             str_replace_all("\\*", ""))
+
+  res1 <- res1 %>%
+    mutate(name = name %>%
+             str_trim() %>%
+             str_replace_all("\\.\\.\\.", "") %>%
+             str_replace_all(" \\(registered trademark\\)", "") %>%
+             str_replace_all("#", "") %>%
+             str_replace_all("\\*", ""))
 
 
   cat(">>> Deal with name\n")
@@ -78,7 +90,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
     return(paste(n0, n1, n2, sep="||"))
   }
 
-  res0 = res0 %>%
+  res0 = res1 %>%
     dplyr::rowwise() %>%
     dplyr::mutate(name_check = chem.check.name(in_name=name,
                                                source=source,
@@ -102,11 +114,26 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
     dplyr::select(-name, -n0, -n1) %>%
     dplyr::rename(name = n2)
   res0$name_comment <- NA
-  res2 = res0 %>%
-    mutate(corrected = correct_formula(df=res0,col='name',comment='name_comment'))
+
+  res2 = correct_formula(df=res0,col='name',comment='name_comment')
+  res2[res2$name == 'ACETONE', "name"] <- "pure ACETONE"
+  res2[res2$name == 'ACROLEIN', "name"] <- "Bly"
+  res2[res2$name == 'ACRYLAMIDE', "name"] <- "food starch"
+  res2[res2$name == 'ACRYLONITRILE', "name"] <- "polymer"
+  res2[res2$name == 'ALDRIN', "name"] <- "ACE and its salts"
+  res2[res2$name == 'ALUMINUM', "name"] <- "ALUMINUM pure"
+  res2[res2$name == 'ARSENIC', "name"] <- "ARSENIC []"
+
+  res3 = drop_blocks(df=res2, col='name',comment='name_comment')
+  res4 = drop_foods(df=res3,col='name',comment='name_comment')
+  res5 = drop_stoppers(df=res4,col='name',comment='name_comment')
+  res6 = drop_text(df=res5,col='name',comment='name_comment')
+  res7 = drop_salts(df=res6,col='name',comment='name_comment')
+  res8 = drop_terminal_phrases(df=res2,col='name',comment='name_comment')
+  res9 = terminal_unspecified(df=res2, col='name', comment='name_comment')
 
   # Correct Formula
-  correct_formula <- function(df, col='chemical_name',comment='name_comment'){
+  correct_formula <- function(df,col='chemical_name',comment='name_comment'){
     df$name_is_formula <- sapply(df[[col]], find_formula)
     idx <- df$name_is_formula
     df[idx, comment] <- apply(df[idx, c(comment, col)], 1, function(x){
@@ -147,18 +174,16 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
 
   append_col <- function(x, s, comment, sep="|") {
-    if (is.character(x)) {
-      if (is.character(s)) {
-        s <- paste(comment, s, sep=": ")
-        y <- paste(trimws(x), trimws(s), sep=sep)
+    if (!is.null(x) && !is.na(x)) {
+      if (!is.null(s) && is.na(s)) {
+        s <- paste(comment, ": ", s, sep=": ")
+        y <- paste(x, s, sep=sep)
       } else {
         y <- x
       }
-    } else if (is.na(x)) {
-      if (!is.na(s)) {
-        s <- paste(comment, trimws(s), sep=": ")
-      }
-      y <- s
+    } else if (!is.null(s) && !is.na(s)) {
+        s <- paste(comment, s, sep=": ")
+        y <- s
     } else {
       y <- NA
     }
@@ -173,14 +198,54 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
               'salted fish', 'beverage')
     return(paste(food, collapse = "|"))
   }
+  block_list <- function() {
+    block <- c('alcohol', 'alcohol', 'Bly', 'Bly', 'Polyester', 'Polyester',
+               'Alkanes', 'Alkanes', 'alkanes', 'alkanes', 'red 4, 33',
+               'red 4, 33', 'rose', 'rose',
+               'Organic electrolyte principally involves ester carbonate',
+               'Organic electrolyte principally involves ester carbonate',
+               'PP', 'PP', 'Amine soap', 'Amine soap', 'Free Amines',
+               'Free Amines', 'Acrylic Polymer', 'Acrylic Polymers',
+               'Urethane Polymer', 'Acrylic Polymer', 'Acrylic Polymers',
+               'Urethane Polymer', 'Caustic Salt', 'Caustic Salt', '', '',
+               'Aflatoxins', 'Aflatoxins', 'Aminoglycosides', 'Anabolic steroids',
+               'Analgesic mixtures containing Phenacetin', 'Aminoglycosides',
+               'Anabolic steroids', 'Analgesic mixtures containing Phenacetin',
+               'Aristolochic acids', 'Aristolochic acids', 'Barbiturates',
+               'Barbiturates', 'Benzodiazepines', 'Benzodiazepines',
+               'Conjugated estrogens', 'Conjugated estrogens',
+               'Dibenzanthracenes', 'Dibenzanthracenes', 'Estrogens, steroidal',
+               'Estrogen-progestogen (combined) used as menopausal therapy',
+               'Estrogens, steroidal',
+               'Estrogen-progestogen (combined) used as menopausal therapy',
+               'Etoposide in combination with cisplatin and bleomycin',
+               'Etoposide in combination with cisplatin and bleomycin',
+               'Cyanide salts that readily dissociate in solution (expressed as cyanide)f',
+               'Cyanide salts that readily dissociate in solution (expressed as cyanide)f')
+    return(unique(block))
+  }
+
 
   drop_foods <- function(df, col='chemical_name', comment='name_comment'){
-    df <- df %>%
-      mutate(contains_food = str_detect(tolower(!!sym(col)), foods())) %>%
-      mutate(!!sym(comment) := ifelse(contains_food, paste0(!!sym(comment), "Name is food"), !!sym(comment))) %>%
-      mutate(!!sym(col) := ifelse(contains_food, NA_character_, !!sym(col))) %>%
-      select(-contains_food)
+    df <- df
+    foods <- foods()
+    idx <- grepl(paste(foods, collapse="|"), tolower(df[[col]]))
+    if(any(idx)){
+      df[[comment]][idx] <- mapply(append_col, df[[comment]][idx], s=df[[col]][idx], comment="Name is food")
+      df[[col]][idx] <- NA
+    }
     return(df)
+  }
+  drop_blocks <- function(df, col='chemical_name', comment='name_comment'){
+    blocks <- block_list()
+    df_copy <- df
+    idx <- df_copy[[col]] %in% blocks
+
+    df_copy[[comment]][idx] <- sapply(1:nrow(df_copy[idx,]), function(i){
+      append_col(df_copy[idx,][i,][[comment]], df_copy[idx,][i,][[col]], comment="Name is on block list")
+    })
+    df_copy[[col]][idx] <- NA
+    return(df_copy)
   }
 
   # Drop stoppers
@@ -195,29 +260,96 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
   }
 
   drop_stoppers <- function(df, col='chemical_name', comment='name_comment'){
-    df <- df %>%
-      mutate(contains_stop_word = str_detect(tolower(!!sym(col)), paste(stops(), collapse="|"))) %>%
-      mutate(is_ambiguous = contains_stop_word & !str_detect(tolower(!!sym(col)), "yl")) %>%
-      mutate(is_polymer = tolower(!!sym(col)) %in% c("polymer", "plymers", "wax", "mixture")) %>%
-      mutate(is_citron = str_detect(tolower(!!sym(col)), "citron")) %>%
-      mutate(is_compound = str_detect(tolower(!!sym(col)), "compound")) %>%
-      mutate(!!sym(comment) := case_when(
-        is_ambiguous ~ append_col(!!sym(comment), !!sym(col), "Ambiguous name"),
-        is_polymer | is_citron | is_compound ~ append_col(!!sym(comment), !!sym(col), "Ambiguous name"),
-        TRUE ~ !!sym(comment))) %>%
-      mutate(!!sym(col) := case_when(
-        is_ambiguous | is_polymer | is_citron | is_compound ~ NA_character_, TRUE ~ !!sym(col))) %>%
-      select(-contains_stop_word, -is_ambiguous, -is_polymer, - is_citron, -is_compound)
-    return(df)
+    df_copy <- df
+    idx <- grepl(paste(stops(), collapse="|"), tolower(df_copy[[col]])) &
+      !grepl("yl", tolower(df_copy[[col]]))
+    if(any(idx)){
+      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], df_copy[[col]][idx], "Ambiguous name")
+      df_copy[[col]][idx] <- NA
+    }
+
+    specific_terms <- c('polymer', 'polymers', 'wax', 'mixture', 'citron', 'compound')
+    idx <- tolower(df[[col]]) %in% specific_terms
+    if(any(idx)){
+      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=df_copy[[col]][idx], "Ambiguous name")
+      df_copy[[col]][idx] <- NA
+    }
+
+    return(df_copy)
   }
 
   # Drop text
+  drop_text <- function(df, col='chemical_name', comment='name_comment') {
+
+    df <- df
+
+    idx <- grepl("^part [a-z]:", tolower(df[[col]]))
+    if(any(idx)){
+      df[[col]][idx] <- sapply(strsplit(as.character(df[[col]][idx]), ":"), function(x) x[2])
+      df[[comment]][idx] <- mapply(append_col, df[[comment]][idx], s=sapply(strsplit(as.character(df[[col]][idx]), ":"), function(x) x[1]), comment="Removed text")
+    }
+
+    idx <- grepl('modif', tolower(df[[col]]))
+    df[[comment]][idx] <- mapply(append_col, df[[comment]][idx], s=df[[col]][idx], comment="Unknown modification")
+    df[idx, col] <- NA
+
+    quality <- c('pure', 'purif', 'tech', 'grade', 'chemical')
+    pat <- paste0("(\\w*", quality, "\\w*)\\b", collapse="|")
+    idx <- grepl(pat, tolower(df[[col]]))
+    df[[comment]][idx] <- mapply(append_col, df[[comment]][idx], s=gsub(pat, "", df[[col]][idx], ignore.case=TRUE), comment="Unneeded adjective")
+    df[[col]][idx] <- gsub(pat, "", df[[col]][idx], ignore.case = TRUE)
+
+    idx <- grepl("\\d+\\%$", tolower(df[[col]]))
+    if (any(idx)){
+      matches <- regmatches(df[[col]][idx], regexec("\\d+\\%$", df[[col]][idx]))
+      matches <- matches[lengths(matches) > 0]
+      if(length(matches) > 0){
+        df[[comment]][idx] <- mapply(append_col, df[[comment]][idx], s=matches[[1]], comment="Removed text")
+        df[[col]][idx] <- gsub("\\d+\\%$", "", df[[col]][idx])
+      }
+    }
+
+
+    df[[col]] <- trimws(df[[col]])
+    df[[col]] <- gsub("^,|-|,$", "", df[[col]])
+    df[[comment]] <- trimws(df[[comment]])
+    return(df)
+  }
 
   # Drop salts
+  drop_salts <- function(df, col = 'chemical_name', comment = 'name_comment') {
+    df_copy <- df
+    pat <- 'and its .* salts|and its salts'
+    idx <- grepl(pat, tolower(df_copy[[col]]), ignore.case = TRUE)
+    df_copy[[comment]][idx] <- mapply(function(x, col_val){
+      s <- regmatches(col_val, regexec(pat, col_val, ignore.case = TRUE))[[1]][1]
+      append_col(x, s, comment="Ambiguous salt reference")
+    }, df_copy[[comment]][idx], df_copy[[col]][idx])
 
-  # Drop terminal phrases
+    df_copy[[col]][idx] <- mapply(function(col_val){
+      strsplit(col_val, pat)[[1]][1]
+    }, df_copy[[col]][idx])
+
+    return(df_copy)
+  }
+
+
 
   # String cleaning
+  string_cleaning <- function(df, col){
+    print('in')
+    df <- copy(df)
+    print('after copy')
+    omits <- paste0(c("\\s", "[", "]", "(", ")"), collapse = "|")
+    print('before col')
+    for (p in strsplit(omits, '')[[1]]) {
+      df[[col]] <- gsub(p, "", df[[col]])
+    }
+    df[[col]] <- trimws(df[[col]])
+    return(df)
+  }
+res8 <- string_cleaning(df=res3, col="name")
+
 
   cat("\n>>> Deal with CASRN\n")
   chem.check.casrn <- function(in_cas, verbose){
@@ -280,6 +412,9 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
   if(!name.OK) { cat("Some names fixed\n") } else { cat("All names OK\n") }
   if(!casrn.OK) { cat("Some casrn fixed\n") } else { cat("All casrn OK\n") }
-  if(!checksum.OK) { cat("Some casrn have bad checksums\n") } else { cat("All checksums OK\n") }
+  if(!checksum.OK) {
+    cat("Some casrn have bad checksums\n")
+
+    } else { cat("All checksums OK\n") }
   return(list(res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK))
 }
