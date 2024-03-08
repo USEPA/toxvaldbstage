@@ -40,14 +40,11 @@ import_hawc_source <- function(db,
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2021-12-06")
 
-  infile1 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile1)
-  infile2 = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile2)
-
   #####################################################################
   cat("Build original_hawc table \n")
   #####################################################################
-  sheets1 <- openxlsx::getSheetNames(infile1)
-  hawc_dfs <- lapply(sheets1, openxlsx::read.xlsx, xlsxFile = infile1)
+  sheets1 <- openxlsx::getSheetNames(paste0(toxval.config()$datapath,"hawc/hawc_files/",infile1))
+  hawc_dfs <- lapply(sheets1, openxlsx::read.xlsx, xlsxFile = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile1))
   # subsetting toxval specific variables from 100's of variables
   hawc_cols <- c("assessment","groups","name" ,"organ","NOEL","LOEL",
                  "FEL","url","animal_group.experiment.study.id","animal_group.experiment.study.title" ,"animal_group.experiment.study.authors_short",
@@ -59,7 +56,7 @@ import_hawc_source <- function(db,
                  "animal_group.dosing_regime.id","animal_group.dosing_regime.route_of_exposure",
                  "animal_group.dosing_regime.duration_exposure","animal_group.dosing_regime.duration_exposure_text",
                  "animal_group.species","animal_group.strain" ,"animal_group.sex","animal_group.name","animal_group.generation",
-                 "noel_names.noel","noel_names.loel")
+                 "noel_names.noel","noel_names.loel", "animal_group.experiment.url", "animal_group.experiment.id")
 
   new_hawc <- lapply(hawc_dfs, "[", hawc_cols)
   new_hawc_df <- do.call("rbind", new_hawc)
@@ -67,16 +64,17 @@ import_hawc_source <- function(db,
   #####################################################################
   cat("read in the dose dictionary \n")
   #####################################################################
-  s <- openxlsx::read.xlsx(infile2)
+  s <- openxlsx::read.xlsx(paste0(toxval.config()$datapath,"hawc/hawc_files/",infile2))
   #runInsertTable(s,"hawc_dose_dictionary",db,do.halt=T,verbose=F)
   #print(str(s))
 
   # Imported dose dictionary logic from import_hawc_pfas_source to address dose_group_id
-  res_dose3 <- openxlsx::read.xlsx(infile2) %>%
+  res_dose3 <- openxlsx::read.xlsx(paste0(toxval.config()$datapath,"hawc/hawc_files/",infile2)) %>%
     dplyr::select(dose_regime, dose_group_id, dose, name) %>%
     dplyr::distinct()
   res_dose3[] = lapply(res_dose3, as.character)
   dose_dict <- res_dose3 %>%
+    dplyr::mutate(dose_group_id = as.numeric(dose_group_id)) %>%
     dplyr::arrange(dose_regime, dose_group_id, name, dose)
   dose_dict_orig = dose_dict
   # Get counts of dose entries per dose_regime - units pairs
@@ -92,8 +90,7 @@ import_hawc_source <- function(db,
     tidyr::pivot_wider(id_cols = c("dose_regime", "name", "name_n"),
                        names_from = "dose_group_id",
                        values_from = "dose") %>%
-    tidyr::unite("dose", -dose_regime, -name, -name_n, sep=", ") %>%
-    dplyr::mutate(dose = gsub(", NA", "", dose))
+    tidyr::unite("dose", -dose_regime, -name, -name_n, sep=", ", na.rm = TRUE)
 
 
   #####################################################################
@@ -105,15 +102,11 @@ import_hawc_source <- function(db,
   new_hawc_df$LOEL_units <-  s[match(paste(new_hawc_df$animal_group.dosing_regime.id,new_hawc_df$LOEL),paste(s$dose_regime,s$dose_group_id)),"name"]
   new_hawc_df$FEL_values <- s[match(paste(new_hawc_df$animal_group.dosing_regime.id,new_hawc_df$FEL),paste(s$dose_regime,s$dose_group_id)),"dose"]
   new_hawc_df$FEL_units <-  s[match(paste(new_hawc_df$animal_group.dosing_regime.id,new_hawc_df$FEL),paste(s$dose_regime,s$dose_group_id)),"name"]
-  #s_new <- unique(s[,c("dose_regime","dose_group_id","dose")])
-  #doses<- stats::aggregate(dose ~ dose_regime + dose_group_id, data = s_new, toString)
-  # Changed doses field to use dose_dict that results from hawc_pfas script logic
 
   new_hawc_df$doses <-  dose_dict[match(new_hawc_df$animal_group.dosing_regime.id,dose_dict$dose_regime),"dose"]
   # fix nested df in doses column issue
   corrected_column <- new_hawc_df$doses
   new_hawc_df$doses <- corrected_column$dose
-
 
   fac_cols <- sapply(new_hawc_df, is.factor)                          # Identify all factor columns
   new_hawc_df[fac_cols] <- lapply(new_hawc_df[fac_cols], as.character)  # Convert all factors to characters
@@ -129,8 +122,9 @@ import_hawc_source <- function(db,
                   "name","casrn","chemical_source","media","guideline_compliance",
                   "dosing_regime_id","route_of_exposure","exposure_duration_value",
                   "exposure_duration_text","species","strain","sex","population","generation","noel_names","loel_names",
+                  "experiment_url", "experiment_id",
                   "NOEL_values","NOEL_units","LOEL_values",
-                  "LOEL_units","FEL_values","FEL_units","doses","endpoint_url","study_url","source_url")
+                  "LOEL_units","FEL_values","FEL_units","doses","endpoint_url","source_url","assessment_url")
 
   names(new_hawc_df) <- names.list
   new_hawc_df$fel_names <- "FEL"
@@ -138,33 +132,38 @@ import_hawc_source <- function(db,
   # entire full_text_url field is empty, hence assigning as hyphen to maintain character type
   new_hawc_df[which(is.na(new_hawc_df$full_text_url)),"full_text_url"] <- "-"
 
-  h1 <- new_hawc_df[,c(1:33,34,36,37,42:45)]
-  h2 <- new_hawc_df[,c(1:33,35,38,39,42:45)]
-  h3 <- new_hawc_df[,c(1:33,46,40,41,42:45)]
+  h1 <- new_hawc_df %>%
+    dplyr::select(-contains("loel"), -contains("fel"),
+                  toxval_numeric_dose_index=NOEL_original,
+                  toxval_type = noel_names,
+                  toxval_numeric = NOEL_values,
+                  toxval_units = NOEL_units) # [,c(1:33,34,36,37,42:45)]
+  h2 <- new_hawc_df %>%
+    dplyr::select(-contains("noel"), -contains("fel"),
+                  toxval_numeric_dose_index=LOEL_original,
+                  toxval_type = loel_names,
+                  toxval_numeric = LOEL_values,
+                  toxval_units = LOEL_units) # [,c(1:33,35,38,39,42:45)]
 
-  names(h1)[34] <- "toxval_type"
-  names(h1)[35] <- "toxval_numeric"
-  names(h1)[36] <- "toxval_units"
-  names(h2)[34] <- "toxval_type"
-  names(h2)[35] <- "toxval_numeric"
-  names(h2)[36] <- "toxval_units"
-  names(h3)[34] <- "toxval_type"
-  names(h3)[35] <- "toxval_numeric"
-  names(h3)[36] <- "toxval_units"
+  h3 <- new_hawc_df %>%
+    dplyr::select(-contains("noel"), -contains("loel"),
+                  toxval_numeric_dose_index=FEL_original,
+                  toxval_type = fel_names,
+                  toxval_numeric = FEL_values,
+                  toxval_units = FEL_units) # [,c(1:33,46,40,41,42:45)]
 
-  new_hawc_df_final <- rbind(h1,h2,h3)
+  new_hawc_df_final <- dplyr::bind_rows(h1,h2,h3)
   rownames(new_hawc_df_final) <- c()
-  new_hawc_df_final$study_type <- new_hawc_df_final$experiment_type
-  new_hawc_df_final$exposure_route <- new_hawc_df_final$route_of_exposure
-  new_hawc_df_final$exposure_method <- new_hawc_df_final$route_of_exposure
-  new_hawc_df_final$study_duration_value <- new_hawc_df_final$exposure_duration_text
-  new_hawc_df_final$study_duration_units <- new_hawc_df_final$exposure_duration_text
 
-  #dim(new_hawc_df_final)
-  new_hawc_df_final <- new_hawc_df_final[which(!is.na(new_hawc_df_final$toxval_numeric)),]
-  #print(dim(new_hawc_df_final))
-  new_hawc_df_final[,"source_id"] <- c(1:length(new_hawc_df_final[,1]))
-  new_hawc_df_final <- new_hawc_df_final[,c("source_id",names(new_hawc_df_final[-46]))]
+  new_hawc_df_final = new_hawc_df_final %>%
+    dplyr::mutate(study_type = experiment_type,
+                  exposure_route = route_of_exposure,
+                  exposure_method = route_of_exposure,
+                  study_duration_value = exposure_duration_text,
+                  study_duration_units = exposure_duration_text,
+                  source_id = 1:n()) %>%
+    tidyr::drop_na(toxval_numeric) %>%
+    dplyr::select(source_id, dplyr::everything())
 
   res = new_hawc_df_final
   res = res[!generics::is.element(res$casrn,"NOCAS"),]
@@ -196,6 +195,13 @@ import_hawc_source <- function(db,
   res$exposure_method <- tolower(res$exposure_method)
 
   ######### fix study duration value and units
+  #set all developmental records to NA as not to misrepresent the data
+  res <- res %>%
+    dplyr::mutate(
+      study_duration_value = ifelse(study_type == "developmental", NA, study_duration_value),
+      study_duration_units = ifelse(study_type == "developmental", NA, study_duration_units),
+      study_duration_units = ifelse(study_duration_units == "GD 0 until GD 0", NA, study_duration_value)
+    )
   #hour vals
   hour_vals <- grep("hour", res$study_duration_value, ignore.case = T)
   res[hour_vals,"study_duration_units"] <- "hour"
@@ -230,39 +236,29 @@ import_hawc_source <- function(db,
   res[GD_until_vals,"study_duration_units"] <- "GD"
   res[GD_until_vals,"study_duration_value"] <- gsub("^(GD.*GD\\s+)(.*)","\\2",res[GD_until_vals,"study_duration_value"])
 
-  GD_until_zero_vals <- grep("GD.*until.*[0]$", res$study_duration_value, ignore.case = T)
-  res[GD_until_zero_vals,"study_duration_units"] <- res[GD_until_zero_vals,"study_duration_value"]
-  res[GD_until_zero_vals,"study_duration_value"] <- ""
-
   #PND range vals
   PND_vals <- grep(".*PND\\s*.*[^0a-zA-Z]$", res$study_duration_value, ignore.case = T)
   res[PND_vals,"study_duration_units"] <- "PND"
   res[PND_vals,"study_duration_value"] <- gsub("^(.*PND\\s*)(\\d+)","\\2",res[PND_vals,"study_duration_value"])
-  res[which(res$study_duration_value == "2-15" & res$study_duration_units == "PND"),"study_duration_value"] <- gsub("(\\d+\\-)(\\d+)","\\2",res[which(res$study_duration_value == "2-15" & res$study_duration_units == "PND"),"study_duration_value"])
-  PND_vals <- grep(".*PND\\s*[^0]\\d+$", res$study_duration_value, ignore.case = T)
-  res[PND_vals,"study_duration_units"] <- "PND"
-  res[PND_vals,"study_duration_value"] <- gsub("^(.*PND\\s*)(\\d+)(.*?)","\\2",res[PND_vals,"study_duration_value"])
-  res[which(res$study_duration_value == "21, not PND 0" & res$study_duration_units == "PND"),"study_duration_value"] <- gsub("(\\d+)(\\,.*)","\\1",res[which(res$study_duration_value == "21, not PND 0" & res$study_duration_units == "PND"),"study_duration_value"])
-  # GD or PND zero vals
-  zero_vals <- grep("PND0|GD0", res$study_duration_value, ignore.case = T)
-  res[zero_vals,"study_duration_units"] <- res[zero_vals,"study_duration_value"]
-  res[zero_vals,"study_duration_value"] <- ""
+  res[which(res$study_duration_value == "2-15"),"study_duration_value"] <- gsub("(\\d+\\-)(\\d+)","\\2",res[which(res$study_duration_value == "2-15"),"study_duration_value"])
+
   # 1 OR 2 years vals
   or_vals <- grep("or", res$study_duration_value, ignore.case = T)
   res[or_vals,"study_duration_units"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\4",res[or_vals,"study_duration_value"])
   res[or_vals,"study_duration_value"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\2",res[or_vals,"study_duration_value"])
-  # PND 3-10 vals
-  PND_vals <- grep("PND", res$study_duration_value, ignore.case = T)
-  res[PND_vals,"study_duration_units"] <-"PND"
-  res[PND_vals,"study_duration_value"] <- gsub("(PND.*\\-)(\\d+)","\\2",res[PND_vals,"study_duration_value"])
-  res[which(res$study_duration_value == "-"),"study_duration_value"] <- ""
 
   res$study_duration_value <- as.numeric(res$study_duration_value)
-
 
   #####################################################################
   cat("Collapse duplicated that just differ by critical effect \n")
   #####################################################################
+  # critical_effect_map = res %>%
+  #   dplyr::select(critical_effect,source_id,endpoint_url_original,endpoint_url,target) %>%
+  #   tidyr::unite(col="critical_effect", target, critical_effect, sep = ": ", na.rm = TRUE) %>%
+  #   dplyr::group_by(endpoint_url_original, endpoint_url) %>%
+  #   dplyr::summarize(critical_effect = paste0(sort(critical_effect), collapse = "|")) %>%
+  #   dplyr::ungroup()
+
   res2 = res[,!names(res)%in%c("critical_effect","source_id","endpoint_url_original","endpoint_url","target")]
   cat(nrow(res),"\n")
   res2$hashkey = NA
@@ -279,7 +275,18 @@ import_hawc_source <- function(db,
     x = res3$target
     y = res3$critical_effect
     ce = ""
-    for(j in 1:length(x)) ce=paste0(ce,x[j],":",y[j],"|")
+    for(j in 1:length(x)) {
+      # Skip blank entries
+      if(is.na(x[j]) & is.na(y[j])){
+        next
+      } else if (is.na(x[j])){
+        ce=paste0(ce,y[j],"|")
+      } else if (is.na(y[j])){
+        ce=paste0(ce,x[j],"|")
+      } else {
+        ce=paste0(ce,x[j],":",y[j],"|")
+      }
+    }
     ce = substr(ce,1,(nchar(ce)-1))
     res2[i,"critical_effect"] = ce
   }
@@ -291,6 +298,29 @@ import_hawc_source <- function(db,
   res = res2
   cat(nrow(res),"\n")
 
+  res = res %>%
+    # Add additional toxval_type details from units
+    dplyr::mutate(toxval_type_2 = toxval_units %>%
+                    stringr::str_extract("TAD|HED") %>%
+                    paste0(")") %>%
+                    gsub("NA\\)", NA, .),
+                  toxval_units = toxval_units %>%
+                    gsub("TAD|HED", "", .) %>%
+                    stringr::str_squish(),
+                  # Lowercase species
+                  species = species %>%
+                    tolower(),
+                  sex = sex %>%
+                    gsub("Combined", "male/female", .) %>%
+                    tolower()) %>%
+    tidyr::unite("toxval_type", toxval_type, toxval_type_2,
+                 sep = " (",
+                 na.rm=TRUE)
+
+  # Remove excess whitespace
+  res = res %>%
+    dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish))
+
   # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
@@ -298,8 +328,27 @@ import_hawc_source <- function(db,
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
+  # Fix toxval_units unicode
+  res$toxval_units = fix.replace.unicode(res$toxval_units)
+
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Check for duplicate records early
+  hashing_cols = toxval.config()$hashing_cols
+  res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
+  res$source_hash = res.temp$source_hash
+
+  # Dedup by collapsing non hashing columns
+  res = res %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::mutate(dplyr::across(-dplyr::any_of(c("source_hash", hashing_cols)),
+                                ~paste0(.[!is.na(.)], collapse=" |::| ") %>%
+                                  dplyr::na_if("NA") %>%
+                                  dplyr::na_if("")
+    )) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct()
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
@@ -312,6 +361,7 @@ import_hawc_source <- function(db,
                        res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
 

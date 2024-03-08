@@ -61,6 +61,35 @@ create_source_table_SQL <- function(source, res, src_version, db, do.halt=TRUE, 
     # Insert custom fields
     gsub("source_custom_fields", src_fields, .)
 
+    # IUCLID is special because it's a nested subfolder structure
+    if(grepl("iuclid", source)){
+      writeLines(src_sql$snew_source,
+                 paste0(toxval.config()$datapath,
+                        "iuclid/",
+                        gsub("source_iuclid_", "", source),
+                        "/",
+                        gsub("source_iuclid_", "", source),
+                        "_MySQL/",
+                        source, "_",
+                        src_version,
+                        ".sql"))
+    } else {
+      # Special case of ATSDR PFAS 2021
+      if(source == "source_atsdr_pfas_2021"){
+        source = "source_atsdr_pfas"
+      }
+      writeLines(src_sql$snew_source,
+                 paste0(toxval.config()$datapath,
+                        gsub("source_", "", source),
+                        "/",
+                        gsub("source_", "", source),
+                        "_MySQL/",
+                        source, "_",
+                        src_version,
+                        ".sql"))
+    }
+    # Export a copy
+
   # Parse filepath to save copy
   sql_file = paste0(toxval.config()$datapath,
                     gsub("source_", "", source),

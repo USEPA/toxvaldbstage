@@ -38,7 +38,7 @@ toxval_source_status_report <- function(db){
     }
     tmp = s_dat %>%
       dplyr::summarise(n_records = n(),
-                       n_chems = length(unique(chemical_id)),
+                       n_chems = length(unique(chemical_id[!is.na(chemical_id)])),
                        first_uploaded = s_audit$initial_import) %>%
       dplyr::mutate(source_table = s_tbl)
 
@@ -67,8 +67,8 @@ toxval_source_status_report <- function(db){
     dplyr::bind_rows() %>%
     dplyr::group_by(source) %>%
     dplyr::summarise(total_chems = n(),
-                     dtxrid = length(unique(dtxrid)),
-                     dtxsid = length(unique(dtxsid))) %>%
+                     dtxrid = length(unique(dtxrid[!is.na(dtxrid)])),
+                     dtxsid = length(unique(dtxsid[!is.na(dtxsid)]))) %>%
     get_percent_summary("perc_dtxsid", "dtxsid", "total_chems") %>%
     get_percent_summary("perc_dtxrid", "dtxrid", "total_chems") %>%
     left_join(x=chem_index, y=., by="source") %>%
