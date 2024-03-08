@@ -51,7 +51,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
     dplyr::select(!tidyselect::matches("Endpoint|Wildlife|Food|Water|Piscivore")) %>%
     # Add experimental_record and species_type columns
     dplyr::mutate(
-      experimental_record = 1,
+      experimental_record = "Yes",
       species_type = "test"
     ) %>%
     # Rename species column
@@ -63,7 +63,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
     dplyr::select(!tidyselect::contains("Test")) %>%
     # Add experimental_record and species_type columns
     dplyr::mutate(
-      experimental_record = 0,
+      experimental_record = "No",
       species_type = "target"
     ) %>%
     # Rename species column
@@ -134,7 +134,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
 
       # Get toxval_subtype
       toxval_subtype = dplyr::case_when(
-        experimental_record == 1 ~ ifelse(toxval_type == "NOAEL",
+        experimental_record == "Yes" ~ ifelse(toxval_type == "NOAEL",
                                                        "Test Species NOAEL",
                                                        "Test Species LOAEL"),
 
@@ -145,7 +145,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
 
       # Add (ADJ) note to target_species toxval_type
       toxval_type = dplyr::case_when(
-        experimental_record == 0 ~ paste0(toxval_type, " (ADJ)"),
+        experimental_record == "No" ~ paste0(toxval_type, " (ADJ)"),
         TRUE ~ toxval_type
       ),
 
