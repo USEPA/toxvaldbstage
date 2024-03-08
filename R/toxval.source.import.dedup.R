@@ -1,11 +1,11 @@
 #--------------------------------------------------------------------------------------
 #' @title toxval.source.import.dedup
 #' @description Perform deduping on data before it is sent to toxval_source
-#' @param res tibble containing the source data to dedup
+#' @param res dataframe containing the source data to dedup
 #' @param dedup_fields vector containing field names to dedup, Default: NULL (all fields but hashing cols)
 #' @param hashing_cols vector containing field names of hashing columns, Default: toxval.config()$hashing_cols
 #' @param delim string used to separate collapsed values, Default: ' |::| '
-#' @return tibble containing deduped source data
+#' @return dataframe containing deduped source data
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -15,11 +15,9 @@
 #' }
 #' @seealso
 #'  \code{\link[dplyr]{select}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{summarise}}, \code{\link[dplyr]{context}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{distinct}}
-#'  \code{\link[tidyselect]{all_of}}
 #' @rdname toxval.source.import.dedup
 #' @export
 #' @importFrom dplyr select group_by summarise n filter mutate across any_of na_if ungroup distinct
-#' @importFrom tidyselect any_of
 #--------------------------------------------------------------------------------------
 toxval.source.import.dedup <- function(res,
                                        dedup_fields=NULL,
@@ -29,7 +27,7 @@ toxval.source.import.dedup <- function(res,
 
   # If no dedup fields provided, set dedup_fields to be all cols but source_hash and hashing_cols
   if(is.null(dedup_fields)) {
-    dedup_fields = names(res %>% dplyr::select(-tidyselect::any_of(c("source_hash", hashing_cols))))
+    dedup_fields = names(res %>% dplyr::select(-dplyr::any_of(c("source_hash", hashing_cols))))
   }
 
   # Add source_hash column
@@ -69,7 +67,6 @@ toxval.source.import.dedup <- function(res,
     } else {
       cat("Deduping was successful. Returning...\n")
     }
-
   } else {
     cat("No duplicate records found.\n")
   }
