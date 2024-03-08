@@ -435,7 +435,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Add summary data to df before prep and load
   if(do.summary_data){
     # Import manually curated IRIS Summary information
-    res1 <- iris_data$source_iris_summary_curation_20240122.xlsx %>%
+    res1 <- iris_data$source_iris_summary_curation_20240308.xlsx %>%
       dplyr::mutate(
         document_type = 'IRIS Summary',
         key_finding = 'No',
@@ -517,6 +517,9 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res, hashing_cols=toxval.config()$hashing_cols)
 
   # Add source version date
   res$source_version_date <- src_version_date
