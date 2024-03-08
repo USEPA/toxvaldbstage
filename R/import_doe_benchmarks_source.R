@@ -43,7 +43,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
   res0_numbered = res0 %>%
     # Remove Form which causes duplicates
     dplyr::select(-Form) %>%
-    dplyr::mutate(linkage_id = dplyr::row_number())
+    dplyr::mutate(species_relationship_id = dplyr::row_number())
 
   # Get data for "test" entries
   res0_test = res0_numbered %>%
@@ -51,7 +51,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
     dplyr::select(!tidyselect::matches("Endpoint|Wildlife|Food|Water|Piscivore")) %>%
     # Add experimental_record and species_type columns
     dplyr::mutate(
-      experimental_record = "experimental",
+      experimental_record = "Yes",
       species_type = "test"
     ) %>%
     # Rename species column
@@ -63,8 +63,8 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
     dplyr::select(!tidyselect::contains("Test")) %>%
     # Add experimental_record and species_type columns
     dplyr::mutate(
-      experimental_record = "interspecies extrapolation",
-      species_type = "endpoint"
+      experimental_record = "No",
+      species_type = "target"
     ) %>%
     # Rename species column
     dplyr::rename(species = "Endpoint Species")
@@ -134,14 +134,19 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
 
       # Get toxval_subtype
       toxval_subtype = dplyr::case_when(
-        experimental_record == "experimental" ~ ifelse(toxval_type == "NOAEL",
+        experimental_record == "Yes" ~ ifelse(toxval_type == "NOAEL",
                                                        "Test Species NOAEL",
                                                        "Test Species LOAEL"),
 
         TRUE ~ ifelse(toxval_type == "NOAEL",
-                      paste0("Endpoint Species NOAEL ", toxval_subtype),
-                      paste0("Endpoint Species LOAEL ", toxval_subtype)
-                      )
+                      paste0("Target Species Endpoint NOAEL ", toxval_subtype),
+                      paste0("Target Species Endpoint LOAEL ", toxval_subtype))
+      ),
+
+      # Add (ADJ) note to target_species toxval_type
+      toxval_type = dplyr::case_when(
+        experimental_record == "No" ~ paste0(toxval_type, " (ADJ)"),
+        TRUE ~ toxval_type
       ),
 
       # Add media column ("food" is default to match previous logic)
@@ -170,7 +175,7 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
 
-  # Dedup/handle linkage_id dups
+  # Dedup/handle species_relationship_id dups
   res.temp = source_hash_vectorized(res, hashing_cols=toxval.config()$hashing_cols)
   res$source_hash = res.temp$source_hash
 
@@ -183,11 +188,11 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
   # Collapse ID field to improve conversion speeds (only convert unique cases once)
   res_zip = res %>%
     dplyr::group_by(source_hash) %>%
-    dplyr::summarise(linkage_id = toString(linkage_id)) %>%
+    dplyr::summarise(species_relationship_id = toString(species_relationship_id)) %>%
     dplyr::ungroup()
-  # Map back the collapsed groupings for linkage_id
+  # Map back the collapsed groupings for species_relationship_id
   res = res %>%
-    dplyr::select(-linkage_id) %>%
+    dplyr::select(-species_relationship_id) %>%
     dplyr::left_join(res_zip,
                      by="source_hash") %>%
     dplyr::select(-source_hash) %>%
