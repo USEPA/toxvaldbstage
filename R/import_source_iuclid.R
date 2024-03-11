@@ -147,14 +147,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Fill default maternal sex
     res$maternal_sex = "female"
 
-    # Handle fetus and maternal fields separately, tracking origin with generation_type
+    # Handle fetus and maternal fields separately, tracking origin with generation
     res_fetus = res %>%
       dplyr::select(-tidyselect::starts_with("maternal_")) %>%
-      dplyr::mutate(generation_type="fetus") %>%
+      dplyr::mutate(generation="fetus") %>%
       dplyr::rename_with(function(x) gsub("fetus_", "", x))
     res_maternal = res %>%
       dplyr::select(-tidyselect::starts_with("fetus_")) %>%
-      dplyr::mutate(generation_type="maternal") %>%
+      dplyr::mutate(generation="maternal") %>%
       dplyr::rename_with(function(x) gsub("maternal_", "", x))
 
     # Recombine fetus and maternal data
@@ -164,14 +164,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Handle reproduction offspring vs. parental studies as needed
   if(subf == "iuclid_toxicityreproduction"){
     message("Handling reproduction OHT offspring vs. parental field pivots...")
-    # Handle offspring and parental fields separately, tracking origin with generation_type
+    # Handle offspring and parental fields separately, tracking origin with generation
     res_offspring = res %>%
       dplyr::select(-tidyselect::starts_with("parental_")) %>%
-      dplyr::mutate(generation_type="offspring") %>%
+      dplyr::mutate(generation="offspring") %>%
       dplyr::rename_with(function(x) gsub("offspring_", "", x))
     res_parental = res %>%
       dplyr::select(-tidyselect::starts_with("offspring_")) %>%
-      dplyr::mutate(generation_type="parental") %>%
+      dplyr::mutate(generation="parental") %>%
       dplyr::rename_with(function(x) gsub("parental_", "", x))
 
     # Recombine offspring and parental data
