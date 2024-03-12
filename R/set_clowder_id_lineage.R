@@ -44,10 +44,10 @@ set_clowder_id_lineage <- function(source_table,
                           filter(!is.na(clowder_id))
                       },
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_iris_2023_document_map_20240205_jhope.xlsx")),
+                                                               "clowder_v3/source_iris_2023_document_map_20240205_jhope.xlsx"), col_types = "text"),
                       # "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                           "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
-                      "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                      "source_pprtv_ncea_20200408" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                      "clowder_v3/pprtv_ncea_document_map_01122023.xlsx")),
                       # "source_efsa2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                    "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx")),
@@ -367,6 +367,7 @@ set_clowder_id_lineage <- function(source_table,
                     # associates each origin document to specific record
                     origin_docs <- map_file %>%
                       dplyr::filter(is.na(parent_flag))
+
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
                       dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
@@ -434,7 +435,7 @@ set_clowder_id_lineage <- function(source_table,
                   #   res
                   # },
 
-                  "source_pprtv_ncea" = {
+                  "source_pprtv_ncea_20200408" = {
                     res$document_name <- NULL
                     # Match by chemical name
                     res0 = res %>%
@@ -689,11 +690,11 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::filter(!is.na(parent_flag)) %>%
                       dplyr::mutate(chemical_id = as.numeric(chemical_id))
 
-                    res2 <- res %>%
-                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
-                      left_join(extraction_docs %>%
-                                  select(clowder_id, filename, chemical_id, fk_doc_id),
-                                by = "chemical_id")
+                    res2 = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::filter(is.na(chemical_id)) %>%
+                              dplyr::select(clowder_id, fk_doc_id, filename, chemical_id))
 
                     # Combines both associations back into one data frame
                     res <- rbind(res1, res2) %>%
@@ -722,11 +723,11 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::filter(!is.na(parent_flag)) %>%
                       dplyr::mutate(chemical_id = as.numeric(chemical_id))
 
-                    res2 <- res %>%
-                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
-                      left_join(extraction_docs %>%
-                                  select(clowder_id, filename, chemical_id, fk_doc_id),
-                                by = "chemical_id")
+                    res2 = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::filter(is.na(chemical_id)) %>%
+                              dplyr::select(clowder_id, fk_doc_id, filename, chemical_id))
 
                     # Combines both associations back into one data frame
                     res <- rbind(res1, res2) %>%
