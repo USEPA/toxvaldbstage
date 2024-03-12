@@ -6,19 +6,19 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[stats]{setNames}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{reexports}}
 #'  \code{\link[utils]{type.convert}}
 #' @rdname import_hpvis_source
-#' @export 
+#' @export
 #' @importFrom openxlsx read.xlsx
 #' @importFrom stats setNames
 #' @importFrom dplyr mutate setdiff intersect
@@ -672,6 +672,10 @@ import_hpvis_source <- function(db,
   cat(nrow(res),"\n")
   res = res[!is.na(res$name),]
   cat(nrow(res),"\n")
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
+
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
