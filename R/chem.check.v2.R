@@ -80,14 +80,15 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
   # Correct Formula
   correct_formula <- function(df,col='name',comment='name_comment'){
-    df$name_is_formula <- sapply(df[[col]], find_formula)
-    idx <- df$name_is_formula
-    df[idx, comment] <- apply(df[idx, c(comment, col)], 1, function(x){
+    df_copy <- df
+    df_copy$name_is_formula <- sapply(df_copy[[col]], find_formula)
+    idx <- df_copy$name_is_formula
+    df_copy[idx, comment] <- apply(df_copy[idx, c(comment, col)], 1, function(x){
       append_col(x=x[comment], s=x[col], comment="Name only formula")
     })
-    df[idx, col] <- NA
-    df <- df[, !(names(df) %in% 'name_is_formula')]
-    return(df)
+    df_copy[idx, col] <- NA
+    df_copy <- df_copy[, !(names(df_copy) %in% 'name_is_formula')]
+    return(df_copy)
   }
 
   find_formula <- function(x) {
@@ -169,14 +170,14 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
   }
 
   drop_foods <- function(df, col='name', comment='name_comment'){
-    df <- df
+    df_copy <- df
     foods <- foods()
-    idx <- grepl(paste(foods, collapse="|"), tolower(df[[col]]))
+    idx <- grepl(paste(foods, collapse="|"), tolower(df_copy[[col]]))
     if(any(idx)){
-      df[[comment]][idx] <- mapply(append_col, df[[comment]][idx], s=df[[col]][idx], comment="Name is food")
-      df[[col]][idx] <- NA
+      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=df_copy[[col]][idx], comment="Name is food")
+      df_copy[[col]][idx] <- NA
     }
-    return(df)
+    return(df_copy)
   }
 
   drop_blocks <- function(df, col='name', comment='name_comment'){
@@ -224,39 +225,37 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
   # Drop text
   drop_text <- function(df, col='name', comment='name_comment') {
-
-    df <- df
-
-    idx <- grepl("^part [a-z]:", tolower(df[[col]]))
+    df_copy <- df
+    idx <- grepl("^part [a-z]:", tolower(df_copy[[col]]))
     if(any(idx)){
-      df[[col]][idx] <- sapply(strsplit(as.character(df[[col]][idx]), ":"), function(x) x[2])
-      df[[comment]][idx] <- mapply(append_col, df[[comment]][idx], s=sapply(strsplit(as.character(df[[col]][idx]), ":"), function(x) x[1]), comment="Removed text")
+      df_copy[[col]][idx] <- sapply(strsplit(as.character(df_copy[[col]][idx]), ":"), function(x) x[2])
+      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=sapply(strsplit(as.character(df_copy[[col]][idx]), ":"), function(x) x[1]), comment="Removed text")
     }
 
-    idx <- grepl('modif', tolower(df[[col]]))
-    df[[comment]][idx] <- mapply(append_col, df[[comment]][idx], s=df[[col]][idx], comment="Unknown modification")
-    df[idx, col] <- NA
+    idx <- grepl('modif', tolower(df_copy[[col]]))
+    df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=df_copy[[col]][idx], comment="Unknown modification")
+    df_copy[idx, col] <- NA
 
     quality <- c('pure', 'purif', 'tech', 'grade', 'chemical')
     pat <- paste0("(\\w*", quality, "\\w*)\\b", collapse="|")
-    idx <- grepl(pat, tolower(df[[col]]))
-    df[[comment]][idx] <- mapply(append_col, df[[comment]][idx], s=gsub(pat, "", df[[col]][idx], ignore.case=TRUE), comment="Unneeded adjective")
-    df[[col]][idx] <- gsub(pat, "", df[[col]][idx], ignore.case = TRUE)
+    idx <- grepl(pat, tolower(df_copy[[col]]))
+    df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=gsub(pat, "", df_copy[[col]][idx], ignore.case=TRUE), comment="Unneeded adjective")
+    df_copy[[col]][idx] <- gsub(pat, "", df_copy[[col]][idx], ignore.case = TRUE)
 
-    idx <- grepl("\\d+\\%$", tolower(df[[col]]))
+    idx <- grepl("\\d+\\%$", tolower(df_copy[[col]]))
     if (any(idx)){
-      matches <- regmatches(df[[col]][idx], regexec("\\d+\\%$", df[[col]][idx]))
+      matches <- regmatches(df_copy[[col]][idx], regexec("\\d+\\%$", df_copy[[col]][idx]))
       matches <- matches[lengths(matches) > 0]
       if(length(matches) > 0){
-        df[[comment]][idx] <- mapply(append_col, df[[comment]][idx], s=matches[[1]], comment="Removed text")
-        df[[col]][idx] <- gsub("\\d+\\%$", "", df[[col]][idx])
+        df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=matches[[1]], comment="Removed text")
+        df_copy[[col]][idx] <- gsub("\\d+\\%$", "", df_copy[[col]][idx])
       }
     }
 
-    df[[col]] <- trimws(df[[col]])
-    df[[col]] <- gsub("^,|-|,$", "", df[[col]])
-    df[[comment]] <- trimws(df[[comment]])
-    return(df)
+    df_copy[[col]] <- trimws(df_copy[[col]])
+    #df_copy[[col]] <- gsub("^,|-|,$", "", df_copy[[col]])
+    df_copy[[comment]] <- trimws(df_copy[[comment]])
+    return(df_copy)
   }
 
   # Drop salts
@@ -288,16 +287,16 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
   res0$name_comment <- NA
   res0 <- res0 %>%
-    correct_formula(df = ., col='n2', comment='name_comment') %>%
-    drop_blocks(df = ., col='n2', comment='name_comment') %>%
-    drop_foods(df = ., col='n2', comment='name_comment') %>%
-    drop_stoppers(df = ., col='n2', comment='name_comment') %>%
+   correct_formula(df = ., col='n2', comment='name_comment') %>%
+   drop_blocks(df = ., col='n2', comment='name_comment') %>%
+   drop_foods(df = ., col='n2', comment='name_comment') %>%
+   drop_stoppers(df = ., col='n2', comment='name_comment') %>%
     drop_text(df = ., col='n2', comment='name_comment') %>%
-    drop_salts(df = ., col='n2', comment='name_comment')
+   drop_salts(df = ., col='n2', comment='name_comment')
 
   ccheck_name = res0 %>%
     dplyr::filter(n2 != n0) %>%
-    dplyr::select(n0, n1, n2) %>%
+    dplyr::select(n0, n1, n2, name_comment) %>%
     dplyr::mutate(cs = NA)
 
   if(nrow(ccheck_name)) {
@@ -337,7 +336,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
   ccheck_cas = res0 %>%
     dplyr::filter(n2 != n0) %>%
-    dplyr::select(n0, n1, n2, cs)
+    dplyr::select(n0, n1, n2, cs, name_comment)
 
   if(nrow(ccheck_cas)) {
     casrn.OK = FALSE
@@ -358,7 +357,8 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
     dplyr::rename(original=n0,
                   escaped=n1,
                   cleaned=n2,
-                  checksum=cs) %>%
+                  checksum=cs,
+                  comment=name_comment) %>%
     distinct()
 
   indir = paste0(toxval.config()$datapath,"chemcheck/")
