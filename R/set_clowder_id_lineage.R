@@ -642,17 +642,17 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::left_join(map_file %>%
                                          dplyr::filter(document_type == "origin") %>%
                                          dplyr::select(clowder_id, fk_doc_id, document_name,
-                                                       name, casrn, study_type, study_reference, species, year) %>%
+                                                       name, casrn, study_type, study_reference, species, casrn) %>%
                                          dplyr::distinct(),
-                                       by=c("name", "casrn", "study_type", "study_reference", "species", "year")) %>%
-                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+                                       by=c("casrn")) %>%
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id, casrn)
 
                     # Match to extraction doc
                     tmp = res %>%
                       dplyr::select(source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(document_type == "extraction") %>%
-                              dplyr::select(clowder_id, fk_doc_id))
+                              dplyr::select(clowder_id, fk_doc_id, casrn))
 
                     # Combine origin and extraction document associations
                     res = dplyr::bind_rows(res, tmp)
