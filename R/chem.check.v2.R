@@ -18,8 +18,6 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
   casrn.OK = TRUE
   checksum.OK = TRUE
 
-  res0 <- res
-
   cat(">>> Deal with name\n")
   chem.check.name <- function(in_name, source, verbose){
     n0 = in_name %>%
@@ -239,7 +237,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
     quality <- c('pure', 'purif', 'tech', 'grade', 'chemical')
     pat <- paste0("(\\w*", quality, "\\w*)\\b", collapse="|")
     idx <- grepl(pat, tolower(df_copy[[col]]))
-    df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=gsub(pat, "", df_copy[[col]][idx], ignore.case=TRUE), comment="Unneeded adjective")
+    df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=gsub(gsub(pat, "", df_copy[[col]][idx], ignore.case=TRUE), "", df_copy[[col]][idx]), comment="Unneeded adjective")
     df_copy[[col]][idx] <- gsub(pat, "", df_copy[[col]][idx], ignore.case = TRUE)
 
     idx <- grepl("\\d+\\%$", tolower(df_copy[[col]]))
@@ -287,12 +285,12 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
   res0$name_comment <- NA
   res0 <- res0 %>%
-   correct_formula(df = ., col='n2', comment='name_comment') %>%
-   drop_blocks(df = ., col='n2', comment='name_comment') %>%
-   drop_foods(df = ., col='n2', comment='name_comment') %>%
-   drop_stoppers(df = ., col='n2', comment='name_comment') %>%
+    correct_formula(df = ., col='n2', comment='name_comment') %>%
+    drop_blocks(df = ., col='n2', comment='name_comment') %>%
+    drop_foods(df = ., col='n2', comment='name_comment') %>%
+    drop_stoppers(df = ., col='n2', comment='name_comment') %>%
     drop_text(df = ., col='n2', comment='name_comment') %>%
-   drop_salts(df = ., col='n2', comment='name_comment')
+    drop_salts(df = ., col='n2', comment='name_comment')
 
   ccheck_name = res0 %>%
     dplyr::filter(n2 != n0) %>%
@@ -318,12 +316,12 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
       cs = cas_checkSum(n2)
       if(is.na(cs)) cs = 0
       if(verbose) cat("2>>> ",n0,n1,n2,cs,"\n")
+      if(!cs) n2 = NA
       return(paste(n0, n1, n2, cs, sep="||"))
     } else {
       return(paste(NA, NA, NA, NA, sep="||"))
     }
   }
-
 
   res0 <- res0 %>%
     dplyr::rowwise() %>%
@@ -348,7 +346,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
   # Set name as cleaned n2, remove intermediates
   res0 = res0 %>%
-    dplyr::select(-casrn, -n0, -n1, -cs) %>%
+    dplyr::select(-casrn, -n0, -n1, -cs, -name_comment) %>%
     dplyr::rename(casrn = n2)
 
   # Prep check export
