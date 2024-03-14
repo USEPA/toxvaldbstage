@@ -6,18 +6,18 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{mutate}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_opp_source
-#' @export 
+#' @export
 #' @importFrom openxlsx read.xlsx
 #' @importFrom dplyr arrange mutate
 #' @importFrom stringr str_squish
@@ -89,6 +89,10 @@ import_opp_source <- function(db,
            casrn = stringr::str_squish(casrn))
   # resall = resall[!is.na(resall$toxval_numeric),]
   resall$url = unique(res$url)
+
+  # Perform deduping
+  resall = toxval.source.import.dedup(resall)
+
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################

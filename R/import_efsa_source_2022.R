@@ -96,10 +96,12 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
     dplyr::mutate(dplyr::across(where(is.character), fix.replace.unicode)) %>%
 
-  # Remove unneeded ID fields from original source
-  res = res %>%
-    dplyr::select(-tidyr::matches("_id"), -testtype_code) %>%
+    # Remove unneeded ID fields from original source
+    dplyr::select(-tidyr::matches("_id")) %>%
     dplyr::distinct()
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
 
   #####################################################################
   cat("Prep and load the data\n")

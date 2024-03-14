@@ -21,13 +21,20 @@
 #--------------------------------------------------------------------------------------
 toxval.source.import.dedup <- function(res,
                                        dedup_fields=NULL,
-                                       hashing_cols=toxval.config()$hashing_cols,
+                                       hashing_cols=NULL,
                                        delim=" |::| ") {
   cat("Deduping data\n")
 
+  # If no hashing_cols provided, use toxval.config()$hashing_cols without study_duration_qualifier/long_ref
+  # Reasoning: study_duration_qualifier and long_ref are not stored in ToxVal
+  if(is.null(hashing_cols)) {
+    hashing_cols = toxval.config()$hashing_cols
+    hashing_cols = hashing_cols[!hashing_cols %in% c("long_ref", "study_duration_qualifier")]
+  }
+
   # If no dedup fields provided, set dedup_fields to be all cols but source_hash and hashing_cols
   if(is.null(dedup_fields)) {
-    dedup_fields = names(res %>% dplyr::select(-dplyr::any_of(c("source_hash", hashing_cols))))
+    dedup_fields = names(res %>% dplyr::select(-dplyr::any_of(c("source_hash", "toxval_id", hashing_cols))))
   }
 
   # Add source_hash column
@@ -42,14 +49,16 @@ toxval.source.import.dedup <- function(res,
 
   # Perform deduping only if there are duplicate entries
   if(nrow(dup_hashes)) {
-    cat("Duplicate records identified. Performing deduping...\n")
+    cat(paste0("Duplicate records identified (", sum(dup_hashes$n) - nrow(dup_hashes), " records are duplicates)\n"))
+    cat("Performing deduping...\n")
     # Dedup by collapsing non hashing columns to dedup
     res = res %>%
       dplyr::group_by(source_hash) %>%
       dplyr::mutate(dplyr::across(dplyr::any_of(!!dedup_fields),
                                   ~paste0(.[!is.na(.)], collapse=!!delim) %>%
                                     dplyr::na_if("NA") %>%
-                                    dplyr::na_if("")
+                                    dplyr::na_if("") %>%
+                                    dplyr::na_if("-")
       )) %>%
       dplyr::ungroup() %>%
       dplyr::distinct()

@@ -43,18 +43,25 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
 
   res = res0 %>%
     # Copy toxval fields from originals
-    dplyr::mutate(name = `Webpage Name` %>% fix.replace.unicode(),
+    dplyr::mutate(name = `Webpage Name` %>%
+                    fix.replace.unicode() %>%
+                    gsub("\\bASC\\b", "Acidifed Sodium Chlorate", .),
                   casrn = `CAS number` %>%
                     # Remove parenthetics
-                    gsub("\\s*\\([^\\)]+\\)","", .),
+                    gsub("\\s*\\([^\\)]+\\)","", .) %>%
+                    # Replace unicode
+                    fix.replace.unicode() %>%
+                    # Replace separators with |::|
+                    gsub(";|,|and|\\/", " |::| ", .) %>%
+                    stringr::str_squish(),
                   year = `Evaluation year`) %>%
-    # Separate casrn lists
-    tidyr::separate_rows(casrn, sep=";") %>%
-    tidyr::separate_rows(casrn, sep=",") %>%
-    tidyr::separate_rows(casrn, sep=" and ") %>%
-    tidyr::separate_rows(casrn, sep="/") %>%
-    dplyr::mutate(casrn = casrn %>%
-                    stringr::str_squish()) %>%
+    # # Separate casrn lists
+    # tidyr::separate_rows(casrn, sep=";") %>%
+    # tidyr::separate_rows(casrn, sep=",") %>%
+    # tidyr::separate_rows(casrn, sep=" and ") %>%
+    # tidyr::separate_rows(casrn, sep="/") %>%
+    # dplyr::mutate(casrn = casrn %>%
+    #                 stringr::str_squish()) %>%
     # Rename toxval identifier field
     dplyr::rename(who_jecfa_chemical_id = `Chemical ID`)
 
@@ -128,6 +135,9 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

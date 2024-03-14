@@ -102,6 +102,9 @@ import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
+
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
   #####################################################################
