@@ -91,7 +91,7 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
 
   if(grepl("IUCLID", source)){
     sub_res <- TOXVAL_ALL %>%
-      dplyr::filter(source == "ECHA IUCLID")
+      dplyr::filter(source == "ECHA IUCLID", source_table == !!source_table)
   }
 
   # Sample by record type
