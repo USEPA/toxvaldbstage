@@ -237,8 +237,13 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
     quality <- c('pure', 'purif', 'tech', 'grade', 'chemical')
     pat <- paste0("(\\w*", quality, "\\w*)\\b", collapse="|")
     idx <- grepl(pat, tolower(df_copy[[col]]))
-    df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=gsub(gsub(pat, "", df_copy[[col]][idx], ignore.case=TRUE), "", df_copy[[col]][idx]), comment="Unneeded adjective")
-    df_copy[[col]][idx] <- gsub(pat, "", df_copy[[col]][idx], ignore.case = TRUE)
+    tryCatch({
+      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=gsub(gsub(pat, "", df_copy[[col]][idx], ignore.case=TRUE), "", df_copy[[col]][idx]), comment="Unneeded adjective")
+      df_copy[[col]][idx] <- gsub(pat, "", df_copy[[col]][idx], ignore.case = TRUE)
+    }, error=function(e){
+      cat("An error occurred:", conditionMessage(e),"\n")
+    })
+
 
     idx <- grepl("\\d+\\%$", tolower(df_copy[[col]]))
     if (any(idx)){
@@ -316,7 +321,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
       cs = cas_checkSum(n2)
       if(is.na(cs)) cs = 0
       if(verbose) cat("2>>> ",n0,n1,n2,cs,"\n")
-      if(!cs) n2 = NA
+      if(!cs & cs!=0) n2 = NA
       return(paste(n0, n1, n2, cs, sep="||"))
     } else {
       return(paste(NA, NA, NA, NA, sep="||"))
@@ -358,6 +363,9 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
                   checksum=cs,
                   comment=name_comment) %>%
     distinct()
+  ccheck$cleaned <- as.character(ccheck$cleaned)
+  ccheck$comment <- as.character(ccheck$comment)
+  ccheck$checksum <- as.character(ccheck$checksum)
 
   indir = paste0(toxval.config()$datapath,"chemcheck/")
   if(is.null(source)) {
