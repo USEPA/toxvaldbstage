@@ -71,6 +71,9 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
         n2 = sub(' \\(.*', '', n2)
       }
     }
+    if(grepl(" \\[", n2)) {
+      n2 = sub(' \\[.*', '', n2)
+    }
     n2 = clean.last.character(n2)
     if(verbose) cat("1>>> ",n0,n1,n2,"\n")
     return(paste(n0, n1, n2, sep="||"))
@@ -277,6 +280,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
     return(df_copy)
   }
+
 
   res0 = res0 %>%
     dplyr::rowwise() %>%
