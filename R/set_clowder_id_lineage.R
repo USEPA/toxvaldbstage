@@ -44,7 +44,7 @@ set_clowder_id_lineage <- function(source_table,
                           filter(!is.na(clowder_id))
                       },
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_iris_2023_document_map_20240205_jhope.xlsx")),
+                                                               "clowder_v3/source_iris_2023_document_map_20240319.xlsx"), col_type = "text"),
                       # "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                           "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
                       "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -107,7 +107,7 @@ set_clowder_id_lineage <- function(source_table,
                                                                        "clowder_v3/source_epa_ow_opp_alb_document_map.csv"),
                                                                 col_types = readr::cols()),
                       "source_atsdr_mrls" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                     "clowder_v3/source_atsdr_mrls_sept2023_doc_map_20231204.xlsx")),
+                                                                     "clowder_v3/source_atsdr_mrls_sept2023_doc_map_20240319.xlsx")),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20240221_jnhope.xlsx")),
                       "source_health_canada" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -366,23 +366,36 @@ set_clowder_id_lineage <- function(source_table,
                   "source_iris" = {
                     # associates each origin document to specific record
                     origin_docs <- map_file %>%
-                      dplyr::filter(is.na(parent_flag))
+                      dplyr::filter(document_type == "origin")
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
                       dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
+                      tidyr::separate_rows(iris_chemical_id, sep="\\|::\\|") %>%
+                      dplyr::mutate(iris_chemical_id = iris_chemical_id %>%
+                                      stringr::str_squish()) %>%
                       dplyr::left_join(origin_docs %>%
-                                         dplyr::select(iris_chemical_id = chem_id, clowder_id, fk_doc_id),
+                                         dplyr::select(iris_chemical_id = chem_id, clowder_id, fk_doc_id, document_type),
                                        by = "iris_chemical_id")
 
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
-                      dplyr::filter(!is.na(parent_flag))
+                      dplyr::filter(!(document_type == "origin"))
 
-                    # Perform a left join on chemical names to match chemical names
+                    # Preform a left join to associate extraction doc to records based on document_type
                     res2 <- res %>%
-                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
-                      merge(extraction_docs %>%
-                              dplyr::select(clowder_id, fk_doc_id))
+                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date, document_type) %>%
+                      dplyr::rowwise() %>%
+                      # Handle case of collapsed document_type
+                      dplyr::mutate(document_type = document_type %>%
+                                      strsplit("|::|", fixed=TRUE) %>%
+                                      unlist() %>%
+                                      stringr::str_squish() %>%
+                                      unique()) %>%
+                      dplyr::ungroup() %>%
+                      dplyr::left_join(extraction_docs %>%
+                                         dplyr::select(clowder_id, fk_doc_id, iris_document_type),
+                                       by = c("document_type" = "iris_document_type"))
+
 
                     # Combine the two associated data frames back into res
                     res <- rbind(res1, res2) %>%
@@ -831,7 +844,7 @@ set_clowder_id_lineage <- function(source_table,
                   "source_atsdr_mrls" = {
                     # associates each origin document to specific record
                     origin_docs <- map_file %>%
-                      dplyr::filter(is.na(parent_flag))
+                      dplyr::filter(document_type == "origin")
                     # Chemical names in res and origin docs were in two different cases, changing
                     # the case so that we can merge on chemical name
                     origin_docs$`Chemical Name` <- toupper(origin_docs$`Chemical Name`)
@@ -844,12 +857,11 @@ set_clowder_id_lineage <- function(source_table,
                       tidyr::separate_rows(`Chemical Name`, sep=" & ") %>%
                       tidyr::separate_rows(`Chemical Name`, sep=" AND ")
 
-
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
                       dplyr::select(name, source_hash, source_version_date) %>%
                       dplyr::left_join(origin_docs %>%
-                                         dplyr::select(name = "Chemical Name", clowder_id, fk_doc_id),
+                                         dplyr::select(name = "Chemical Name", clowder_id, fk_doc_id, document_type),
                                        by = "name")
 
                     # Hard code matches with grep for chemical name
@@ -858,26 +870,42 @@ set_clowder_id_lineage <- function(source_table,
                                         "DICHLOROPROPENE", "DINITROTOLUENE", "FLUORIDE",
                                         "HEXACHLOROCYCLOHEXANE", "CHLOROPHENOL", "TIN",
                                         "URANIUM", "HYDRAZINE", "CHLORODIBENZOFURAN", "PHOSPHATE",
-                                        "XYLENES", "PHOSPHORUS", "IONIZING RADIATION", "PBDES", "MANGANESE", "(2,4-D)")
+                                        "XYLENES", "PHOSPHORUS", "IONIZING RADIATION", "PBDES", "MANGANESE", "(2,4-D)",
+                                        "BIS\\(CHLOROMETHYL\\)ETHER", "HMX", "METHYLENEDIPHENYL DIISOCYANATE",
+                                        "2-METHYLNAPHTHALENE")
 
                     # Find matches for those missing matches with grep name to chemical name
                     for(u_name in unmatched_names){
                       origin_replace = unique(origin_docs$clowder_id[grep(paste0("^", u_name), origin_docs$`Chemical Name`)])
                       # if(length(origin_replace) > 1) stop("origin_replace too long")
                       # if(length(origin_replace) == 0) stop("No replacement")
-                      res1$clowder_id[grep(u_name, res1$name)] = origin_replace
-                      res1$fk_doc_id[grep(u_name, res1$name)] = unique(origin_docs$fk_doc_id[origin_docs$clowder_id %in% origin_replace])
+                      res1$clowder_id[grep(u_name, res1$name)] = origin_replace %>%
+                        toString()
+                      res1$fk_doc_id[grep(u_name, res1$name)] = unique(origin_docs$fk_doc_id[origin_docs$clowder_id %in% origin_replace]) %>%
+                        toString()
                     }
+
+                    res1 = res1 %>%
+                      tidyr::separate_rows(clowder_id, fk_doc_id, sep = ", ")
 
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
-                      dplyr::filter(!is.na(parent_flag))
+                      dplyr::filter(document_type != "origin")
 
                     # Perform a left join on chemical names to match chemical names
                     res2 <- res %>%
-                      dplyr::select(source_hash, source_version_date) %>%
-                      merge(extraction_docs %>%
-                              dplyr::select(clowder_id, fk_doc_id, name = "Chemical Name"))
+                      dplyr::select(name, source_hash, source_version_date, document_type) %>%
+                      dplyr::rowwise() %>%
+                      # Handle case of collapsed document_type
+                      dplyr::mutate(document_type = document_type %>%
+                                      strsplit("|::|", fixed=TRUE) %>%
+                                      unlist() %>%
+                                      stringr::str_squish() %>%
+                                      unique()) %>%
+                      dplyr::ungroup() %>%
+                      dplyr::left_join(extraction_docs %>%
+                                         dplyr::select(clowder_id, fk_doc_id, atsdr_document_type),
+                                       by = c("document_type"="atsdr_document_type"))
 
                     # Combine the two associated dataframes back into res
                     res <- rbind(res1, res2) %>%
