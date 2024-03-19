@@ -193,26 +193,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$name = res$name_primary
   } else {
     res = res %>% dplyr::mutate(
-      # OLD NAME LOGIC, WHERE FIRST NAME IN LIST IS SELECTED
-      # # Create new name field using name_primary and name_secondary values
-      # name = dplyr::case_when(
-      #   # Primary exists: if semicolon does not separate different chemicals, use value as-is
-      #   stringr::str_detect(name_primary, "\\[[^\\]]+;[^\\]]+\\]") ~ name_primary,
-      #   # Primary exists: if semicolon separates different chemicals, choose the first
-      #   grepl(";", name_primary) ~ gsub(";.+", "", name_primary),
-      #   # Use primary name if it exists
-      #   !is.na(name_primary) & name_primary != "-" ~ name_primary,
-      #
-      #   # Secondary exists: if semicolon does not separate different chemicals, use value as-is
-      #   stringr::str_detect(name_secondary, "\\[[^\\]]+;[^\\]]+\\]") ~ name_secondary,
-      #   # Secondary exists: if semicolon separates different chemicals, choose the first
-      #   grepl(";", name_secondary) ~ gsub(";.+", "", name_secondary),
-      #   # Use secondary name if it exists
-      #   !is.na(name_secondary) & name_secondary != "-" ~ name_secondary,
-      #
-      #   # Return NA if there is not a valid name value
-      #   TRUE ~ as.character(NA)
-      # ),
       name = dplyr::case_when(
         # Primary name exists and is valid (not NA, -, or list)
         !is.na(name_primary) & name_primary != "-" & !grepl(";", name_primary) ~ name_primary,
@@ -316,8 +296,17 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   res = res %>%
     dplyr::mutate(
-      # Fill "-" casrn with NA
-      casrn = dplyr::na_if(casrn, "-"),
+      # Fill "-" casrn with NA and address date-formatted casrn values
+      casrn = dplyr::case_when(
+        casrn == "-" ~ as.character(NA),
+        # Special case where "/" in casrn
+        grepl("/", casrn) ~ paste0(stringr::str_split_i(casrn, "/", 3),
+                                   "-",
+                                   stringr::str_pad(stringr::str_split_i(casrn, "/", 1), width=2, side="left", pad="0"),
+                                   "-",
+                                   stringr::str_split_i(casrn, "/", 2)),
+        TRUE ~ casrn
+      ),
 
       # Clean toxval_units/make value substitutions when necessary
       toxval_units = dplyr::case_when(
@@ -548,6 +537,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       name = dplyr::case_when(
         grepl("NDA[0-9]+\\-", name) ~ gsub(".+\\-", "", name),
         TRUE ~ name
+      ),
+
+      # Set critical_effect to mortality when toxval_type starts with LD
+      critical_effect = dplyr::case_when(
+        startsWith(toupper(toxval_type), "LD") ~ "mortality",
+        TRUE ~ critical_effect
       )
     ) %>%
 
@@ -595,12 +590,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$media = "-"
   }
 
-  # Drop duplicates
-  res = dplyr::distinct(res)
-
-  # Replace with NA
-  res[res == ""] = NA
-
   # Standardize the names
   names(res) <- names(res) %>%
     # Replace whitespace and periods with underscore
@@ -631,29 +620,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     browser()
   }
 
-  # Perform deduping
-  res = toxval.source.import.dedup(res, hashing_cols=hashing_cols)
-
-  # Add version date. Can be converted to a mutate statement as needed
-  res$source_version_date <- src_version_date
-
-  # # Check for immediate duplicate hashes
-  # dup_hashes = res %>%
-  #   dplyr::group_by(source_hash) %>%
-  #   dplyr::summarise(n = dplyr::n()) %>%
-  #   dplyr::filter(n > 1)
-  #
-  # # Stop if duplicate source_hash values present
-  # if(nrow(dup_hashes)){
-  #   cat("Duplicate source_hash values present in res...\n")
-  #   # Export log file to review
-  #   writexl::write_xlsx(res %>% dplyr::filter(source_hash %in% dup_hashes$source_hash),
-  #                       paste0(toxval.config()$datapath,"iuclid/",subf,"/",
-  #                              subf, "_dup_records_check.xlsx"))
-  #   browser()
-  #   stop("Duplicate source_hash values present in res...")
-  # }
-
   # Select down columns due to MySQL row size constrictions
   res = res %>%
     dplyr::select(
@@ -661,11 +627,29 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         "substance_uuid_entity_uuid_",
         "datasource_reference_i6:key",
         "resdisc_efflvs_efflevel_@i6:uuid"
-        )
+      )
       ),
-    -dplyr::matches(paste0("resdisc_trgsysorgtox_entry_[0-9]+_@i6:uuid|",
-                           "matmet_adexp_dosesconcs_entry_[0-9]+_@|",
-                           "matmet_guideline_entry_[0-9]+_@")))
+      -dplyr::matches(paste0("resdisc_trgsysorgtox_entry_[0-9]+_@i6:uuid|",
+                             "matmet_adexp_dosesconcs_entry_[0-9]+_@|",
+                             "matmet_guideline_entry_[0-9]+_@")))
+
+  # Apply str_squish to all character columns
+  res = res %>%
+    dplyr::mutate(dplyr::across(dplyr::where(is.character), stringr::str_squish))
+
+  # Replace with NA
+  res[res == ""] = NA
+
+  # Remove duplicates and drop NA species
+  res = res %>%
+    dplyr::distinct() %>%
+    tidyr::drop_na(species)
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res, hashing_cols=hashing_cols)
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
 
   #####################################################################
   cat("Load the data\n")
