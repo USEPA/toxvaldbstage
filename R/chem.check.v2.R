@@ -41,6 +41,10 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
       str_replace_all("#", "") %>%
       str_replace_all("\\*", "")
 
+    if(grepl(" \\[", n2) && grepl("\\]$", n2)) {
+      n2 = sub(' \\[.*?\\]$', '', n2)
+    }
+
     if(source %in% c("Alaska DEC",
                      "California DPH",
                      "EPA AEGL",
@@ -70,9 +74,6 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
       if(grepl(" \\(", n2)) {
         n2 = sub(' \\(.*', '', n2)
       }
-    }
-    if(grepl(" \\[", n2)) {
-      n2 = sub(' \\[.*', '', n2)
     }
     n2 = clean.last.character(n2)
     if(verbose) cat("1>>> ",n0,n1,n2,"\n")
