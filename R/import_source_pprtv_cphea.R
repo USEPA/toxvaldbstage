@@ -1,12 +1,12 @@
 #--------------------------------------------------------------------------------------
-#' @description Import of PPRTV CPHEA source into toxval_source
-#'
+#' @title import_source_pprtv_cphea
+#' @description Import PPRTV CPHEA source data into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @param do.summary_data If TRUE, add PPRTV CPHEA Summary data to table before insertion
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -16,30 +16,30 @@
 #' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
-#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}, \code{\link[dplyr]{distinct}}
-#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}
-#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_extract}}
+#'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}, \code{\link[tidyr]{drop_na}}
+#'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{distinct}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
+#'  \code{\link[tidyselect]{all_of}}
 #' @rdname import_source_pprtv_cphea
 #' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr mutate filter select across rename rowwise distinct
-#' @importFrom tidyr pivot_longer all_of separate replace_na
-#' @importFrom stringr str_squish str_replace_all str_extract
+#' @importFrom tidyr pivot_longer all_of separate replace_na drop_na
+#' @importFrom dplyr mutate across case_when select where distinct
+#' @importFrom stringr str_squish str_extract
+#' @importFrom tidyselect any_of
 #--------------------------------------------------------------------------------------
-import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
   printCurrentFunction(db)
   source = "PPRTV CPHEA"
   source_table = "source_pprtv_cphea"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2023-01-23")
   dir = paste0(toxval.config()$datapath,"pprtv_cphea/pprtv_cphea_files/")
-  tmp = readxl::read_xlsx(paste0(dir, "pprtv_cphea_full.xlsx"), guess_max=21474836)
+  file = paste0(dir,"pprtv_cphea_full.xlsx")
+  res0 = readxl::read_xlsx(file, guess_max=21474836)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
 
   # Define helper function for cleaning up scientific notation
   parse_scientific <- function(s) {
@@ -56,29 +56,12 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
     return(suppressWarnings(as.numeric(s)))
   }
 
-  # Handle specific toxval_type fixes
-  # Empty dataframe to collect handled cases
-  res_parsed = data.frame()
-  # Add temp ID to help filter out handled cases
-  res = tmp %>%
-    dplyr::mutate(temp_id = 1:n())
-
-  # Collect all the records that lack a toxval
-  res_parsed = res %>%
-    dplyr::filter(is.na(`RfD (mg/kg-day)`) & (is.na(PoD) | PoD == ":") & is.na(`RfC (mg/m^3)`)
-           & is.na(`Oral Slope Factor`) & is.na(`Unit Risk Factor`)) %>%
-    dplyr::select(-c(`RfD (mg/kg-day)`, PoD, `RfC (mg/m^3)`, `Oral Slope Factor`, `Unit Risk Factor`, `RfC (mg/kg-day)`)) %>%
-    dplyr::mutate(toxval_type = NA, toxval_numeric = NA, toxval_units = NA) %>%
-    rbind(res_parsed, .)
-  res = res %>% dplyr::filter(!temp_id %in% res_parsed$temp_id)
-  # Resetting before the pivoting so we don't lose fields in the pivot
-  res_parsed$temp_id = NA
-
   # Get list of fields to pivot
   toxval_type_list = c("RfD (mg/kg-day)", "PoD", "RfC (mg/m^3)",
                        "Oral Slope Factor", "Unit Risk Factor", "RfC (mg/kg-day)")
+
   # Apply general pivot longer fixes for all toxval_type fields
-  res = res %>%
+  res = res0 %>%
     tidyr::pivot_longer(cols = tidyr::all_of(toxval_type_list),
                         names_to="toxval_type",
                         values_to="toxval_numeric",
@@ -87,167 +70,231 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
     tidyr::separate(toxval_type, c("toxval_type", "toxval_units"), sep="\\(",
                     extra="merge", fill="right", remove=FALSE) %>%
     # Remove extra parentheses from units
-    dplyr::mutate(toxval_units = gsub("\\(|\\)", "", toxval_units),
-                  temp_id = 1:n()) %>%
+    dplyr::mutate(toxval_units = gsub("\\(|\\)", "", toxval_units)) %>%
     dplyr::mutate(dplyr::across(c("toxval_type", "toxval_units", "toxval_numeric"),
-                         ~stringr::str_squish(.)))
+                                ~stringr::str_squish(.))) %>%
 
-  # Per splitting
-  res_parsed = res %>%
-    dplyr::filter(grepl(" per ", toxval_numeric)) %>%
-    tidyr::separate(toxval_numeric, c("toxval_numeric", "toxval_units"), sep=" per ") %>%
-    rbind(res_parsed, .)
-  res = res %>% dplyr::filter(!temp_id %in% res_parsed$temp_id)
-  # PoD splitting
-  res_parsed = res %>%
-    dplyr::filter(grepl(" : ", toxval_numeric)) %>%
-    dplyr::mutate(toxval_numeric = stringr::str_squish(toxval_numeric)) %>%
-    tidyr::separate(toxval_numeric, c("toxval_type", "toxval_numeric"), sep=" : ",
-                    fill="right") %>%
-    tidyr::separate(toxval_numeric, c("toxval_numeric", "toxval_units"), sep=" ") %>%
-    rbind(res_parsed, .)
-  res = res %>% dplyr::filter(!temp_id %in% res_parsed$temp_id)
-########################################################################
-  # Straggler PoD without a PoD listed (just ":")
-  res_parsed = res %>%
-    dplyr::filter(grepl("^:", toxval_numeric)) %>%
-    dplyr::mutate(toxval_numeric = gsub(":", "", toxval_numeric) %>%
-             stringr::str_squish()) %>%
-    tidyr::separate(toxval_numeric, c("toxval_numeric", "toxval_units"), sep=" ",
-                    extra="merge", fill="left") %>%
-    rbind(res_parsed, .)
-  res = res %>% dplyr::filter(!temp_id %in% res_parsed$temp_id)
-  # Recombine
-  res = res %>%
-    rbind(res_parsed) %>%
-    dplyr::select(-temp_id) %>%
-    # Filter out unnecssarily created toxval_numeric-types during pivoting
-    dplyr::filter(!(is.na(toxval_numeric) & !is.na(toxval_type)))
+    dplyr::mutate(
+      # Add new column names
+      name = chemical,
+      endpoint = System %>%
+        gsub(" ,", ", ", .),
+      critical_effect = paste0(endpoint, ": ", Basis),
+      uncertainty_factor = UF,
+      species = `Species Studied` %>%
+        tolower(),
+      study_reference = `Principal Study`,
+      tumor_site = `Tumor site(s)`,
+      cancer_type = Cancer,
+      subsource = "EPA ORD CPHEA",
+      long_ref = study_reference %>%
+        gsub(",$", "", .),
+      guideline = Confidence,
+      source_url = "https://www.epa.gov/pprtv/basic-information-about-provisional-peer-reviewed-toxicity-values-pprtvs",
 
-  # Standardize the names
-  res0 <- res %>%
-    dplyr::rename(name = chemical, endpoint = System, critical_effect = Basis, uncertainty_factor = UF,
-                  species = `Species Studied`, study_reference = `Principal Study`,
-                  tumor_site = `Tumor site(s)`, cancer_type = Cancer) %>%
-    # Clean up punctuation/spacing for endpoint column
-    dplyr::mutate(endpoint = gsub(" ,", ", ", endpoint)) %>%
-    dplyr::rowwise() %>%
-    # Determine study_type
-    dplyr::mutate(study_type = ifelse(grepl("Cancer|Carcinogenic", table_title),
-                                      "Cancer", ifelse(grepl("Subchronic", table_title),
-                                                       "Subchronic", "Chronic")))
-  # Hardcode species for several records
-  res0$species[res0$study_reference == "Biodynamics 1988"
-               & res0$name == "Butyltin Compounds, mono-"] <- "Rat"
-  res0$species[res0$study_reference == "Kawakami et al., 2015"
-               & res0$name == "2-Nitropropane"] <- "Rat"
-  res0$species[res0$study_reference == "Lewis et al., (1979), Ulrich et al. (1977)"
-               & res0$name == "2-Nitropropane"] <- "Rat"
-  res0$species[res0$study_reference == "Lewis et al. (1979) and Ulrich et al. (1977)"
-               & res0$name == "2-Nitropropane"] <- "Rat"
+      # Set appropriate study_type
+      study_type = dplyr::case_when(
+        grepl("Subchronic", table_title) ~ "subchronic",
+        TRUE ~ "chronic"
+      ),
 
-  # Fix unicode symbols in character fields
-  res0 <- dplyr::mutate(res0, dplyr::across(where(is.character), fix.greek.symbols))
+      # Clean toxval_units
+      toxval_units = dplyr::case_when(
+        # Extract values in toxval_numeric
+        grepl("mg", toxval_numeric) ~ stringr::str_extract(toxval_numeric, "mg.+"),
+        grepl("per", toxval_numeric) ~ gsub(".+per", "", toxval_numeric),
+        TRUE ~ toxval_units
+      ) %>%
+        fix.replace.unicode() %>%
+        gsub("\\^", "", .) %>%
+        stringr::str_squish(),
 
-  # Add missing toxval_units (imputed from RfC/RfD) to NOAEL cases
-  # Narrow down the search first
-  noael_fix = res0 %>%
-    dplyr::filter(toxval_type == "NOAEL", is.na(toxval_units)) %>%
-    dplyr::select(name, study_type, table_title) %>%
+      # Clean toxval_type
+      toxval_type = dplyr::case_when(
+        # Extract values in toxval_numeric
+        grepl(":", toxval_numeric) ~ gsub(":.+", "", toxval_numeric),
+        toxval_type == "Oral Slope Factor" ~ "cancer slope factor",
+        toxval_type == "Unit Risk Factor" ~ "cancer unit risk",
+        TRUE ~ toxval_type
+      ),
+
+      toxval_numeric = toxval_numeric %>%
+        gsub("per.+", "", .) %>%
+        gsub("mg.+", "", .) %>%
+        gsub(".+:", "", .) %>%
+        sapply(FUN=parse_scientific) %>%
+        stringr::str_squish(),
+
+      # Correctly format factor units
+      toxval_units = dplyr::case_when(
+        is.na(toxval_units) ~ as.character(NA),
+        toxval_type %in% c("cancer slope factor", "cancer unit risk") ~ paste0("(", toxval_units, ")-1"),
+        TRUE ~ toxval_units
+      ),
+
+      # Combine two separate notes columns from the extraction into one
+      notes = paste0(tidyr::replace_na(Note, ""), tidyr::replace_na(Note_in_body, "")),
+
+      # Handle cases like https://cfpub.epa.gov/ncea/pprtv/chemicalLanding.cfm?pprtv_sub_id=1815
+      # toxval_numeric remained as the units, toxval_numeric is in the notes section
+      toxval_with_units = stringr::str_extract(notes, "[0-9]+\\.?[0-9]* [^ ]* "),
+      toxval_numeric = dplyr::case_when(
+        is.na(toxval_numeric) & !is.na(toxval_type) ~  gsub(" .*$", "", toxval_with_units),
+        TRUE ~ toxval_numeric
+      ),
+      toxval_units = dplyr::case_when(
+        is.na(toxval_numeric) & !is.na(toxval_type) ~  gsub("^[^ ]* ", "", toxval_with_units),
+        TRUE ~ toxval_units
+      ),
+
+      # Extract toxval_subtype from toxval_type where available
+      toxval_subtype = stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
+      toxval_type = toxval_type %>%
+        gsub("\\(.+\\)", "", .) %>%
+        stringr::str_squish(),
+
+      # Extract sex from species when possible
+      sex = dplyr::case_when(
+        grepl("male and female|both|m\\/f|m and f", species) ~ "male/female",
+        grepl("\\/f", species) ~ "female",
+        grepl("\\/m\\b|male", species) ~ "male",
+        TRUE ~ as.character(NA)
+      ),
+
+      # Extract strain from species when possible
+      strain = dplyr::case_when(
+        grepl("cd", species) ~ "CD Sprague Dawley",
+        grepl("s\\-d", species) ~ "Sprague Dawley",
+        TRUE ~ as.character(NA)
+      ),
+
+      # Hardcode species for several records
+      species = dplyr::case_when(
+        grepl("RfD|RfC|slope|factor", toxval_type) ~ "human",
+        study_reference == "Biodynamics 1988" & name == "Butyltin Compounds, mono-" ~ "rat",
+        study_reference == "Kawakami et al., 2015" & name == "2-Nitropropane" ~ "rat",
+        study_reference == "Lewis et al., (1979), Ulrich et al. (1977)" & name == "2-Nitropropane" ~ "rat",
+        study_reference == "Lewis et al. (1979) and Ulrich et al. (1977)" & name == "2-Nitropropane" ~ "rat",
+        TRUE ~ species
+      ) %>%
+        # Clean species
+        gsub("monley", "monkey", .) %>%
+        gsub("rats", "rat", .) %>%
+        gsub("rat\\/mouse", "rat, mouse", .) %>%
+        gsub("mice", "mouse", .) %>%
+        gsub("m\\/f", "", .) %>%
+        gsub("\\/.+|cd|s\\-d", "", .) %>%
+        gsub(" and ", ", ", .) %>%
+        gsub("\\/", ", ", .) %>%
+        gsub(",,", ",", .) %>%
+        stringr::str_squish(),
+
+      # Clean initial duration value
+      duration = gsub("^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?",
+                      "", Duration) %>%
+        gsub(", postweaning|gavage study", "", .) %>%
+        gsub("weejs", "weeks", .) %>%
+        gsub("\\bOne\\b", "1", .) %>%
+        gsub("F0-F3", "3", .) %>%
+        gsub("\\-day", " day", .) %>%
+        gsub("GD6", "6 day", .),
+
+      # Extract study_duration_value and study_duration_units from duration field
+      study_duration_value = dplyr::case_when(
+        grepl("[0-9]+\\s*\\-?\\s*[0-9]*\\s*(?:day|hour|month|week|year|generation)", duration) ~ stringr::str_extract(duration,
+                                                                                                           "([0-9]+\\s*\\-?\\s*[0-9]*)\\s*(?:day|hour|month|week|year|generation)",
+                                                                                                           group=1),
+        grepl("GD", duration) ~ duration %>%
+          gsub("\\s?to\\s?PND|\\s?to\\s?PND", "-", .) %>%
+          fix.replace.unicode() %>%
+          stringr::str_extract("([0-9]+\\s*\\-?\\s*[0-9]*)", group=1),
+        grepl("lifetime", duration) ~ "1",
+        TRUE ~ as.character(NA)
+      ) %>% fix.replace.unicode() %>% gsub("\\s?\\-\\s?", "-", .) %>% gsub("\\s.+", "", .),
+
+      # Follow same patterns as above for study_duration_units
+      study_duration_units = dplyr::case_when(
+        grepl("[0-9]+\\s*\\-?\\s*[0-9]*\\s*(?:day|hour|month|week|year|generation)", duration) ~ stringr::str_extract(duration,
+                                                                                                           "[0-9]+\\s*\\-?\\s*[0-9]*\\s*(day|hour|month|week|year|generation)",
+                                                                                                           group=1),
+        grepl("GD", duration) ~ "GD",
+        grepl("lifetime", duration) ~ "lifetime",
+        TRUE ~ as.character(NA)
+      )
+    ) %>%
+
+    # Fix GD study_duration values (subtract top range from low range)
+    tidyr::separate(
+      col="study_duration_value",
+      into=c("study_duration_low", "study_duration_high"),
+      sep="-",
+      remove=FALSE,
+      fill="right"
+    ) %>%
+    dplyr::mutate(
+      study_duration_low = as.numeric(study_duration_low),
+      study_duration_high = as.numeric(study_duration_high),
+
+      study_duration_value = dplyr::case_when(
+        study_duration_units == "GD" ~ as.character(study_duration_high - study_duration_low + 1),
+        TRUE ~ study_duration_value
+      ) %>% stringr::str_squish(),
+
+      study_duration_units = gsub("GD", "day", study_duration_units)
+    ) %>%
+    dplyr::select(!tidyselect::any_of(c("study_duration_low", "study_duration_high"))) %>%
+
+    dplyr::select(-Duration) %>%
+    # Filter out entries without valid toxval columns
+    tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
+    # Fix unicode symbols in character fields and ensure numeric fields are of numeric type
+    dplyr::mutate(dplyr::across(dplyr::where(is.character), fix.replace.unicode),
+                  toxval_numeric = as.numeric(toxval_numeric))%>%
+    # Drop temp column
+    dplyr::select(-toxval_with_units) %>%
+    # Drop duplicates
     dplyr::distinct()
 
-  # Fix each individual case
-  for(i in seq_len(nrow(noael_fix))){
-    # Pull case of chemical from same table and same type
-    n_fix = res0 %>%
-      dplyr::filter(name == noael_fix$name[i], study_type == noael_fix$study_type[i],
-             table_title == noael_fix$table_title[i],
-             !is.na(toxval_units)) %>%
-      # Select available units
-      dplyr::select(toxval_units)
+  # Remove manual curation note
+  res[res == "## Add blank manual curation fields"] = as.character(NA)
 
-    # Skip if multiple units
-    if(nrow(n_fix) > 1){
-      message("Issue with NOAEL chemical: ", noael_fix$name[i])
-      next
-    } else {
-      # Make replacement of NA
-      res0$toxval_units[is.na(res0$toxval_units) &
-                          res0$name == noael_fix$name[i] &
-                          res0$study_type == noael_fix$study_type[i] &
-                          res0$table_title == noael_fix$table_title[i]] = n_fix$toxval_units
-    }
+  # Add summary data to df before prep and load
+  res$document_type = "PPRTV Webpage"
+  if(do.summary_data){
+    # TODO: Add logic to incorporate summary data here
+    res = dplyr::distinct(res)
+  } else {
+    res = dplyr::distinct(res)
   }
 
-  # Update units for toxval_types Oral Slope/Unit Risk Factor
-  cases <- which(res0$toxval_type %in% c("Oral Slope Factor", "Unit Risk Factor"))
-  res0$toxval_units[cases] <- paste0("(", res0$toxval_units[cases], ")^-1")
-
-  # Fix names
-  names(res0) <- names(res0) %>%
+  # Standardize the names
+  names(res) <- names(res) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  # Split duration column into study_duration_value and _units
-  res0 <- res0 %>%
-    dplyr::mutate(# Remove leading "N hr/d, N d/wk, for/on "
-      duration_original = duration,
-      duration = gsub("^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?",
-                      "", duration),
-      # Remove "postweaning" and "gavage study" from duration
-      duration = gsub(", postweaning|gavage study", "", duration),
-      duration = gsub("weejs", "weeks", duration)) %>%
-    # Clean up and split remaining numeric/unit pairs
-    fix_numeric_units_split(to_split = "duration",value_to="study_duration_value",
-                            units_to="study_duration_units") %>%
-    # Now that they've served as tags for adding units, remove these
-    dplyr::mutate(dplyr::across(c(study_duration_value, study_duration_units),
-                  ~ stringr::str_squish(
-                    stringr::str_replace_all(., "(reproductive: )?gds?|gestation days|pnds?", "")
-                    )
-                  )
-           ) %>%
-    dplyr::select(-duration)
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
-  # Combine two separate notes columns from the extraction into one
-  # We don't need to worry about having values in both fields for one record, as they're exclusionary by construction
-  res0$notes <- paste0(tidyr::replace_na(res0$note, ""), tidyr::replace_na(res0$note_in_body, ""))
-  res0 <- res0 %>% dplyr::select(-c(note, note_in_body))
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
 
-  # Handle cases like https://cfpub.epa.gov/ncea/pprtv/chemicalLanding.cfm?pprtv_sub_id=1815
-  # toxval_numeric remained as the units, toxval_numeric is in the notes section
-  # Not a piped, fully tidy solution, but cleaner than using a conditional mutate.
-  # NB that this only grabs the first number/unit pair from the notes.
-  # These all seem to be correct for this version of CPHEA, but check again if a re-extraction is performed.
-  missing_numeric <- which(is.na(res0$toxval_numeric) & !is.na(res0$toxval_type))
-  toxval_with_units <- stringr::str_extract(res0$notes[missing_numeric], "[0-9]+\\.?[0-9]* [^ ]* ")
-  res0$toxval_numeric[missing_numeric] <- gsub(" .*$", "", toxval_with_units)
-  res0$toxval_units[missing_numeric] <- gsub("^[^ ]* ", "", toxval_with_units)
-
-  # Fix scientific notation issue
-  res0 = res0 %>%
-    # Add rowwise so mutate can vectorize the parse_scientific function
-    dplyr::rowwise() %>%
-    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric)) %>%
-    ## Add blank manual curation fields
-    dplyr::mutate(strain = "-",
-           sex = "-",
-           exposure_route = "-",
-           exposure_method = "-")
-  # Replacing empty notes with "-"
-  res0$notes[res0$notes == ""] <- "-"
-
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
   source_prep_and_load(db=db,
                        source=source,
                        table=source_table,
-                       res=res0,
+                       res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
-
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
+
+
+
+
