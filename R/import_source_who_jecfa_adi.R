@@ -55,13 +55,13 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
                     gsub(";|,|and|\\/", " |::| ", .) %>%
                     stringr::str_squish(),
                   year = `Evaluation year`) %>%
-    # # Separate casrn lists
-    # tidyr::separate_rows(casrn, sep=";") %>%
-    # tidyr::separate_rows(casrn, sep=",") %>%
-    # tidyr::separate_rows(casrn, sep=" and ") %>%
-    # tidyr::separate_rows(casrn, sep="/") %>%
-    # dplyr::mutate(casrn = casrn %>%
-    #                 stringr::str_squish()) %>%
+    # Separate casrn lists
+    tidyr::separate_rows(casrn, sep=";") %>%
+    tidyr::separate_rows(casrn, sep=",") %>%
+    tidyr::separate_rows(casrn, sep=" and ") %>%
+    tidyr::separate_rows(casrn, sep="/") %>%
+    dplyr::mutate(casrn = casrn %>%
+                    stringr::str_squish()) %>%
     # Rename toxval identifier field
     dplyr::rename(who_jecfa_chemical_id = `Chemical ID`)
 
@@ -111,7 +111,8 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
       toxval_type = "ADI",
       species = "human",
       exposure_route = "oral",
-      exposure_method = "diet"
+      exposure_method = "diet",
+      source_url = "https://apps.who.int/food-additives-contaminants-jecfa-database/"
     ) %>%
     # Remove NA toxval_numeric values (we don't use them)
     dplyr::filter(!is.na(toxval_numeric))
@@ -125,6 +126,31 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
   # Remove cleaning columns
   res = res %>%
     dplyr::select(-cleaned_adi, toxval_units_comments)
+
+  # Separate toxval_numeric ranges, range_relationship_id created for Load toxval_relationship purposes
+  ranged <- res %>%
+    dplyr::filter(grepl("-(?![eE])", toxval_numeric, perl=TRUE))
+  # Check if any available
+  if(nrow(ranged)){
+    ranged = ranged %>%
+      dplyr::mutate(range_relationship_id = 1:n()) %>%
+      tidyr::separate_rows(toxval_numeric, sep="-") %>%
+      dplyr::group_by(range_relationship_id) %>%
+      dplyr::mutate(
+        toxval_numeric = as.numeric(toxval_numeric),
+        relationship = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
+      ) %>%
+      ungroup()
+  } else {
+    # Empty dataframe with res cols to bind_rows()
+    ranged = res[0,]
+  }
+
+  # Join back the range split rows
+  res <- res %>%
+    dplyr::filter(!grepl("-(?![eE])", toxval_numeric, perl=TRUE)) %>%
+    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
+    dplyr::bind_rows(., ranged)
 
   # Standardize the names
   names(res) <- names(res) %>%
