@@ -42,7 +42,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
       str_replace_all("\\*", "")
 
     if(grepl(" \\[", n2) && grepl("\\]$", n2)) {
-      n2 = sub(' \\[.*?\\]$', '', n2)
+      n2 = sub(' \\[.*?\\.\\]$', '', n2)
     }
 
     if(source %in% c("Alaska DEC",
