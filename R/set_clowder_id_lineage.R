@@ -373,6 +373,7 @@ set_clowder_id_lineage <- function(source_table,
                     # associates each origin document to specific record
                     origin_docs <- map_file %>%
                       dplyr::filter(document_type == "origin")
+
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
                       dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
@@ -662,7 +663,7 @@ set_clowder_id_lineage <- function(source_table,
                                          dplyr::select(clowder_id, fk_doc_id, document_name,
                                                        name, casrn, study_type, study_reference, species, year) %>%
                                          dplyr::distinct(),
-                                       by=c("name", "casrn", "study_type", "study_reference", "species", "year")) %>%
+                                       by=c("study_type", "study_reference", "year")) %>%
                       dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
 
                     # Match to extraction doc
@@ -673,7 +674,8 @@ set_clowder_id_lineage <- function(source_table,
                               dplyr::select(clowder_id, fk_doc_id))
 
                     # Combine origin and extraction document associations
-                    res = dplyr::bind_rows(res, tmp)
+                    res = dplyr::bind_rows(res, tmp) %>%
+                      dplyr::distinct()
 
                     # Return res
                     res
@@ -705,17 +707,15 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Associates extraction document to all records
                     extraction_docs <- map_file %>%
-                      dplyr::filter(!is.na(parent_flag)) %>%
-                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+                      dplyr::filter(!is.na(parent_flag))
 
-                    res2 <- res %>%
-                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
-                      left_join(extraction_docs %>%
-                                  select(clowder_id, filename, chemical_id, fk_doc_id),
-                                by = "chemical_id")
+                    res2 = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id, filename))
 
                     # Combines both associations back into one data frame
-                    res <- rbind(res1, res2) %>%
+                    res <- dplyr::bind_rows(res1, res2) %>%
                       dplyr::arrange(source_hash)
                     #Return the mapped res with document names and clowder ids
                     res
@@ -738,17 +738,15 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Associates extraction document to all records
                     extraction_docs <- map_file %>%
-                      dplyr::filter(!is.na(parent_flag)) %>%
-                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+                      dplyr::filter(!is.na(parent_flag))
 
-                    res2 <- res %>%
-                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
-                      left_join(extraction_docs %>%
-                                  select(clowder_id, filename, chemical_id, fk_doc_id),
-                                by = "chemical_id")
+                    res2 = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id, filename))
 
                     # Combines both associations back into one data frame
-                    res <- rbind(res1, res2) %>%
+                    res <- dplyr::bind_rows(res1, res2) %>%
                       dplyr::arrange(source_hash)
                     #Return the mapped res with document names and clowder ids
                     res
