@@ -177,7 +177,10 @@ set_clowder_id_lineage <- function(source_table,
                                                                  "clowder_v3/source_heast_document_map.xlsx"), col_types = "text"),
 
                       "source_doe_pac" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                "clowder_v3/source_doe_pac_document_map.xlsx"), col_types = "text"),
+                                                                "clowder_v3/source_doe_pac_document_map.xlsx"), col_types = "text") %>%
+                        tidyr::separate_rows(id, filename, sep="; ") %>%
+                        dplyr::select(-contentType) %>%
+                        dplyr::distinct(),
 
                       # No source match, return empty
                       data.frame()
@@ -1154,7 +1157,8 @@ set_clowder_id_lineage <- function(source_table,
                               dplyr::select(clowder_id, fk_doc_id))
 
                     # Combine origin and extraction document associations
-                    res = rbind(res, tmp)
+                    res = rbind(res, tmp) %>%
+                      dplyr::distinct()
                     # Return res
                     res
                   },
