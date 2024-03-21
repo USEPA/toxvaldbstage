@@ -212,57 +212,100 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         gsub("\\bOne\\b", "1", .) %>%
         gsub("F0-F3", "3", .) %>%
         gsub("\\-day", " day", .) %>%
-        gsub("GD6", "6 day", .),
+        gsub("GD6", "6 day", .) %>%
+        gsub("Gestation days", "GD", .) %>%
+        gsub("6 weeks, then 12", "18", .) %>%
+        gsub("1 generation \\(12 months\\)", "12 months", .) %>%
+        gsub("28d\\)", "28 days)", .) %>%
+        gsub("16wk", "16 weeks", .) %>%
+        gsub("13wk", "13 weeks", .) %>%
+        gsub("14 days prior to mating through day 3 of lactation", "17 days", .),
 
       # Extract study_duration_value and study_duration_units from duration_clean field
       study_duration_value = dplyr::case_when(
-        grepl("[0-9]+\\s*\\-?\\s*[0-9]*\\s*(?:day|hour|month|week|year|generation)", duration_clean) ~ stringr::str_extract(duration_clean,
-                                                                                                                      "([0-9]+\\s*\\-?\\s*[0-9]*)\\s*(?:day|hour|month|week|year|generation)",
+        grepl("[0-9\\.]+\\s*\\-?\\s*[0-9\\.]*\\s*(?:day|hour|month|week|year|generation)", duration_clean) ~ stringr::str_extract(duration_clean,
+                                                                                                                      "([0-9\\.]+\\s*\\-?\\s*[0-9]*)\\s*(?:day|hour|month|week|year|generation)",
                                                                                                                       group=1),
-        grepl("GD", duration_clean) ~ duration_clean %>%
-          gsub("\\s?to\\s?PND|\\s?to\\s?PND", "-", .) %>%
+        grepl("GD|PND", duration_clean) ~ duration_clean %>%
+          gsub("\\s?(?:to|\\-)\\s?PND|\\s?to\\s?PND", "-", .) %>%
           fix.replace.unicode() %>%
-          stringr::str_extract("([0-9]+\\s*\\-?\\s*[0-9]*)", group=1),
+          stringr::str_extract("([0-9\\.]+\\s*\\-?\\s*[0-9\\.]*)", group=1),
         grepl("lifetime", duration_clean) ~ "1",
         TRUE ~ as.character(NA)
       ) %>% fix.replace.unicode() %>% gsub("\\s?\\-\\s?", "-", .) %>% gsub("\\s.+", "", .),
 
       # Follow same patterns as above for study_duration_units
       study_duration_units = dplyr::case_when(
-        grepl("[0-9]+\\s*\\-?\\s*[0-9]*\\s*(?:day|hour|month|week|year|generation)", duration_clean) ~ stringr::str_extract(duration_clean,
-                                                                                                                      "[0-9]+\\s*\\-?\\s*[0-9]*\\s*(day|hour|month|week|year|generation)",
+        grepl("[0-9\\.]+\\s*\\-?\\s*[0-9\\.]*\\s*(?:day|hour|month|week|year|generation)", duration_clean) ~ stringr::str_extract(duration_clean,
+                                                                                                                      "[0-9\\.]+\\s*\\-?\\s*[0-9\\.]*\\s*(day|hour|month|week|year|generation)",
                                                                                                                       group=1),
-        grepl("GD", duration_clean) ~ "GD",
+        # Old GD handling (calculate range as single "day" value)
+        # grepl("GD", duration_clean) ~ "GD",
+
+        grepl("GD", duration_clean) ~ "gestational days",
+        grepl("PND", duration_clean) ~ "postnatal days",
         grepl("lifetime", duration_clean) ~ "lifetime",
         TRUE ~ as.character(NA)
       )
     ) %>%
     # critical_effect combination (NA removed)
-    tidyr::unite(col="critical_effect", endpoint, Basis, sep = ": ", na.rm = TRUE, remove=FALSE) %>%
+    tidyr::unite(col="critical_effect", endpoint, Basis, sep = ": ", na.rm = TRUE, remove=FALSE)
 
-    # Fix GD study_duration values (subtract top range from low range)
-    tidyr::separate(
-      col="study_duration_value",
-      into=c("study_duration_low", "study_duration_high"),
-      sep="-",
-      remove=FALSE,
-      fill="right"
-    ) %>%
-    dplyr::mutate(
-      critical_effect = critical_effect %>%
-        dplyr::na_if(""),
-      study_duration_low = as.numeric(study_duration_low),
-      study_duration_high = as.numeric(study_duration_high),
+    # Old GD handling (calculate range as single "day" value)
+    # # Fix GD study_duration values (subtract top range from low range)
+    # tidyr::separate(
+    #   col="study_duration_value",
+    #   into=c("study_duration_low", "study_duration_high"),
+    #   sep="-",
+    #   remove=FALSE,
+    #   fill="right"
+    # ) %>%
+    # dplyr::mutate(
+    #   critical_effect = critical_effect %>%
+    #     dplyr::na_if(""),
+    #   study_duration_low = as.numeric(study_duration_low),
+    #   study_duration_high = as.numeric(study_duration_high),
+    #
+    #   study_duration_value = dplyr::case_when(
+    #     study_duration_units == "GD" ~ as.character(study_duration_high - study_duration_low + 1),
+    #     TRUE ~ study_duration_value
+    #   ) %>% stringr::str_squish(),
+    #
+    #   study_duration_units = gsub("GD", "day", study_duration_units)
+    # ) %>%
+    # dplyr::select(!tidyselect::any_of(c("study_duration_low", "study_duration_high")))
 
-      study_duration_value = dplyr::case_when(
-        study_duration_units == "GD" ~ as.character(study_duration_high - study_duration_low + 1),
-        TRUE ~ study_duration_value
-      ) %>% stringr::str_squish(),
+  # Add missing toxval_units (imputed from RfC/RfD) to NOAEL cases
+  # Narrow down the search first
+  noael_fix = res %>%
+    dplyr::filter(toxval_type == "NOAEL", is.na(toxval_units)) %>%
+    dplyr::select(name, study_type, table_title) %>%
+    dplyr::distinct()
 
-      study_duration_units = gsub("GD", "day", study_duration_units)
-    ) %>%
-    dplyr::select(!tidyselect::any_of(c("study_duration_low", "study_duration_high"))) %>%
+  # Fix each individual case
+  for(i in seq_len(nrow(noael_fix))){
+    # Pull case of chemical from same table and same type
+    n_fix = res %>%
+      dplyr::filter(name == noael_fix$name[i], study_type == noael_fix$study_type[i],
+                    table_title == noael_fix$table_title[i],
+                    !is.na(toxval_units)) %>%
+      # Select available units
+      dplyr::select(toxval_units)
 
+    # Skip if multiple units
+    if(nrow(n_fix) > 1){
+      message("Issue with NOAEL chemical: ", noael_fix$name[i])
+      next
+    } else {
+      # Make replacement of NA
+      res$toxval_units[is.na(res$toxval_units) &
+                          res$name == noael_fix$name[i] &
+                          res$study_type == noael_fix$study_type[i] &
+                          res$table_title == noael_fix$table_title[i]] = n_fix$toxval_units
+    }
+  }
+
+  res = res %>%
     # Filter out entries without valid toxval columns
     tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
     # Fix unicode symbols in character fields and ensure numeric fields are of numeric type
