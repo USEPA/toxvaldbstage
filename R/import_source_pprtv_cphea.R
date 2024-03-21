@@ -28,7 +28,7 @@
 #' @importFrom stringr str_squish str_extract
 #' @importFrom tidyselect any_of
 #--------------------------------------------------------------------------------------
-import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
+import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
   printCurrentFunction(db)
   source = "PPRTV CPHEA"
   source_table = "source_pprtv_cphea"
@@ -74,12 +74,12 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
     dplyr::mutate(dplyr::across(c("toxval_type", "toxval_units", "toxval_numeric"),
                                 ~stringr::str_squish(.))) %>%
 
+    dplyr::rename(duration_original = Duration) %>%
     dplyr::mutate(
       # Add new column names
       name = chemical,
       endpoint = System %>%
         gsub(" ,", ", ", .),
-      critical_effect = paste0(endpoint, ": ", Basis),
       uncertainty_factor = UF,
       species = `Species Studied` %>%
         tolower(),
@@ -95,6 +95,7 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
       # Set appropriate study_type
       study_type = dplyr::case_when(
         grepl("Subchronic", table_title) ~ "subchronic",
+        grepl("Cancer|Carcinogenic", table_title) ~ "cancer",
         TRUE ~ "chronic"
       ),
 
@@ -117,6 +118,9 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
         toxval_type == "Unit Risk Factor" ~ "cancer unit risk",
         TRUE ~ toxval_type
       ),
+      # Case of BMCL(1SD) to BMCL1SD for subtype extraction consistency with BMDL1SD(HED)
+      toxval_type = toxval_type %>%
+        gsub("(1SD)", "1SD", ., fixed = TRUE),
 
       toxval_numeric = toxval_numeric %>%
         gsub("per.+", "", .) %>%
@@ -132,9 +136,14 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
         TRUE ~ toxval_units
       ),
 
-      # Combine two separate notes columns from the extraction into one
-      notes = paste0(tidyr::replace_na(Note, ""), tidyr::replace_na(Note_in_body, "")),
-
+      Note = Note %>%
+        dplyr::na_if(""),
+      Note_in_body = Note_in_body %>%
+        dplyr::na_if("")
+    ) %>%
+    # Combine two separate notes columns from the extraction into one
+    tidyr::unite(col = "notes", Note, Note_in_body, na.rm=TRUE) %>%
+    dplyr::mutate(
       # Handle cases like https://cfpub.epa.gov/ncea/pprtv/chemicalLanding.cfm?pprtv_sub_id=1815
       # toxval_numeric remained as the units, toxval_numeric is in the notes section
       toxval_with_units = stringr::str_extract(notes, "[0-9]+\\.?[0-9]* [^ ]* "),
@@ -189,9 +198,15 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
         gsub(",,", ",", .) %>%
         stringr::str_squish(),
 
-      # Clean initial duration value
-      duration = gsub("^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?",
-                      "", Duration) %>%
+      # Reset human strain (Replaced rat species with human for RfC, etc.)
+      strain = dplyr::case_when(
+        species == "human" ~ NA,
+        TRUE ~ strain
+      ),
+
+      # Clean initial Duration value
+      duration_clean = gsub("^([0-9]+\\s?hr?/d,?\\s)?([0-9]+\\s?d(ay)?/wk?)?,?\\s?(for\\s|on\\s)?",
+                      "", duration_original) %>%
         gsub(", postweaning|gavage study", "", .) %>%
         gsub("weejs", "weeks", .) %>%
         gsub("\\bOne\\b", "1", .) %>%
@@ -199,29 +214,31 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
         gsub("\\-day", " day", .) %>%
         gsub("GD6", "6 day", .),
 
-      # Extract study_duration_value and study_duration_units from duration field
+      # Extract study_duration_value and study_duration_units from duration_clean field
       study_duration_value = dplyr::case_when(
-        grepl("[0-9]+\\s*\\-?\\s*[0-9]*\\s*(?:day|hour|month|week|year|generation)", duration) ~ stringr::str_extract(duration,
-                                                                                                           "([0-9]+\\s*\\-?\\s*[0-9]*)\\s*(?:day|hour|month|week|year|generation)",
-                                                                                                           group=1),
-        grepl("GD", duration) ~ duration %>%
+        grepl("[0-9]+\\s*\\-?\\s*[0-9]*\\s*(?:day|hour|month|week|year|generation)", duration_clean) ~ stringr::str_extract(duration_clean,
+                                                                                                                      "([0-9]+\\s*\\-?\\s*[0-9]*)\\s*(?:day|hour|month|week|year|generation)",
+                                                                                                                      group=1),
+        grepl("GD", duration_clean) ~ duration_clean %>%
           gsub("\\s?to\\s?PND|\\s?to\\s?PND", "-", .) %>%
           fix.replace.unicode() %>%
           stringr::str_extract("([0-9]+\\s*\\-?\\s*[0-9]*)", group=1),
-        grepl("lifetime", duration) ~ "1",
+        grepl("lifetime", duration_clean) ~ "1",
         TRUE ~ as.character(NA)
       ) %>% fix.replace.unicode() %>% gsub("\\s?\\-\\s?", "-", .) %>% gsub("\\s.+", "", .),
 
       # Follow same patterns as above for study_duration_units
       study_duration_units = dplyr::case_when(
-        grepl("[0-9]+\\s*\\-?\\s*[0-9]*\\s*(?:day|hour|month|week|year|generation)", duration) ~ stringr::str_extract(duration,
-                                                                                                           "[0-9]+\\s*\\-?\\s*[0-9]*\\s*(day|hour|month|week|year|generation)",
-                                                                                                           group=1),
-        grepl("GD", duration) ~ "GD",
-        grepl("lifetime", duration) ~ "lifetime",
+        grepl("[0-9]+\\s*\\-?\\s*[0-9]*\\s*(?:day|hour|month|week|year|generation)", duration_clean) ~ stringr::str_extract(duration_clean,
+                                                                                                                      "[0-9]+\\s*\\-?\\s*[0-9]*\\s*(day|hour|month|week|year|generation)",
+                                                                                                                      group=1),
+        grepl("GD", duration_clean) ~ "GD",
+        grepl("lifetime", duration_clean) ~ "lifetime",
         TRUE ~ as.character(NA)
       )
     ) %>%
+    # critical_effect combination (NA removed)
+    tidyr::unite(col="critical_effect", endpoint, Basis, sep = ": ", na.rm = TRUE, remove=FALSE) %>%
 
     # Fix GD study_duration values (subtract top range from low range)
     tidyr::separate(
@@ -232,6 +249,8 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
       fill="right"
     ) %>%
     dplyr::mutate(
+      critical_effect = critical_effect %>%
+        dplyr::na_if(""),
       study_duration_low = as.numeric(study_duration_low),
       study_duration_high = as.numeric(study_duration_high),
 
@@ -244,7 +263,6 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
     ) %>%
     dplyr::select(!tidyselect::any_of(c("study_duration_low", "study_duration_high"))) %>%
 
-    dplyr::select(-Duration) %>%
     # Filter out entries without valid toxval columns
     tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
     # Fix unicode symbols in character fields and ensure numeric fields are of numeric type
@@ -254,9 +272,6 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
     dplyr::select(-toxval_with_units) %>%
     # Drop duplicates
     dplyr::distinct()
-
-  # Remove manual curation note
-  res[res == "## Add blank manual curation fields"] = as.character(NA)
 
   # Add summary data to df before prep and load
   res$document_type = "PPRTV Webpage"
@@ -294,7 +309,3 @@ import_source_pprtv_cphea <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
