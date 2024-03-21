@@ -12,7 +12,7 @@
 #' res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK
 #'
 #--------------------------------------------------------------------------------------
-chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
+chem.check.v2 <- function(res0, source=NULL, verbose=FALSE) {
   printCurrentFunction(source)
   name.OK = TRUE
   casrn.OK = TRUE
@@ -25,47 +25,39 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
       gsub("\u200b", "", .)
 
     if(is.na(n0)) {
-      cat("NA name found...\n")
-      browser()
+      return(paste(n0, n0, n0, sep="||"))
     }
     n1 = n0 %>%
       iconv(.,from="UTF-8",to="ASCII//TRANSLIT")
     n2 <- n1 %>%
       stringi::stri_escape_unicode() %>%
-
       stringr::str_replace_all("\\\\'","\'") %>%
       stringr::str_squish() %>%
-      str_trim() %>%
-      str_replace_all("\\.\\.\\.", "") %>%
-      str_replace_all(" \\(registered trademark\\)", "") %>%
-      str_replace_all("#", "") %>%
-      str_replace_all("\\*", "")
+      stringr::str_replace_all("\\.\\.\\.|\\(registered trademark\\)|#|\\*", "") %>%
+      # Remove IUCLID ending bracket note
+      gsub("\\[.*\\.\\]$", "", .)
 
-    if(grepl(" \\[", n2) && grepl("\\]$", n2)) {
-      n2 = sub(' \\[.*?\\.\\]$', '', n2)
-    }
-
-    if(source %in% c("Alaska DEC",
-                     "California DPH",
-                     "EPA AEGL",
-                     "Mass. Drinking Water Standards",
-                     "OSHA Air contaminants",
-                     "OW Drinking Water Standards",
-                     "Pennsylvania DEP MCLs",
-                     "USGS HBSL",
-                     "WHO IPCS",
-                     "ATSDR MRLs",
-                     "Cal OEHHA",
-                     "Chiu",
-                     "COSMOS",
-                     "DOD ERED",
-                     "DOE Wildlife Benchmarks",
-                     "DOE Protective Action Criteria",
-                     "IRIS",
-                     "EPA OPP",
-                     "Pennsylvania DEP ToxValues",
-                     "EnviroTox_v2",
-                     "HEAST")) {
+    if(!is.null(source) && source %in% c("Alaska DEC",
+                                         "California DPH",
+                                         "EPA AEGL",
+                                         "Mass. Drinking Water Standards",
+                                         "OSHA Air contaminants",
+                                         "OW Drinking Water Standards",
+                                         "Pennsylvania DEP MCLs",
+                                         "USGS HBSL",
+                                         "WHO IPCS",
+                                         "ATSDR MRLs",
+                                         "Cal OEHHA",
+                                         "Chiu",
+                                         "COSMOS",
+                                         "DOD ERED",
+                                         "DOE Wildlife Benchmarks",
+                                         "DOE Protective Action Criteria",
+                                         "IRIS",
+                                         "EPA OPP",
+                                         "Pennsylvania DEP ToxValues",
+                                         "EnviroTox_v2",
+                                         "HEAST")) {
       # Only take first name stem before ";"
       if(grepl(";", n2)) {
         n2 = sub(';.*', '', n2)
@@ -235,19 +227,18 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
     }
 
     idx <- grepl('modif', tolower(df_copy[[col]]))
-    df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=df_copy[[col]][idx], comment="Unknown modification")
-    df_copy[idx, col] <- NA
+    if(any(idx)){
+      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=df_copy[[col]][idx], comment="Unknown modification")
+      df_copy[idx, col] <- NA
+    }
 
-    quality <- c('pure', 'purif', 'tech', 'grade', 'chemical')
+    quality <- c('pure', 'purif', 'techni', 'grade', 'chemical')
     pat <- paste0("(\\w*", quality, "\\w*)\\b", collapse="|")
     idx <- grepl(pat, tolower(df_copy[[col]]))
-    tryCatch({
-      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=gsub(gsub(pat, "", df_copy[[col]][idx], ignore.case=TRUE), "", df_copy[[col]][idx]), comment="Unneeded adjective")
+    if(any(idx)){
+      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=gsub(pat, "", df_copy[[col]][idx], ignore.case=TRUE), comment="Unneeded adjective")
       df_copy[[col]][idx] <- gsub(pat, "", df_copy[[col]][idx], ignore.case = TRUE)
-    }, error=function(e){
-      cat("An error occurred:", conditionMessage(e),"\n")
-    })
-
+    }
 
     idx <- grepl("\\d+\\%$", tolower(df_copy[[col]]))
     if (any(idx)){
@@ -259,9 +250,9 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
       }
     }
 
-    df_copy[[col]] <- trimws(df_copy[[col]])
+    df_copy[[col]] <- stringr::str_squish(df_copy[[col]])
     #df_copy[[col]] <- gsub("^,|-|,$", "", df_copy[[col]])
-    df_copy[[comment]] <- trimws(df_copy[[comment]])
+    df_copy[[comment]] <- stringr::str_squish(df_copy[[comment]])
     return(df_copy)
   }
 
@@ -356,7 +347,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
   # Set name as cleaned n2, remove intermediates
   res0 = res0 %>%
-    dplyr::select(-casrn, -n0, -n1, -cs, -name_comment) %>%
+    dplyr::select(-casrn, -n0, -n1, -cs) %>%
     dplyr::rename(casrn = n2)
 
   # Prep check export
@@ -382,9 +373,6 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
 
   if(!name.OK) { cat("Some names fixed\n") } else { cat("All names OK\n") }
   if(!casrn.OK) { cat("Some casrn fixed\n") } else { cat("All casrn OK\n") }
-  if(!checksum.OK) {
-    cat("Some casrn have bad checksums\n")
-
-    } else { cat("All checksums OK\n") }
+  if(!checksum.OK) { cat("Some casrn have bad checksums\n") } else { cat("All checksums OK\n") }
   return(list(res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK))
 }
