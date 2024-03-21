@@ -124,14 +124,14 @@ import_doe_pac_source <- function(db,
     paste0(collapse="|")
 
   res <- res %>%
-    dplyr::rowwise() %>%
     # Reference Jira Ticket: TOXVAL-681
     # Determined species and experimental_record from reading Temporary Emergency
     # Exposure Limits for Chemicals: Method and Practice (doe.gov)
     # and the content of the column "PACs based on AEGLs, ERPGs, or TEELs" in the source document.
     dplyr::mutate(species = 'human',
-                  experimental_record = 0,
-                  # Fill in year Revised > Reviewed > Derived
+                  experimental_record = 0) %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(# Fill in year Revised > Reviewed > Derived
                   year = ifelse(!is.na(`Last Revised`), format(as.Date(`Last Revised`, format="%m/%d/%y"),"%Y"),
                                 ifelse(!is.na(`Last Reviewed`), format(as.Date(`Last Reviewed`, format="%m/%d/%y"),"%Y"),
                                        format(as.Date(`Originally Derived`, format="%m/%d/%y"),"%Y")))) %>%
