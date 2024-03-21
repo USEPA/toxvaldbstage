@@ -212,7 +212,6 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         gsub("\\bOne\\b", "1", .) %>%
         gsub("F0-F3", "3", .) %>%
         gsub("\\-day", " day", .) %>%
-        gsub("GD6", "6 day", .) %>%
         gsub("Gestation days", "GD", .) %>%
         gsub("6 weeks, then 12", "18", .) %>%
         gsub("1 generation \\(12 months\\)", "12 months", .) %>%
