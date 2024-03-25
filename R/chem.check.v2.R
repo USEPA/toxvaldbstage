@@ -233,7 +233,7 @@ chem.check.v2 <- function(res0, source=NULL, verbose=FALSE) {
     }
 
     quality <- c('pure', 'purif', 'techni', 'grade', 'chemical')
-    pat <- paste0("(\\w*", quality, "\\w*)\\b", collapse="|")
+    pat <- paste0("(-?)\\b(\\w*", quality, "\\w*)\\b(-?)", collapse="|")
     idx <- grepl(pat, tolower(df_copy[[col]]))
     if(any(idx)){
       df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s=gsub(pat, "", df_copy[[col]][idx], ignore.case=TRUE), comment="Unneeded adjective")
@@ -291,7 +291,12 @@ chem.check.v2 <- function(res0, source=NULL, verbose=FALSE) {
     drop_foods(df = ., col='n2', comment='name_comment') %>%
     drop_stoppers(df = ., col='n2', comment='name_comment') %>%
     drop_text(df = ., col='n2', comment='name_comment') %>%
-    drop_salts(df = ., col='n2', comment='name_comment')
+    drop_salts(df = ., col='n2', comment='name_comment') %>%
+    mutate(n2 = str_remove(n2, ",$"),
+           n2 = str_replace_all(n2, "\\( ?\\)|\\[ ?\\]", ""),
+           n2 = gsub(";\\s*$", "", n2),
+           n2 = gsub("\\[\\s*$", "", n2),
+           n2 = gsub(",\\s*;|,\\s+", ";"))
 
   ccheck_name = res0 %>%
     dplyr::filter(n2 != n0) %>%
