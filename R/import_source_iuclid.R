@@ -19,7 +19,7 @@
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{context}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{pull}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{select}}
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{drop_na}}
-#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}} \code{\link[stringr]{str_detect}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}} \code{\link[stringr]{str_detect}} \code{\link[stringr]{str_split}} \code{\link[stringr]{str_unique}}
 #'  \code{\link[tidyselect]{starts_with}}, \code{\link[tidyselect]{all_of}}
 #'  \code{\link[textclean]{mgsub}}
 #' @rdname import_source_iuclid
@@ -27,7 +27,7 @@
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr filter group_by mutate row_number n case_when pull rename select
 #' @importFrom tidyr separate_rows separate unite pivot_longer starts_with pivot_wider drop_na matches
-#' @importFrom stringr str_squish str_extract regex str_detect
+#' @importFrom stringr str_squish str_extract regex str_detect str_split str_unique
 #' @importFrom tidyselect starts_with any_of all_of
 #' @importFrom textclean mgsub
 #--------------------------------------------------------------------------------------
@@ -293,6 +293,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   if(!("study_duration_class" %in% names(res))) {
     res$study_duration_class = as.character(NA)
   }
+  # Handle case where EC number is not supplied
+  if(!("chemical.ec_number" %in% names(res))) {
+    res$chemical.ec_number = as.character(NA)
+  }
 
   res = res %>%
     dplyr::mutate(
@@ -320,8 +324,20 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("\\(.+\\)", "", .) %>%
         gsub("micro", "u", .) %>%
         gsub(" per ", "/", .) %>%
-        stringr::str_squish()
+        stringr::str_squish(),
     ) %>%
+    # Collapse duplicate EC numbers
+    dplyr::rowwise() %>%
+    dplyr::mutate(
+      chemical.ec_number = stringr::str_split(string=chemical.ec_number, pattern="\\|") %>%
+        .[[1]] %>%
+        stringr::str_unique() %>%
+        paste0(collapse="|")
+    ) %>%
+    dplyr::ungroup() %>%
+
+    # Filter out entries with differing EC numbers
+    dplyr::filter(!grepl("\\|", chemical.ec_number)) %>%
     # Filter out entries with inadequate toxval_type
     dplyr::filter(!grepl("dose|other", toxval_type)) %>%
     # Drop entries without necessary toxval columns
