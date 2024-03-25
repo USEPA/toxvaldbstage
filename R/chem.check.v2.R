@@ -296,7 +296,7 @@ chem.check.v2 <- function(res0, source=NULL, verbose=FALSE) {
            n2 = str_replace_all(n2, "\\( ?\\)|\\[ ?\\]", ""),
            n2 = gsub(";\\s*$", "", n2),
            n2 = gsub("\\[\\s*$", "", n2),
-           n2 = gsub(",\\s*;|,\\s+", ";"))
+           n2 = gsub(",\\s*;(?!\\S)",";", n2, perl = TRUE))
 
   ccheck_name = res0 %>%
     dplyr::filter(n2 != n0) %>%
