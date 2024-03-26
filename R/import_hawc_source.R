@@ -318,21 +318,16 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
 
     # Remove "unknown" values
     dplyr::mutate(dplyr::across(c(species, strain, sex, study_type, exposure_route, exposure_method),
-                  ~dplyr::na_if(., "not reported"))) %>%
-    dplyr::mutate(dplyr::across(c(species, strain, sex, study_type, exposure_route, exposure_method),
-                  ~dplyr::na_if(., "Not reported"))) %>%
-    dplyr::mutate(dplyr::across(c(species, strain, sex, study_type, exposure_route, exposure_method),
-                  ~dplyr::na_if(., "not-reported"))) %>%
-    dplyr::mutate(dplyr::across(c(species, strain, sex, study_type, exposure_route, exposure_method),
-                  ~dplyr::na_if(., "Not Reported"))) %>%
-    dplyr::mutate(dplyr::across(c(species, strain, sex, study_type, exposure_route, exposure_method),
-                  ~dplyr::na_if(., "unspecified"))) %>%
-    dplyr::mutate(dplyr::across(c(species, strain, sex, study_type, exposure_route, exposure_method),
-                  ~dplyr::na_if(., "other"))) %>%
-    dplyr::mutate(dplyr::across(c(species, strain, sex, study_type, exposure_route, exposure_method),
-                  ~dplyr::na_if(., "Other"))) %>%
-    dplyr::mutate(dplyr::across(c(species, strain, sex, study_type, exposure_route, exposure_method),
-                  ~dplyr::na_if(., "unknown"))) %>%
+                                # Not using tolower() to simplify cases due to strain field
+                                ~dplyr::na_if(., "not reported") %>%
+                                  dplyr::na_if("Not reported") %>%
+                                  dplyr::na_if("not-reported") %>%
+                                  dplyr::na_if("Not Reported") %>%
+                                  dplyr::na_if("unspecified") %>%
+                                  dplyr::na_if("other") %>%
+                                  dplyr::na_if("Other") %>%
+                                  dplyr::na_if("unknown")
+                  )) %>%
     # Filter out entries with missing experimental information
     tidyr::drop_na(species, study_type, exposure_route) %>%
 
