@@ -36,7 +36,7 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
   src_version_date = as.Date("2023-01-23")
   dir = paste0(toxval.config()$datapath,"pprtv_cphea/pprtv_cphea_files/")
   file = paste0(dir,"pprtv_cphea_full.xlsx")
-  res0 = readxl::read_xlsx(file, guess_max=21474836)
+  res0 = readxl::read_xlsx(file, guess_max=21474836, col_types="text")
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -75,6 +75,7 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
                                 ~stringr::str_squish(.))) %>%
 
     dplyr::rename(duration_original = Duration) %>%
+
     dplyr::mutate(
       # Add new column names
       name = chemical,
@@ -86,18 +87,50 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
       study_reference = `Principal Study`,
       tumor_site = `Tumor site(s)`,
       cancer_type = Cancer,
+    )
+
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Add summary data to df before prep and load
+  res$document_type = "PPRTV Webpage"
+  if(do.summary_data){
+    # Import manually curated PPRTV CPHEA Summary information
+    summary_file = "source_pprtv_cphea_origin_manual_curation_20240322_awebb01.xlsx"
+    res1 = readxl::read_xlsx(paste0(dir, summary_file), col_types="text") %>%
+      dplyr::mutate(document_type = 'PPRTV Summary') %>%
+      .[ , (names(.) %in% names(res))]
+    res = res %>%
+      dplyr::bind_rows(res1) %>%
+      dplyr::distinct()
+  } else {
+    res = res %>%
+      dplyr::distinct()
+  }
+
+  res = res %>%
+    dplyr::mutate(
+      # Add extra columns
       subsource = "EPA ORD CPHEA",
+      source_url = "https://www.epa.gov/pprtv/basic-information-about-provisional-peer-reviewed-toxicity-values-pprtvs",
       long_ref = study_reference %>%
         gsub(",$", "", .),
-      guideline = Confidence,
-      source_url = "https://www.epa.gov/pprtv/basic-information-about-provisional-peer-reviewed-toxicity-values-pprtvs",
+      guideline = confidence,
 
       # Set appropriate study_type
       study_type = dplyr::case_when(
+        document_type == "PPRTV Summary" ~ study_type,
         grepl("Subchronic", table_title) ~ "subchronic",
         grepl("Cancer|Carcinogenic", table_title) ~ "cancer",
         TRUE ~ "chronic"
-      ),
+      ) %>% tolower(),
 
       # Clean toxval_units
       toxval_units = dplyr::case_when(
@@ -132,17 +165,18 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
       # Correctly format factor units
       toxval_units = dplyr::case_when(
         is.na(toxval_units) ~ as.character(NA),
+        grepl("\\)\\-1", toxval_units) ~ toxval_units,
         toxval_type %in% c("cancer slope factor", "cancer unit risk") ~ paste0("(", toxval_units, ")-1"),
         TRUE ~ toxval_units
       ),
 
-      Note = Note %>%
+      note = note %>%
         dplyr::na_if(""),
-      Note_in_body = Note_in_body %>%
+      note_in_body = note_in_body %>%
         dplyr::na_if("")
     ) %>%
     # Combine two separate notes columns from the extraction into one
-    tidyr::unite(col = "notes", Note, Note_in_body, na.rm=TRUE) %>%
+    tidyr::unite(col = "notes", note, note_in_body, na.rm=TRUE) %>%
     dplyr::mutate(
       # Handle cases like https://cfpub.epa.gov/ncea/pprtv/chemicalLanding.cfm?pprtv_sub_id=1815
       # toxval_numeric remained as the units, toxval_numeric is in the notes section
@@ -164,17 +198,18 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
       # Extract sex from species when possible
       sex = dplyr::case_when(
+        grepl("male; female", sex) ~ "male/female",
         grepl("male and female|both|m\\/f|m and f", species) ~ "male/female",
         grepl("\\/f", species) ~ "female",
-        grepl("\\/m\\b|male", species) ~ "male",
-        TRUE ~ as.character(NA)
+        grepl("\\/m\\b|male|\\bM\\b", species) ~ "male",
+        TRUE ~ sex
       ),
 
       # Extract strain from species when possible
       strain = dplyr::case_when(
-        grepl("cd", species) ~ "CD Sprague Dawley",
-        grepl("s\\-d", species) ~ "Sprague Dawley",
-        TRUE ~ as.character(NA)
+        grepl("cd|CD", species) ~ "CD Sprague Dawley",
+        grepl("s\\-d|S\\-D", species) ~ "Sprague Dawley",
+        TRUE ~ strain
       ),
 
       # Hardcode species for several records
@@ -187,9 +222,10 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         TRUE ~ species
       ) %>%
         # Clean species
+        tolower() %>%
         gsub("monley", "monkey", .) %>%
         gsub("rats", "rat", .) %>%
-        gsub("rat\\/mouse", "rat, mouse", .) %>%
+        gsub("rat\\/mouse|rat; mouse", "rat, mouse", .) %>%
         gsub("mice", "mouse", .) %>%
         gsub("m\\/f", "", .) %>%
         gsub("\\/.+|cd|s\\-d", "", .) %>%
@@ -248,7 +284,7 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
       )
     ) %>%
     # critical_effect combination (NA removed)
-    tidyr::unite(col="critical_effect", endpoint, Basis, sep = ": ", na.rm = TRUE, remove=FALSE)
+    tidyr::unite(col="critical_effect", endpoint, basis, sep = ": ", na.rm = TRUE, remove=FALSE)
 
     # Old GD handling (calculate range as single "day" value)
     # # Fix GD study_duration values (subtract top range from low range)
@@ -277,7 +313,7 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
   # Add missing toxval_units (imputed from RfC/RfD) to NOAEL cases
   # Narrow down the search first
   noael_fix = res %>%
-    dplyr::filter(toxval_type == "NOAEL", is.na(toxval_units)) %>%
+    dplyr::filter(toxval_type == "NOAEL", is.na(toxval_units), document_type=="PPRTV Webpage") %>%
     dplyr::select(name, study_type, table_title) %>%
     dplyr::distinct()
 
@@ -287,7 +323,7 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
     n_fix = res %>%
       dplyr::filter(name == noael_fix$name[i], study_type == noael_fix$study_type[i],
                     table_title == noael_fix$table_title[i],
-                    !is.na(toxval_units)) %>%
+                    !is.na(toxval_units), document_type=="PPRTV Webpage") %>%
       # Select available units
       dplyr::select(toxval_units)
 
@@ -314,25 +350,6 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
     dplyr::select(-toxval_with_units) %>%
     # Drop duplicates
     dplyr::distinct()
-
-  # Add summary data to df before prep and load
-  res$document_type = "PPRTV Webpage"
-  if(do.summary_data){
-    # TODO: Add logic to incorporate summary data here
-    res = dplyr::distinct(res)
-  } else {
-    res = dplyr::distinct(res)
-  }
-
-  # Standardize the names
-  names(res) <- names(res) %>%
-    stringr::str_squish() %>%
-    # Replace whitespace and periods with underscore
-    gsub("[[:space:]]|[.]", "_", .) %>%
-    tolower()
-
-  # Fill blank hashing cols
-  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Perform deduping
   res = toxval.source.import.dedup(res)
