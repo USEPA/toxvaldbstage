@@ -344,8 +344,13 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
     # Filter out entries without valid toxval columns
     tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
     # Fix unicode symbols in character fields and ensure numeric fields are of numeric type
-    dplyr::mutate(dplyr::across(dplyr::where(is.character), fix.replace.unicode),
-                  toxval_numeric = as.numeric(toxval_numeric))%>%
+    dplyr::mutate(dplyr::across(dplyr::where(is.character),
+                                ~fix.replace.unicode(.) %>%
+                                  stringr::str_squish()),
+                  toxval_numeric = as.numeric(toxval_numeric),
+                  # Set empty strings to NA
+                  dplyr::across(dplyr::everything(),
+                                ~na_if(., "")))%>%
     # Drop temp column
     dplyr::select(-toxval_with_units) %>%
     # Drop duplicates
