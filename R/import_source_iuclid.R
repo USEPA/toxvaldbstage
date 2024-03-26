@@ -81,7 +81,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   map = map %>%
     dplyr::filter(!is.na(to)) %>%
     tidyr::separate_rows(to, sep=" : ") %>%
-
+    # Sort rows to enforce combination order is consistent
+    dplyr::arrange(to, from) %>%
     # Add "occurrence" stem to duplicate values
     dplyr::group_by(to) %>%
     dplyr::mutate(
@@ -105,6 +106,26 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   if ("name" %in% names(res0)) {
     res0 = res0 %>% dplyr::rename(study_name = name)
   }
+
+  # Special case for ec_number na_if() and report missing cases
+  res0 = res0 %>%
+    dplyr::mutate(dplyr::across(tidyr::any_of(c("chemical_ECnumber", "reference_substance_ECnumber")),
+                                ~na_if(., "-")))
+
+  if(!dir.exists(file.path(toxval.config()$datapath, "iuclid/ec_number_issue"))){
+    dir.create(file.path(toxval.config()$datapath, "iuclid/ec_number_issue"))
+  }
+  # Export case of missing reference EC number but has chemical EC number
+  ec_number_report = res0 %>%
+    dplyr::filter(is.na(reference_substance_ECnumber), !is.na(chemical_ECnumber))
+
+  if(nrow(ec_number_report)){
+    writexl::write_xlsx(ec_number_report,
+                        paste0(toxval.config()$datapath,
+                               "iuclid/ec_number_issue/ec_number_issue_",
+                               source_table, "_", Sys.Date(),".xlsx"))
+  }
+
 
   res <- res0 %>%
     # # Copy columns and rename new columns
