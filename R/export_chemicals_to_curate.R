@@ -42,6 +42,14 @@ export_chemicals_to_curate <- function(db, export_all=FALSE){
 
   # Export into subfiles by chemical index
   out = chems_curate %>%
+    dplyr::rowwise() %>%
+    # check_sum replace casrn with "-" if failed
+    dplyr::mutate(check_sum = cas_checkSum(cleaned_casrn),
+                  cleaned_casrn = dplyr::case_when(
+                    check_sum %in% c(0, NA) ~ "-",
+                    TRUE ~ cleaned_casrn
+                  )) %>%
+    dplyr::ungroup() %>%
     dplyr::group_split(chemical_index)
 
   # Prepare output directory
