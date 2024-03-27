@@ -80,6 +80,13 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Create a named vector to handle renaming from the map
   map = map %>%
     dplyr::filter(!is.na(to)) %>%
+    # Handle consistency issue with study_duration mappings
+    dplyr::mutate(
+      to = dplyr::case_when(
+        to == "study_duration : study_duration_units" ~ "study_duration_units",
+        TRUE ~ to
+      )
+    ) %>%
     tidyr::separate_rows(to, sep=" : ") %>%
     # Sort rows to enforce combination order is consistent
     dplyr::arrange(to, from) %>%
@@ -386,7 +393,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         stringr::str_squish() %>%
         dplyr::na_if("") %>%
         dplyr::na_if(" ") %>%
-        dplyr::na_if(":"),
+        dplyr::na_if(":") %>%
+        dplyr::na_if("table"),
 
       # Extract study_duration_value and study_duration_units
       study_duration = study_duration_units,
@@ -460,7 +468,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         # Remove for now
         # nchar(strain) > 100 ~ as.character(NA),
         # Filter out entries with "age"
-        grepl("age", strain, ignore.case=TRUE) ~ as.character(NA),
+        grepl("\\bage\\b|lot #|weeks old|substance", strain, ignore.case=TRUE) ~ as.character(NA),
         TRUE ~ strain
       ),
 
@@ -572,7 +580,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ as.character(NA)
       ),
       name = dplyr::case_when(
-        grepl("NDA[0-9]+\\-", name) ~ gsub(".+\\-", "", name),
+        grepl("NDA[0-9]+\\-", name) ~ gsub("NDA[0-9]+\\-", "", name),
         TRUE ~ name
       ),
 
