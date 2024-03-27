@@ -1,6 +1,6 @@
 #--------------------------------------------------------------------------------------
 #' @title import_source_pprtv_cphea
-#' @description Import PPRTV CPHEA source data into toxval_source
+#' @description Import PPRTV (CPHEA) source data into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
@@ -30,7 +30,7 @@
 #--------------------------------------------------------------------------------------
 import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
   printCurrentFunction(db)
-  source = "PPRTV CPHEA"
+  source = "PPRTV (CPHEA)"
   source_table = "source_pprtv_cphea"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2023-01-23")
