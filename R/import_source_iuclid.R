@@ -267,6 +267,18 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
     # Combine toxval_numeric_lower and toxval_numeric_upper for relationship tracking
     res = res %>%
+      # Note origin to help with qualifier/relationship assignment
+      dplyr::mutate(
+        toxval_numeric_lower = dplyr::case_when(
+          is.na(toxval_numeric_lower) ~ NA,
+          TRUE ~ paste0(toxval_numeric_lower, " (Lower Range)")
+        ),
+
+        toxval_numeric_upper = dplyr::case_when(
+          is.na(toxval_numeric_upper) ~ NA,
+          TRUE ~ paste0(toxval_numeric_upper, " (Upper Range)")
+        )
+      ) %>%
       tidyr::unite(
         "toxval_numeric",
         toxval_numeric_lower, toxval_numeric_upper,
@@ -300,22 +312,27 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       tidyr::separate_rows(toxval_numeric, sep="-") %>%
       dplyr::group_by(range_relationship_id) %>%
       dplyr::mutate(
-        toxval_numeric = as.numeric(toxval_numeric),
-        toxval_subtype = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
+        toxval_subtype = toxval_numeric %>%
+          stringr::str_extract("Lower Range|Upper Range")
       ) %>%
       ungroup()
   } else {
     # Empty dataframe with res cols to bind_rows()
     ranged = res[0,] %>%
-      dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric))
+      dplyr::mutate(toxval_numeric = toxval_numeric)
   }
 
-  # Join back the range split rows
+  # Join back the range split rows and set origin
   res <- res %>%
     dplyr::filter(!grepl("-(?![eE])", toxval_numeric, perl=TRUE),
                   !is.na(suppressWarnings(toxval_numeric))) %>%
-    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
-    dplyr::bind_rows(ranged)
+    dplyr::bind_rows(ranged) %>%
+    dplyr::mutate(toxval_numeric_origin = toxval_numeric %>%
+                    stringr::str_extract("Lower Range|Upper Range"),
+                  toxval_numeric = toxval_numeric %>%
+                    gsub("\\(Lower Range\\)|\\(Upper Range\\)", "", .) %>%
+                    stringr::str_squish() %>%
+                    as.numeric())
 
   # Handle case where study_duration_class is not supplied
   if(!("study_duration_class" %in% names(res))) {
@@ -546,8 +563,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Select and clean appropriate toxval_numeric_qualifier
       toxval_numeric_qualifier = dplyr::case_when(
-        !is.na(toxval_qualifier_lower) ~ toxval_qualifier_lower,
-        !is.na(toxval_qualifier_upper) ~ toxval_qualifier_upper,
+        !is.na(toxval_qualifier_lower) & toxval_numeric_origin == "Lower Range" ~ toxval_qualifier_lower,
+        !is.na(toxval_qualifier_upper) & toxval_numeric_origin == "Upper Range" ~ toxval_qualifier_upper,
         TRUE ~ toxval_numeric_qualifier
       ) %>% gsub("ca\\.", "~", .),
 
@@ -596,7 +613,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::select(!temp_to_drop) %>%
 
     # Drop unused toxval_qualifier cols
-    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper"))) %>%
+    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper", "toxval_numeric_origin"))) %>%
     # Remove entries with "conc. level" toxval_type or "%" toxval_units
     dplyr::filter(!grepl("conc\\. level", toxval_type),
                   !grepl("%", toxval_units))  %>%
