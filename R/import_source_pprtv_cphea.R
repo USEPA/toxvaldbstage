@@ -214,7 +214,7 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
       # Hardcode species for several records
       species = dplyr::case_when(
-        grepl("RfD|RfC|slope|factor", toxval_type) ~ "human",
+        toxval_type %in% c("RfD", "RfC", "cancer slope factor", "cancer unit risk") ~ "human",
         study_reference == "Biodynamics 1988" & name == "Butyltin Compounds, mono-" ~ "rat",
         study_reference == "Kawakami et al., 2015" & name == "2-Nitropropane" ~ "rat",
         study_reference == "Lewis et al., (1979), Ulrich et al. (1977)" & name == "2-Nitropropane" ~ "rat",
@@ -281,10 +281,34 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         grepl("PND", duration_clean) ~ "postnatal days",
         grepl("lifetime", duration_clean) ~ "lifetime",
         TRUE ~ as.character(NA)
+      ),
+
+      # Set experimental_record and human_ra
+      experimental_record = dplyr::case_when(
+        toxval_type %in% c("RfD", "RfC", "cancer slope factor", "cancer unit risk") ~ "No",
+        TRUE ~ "Yes"
+      ),
+      human_ra = dplyr::case_when(
+        toxval_type %in% c("RfD", "RfC", "cancer slope factor", "cancer unit risk") ~ "Yes",
+        TRUE ~ "No"
+      ),
+
+      # Set values to NA to prepare for tidyr::unite
+      tumor_site = tumor_site %>%
+        dplyr::na_if("-"),
+      cancer_type = cancer_type %>%
+        dplyr::na_if("-"),
+    ) %>%
+    # Build critical_effect depending on assessment_type (NA removed)
+    tidyr::unite(col="critical_effect_noncancer", endpoint, basis, sep = ": ", na.rm = TRUE, remove=FALSE) %>%
+    tidyr::unite(col="critical_effect_cancer", tumor_site, cancer_type, sep = ": ", na.rm = TRUE, remove=FALSE) %>%
+    dplyr::mutate(
+      critical_effect = dplyr::case_when(
+        assessment_type == "Cancer Assessment" ~ critical_effect_cancer,
+        TRUE ~ critical_effect_noncancer
       )
     ) %>%
-    # critical_effect combination (NA removed)
-    tidyr::unite(col="critical_effect", endpoint, basis, sep = ": ", na.rm = TRUE, remove=FALSE)
+    dplyr::select(-tidyselect::any_of(c("critical_effect_noncancer", "critical_effect_cancer")))
 
     # Old GD handling (calculate range as single "day" value)
     # # Fix GD study_duration values (subtract top range from low range)
