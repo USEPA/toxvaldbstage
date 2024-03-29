@@ -106,7 +106,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       )
     )
 
-  tmp = map %>%
+  oht_field_map = map %>%
     dplyr::pull(from, to)
 
   # If "name" field exists in source data, rename to avoid conflicts
@@ -133,12 +133,19 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                                source_table, "_", Sys.Date(),".xlsx"))
   }
 
+  # Old approach, did not account for multiple toxval fields mapped to same field
+  # res <- res0 %>%
+  #   # # Copy columns and rename new columns
+  #   # dplyr::rename(dplyr::all_of(tmp)) %>%
+  #   # Select only to mapped ToxVal fields
+  #   dplyr::select(dplyr::any_of(tmp))
 
-  res <- res0 %>%
-    # # Copy columns and rename new columns
-    # dplyr::rename(dplyr::all_of(tmp)) %>%
-    # Select only to mapped ToxVal fields
-    dplyr::select(dplyr::any_of(tmp))
+  res = res0
+  # https://stackoverflow.com/questions/68959057/using-mutate-to-create-column-copies-using-a-named-vector
+  # Required for cases where same field is mapped to multiple toxval fields (e.g., exposure_route and method)
+  res[names(oht_field_map)] <- res[oht_field_map]
+  res = res %>%
+    dplyr::select(dplyr::any_of(names(oht_field_map)))
 
   # Split columns and name them (handle case where exposure_route is already provided)
   if("exposure_route" %in% names(res) | "exposure_route_1" %in% names(res)) {
