@@ -581,11 +581,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       # Clean exposure_route
       exposure_route = dplyr::case_when(
         grepl("\\bother|\\bunspecified|\\bnot specified", gsub(":.+", "", exposure_route)) ~ exposure_route_other,
-        exposure_route %in% c(as.character(NA), "-", "", "other route") ~ exposure_route_other,
+        exposure_route %in% c(as.character(NA), "-", "", "other route", "other routes") ~ exposure_route_other,
         TRUE ~ exposure_route
       ) %>%
         gsub(":.+", "", .) %>%
-        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule|mixture.+|dust|other route", "", ., ignore.case=TRUE) %>%
+        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule|mixture.+|dust|other routes?", "", ., ignore.case=TRUE) %>%
         stringr::str_squish(),
 
       # Clean sex field
