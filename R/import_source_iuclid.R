@@ -80,7 +80,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Create a named vector to handle renaming from the map
   map = map %>%
     dplyr::filter(!is.na(to)) %>%
-    # Handle consistency issue with study_duration mappings
+    # Handle consistency issues with study_duration mappings
     dplyr::mutate(
       to = dplyr::case_when(
         to == "study_duration : study_duration_units" ~ "study_duration_units",
@@ -154,15 +154,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res = res %>% tidyr::separate(study_type_1, c("study_type_1","exposure_route"), sep=": ", fill="right", remove=TRUE)
   }
 
-  # If exposure_method column is present, fix it
-  if ("exposure_method" %in% names(res)) {
-    res = res %>%
-      dplyr::mutate(
-        exposure_method = gsub(".+:", "", exposure_method) %>%
-          stringr::str_squish()
-      )
-  }
-
   # Unite duplicate columns with numbered stems
   for (field in map$to[grepl("_1", map$to) & map$to %in% names(res)]) {
     cat("...Combining duplicate column mapping: ", field, "\n")
@@ -216,6 +207,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Add NA toxval_units_other column if it doesn't exist
   if (!("toxval_units_other" %in% names(res))) {
     res$toxval_units_other = as.character(NA)
+  }
+  # Add NA strain_other column if it doesn't exist
+  if (!("strain_other" %in% names(res))) {
+    res$strain_other = as.character(NA)
+  }
+  # Add NA exposure_route_other column if it doesn't exist
+  if (!("exposure_route_other" %in% names(res))) {
+    res$exposure_route_other = as.character(NA)
   }
 
   # Add special toxval_units "score" case for certain OHTs
@@ -420,8 +419,34 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         dplyr::na_if(":") %>%
         dplyr::na_if("table"),
 
+      # Add fields to track PND/GD units (units removed from string to improve handling)
+      pnd_or_gd = dplyr::case_when(
+        grepl("PND", study_duration_units, ignore.case=TRUE) ~ "PND",
+        grepl("GD", study_duration_units, ignore.case=TRUE) ~ "GD",
+        TRUE ~ as.character(NA)
+      ),
+
       # Extract study_duration_value and study_duration_units
-      study_duration = study_duration_units,
+      study_duration = study_duration_units %>%
+        gsub(" - ", "-", .) %>%
+        gsub("\\bone\\b", "1", ., ignore.case=TRUE) %>%
+        gsub("\\btwo\\b", "2", ., ignore.case=TRUE) %>%
+        gsub("\\bthree\\b", "3", ., ignore.case=TRUE) %>%
+        gsub("\\bfour\\b", "4", ., ignore.case=TRUE) %>%
+        gsub("\\bfive\\b", "5", ., ignore.case=TRUE) %>%
+        gsub("\\bsix\\b", "6", ., ignore.case=TRUE) %>%
+        gsub("\\bseven\\b", "7", ., ignore.case=TRUE) %>%
+        gsub("\\beight\\b", "8", ., ignore.case=TRUE) %>%
+        gsub("\\bnine\\b", "9", ., ignore.case=TRUE) %>%
+        gsub("\\bten\\b", "10", ., ignore.case=TRUE) %>%
+        gsub("\\-\\s*week", " week", ., ignore.case=TRUE) %>%
+        gsub("\\-\\s*hour", " hour", ., ignore.case=TRUE) %>%
+        gsub("\\-\\s*day", " day", ., ignore.case=TRUE) %>%
+        gsub("\\-\\s*month", " month", ., ignore.case=TRUE) %>%
+        gsub("\\-\\s*year", " year", ., ignore.case=TRUE) %>%
+        gsub("\\bto\\b", "-", ., ignore.case=TRUE) %>%
+        gsub("PND|GD", "", ., ignore.case=TRUE) %>%
+        stringr::str_squish(),
       # Use first number appearance (range possible) as study_duration_value
       study_duration_value = study_duration %>%
         stringr::str_extract(stringr::regex(paste0("(\\d+(?:\\-\\d+)?).*?",
@@ -451,6 +476,17 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         grepl("y", study_duration_units) ~ "years",
         TRUE ~ as.character(NA)
       ),
+
+      # If study_duration still not extracted, check for PND/GD
+      study_duration_value = dplyr::case_when(
+        !is.na(study_duration_value) | is.na(pnd_or_gd) ~ study_duration_value,
+        TRUE ~ stringr::str_extract(study_duration, "\\d+\\s*\\-\\s*\\d*") %>% c() %>% stringr::str_squish()
+      ),
+      study_duration_units = dplyr::case_when(
+        !is.na(study_duration_units) | is.na(pnd_or_gd) ~ study_duration_units,
+        TRUE ~ pnd_or_gd
+      ),
+
       # Set both cols to NA if only one value is present
       study_duration_units = dplyr::case_when(
         study_duration_value == as.character(NA) ~ as.character(NA),
@@ -459,7 +495,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       study_duration_value = dplyr::case_when(
         study_duration_units == as.character(NA) ~ as.character(NA),
         TRUE ~ study_duration_value
-      ),
+      ) %>% gsub(" \\- ", "-", .),
 
       # Select only first study_type value when pipe is used
       study_type = gsub("\\|.+", "", study_type),
@@ -470,14 +506,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ study_duration_class
       ),
 
-      # Clean species column
-      species = species %>%
-        tolower() %>%
-        gsub(":", "", .) %>%
-        stringr::str_squish(),
-
       # Clean strain column
-      strain = strain %>%
+      strain = dplyr::case_when(
+        grepl("hamster,", species, ignore.case=TRUE) ~ gsub("hamster,", "", species, ignore.case=TRUE),
+        grepl("\\bother:?", strain) ~ strain_other,
+        TRUE ~ strain
+      ) %>%
         tolower() %>%
         gsub("(?:animal )?strain:", "", ., ignore.case=TRUE) %>%
         gsub("WIST", "wistar", .) %>%
@@ -496,6 +530,15 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ strain
       ),
 
+      # Clean species column
+      species = dplyr::case_when(
+        grepl("hamster,", species, ignore.case=TRUE) ~ gsub(",.+", "", species, ignore.case=TRUE),
+        TRUE ~ species
+      ) %>%
+        tolower() %>%
+        gsub(":", "", .) %>%
+        stringr::str_squish(),
+
       # Clean toxval_type
       toxval_type = toxval_type %>%
         gsub(":", "", .),
@@ -512,32 +555,37 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         stringr::str_squish(),
 
       # Clean exposure_method
-      exposure_method =  exposure_method %>%
-        gsub("\\|other:|other:\\|", "", .) %>%
-        gsub("\\|unspecified|unspecified\\|", "", .) %>%
+      exposure_method =  dplyr::case_when(
+        !(grepl(":", exposure_method)) ~ as.character(NA),
+        TRUE ~ gsub(".+:", "", exposure_method)
+      ) %>%
+        stringr::str_replace("^\\|", "") %>%
+        gsub("\\|?\\bother\\b\\|?", "", .) %>%
+        gsub("\\|?\\bunspecified\\b\\|?", "", .) %>%
         gsub("\\|not specified|not specified\\|", "", .) %>%
         stringr::str_squish(),
       exposure_method = dplyr::case_when(
-        grepl("gavage", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "gavage",
-        grepl("gas", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "gas",
-        grepl("vapour", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "vapour",
-        grepl("drinking water", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "drinking water",
-        grepl("feed", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "feed",
-        grepl("aerosol", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "aerosol",
-        grepl("capsule", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "capsule",
-        grepl("dust", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "dust",
-        grepl("mixture", exposure_route) & exposure_method %in% c("-", as.character(NA))~ stringr::str_extract(exposure_route,
-                                                                                                                    "mixture.+") %>% c(),
+        !(exposure_method %in% c("-", as.character(NA), "")) ~ exposure_method,
+        grepl("gavage", exposure_route) ~ "gavage",
+        grepl("gas", exposure_route) ~ "gas",
+        grepl("vapour", exposure_route) ~ "vapour",
+        grepl("drinking water", exposure_route) ~ "drinking water",
+        grepl("feed", exposure_route) ~ "feed",
+        grepl("aerosol", exposure_route) ~ "aerosol",
+        grepl("capsule", exposure_route) ~ "capsule",
+        grepl("dust", exposure_route) ~ "dust",
+        grepl("mixture", exposure_route) ~ stringr::str_extract(exposure_route, "mixture.+") %>% c(),
         TRUE ~ exposure_method
       ),
 
       # Clean exposure_route
-      exposure_route = exposure_route %>%
-        gsub(":", "", .) %>%
-        gsub("\\|?other\\|?", "", .) %>%
-        gsub("\\|?unspecified\\|?", "", .) %>%
-        gsub("\\|?not specified\\|?", "", .) %>%
-        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule|mixture.+|dust", "", ., ignore.case=TRUE) %>%
+      exposure_route = dplyr::case_when(
+        grepl("\\bother|\\bunspecified|\\bnot specified", gsub(":.+", "", exposure_route)) ~ exposure_route_other,
+        exposure_route %in% c(as.character(NA), "-", "", "other route") ~ exposure_route_other,
+        TRUE ~ exposure_route
+      ) %>%
+        gsub(":.+", "", .) %>%
+        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule|mixture.+|dust|other route", "", ., ignore.case=TRUE) %>%
         stringr::str_squish(),
 
       # Clean sex field
@@ -619,8 +667,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::filter(temp_to_drop == 0) %>%
     dplyr::select(!temp_to_drop) %>%
 
-    # Drop unused toxval_qualifier cols
-    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper", "toxval_numeric_origin"))) %>%
+    # Drop unused helper cols
+    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper", "toxval_numeric_origin", "pnd_or_gd"))) %>%
     # Remove entries with "conc. level" toxval_type or "%" toxval_units
     dplyr::filter(!grepl("conc\\. level", toxval_type),
                   !grepl("%", toxval_units))  %>%
