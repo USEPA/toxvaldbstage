@@ -145,7 +145,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Required for cases where same field is mapped to multiple toxval fields (e.g., exposure_route and method)
   res[names(oht_field_map)] <- res[oht_field_map]
   res = res %>%
-    dplyr::select(dplyr::any_of(names(oht_field_map)))
+    dplyr::select(dplyr::any_of(c(names(oht_field_map), "endpoint_uuid")))
 
   # Split columns and name them (handle case where exposure_route is already provided)
   if("exposure_route" %in% names(res) | "exposure_route_1" %in% names(res)) {
@@ -427,7 +427,54 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       ),
 
       # Extract study_duration_value and study_duration_units
-      study_duration = study_duration_units %>%
+      study_duration_original = study_duration_units,
+      study_duration = dplyr::case_when(
+        grepl(paste0("\\d+ consecutive ",
+                     "(?:hour|\\bh\\b|[0-9]h\\b|",
+                     "day|\\bd\\b|[0-9]d\\b|",
+                     "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9]m\\b|",
+                     "year|\\by\\b|[0-9]y\\b|yr)"),
+              study_duration_original,
+              ignore.case=TRUE) ~ stringr::str_extract(study_duration_original,
+                                                       paste0("\\d+ consecutive ",
+                                                              "(?:hour|\\bh\\b|[0-9]h\\b|",
+                                                              "day|\\bd\\b|[0-9]d\\b|",
+                                                              "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
+                                                              "month|\\bm\\b|[0-9]m\\b|",
+                                                              "year|\\by\\b|[0-9]y\\b|yr)")),
+        grepl("observations then continued for", study_duration_original) ~ gsub("observations then continued for.+", "", study_duration_original),
+        grepl("for a minimum of", study_duration_original) ~ stringr::str_extract(study_duration_original,
+                                                                                  paste0("for a minimum of \\d+.+",
+                                                                                         "(?:hour|\\bh\\b|[0-9]h\\b|",
+                                                                                         "day|\\bd\\b|[0-9]d\\b|",
+                                                                                         "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
+                                                                                         "month|\\bm\\b|[0-9]m\\b|",
+                                                                                         "year|\\by\\b|[0-9]y\\b|yr)")),
+        grepl(paste0("\\bfor\\b.*\\d+.*(?:hour|\\bh\\b|[0-9]h\\b|",
+                     "day|\\bd\\b|[0-9]d\\b|",
+                     "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9]m\\b|",
+                     "year|\\by\\b|[0-9]y\\b|yr)"),
+              study_duration_original,
+              ignore.case=TRUE) ~ gsub(".*\\bfor\\b", "", study_duration_original),
+        grepl(paste0("\\bin\\b.*\\d+.*(?:hour|\\bh\\b|[0-9]h\\b|",
+                     "day|\\bd\\b|[0-9]d\\b|",
+                     "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9]m\\b|",
+                     "year|\\by\\b|[0-9]y\\b|yr)"),
+              study_duration_original,
+              ignore.case=TRUE) ~ gsub(".*\\bin\\b", "", study_duration_original),
+        grepl(paste0("\\bover a period of\\b.*\\d+.*(?:hour|\\bh\\b|[0-9]h\\b|",
+                     "day|\\bd\\b|[0-9]d\\b|",
+                     "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9]m\\b|",
+                     "year|\\by\\b|[0-9]y\\b|yr)"),
+              study_duration_original,
+              ignore.case=TRUE) ~ gsub(".*\\bover a period of\\b", "", study_duration_original),
+        TRUE ~ study_duration_original
+      ) %>%
+        gsub("(\\d+)(h|d|w|m|y)", "\\1 \\2", .) %>%
         gsub(" - ", "-", .) %>%
         gsub("\\bone\\b", "1", ., ignore.case=TRUE) %>%
         gsub("\\btwo\\b", "2", ., ignore.case=TRUE) %>%
@@ -446,6 +493,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("\\-\\s*year", " year", ., ignore.case=TRUE) %>%
         gsub("\\bto\\b", "-", ., ignore.case=TRUE) %>%
         gsub("PND|GD", "", ., ignore.case=TRUE) %>%
+        gsub("\\d+\\s*\\(?(?:mg|kg|ppm|mg\\kg)\\)?,?", "", .) %>%
         stringr::str_squish(),
       # Use first number appearance (range possible) as study_duration_value
       study_duration_value = study_duration %>%
