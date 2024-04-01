@@ -435,14 +435,19 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Add summary data to df before prep and load
   if(do.summary_data){
     # Import manually curated IRIS Summary information
-    res1 <- iris_data$source_iris_summary_curation_20240308.xlsx %>%
+    res1 <- iris_data$test_source_iris_summary_curation_2023125.xlsx %>%
       dplyr::mutate(
+        source_version_date = src_version_date,
         document_type = 'IRIS Summary',
         key_finding = 'No',
         iris_chemical_id = url %>%
           sub('.*=', '', .) %>%
           as.numeric(),
-        route = tolower(route)) %>%
+        route = tolower(route),
+        toxval_subtype = stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
+        toxval_type = toxval_type %>%
+          gsub("\\(.+\\)", "", .) %>%
+          stringr::str_squish()) %>%
       # Remove IRIS Export fields
       # dplyr::select(-principal_study, -document_type, -endpoint) %>%
       dplyr::rename(
