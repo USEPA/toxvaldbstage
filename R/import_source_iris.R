@@ -435,7 +435,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Add summary data to df before prep and load
   if(do.summary_data){
     # Import manually curated IRIS Summary information
-    res1 <- iris_data$test_source_iris_summary_curation_2023125.xlsx %>%
+    res1 <- iris_data$source_iris_summary_curation_20240122.xlsx %>%
       dplyr::mutate(
         source_version_date = src_version_date,
         document_type = 'IRIS Summary',
