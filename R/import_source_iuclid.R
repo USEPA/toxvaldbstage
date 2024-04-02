@@ -193,15 +193,17 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Handle offspring and parental fields separately, tracking origin with generation
     res_offspring = res %>%
       dplyr::select(-tidyselect::starts_with("parental_")) %>%
-      dplyr::mutate(generation="offspring") %>%
+      dplyr::mutate(generation_type="offspring") %>%
       dplyr::rename_with(function(x) gsub("offspring_", "", x))
     res_parental = res %>%
       dplyr::select(-tidyselect::starts_with("offspring_")) %>%
-      dplyr::mutate(generation="parental") %>%
+      dplyr::mutate(generation_type="parental") %>%
       dplyr::rename_with(function(x) gsub("parental_", "", x))
 
     # Recombine offspring and parental data
-    res = dplyr::bind_rows(res_offspring, res_parental)
+    res = dplyr::bind_rows(res_offspring, res_parental) %>%
+      # Drop entries without generation
+      dplyr::filter(!is.na(generation))
   }
 
   # Add NA toxval_units_other column if it doesn't exist
@@ -427,7 +429,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       ),
 
       # Extract study_duration_value and study_duration_units
-      study_duration_original = study_duration_units,
+      study_duration_raw = study_duration_units,
       study_duration = dplyr::case_when(
         grepl(paste0("\\d+ consecutive ",
                      "(?:hour|\\bh\\b|[0-9]h\\b|",
@@ -435,16 +437,16 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                      "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
                      "month|\\bm\\b|[0-9]m\\b|",
                      "year|\\by\\b|[0-9]y\\b|yr)"),
-              study_duration_original,
-              ignore.case=TRUE) ~ stringr::str_extract(study_duration_original,
+              study_duration_raw,
+              ignore.case=TRUE) ~ stringr::str_extract(study_duration_raw,
                                                        paste0("\\d+ consecutive ",
                                                               "(?:hour|\\bh\\b|[0-9]h\\b|",
                                                               "day|\\bd\\b|[0-9]d\\b|",
                                                               "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
                                                               "month|\\bm\\b|[0-9]m\\b|",
                                                               "year|\\by\\b|[0-9]y\\b|yr)")),
-        grepl("observations then continued for", study_duration_original) ~ gsub("observations then continued for.+", "", study_duration_original),
-        grepl("for a minimum of", study_duration_original) ~ stringr::str_extract(study_duration_original,
+        grepl("observations then continued for", study_duration_raw) ~ gsub("observations then continued for.+", "", study_duration_raw),
+        grepl("for a minimum of", study_duration_raw) ~ stringr::str_extract(study_duration_raw,
                                                                                   paste0("for a minimum of \\d+.+",
                                                                                          "(?:hour|\\bh\\b|[0-9]h\\b|",
                                                                                          "day|\\bd\\b|[0-9]d\\b|",
@@ -456,23 +458,23 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                      "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
                      "month|\\bm\\b|[0-9]m\\b|",
                      "year|\\by\\b|[0-9]y\\b|yr)"),
-              study_duration_original,
-              ignore.case=TRUE) ~ gsub(".*\\bfor\\b", "", study_duration_original),
+              study_duration_raw,
+              ignore.case=TRUE) ~ gsub(".*\\bfor\\b", "", study_duration_raw),
         grepl(paste0("\\bin\\b.*\\d+.*(?:hour|\\bh\\b|[0-9]h\\b|",
                      "day|\\bd\\b|[0-9]d\\b|",
                      "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
                      "month|\\bm\\b|[0-9]m\\b|",
                      "year|\\by\\b|[0-9]y\\b|yr)"),
-              study_duration_original,
-              ignore.case=TRUE) ~ gsub(".*\\bin\\b", "", study_duration_original),
+              study_duration_raw,
+              ignore.case=TRUE) ~ gsub(".*\\bin\\b", "", study_duration_raw),
         grepl(paste0("\\bover a period of\\b.*\\d+.*(?:hour|\\bh\\b|[0-9]h\\b|",
                      "day|\\bd\\b|[0-9]d\\b|",
                      "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
                      "month|\\bm\\b|[0-9]m\\b|",
                      "year|\\by\\b|[0-9]y\\b|yr)"),
-              study_duration_original,
-              ignore.case=TRUE) ~ gsub(".*\\bover a period of\\b", "", study_duration_original),
-        TRUE ~ study_duration_original
+              study_duration_raw,
+              ignore.case=TRUE) ~ gsub(".*\\bover a period of\\b", "", study_duration_raw),
+        TRUE ~ study_duration_raw
       ) %>%
         gsub("(\\d+)(h|d|w|m|y)", "\\1 \\2", .) %>%
         gsub(" - ", "-", .) %>%
@@ -560,7 +562,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         grepl("\\bother:?", strain) ~ strain_other,
         TRUE ~ strain
       ) %>%
-        tolower() %>%
         gsub("(?:animal )?strain:", "", ., ignore.case=TRUE) %>%
         gsub("WIST", "wistar", .) %>%
         gsub("no data", "", .) %>%
@@ -604,13 +605,13 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Clean exposure_method
       exposure_method =  dplyr::case_when(
-        !(grepl(":", exposure_method)) ~ as.character(NA),
+        !(grepl(":", exposure_method)) ~ gsub(".+\\|", "", exposure_method),
         TRUE ~ gsub(".+:", "", exposure_method)
       ) %>%
         stringr::str_replace("^\\|", "") %>%
         gsub("\\|?\\bother\\b\\|?", "", .) %>%
         gsub("\\|?\\bunspecified\\b\\|?", "", .) %>%
-        gsub("\\|not specified|not specified\\|", "", .) %>%
+        gsub("\\|?not specified|not specified\\|?", "", .) %>%
         stringr::str_squish(),
       exposure_method = dplyr::case_when(
         !(exposure_method %in% c("-", as.character(NA), "")) ~ exposure_method,
@@ -633,14 +634,20 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ exposure_route
       ) %>%
         gsub(":.+", "", .) %>%
-        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule|mixture.+|dust|other routes?", "", ., ignore.case=TRUE) %>%
+        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule|mixture.+|dust|other routes?|acute|(?:sub)?chronic", "", ., ignore.case=TRUE) %>%
         stringr::str_squish(),
+
+      # Handle edge case where exposure_method equals exposure_route
+      exposure_method = dplyr::case_when(
+        exposure_method == exposure_route ~ as.character(NA),
+        TRUE ~ exposure_method
+      ),
 
       # Clean sex field
       sex = dplyr::case_when(
-        grepl("no", sex) ~ as.character(NA),
+        !grepl("male", sex) ~ as.character(NA),
         TRUE ~ sex
-      ),
+      ) %>% gsub("not specified", "", .),
 
       # Ensure normal range for year
       year = dplyr::case_when(
@@ -735,6 +742,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                     paste0(collapse="/")) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(sex = sex %>%
+                    stringr::str_replace("^\\/", "") %>%
                     dplyr::na_if("") %>%
                     dplyr::na_if("NA") %>%
                     # Standardize "both" order
