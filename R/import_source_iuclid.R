@@ -849,8 +849,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Filter out entries with "other" species
     dplyr::filter(!grepl("\\bother\\b", species, ignore.case=TRUE))
 
-  # Account for ToxicityReproduction exposure_route/method/form edge case
-  if(subf == "iuclid_toxicityreproduction") {
+  # Account for exposure_route/method/form edge case
+  if("exposure_method_other" %in% names(res)) {
     res = res %>%
       dplyr::mutate(
         # Set exposure_form when necessary
