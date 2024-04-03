@@ -155,9 +155,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   }
 
   # Unite duplicate columns with numbered stems
-  for (field in map$to[grepl("_1", map$to) & map$to %in% names(res)]) {
-    cat("...Combining duplicate column mapping: ", field, "\n")
+  for (field in map$to[grepl("_1\\b", map$to) & map$to %in% names(res)]) {
     core_field = gsub("_1", "", field)
+    cat("...Combining duplicate column mapping: ", core_field, "\n")
     res = res %>%
       tidyr::unite(
         col = !!core_field,
@@ -187,23 +187,70 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res = dplyr::bind_rows(res_fetus, res_maternal)
   }
 
-  # Handle reproduction offspring vs. parental studies as needed
+  # Handle different generations as needed
   if(subf == "iuclid_toxicityreproduction"){
-    message("Handling reproduction OHT offspring vs. parental field pivots...")
-    # Handle offspring and parental fields separately, tracking origin with generation
-    res_offspring = res %>%
-      dplyr::select(-tidyselect::starts_with("parental_")) %>%
-      dplyr::mutate(generation_type="offspring") %>%
-      dplyr::rename_with(function(x) gsub("offspring_", "", x))
-    res_parental = res %>%
-      dplyr::select(-tidyselect::starts_with("offspring_")) %>%
-      dplyr::mutate(generation_type="parental") %>%
-      dplyr::rename_with(function(x) gsub("parental_", "", x))
+    message("Handling reproduction OHT generation field pivots...")
+    # Handle generation fields separately, tracking origin with generation_class
+    res_p0 = res %>%
+      dplyr::select(-tidyselect::starts_with("P1_")) %>%
+      dplyr::select(-tidyselect::starts_with("F1_")) %>%
+      dplyr::select(-tidyselect::starts_with("F2_")) %>%
+      dplyr::mutate(
+        # No generation mapping, so hardcode and set NA generation_details
+        P0_generation = "P0",
+        generation_details = as.character(NA)
+      ) %>%
+      dplyr::rename_with(function(x) gsub("P0_", "", x))
+    res_p1 = res %>%
+      dplyr::select(-tidyselect::starts_with("P0_")) %>%
+      dplyr::select(-tidyselect::starts_with("F1_")) %>%
+      dplyr::select(-tidyselect::starts_with("F2_")) %>%
+      dplyr::mutate(
+        # No generation mapping, so hardcode and set NA generation_details
+        P1_generation = "P1",
+        generation_details = as.character(NA)
+      ) %>%
+      dplyr::rename_with(function(x) gsub("P1_", "", x))
+    res_f1 = res %>%
+      dplyr::select(-tidyselect::starts_with("P0_")) %>%
+      dplyr::select(-tidyselect::starts_with("P1_")) %>%
+      dplyr::select(-tidyselect::starts_with("F2_")) %>%
+      dplyr::mutate(
+        # Extract generation_details from F1_generation
+        generation_details = F1_generation %>%
+          gsub("F1|\\(|\\)|other:?", "", .) %>%
+          stringr::str_squish(),
+        # Set hardcoded generation
+        F1_generation = "F1"
+      ) %>%
+      dplyr::rename_with(function(x) gsub("F1_", "", x))
+    res_f2 = res %>%
+      dplyr::select(-tidyselect::starts_with("P0_")) %>%
+      dplyr::select(-tidyselect::starts_with("P1_")) %>%
+      dplyr::select(-tidyselect::starts_with("F1_")) %>%
+      dplyr::mutate(
+        # Extract generation_details from F2_generation
+        generation_details = F2_generation %>%
+          gsub("F2|\\(|\\)|other:?", "", .) %>%
+          stringr::str_squish(),
+        # Set hardcoded generation
+        F2_generation = "F2"
+      ) %>%
+      dplyr::rename_with(function(x) gsub("F2_", "", x))
 
-    # Recombine offspring and parental data
-    res = dplyr::bind_rows(res_offspring, res_parental) %>%
+    # Recombine data from different generations
+    res = dplyr::bind_rows(res_p0, res_p1, res_f1, res_f2) %>%
       # Drop entries without generation
-      dplyr::filter(!is.na(generation))
+      dplyr::filter(!is.na(generation)) %>%
+      dplyr::mutate(
+        # Add generation_details to generation if necessary
+        generation = dplyr::case_when(
+          generation_details %in% c(as.character(NA), "", "-") ~ generation,
+          TRUE ~ paste0(generation, " (", generation_details, ")")
+        )
+      ) %>%
+      # Drop unused generation_details column
+      dplyr::select(-generation_details)
   }
 
   # Add NA toxval_units_other column if it doesn't exist
