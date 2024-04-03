@@ -156,6 +156,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   # Unite duplicate columns with numbered stems
   for (field in map$to[grepl("_1\\b", map$to) & map$to %in% names(res)]) {
+    if(grepl("F1|F2|P0|P1", field)) next
     core_field = gsub("_1", "", field)
     cat("...Combining duplicate column mapping: ", core_field, "\n")
     res = res %>%
@@ -187,56 +188,127 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res = dplyr::bind_rows(res_fetus, res_maternal)
   }
 
-  # Handle different generations as needed
+  # Handle different generations as needed for ToxicityReproduction OHT
   if(subf == "iuclid_toxicityreproduction"){
     message("Handling reproduction OHT generation field pivots...")
     # Handle generation fields separately, tracking origin with generation_class
-    res_p0 = res %>%
+    res0_p0 = res %>%
       dplyr::select(-tidyselect::starts_with("P1_")) %>%
       dplyr::select(-tidyselect::starts_with("F1_")) %>%
       dplyr::select(-tidyselect::starts_with("F2_")) %>%
       dplyr::mutate(
         # No generation mapping, so hardcode and set NA generation_details
-        P0_generation = "P0",
+        generation = "P0",
         generation_details = as.character(NA)
-      ) %>%
-      dplyr::rename_with(function(x) gsub("P0_", "", x))
-    res_p1 = res %>%
+      )
+    # Handle different column groupings to extract all data
+    max_stem = NULL
+    res_p0 = NULL
+    for(name in names(res0_p0)) {
+      if(!grepl("_[0-9]+", name)) next
+      stem = as.numeric(stringr::str_extract(name, "_([0-9]+)", group=1))
+      max_stem = max(stem, max_stem)
+    }
+    for(i in 0:max_stem) {
+      curr_res = res0_p0 %>%
+        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("P0")) %>%
+        dplyr::rename_with(function(x) gsub("P0_", "", x)) %>%
+        dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
+      # Handle potential missing columns for rbind
+      if(!("toxval_qualifier_upper") %in% names(curr_res)) curr_res$toxval_qualifier_upper = as.character(NA)
+      if(!("toxval_numeric_upper") %in% names(curr_res)) curr_res$toxval_numeric_upper = as.character(NA)
+      res_p0 = rbind(res_p0, curr_res)
+    }
+
+    res0_p1 = res %>%
       dplyr::select(-tidyselect::starts_with("P0_")) %>%
       dplyr::select(-tidyselect::starts_with("F1_")) %>%
       dplyr::select(-tidyselect::starts_with("F2_")) %>%
       dplyr::mutate(
         # No generation mapping, so hardcode and set NA generation_details
-        P1_generation = "P1",
+        generation = "P1",
         generation_details = as.character(NA)
-      ) %>%
-      dplyr::rename_with(function(x) gsub("P1_", "", x))
-    res_f1 = res %>%
+      )
+    # Handle different column groupings to extract all data
+    max_stem = NULL
+    res_p1 = NULL
+    for(name in names(res0_p1)) {
+      if(!grepl("_[0-9]+", name)) next
+      stem = as.numeric(stringr::str_extract(name, "_([0-9]+)", group=1))
+      max_stem = max(stem, max_stem)
+    }
+    for(i in 0:max_stem) {
+      curr_res = res0_p1 %>%
+        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("P1")) %>%
+        dplyr::rename_with(function(x) gsub("P1_", "", x)) %>%
+        dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
+      # Handle potential missing columns for rbind
+      if(!("toxval_qualifier_upper") %in% names(curr_res)) curr_res$toxval_qualifier_upper = as.character(NA)
+      if(!("toxval_numeric_upper") %in% names(curr_res)) curr_res$toxval_numeric_upper = as.character(NA)
+      res_p1 = rbind(res_p1, curr_res)
+    }
+
+    res0_f1 = res %>%
       dplyr::select(-tidyselect::starts_with("P0_")) %>%
       dplyr::select(-tidyselect::starts_with("P1_")) %>%
-      dplyr::select(-tidyselect::starts_with("F2_")) %>%
-      dplyr::mutate(
-        # Extract generation_details from F1_generation
-        generation_details = F1_generation %>%
-          gsub("F1|\\(|\\)|other:?", "", .) %>%
-          stringr::str_squish(),
-        # Set hardcoded generation
-        F1_generation = "F1"
-      ) %>%
-      dplyr::rename_with(function(x) gsub("F1_", "", x))
-    res_f2 = res %>%
+      dplyr::select(-tidyselect::starts_with("F2_"))
+    # Handle different column groupings to extract all data
+    max_stem = NULL
+    res_f1 = NULL
+    for(name in names(res0_f1)) {
+      if(!grepl("_[0-9]+", name)) next
+      stem = as.numeric(stringr::str_extract(name, "_([0-9]+)", group=1))
+      max_stem = max(stem, max_stem)
+    }
+    for(i in 0:max_stem) {
+      curr_res = res0_f1 %>%
+        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("F1")) %>%
+        dplyr::rename_with(function(x) gsub("F1_", "", x)) %>%
+        dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
+      # Handle potential missing columns for rbind
+      if(!("toxval_qualifier_upper") %in% names(curr_res)) curr_res$toxval_qualifier_upper = as.character(NA)
+      if(!("toxval_numeric_upper") %in% names(curr_res)) curr_res$toxval_numeric_upper = as.character(NA)
+      res_f1 = rbind(res_f1, curr_res)
+    }
+    res_f1 = res_f1  %>% dplyr::mutate(
+      # Extract generation_details from F1_generation
+      generation_details = generation %>%
+        gsub("F1|\\(|\\)|other:?", "", .) %>%
+        stringr::str_squish(),
+      # Set hardcoded generation
+      generation = "F1"
+    )
+
+    res0_f2 = res %>%
       dplyr::select(-tidyselect::starts_with("P0_")) %>%
       dplyr::select(-tidyselect::starts_with("P1_")) %>%
-      dplyr::select(-tidyselect::starts_with("F1_")) %>%
-      dplyr::mutate(
-        # Extract generation_details from F2_generation
-        generation_details = F2_generation %>%
-          gsub("F2|\\(|\\)|other:?", "", .) %>%
-          stringr::str_squish(),
-        # Set hardcoded generation
-        F2_generation = "F2"
-      ) %>%
-      dplyr::rename_with(function(x) gsub("F2_", "", x))
+      dplyr::select(-tidyselect::starts_with("F1_"))
+    # Handle different column groupings to extract all data
+    max_stem = NULL
+    res_f2 = NULL
+    for(name in names(res0_f2)) {
+      if(!grepl("_[0-9]+", name)) next
+      stem = as.numeric(stringr::str_extract(name, "_([0-9]+)", group=1))
+      max_stem = max(stem, max_stem)
+    }
+    for(i in 0:max_stem) {
+      curr_res = res0_f2 %>%
+        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("F2")) %>%
+        dplyr::rename_with(function(x) gsub("F2_", "", x)) %>%
+        dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
+      # Handle potential missing columns for rbind
+      if(!("toxval_qualifier_upper") %in% names(curr_res)) curr_res$toxval_qualifier_upper = as.character(NA)
+      if(!("toxval_numeric_upper") %in% names(curr_res)) curr_res$toxval_numeric_upper = as.character(NA)
+      res_f2 = rbind(res_f2, curr_res)
+    }
+    res_f2 = res_f2 %>% dplyr::mutate(
+      # Extract generation_details from F2_generation
+      generation_details = generation %>%
+        gsub("F2|\\(|\\)|other:?", "", .) %>%
+        stringr::str_squish(),
+      # Set hardcoded generation
+      generation = "F2"
+    )
 
     # Recombine data from different generations
     res = dplyr::bind_rows(res_p0, res_p1, res_f1, res_f2) %>%
