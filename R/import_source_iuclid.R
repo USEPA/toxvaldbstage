@@ -849,6 +849,28 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Filter out entries with "other" species
     dplyr::filter(!grepl("\\bother\\b", species, ignore.case=TRUE))
 
+  # Account for ToxicityReproduction exposure_route/method/form edge case
+  if(subf == "iuclid_toxicityreproduction") {
+    res = res %>%
+      dplyr::mutate(
+        # Set exposure_form when necessary
+        exposure_form = dplyr::case_when(
+          grepl("inhalation", exposure_route) ~ exposure_method,
+          TRUE ~ as.character(NA)
+        ),
+
+        # Set correct exposure_method where appropriate
+        exposure_method = dplyr::case_when(
+          grepl("inhalation", exposure_route) ~ exposure_method_other,
+          TRUE ~ exposure_method
+        ) %>%
+          gsub("not specified|other:", "", .) %>%
+          stringr::str_squish()
+      ) %>%
+      # Drop exposure_method_other column
+      dplyr::select(-exposure_method_other)
+  }
+
   # Handle sex column duplicates
   res = res %>%
     dplyr::rowwise() %>%
