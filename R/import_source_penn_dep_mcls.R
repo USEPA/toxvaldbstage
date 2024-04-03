@@ -62,7 +62,11 @@ import_source_penn_dep_mcls <- function(db,chem.check.halt=FALSE, do.reset=FALSE
       subsource = "MSC Table 1",
       source_url = "https://www.dep.pa.gov/Business/Land/LandRecycling/Standards-Guidance-Procedures/Pages/Statewide-Health-Standards.aspx",
       risk_assessment_class = "chronic",
-      exposure_route = "oral"
+      exposure_route = "oral",
+      # Reference Jira ticket: TOXVAL-688
+      toxval_type = "medium-specific concentration",
+      species = "human",
+      experimental_record = "No"
     ) %>%
 
     # Combine values and categories for later transformations
@@ -130,12 +134,6 @@ import_source_penn_dep_mcls <- function(db,chem.check.halt=FALSE, do.reset=FALSE
     dplyr::mutate(
       # Set toxval_numeric to be numeric
       toxval_numeric = as.numeric(toxval_numeric),
-
-      # Get toxval_type
-      toxval_type = dplyr::case_when(
-        category == "M" ~ "MCL",
-        TRUE ~ "medium spec. conc."
-      ),
 
       # Translate category abbreviations (use table definitions for now)
       category = dplyr::case_when(
