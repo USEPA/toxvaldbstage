@@ -38,6 +38,7 @@ import_health_canada_source <- function(db, chem.check.halt=FALSE, do.reset=FALS
 
   res = res0 %>%
     dplyr::mutate(
+      species_raw = species,
       # Fix unicode symbols in character fields
       dplyr::across(dplyr::where(is.character), fix.replace.unicode),
 
@@ -162,14 +163,14 @@ import_health_canada_source <- function(db, chem.check.halt=FALSE, do.reset=FALS
     )
 
   # Standardize the names
-  names(res0) <- names(res0) %>%
+  names(res) <- names(res) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
   # Fill blank hashing cols
-  res0[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res0)]] <- "-"
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Handle deduping
   res = toxval.source.import.dedup(res)
@@ -188,7 +189,3 @@ import_health_canada_source <- function(db, chem.check.halt=FALSE, do.reset=FALS
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
