@@ -638,10 +638,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         c(),
       # Perform final processing
       study_duration_units = dplyr::case_when(
+        grepl("m", study_duration_units) ~ "months",
         grepl("h", study_duration_units) ~ "hours",
         grepl("d", study_duration_units) ~ "days",
         grepl("w", study_duration_units) ~ "weeks",
-        grepl("m", study_duration_units) ~ "months",
         grepl("y", study_duration_units) ~ "years",
         TRUE ~ as.character(NA)
       ),
