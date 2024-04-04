@@ -246,8 +246,6 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   res[or_vals,"study_duration_units"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\4",res[or_vals,"study_duration_value"])
   res[or_vals,"study_duration_value"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\2",res[or_vals,"study_duration_value"])
 
-  res$study_duration_value <- as.numeric(res$study_duration_value)
-
   #####################################################################
   cat("Collapse duplicated that just differ by critical effect \n")
   #####################################################################
@@ -283,7 +281,11 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
       } else if (is.na(y[j])){
         ce=paste0(ce,x[j],"|")
       } else {
-        ce=paste0(ce,x[j],":",y[j],"|")
+        if(grepl(paste0(x[j], ":"), y[j])) {
+          ce=paste0(ce,y[j],"|")
+        } else {
+          ce=paste0(ce,x[j],":",y[j],"|")
+        }
       }
     }
     ce = substr(ce,1,(nchar(ce)-1))
@@ -338,13 +340,37 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
 
       # Clean toxval_units
       toxval_units = toxval_units %>%
-        stringr::str_squish()
-    ) %>%
+        stringr::str_squish(),
 
-    # Remove excess whitespace
-    dplyr::mutate(dplyr::across(dplyr::where(is.character), stringr::str_squish)) %>%
-    # Fix unicode
-    dplyr::mutate(dplyr::across(c(title, short_ref, long_ref, strain, toxval_units), fix.replace.unicode))
+      # Fix exposure_route being used as exposure_method
+      exposure_method = dplyr::case_when(
+        exposure_method == exposure_route ~ as.character(NA),
+        TRUE ~ exposure_method
+      ),
+
+      # Get study_duration values with both GD/PND, handle other edge cases
+      study_duration = exposure_duration_text %>%
+        gsub("\\s?to\\s?|\\s?until\\s?| \\- ", "-", .) %>%
+        gsub("D ([0-9])", "D\\1", .),
+      study_duration_value = dplyr::case_when(
+        grepl("GD[0-9]+\\-GD[0-9]+", study_duration) ~ gsub("GD([0-9]+)\\-GD([0-9]+)", "\\1-\\2", study_duration),
+        !is.na(study_duration_value) ~ study_duration_value,
+        grepl("GD[0-9]+\\-PND[0-9]+", study_duration) ~ stringr::str_extract(study_duration, "GD[0-9]+\\-PND[0-9]+"),
+        TRUE ~ study_duration_value
+      ) %>% gsub("\\b0-0\\b", "0", .),
+      study_duration_units = dplyr::case_when(
+        grepl("GD[0-9]+\\-GD[0-9]+", study_duration) ~ "GD",
+        !is.na(study_duration_units) ~ study_duration_units,
+        grepl("GD.+PND", study_duration) ~ "day",
+        TRUE ~ study_duration_units
+      ),
+
+      # Remove excess whitespace and fix unicode
+      dplyr::across(dplyr::where(is.character), fix.replace.unicode),
+      dplyr::across(dplyr::where(is.character), stringr::str_squish)
+    ) %>%
+    # Drop unused study_duration field
+    dplyr::select(-study_duration)
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -357,7 +383,32 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Perform deduping
-  res = toxval.source.import.dedup(res)
+  # res = toxval.source.import.dedup(res)
+  # Use deduping function to improve collapse behavior for critical_effect
+  dedup_fields = c("critical_effect", names(res %>% dplyr::select(-dplyr::any_of(toxval.config()$hashing_cols))))
+  hashing_cols = toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]
+  res = toxval.source.import.dedup(res, dedup_fields=dedup_fields, hashing_cols=hashing_cols) %>%
+    # Replace "|::|" in critical_effect
+    dplyr::mutate(
+      critical_effect = critical_effect %>%
+        gsub(" \\|::\\| ", "|", .)
+    ) %>%
+
+    # Handle duplicate collapsed values in critical_effect field
+    dplyr::rowwise() %>%
+    # Create unique list of entries, then collapse
+    dplyr::mutate(critical_effect = critical_effect %>%
+                    strsplit("|", fixed=TRUE) %>%
+                    unlist() %>%
+                    unique() %>%
+                    paste0(collapse="|")) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(critical_effect = critical_effect %>%
+                    stringr::str_replace("^\\|", "") %>%
+                    dplyr::na_if("") %>%
+                    dplyr::na_if("NA") %>%
+                    dplyr::na_if("-") %>%
+                    stringr::str_squish())
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
