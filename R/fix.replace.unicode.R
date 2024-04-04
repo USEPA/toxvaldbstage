@@ -312,7 +312,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u00fc", "u", .) %>%
     gsub("\u00a5", "y", .) %>%
     gsub("\u00c2|\u00c3|\u00c4|\u0391", "A", .) %>%
-    gsub("\u00ba|\u00f6|\u00f8|\u00f2|\u00f3", "o", .) %>%
+    gsub("\u00ba|\u00f6|\u00f8|\u00f2|\u00f3|\u00f4", "o", .) %>%
     gsub("\u00e9|\u00e8", "e", .) %>%
     gsub("\u00ce|\u00cf", "I", .) %>%
     gsub("\u00e7", "c", .) %>%
