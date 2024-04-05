@@ -27,7 +27,7 @@ toxval.source.import.dedup <- function(res,
 
   # If no dedup fields provided, set dedup_fields to be all cols but source_hash and hashing_cols
   if(is.null(dedup_fields)) {
-    dedup_fields = names(res %>% dplyr::select(-dplyr::any_of(c("source_hash", hashing_cols))))
+    dedup_fields = names(res %>% dplyr::select(-dplyr::any_of(c("source_hash", "toxval_id", hashing_cols))))
   }
 
   # Add source_hash column
@@ -47,7 +47,8 @@ toxval.source.import.dedup <- function(res,
     res = res %>%
       dplyr::group_by(source_hash) %>%
       dplyr::mutate(dplyr::across(dplyr::any_of(!!dedup_fields),
-                                  ~paste0(.[!is.na(.)], collapse=!!delim) %>%
+                                  # Ensure unique entries in alphabetic order
+                                  ~paste0(sort(unique(.[!is.na(.)])), collapse=!!delim) %>%
                                     dplyr::na_if("NA") %>%
                                     dplyr::na_if("")
       )) %>%

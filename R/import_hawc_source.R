@@ -159,10 +159,8 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
                   exposure_route = route_of_exposure,
                   exposure_method = route_of_exposure,
                   study_duration_value = exposure_duration_text,
-                  study_duration_units = exposure_duration_text,
-                  source_id = 1:dplyr::n()) %>%
-    tidyr::drop_na(toxval_numeric) %>%
-    dplyr::select(source_id, dplyr::everything())
+                  study_duration_units = exposure_duration_text) %>%
+    tidyr::drop_na(toxval_numeric)
 
   res = new_hawc_df_final
   res = res[!generics::is.element(res$casrn,"NOCAS"),]
@@ -246,60 +244,63 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   res[or_vals,"study_duration_units"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\4",res[or_vals,"study_duration_value"])
   res[or_vals,"study_duration_value"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\2",res[or_vals,"study_duration_value"])
 
-  #####################################################################
-  cat("Collapse duplicated that just differ by critical effect \n")
-  #####################################################################
-  # critical_effect_map = res %>%
-  #   dplyr::select(critical_effect,source_id,endpoint_url_original,endpoint_url,target) %>%
-  #   tidyr::unite(col="critical_effect", target, critical_effect, sep = ": ", na.rm = TRUE) %>%
-  #   dplyr::group_by(endpoint_url_original, endpoint_url) %>%
-  #   dplyr::summarize(critical_effect = paste0(sort(critical_effect), collapse = "|")) %>%
-  #   dplyr::ungroup()
-
-  res2 = res[,!names(res)%in%c("critical_effect","source_id","endpoint_url_original","endpoint_url","target")]
-  cat(nrow(res),"\n")
-  res2$hashkey = NA
-  for(i in 1:nrow(res2)) {
-    hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
-    res2[i,"hashkey"] = hashkey
-    res[i,"hashkey"] = hashkey
-  }
-  res2 = unique(res2)
-  res2$critical_effect = NA
-  for(i in 1:nrow(res2)) {
-    hashkey = res2[i,"hashkey"]
-    res3 = res[res$hashkey==hashkey,]
-    x = res3$target
-    y = res3$critical_effect
-    ce = ""
-    for(j in 1:length(x)) {
-      # Skip blank entries
-      if(is.na(x[j]) & is.na(y[j])){
-        next
-      } else if (is.na(x[j])){
-        ce=paste0(ce,y[j],"|")
-      } else if (is.na(y[j])){
-        ce=paste0(ce,x[j],"|")
-      } else {
-        if(grepl(paste0(x[j], ":"), y[j])) {
-          ce=paste0(ce,y[j],"|")
-        } else {
-          ce=paste0(ce,x[j],":",y[j],"|")
-        }
-      }
-    }
-    ce = substr(ce,1,(nchar(ce)-1))
-    res2[i,"critical_effect"] = ce
-  }
-  res2$source_id = NA
-  res2$endpoint_url_original = NA
-  res2$endpoint_url = NA
-  res2$target = NA
-  res2 = res2[,!names(res2)%in%c("hashkey")]
-  res = res2
-  cat(nrow(res),"\n")
+  # #####################################################################
+  # cat("Collapse duplicated that just differ by critical effect \n")
+  # #####################################################################
+  # # critical_effect_map = res %>%
+  # #   dplyr::select(critical_effect,source_id,endpoint_url_original,endpoint_url,target) %>%
+  # #   tidyr::unite(col="critical_effect", target, critical_effect, sep = ": ", na.rm = TRUE) %>%
+  # #   dplyr::group_by(endpoint_url_original, endpoint_url) %>%
+  # #   dplyr::summarize(critical_effect = paste0(sort(critical_effect), collapse = "|")) %>%
+  # #   dplyr::ungroup()
+  #
+  # res2 = res[,!names(res)%in%c("critical_effect","source_id","endpoint_url_original","endpoint_url","target")]
+  # cat(nrow(res),"\n")
+  # res2$hashkey = NA
+  # for(i in 1:nrow(res2)) {
+  #   hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
+  #   res2[i,"hashkey"] = hashkey
+  #   res[i,"hashkey"] = hashkey
+  # }
+  # res2 = unique(res2)
+  # res2$critical_effect = NA
+  # for(i in 1:nrow(res2)) {
+  #   hashkey = res2[i,"hashkey"]
+  #   res3 = res[res$hashkey==hashkey,]
+  #   x = res3$target
+  #   y = res3$critical_effect
+  #   ce = ""
+  #   for(j in 1:length(x)) {
+  #     # Skip blank entries
+  #     if(is.na(x[j]) & is.na(y[j])){
+  #       next
+  #     } else if (is.na(x[j])){
+  #       ce=paste0(ce,y[j],"|")
+  #     } else if (is.na(y[j])){
+  #       ce=paste0(ce,x[j],"|")
+  #     } else {
+  #       if(grepl(paste0(x[j], ":"), y[j])) {
+  #         ce=paste0(ce,y[j],"|")
+  #       } else {
+  #         ce=paste0(ce,x[j],":",y[j],"|")
+  #       }
+  #     }
+  #   }
+  #   ce = substr(ce,1,(nchar(ce)-1))
+  #   res2[i,"critical_effect"] = ce
+  # }
+  # res2$source_id = NA
+  # res2$endpoint_url_original = NA
+  # res2$endpoint_url = NA
+  # res2$target = NA
+  # res2 = res2[,!names(res2)%in%c("hashkey")]
+  # res = res2
+  # cat(nrow(res),"\n")
 
   res = res %>%
+    tidyr::unite("critical_effect", critical_effect, target,
+                 sep = ": ",
+                 na.rm=TRUE) %>%
     # Add additional toxval_type details from units
     dplyr::mutate(toxval_type_2 = toxval_units %>%
                     stringr::str_extract("TAD|HED") %>%
@@ -385,30 +386,15 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   # Perform deduping
   # res = toxval.source.import.dedup(res)
   # Use deduping function to improve collapse behavior for critical_effect
-  dedup_fields = c("critical_effect", names(res %>% dplyr::select(-dplyr::any_of(toxval.config()$hashing_cols))))
-  hashing_cols = toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]
-  res = toxval.source.import.dedup(res, dedup_fields=dedup_fields, hashing_cols=hashing_cols) %>%
-    # Replace "|::|" in critical_effect
+  # dedup_fields = c("critical_effect", names(res %>% dplyr::select(-dplyr::any_of(toxval.config()$hashing_cols))))
+  hashing_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))],
+                   "dosing_regime_id", "experiment_url")
+  res = toxval.source.import.dedup(res, hashing_cols=hashing_cols) %>%
+    # Replace "|::|" in critical_effect with "|" delimiter
     dplyr::mutate(
       critical_effect = critical_effect %>%
         gsub(" \\|::\\| ", "|", .)
-    ) %>%
-
-    # Handle duplicate collapsed values in critical_effect field
-    dplyr::rowwise() %>%
-    # Create unique list of entries, then collapse
-    dplyr::mutate(critical_effect = critical_effect %>%
-                    strsplit("|", fixed=TRUE) %>%
-                    unlist() %>%
-                    unique() %>%
-                    paste0(collapse="|")) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(critical_effect = critical_effect %>%
-                    stringr::str_replace("^\\|", "") %>%
-                    dplyr::na_if("") %>%
-                    dplyr::na_if("NA") %>%
-                    dplyr::na_if("-") %>%
-                    stringr::str_squish())
+    )
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
