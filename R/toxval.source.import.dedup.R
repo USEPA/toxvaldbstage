@@ -25,11 +25,9 @@ toxval.source.import.dedup <- function(res,
                                        delim=" |::| ") {
   cat("Deduping data\n")
 
-  # If no hashing_cols provided, use toxval.config()$hashing_cols without study_duration_qualifier/long_ref
-  # Reasoning: study_duration_qualifier and long_ref are not stored in ToxVal
+  # If no hashing_cols provided, use toxval.config()$hashing_cols
   if(is.null(hashing_cols)) {
     hashing_cols = toxval.config()$hashing_cols
-    hashing_cols = hashing_cols[!hashing_cols %in% c("long_ref", "study_duration_qualifier")]
   }
 
   # If no dedup fields provided, set dedup_fields to be all cols but source_hash and hashing_cols
@@ -55,7 +53,8 @@ toxval.source.import.dedup <- function(res,
     res = res %>%
       dplyr::group_by(source_hash) %>%
       dplyr::mutate(dplyr::across(dplyr::any_of(!!dedup_fields),
-                                  ~paste0(.[!is.na(.)], collapse=!!delim) %>%
+                                  # Ensure unique entries in alphabetic order
+                                  ~paste0(sort(unique(.[!is.na(.)])), collapse=!!delim) %>%
                                     dplyr::na_if("NA") %>%
                                     dplyr::na_if("") %>%
                                     dplyr::na_if("-")
