@@ -549,54 +549,84 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Extract study_duration_value and study_duration_units
       study_duration_raw = study_duration_units,
+      study_duration = study_duration_raw %>%
+        gsub(",", "", .) %>%
+        tolower(),
       study_duration = dplyr::case_when(
-        grepl(paste0("\\d+ consecutive ",
-                     "(?:hour|\\bh\\b|[0-9]h\\b|",
-                     "day|\\bd\\b|[0-9]d\\b|",
-                     "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
-                     "month|\\bm\\b|[0-9]m\\b|",
-                     "year|\\by\\b|[0-9]y\\b|yr)"),
+        grepl(paste0("[0-9]+\\.?[0-9]* consecutive ",
+                     "(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                     "day|\\bd\\b|[0-9\\.]d\\b|",
+                     "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9\\.]m\\b|",
+                     "year|\\by\\b|[0-9\\.]y\\b|yr)"),
               study_duration_raw,
               ignore.case=TRUE) ~ stringr::str_extract(study_duration_raw,
-                                                       paste0("\\d+ consecutive ",
-                                                              "(?:hour|\\bh\\b|[0-9]h\\b|",
-                                                              "day|\\bd\\b|[0-9]d\\b|",
-                                                              "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
-                                                              "month|\\bm\\b|[0-9]m\\b|",
-                                                              "year|\\by\\b|[0-9]y\\b|yr)")),
+                                                       paste0("[0-9]+\\.?[0-9]* consecutive ",
+                                                              "(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                                              "day|\\bd\\b|[0-9\\.]d\\b|",
+                                                              "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                                              "month|\\bm\\b|[0-9\\.]m\\b|",
+                                                              "year|\\by\\b|[0-9\\.]y\\b|yr)")),
         grepl("observations then continued for", study_duration_raw) ~ gsub("observations then continued for.+", "", study_duration_raw),
         grepl("for a minimum of", study_duration_raw) ~ stringr::str_extract(study_duration_raw,
-                                                                                  paste0("for a minimum of \\d+.+",
-                                                                                         "(?:hour|\\bh\\b|[0-9]h\\b|",
-                                                                                         "day|\\bd\\b|[0-9]d\\b|",
-                                                                                         "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
-                                                                                         "month|\\bm\\b|[0-9]m\\b|",
-                                                                                         "year|\\by\\b|[0-9]y\\b|yr)")),
-        grepl(paste0("\\bfor\\b.*\\d+.*(?:hour|\\bh\\b|[0-9]h\\b|",
-                     "day|\\bd\\b|[0-9]d\\b|",
-                     "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
-                     "month|\\bm\\b|[0-9]m\\b|",
-                     "year|\\by\\b|[0-9]y\\b|yr)"),
+                                                                                  paste0("for a minimum of [0-9]+\\.?[0-9]*.+",
+                                                                                         "(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                                                                         "day|\\bd\\b|[0-9\\.]d\\b|",
+                                                                                         "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                                                                         "month|\\bm\\b|[0-9\\.]m\\b|",
+                                                                                         "year|\\by\\b|[0-9\\.]y\\b|yr)")),
+        grepl(paste0("\\bfor up to\\b.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                     "day|\\bd\\b|[0-9\\.]d\\b|",
+                     "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9\\.]m\\b|",
+                     "year|\\by\\b|[0-9\\.]y\\b|yr)"),
               study_duration_raw,
-              ignore.case=TRUE) ~ gsub(".*\\bfor\\b", "", study_duration_raw),
-        grepl(paste0("\\bin\\b.*\\d+.*(?:hour|\\bh\\b|[0-9]h\\b|",
-                     "day|\\bd\\b|[0-9]d\\b|",
-                     "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
-                     "month|\\bm\\b|[0-9]m\\b|",
-                     "year|\\by\\b|[0-9]y\\b|yr)"),
+              ignore.case=TRUE) ~ gsub(paste0(".*\\bfor up to\\b(.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                              "day|\\bd\\b|[0-9\\.]d\\b|",
+                                              "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                              "month|\\bm\\b|[0-9\\.]m\\b|",
+                                              "year|\\by\\b|[0-9\\.]y\\b|yr))"), "\\1", study_duration_raw),
+        grepl(paste0("\\bfor\\b.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                     "day|\\bd\\b|[0-9\\.]d\\b|",
+                     "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9\\.]m\\b|",
+                     "year|\\by\\b|[0-9\\.]y\\b|yr)"),
               study_duration_raw,
-              ignore.case=TRUE) ~ gsub(".*\\bin\\b", "", study_duration_raw),
-        grepl(paste0("\\bover a period of\\b.*\\d+.*(?:hour|\\bh\\b|[0-9]h\\b|",
-                     "day|\\bd\\b|[0-9]d\\b|",
-                     "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
-                     "month|\\bm\\b|[0-9]m\\b|",
-                     "year|\\by\\b|[0-9]y\\b|yr)"),
+              ignore.case=TRUE) ~ gsub(paste0(".*\\bfor\\b(.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                              "day|\\bd\\b|[0-9\\.]d\\b|",
+                                              "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                              "month|\\bm\\b|[0-9\\.]m\\b|",
+                                              "year|\\by\\b|[0-9\\.]y\\b|yr))"), "\\1", study_duration_raw),
+        grepl(paste0("\\bin\\b.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                     "day|\\bd\\b|[0-9\\.]d\\b|",
+                     "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9\\.]m\\b|",
+                     "year|\\by\\b|[0-9\\.]y\\b|yr)"),
               study_duration_raw,
-              ignore.case=TRUE) ~ gsub(".*\\bover a period of\\b", "", study_duration_raw),
+              ignore.case=TRUE) ~ gsub(paste0(".*\\bin\\b(.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                              "day|\\bd\\b|[0-9\\.]d\\b|",
+                                              "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                              "month|\\bm\\b|[0-9\\.]m\\b|",
+                                              "year|\\by\\b|[0-9\\.]y\\b|yr))"), "\\1", study_duration_raw),
+        grepl(paste0("\\bover a period of\\b.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                     "day|\\bd\\b|[0-9\\.]d\\b|",
+                     "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9\\.]m\\b|",
+                     "year|\\by\\b|[0-9\\.]y\\b|yr)"),
+              study_duration_raw,
+              ignore.case=TRUE) ~ gsub(paste0(".*\\bover a period of\\b(.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                              "day|\\bd\\b|[0-9\\.]d\\b|",
+                                              "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                              "month|\\bm\\b|[0-9\\.]m\\b|",
+                                              "year|\\by\\b|[0-9\\.]y\\b|yr))"), "\\1", study_duration_raw),
         TRUE ~ study_duration_raw
       ) %>%
-        gsub("(\\d+)(h|d|w|m|y)", "\\1 \\2", .) %>%
-        gsub(" - ", "-", .) %>%
+        gsub("0,5 h\\b", "0.5 h", .) %>%
+        gsub("through", "-", .) %>%
+        gsub("birth to\\b", "", .) %>%
+        gsub("([0-9]+\\.?[0-9]*)(h|d|w|m|y)", "\\1 \\2", .) %>%
+        gsub("\\s*\\-\\s*", "-", .) %>%
+        gsub("\\btwenty\\s?\\-?\\s?four\\b", "24", ., ignore.case=TRUE) %>%
         gsub("\\bone\\b", "1", ., ignore.case=TRUE) %>%
         gsub("\\btwo\\b", "2", ., ignore.case=TRUE) %>%
         gsub("\\bthree\\b", "3", ., ignore.case=TRUE) %>%
@@ -614,57 +644,65 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("\\-\\s*year", " year", ., ignore.case=TRUE) %>%
         gsub("\\bto\\b", "-", ., ignore.case=TRUE) %>%
         gsub("PND|GD", "", ., ignore.case=TRUE) %>%
-        gsub("\\d+\\s*\\(?(?:mg|kg|ppm|mg\\kg)\\)?,?", "", .) %>%
+        gsub("[0-9]+\\.?[0-9]*\\s*\\(?(?:mg|kg|ppm|mg\\kg)\\)?,?", "", .) %>%
+        gsub("\\s*\\-\\s*", "-", .) %>%
+        gsub("\\bhr|hopur|Hr|\\bhs", "hour", .) %>%
+        gsub("FR\\-513", "", .) %>%
+        gsub("1 single exposure", "", .) %>%
         stringr::str_squish(),
       # Use first number appearance (range possible) as study_duration_value
       study_duration_value = study_duration %>%
-        stringr::str_extract(stringr::regex(paste0("(\\d+(?:\\-\\d+)?).*?",
-                                                   "(?:hour|\\bh\\b|[0-9]h\\b|",
-                                                   "day|\\bd\\b|[0-9]d\\b|",
-                                                   "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
-                                                   "month|\\bm\\b|[0-9]m\\b|",
-                                                   "year|\\by\\b|[0-9]y\\b|yr)"),
+        stringr::str_extract(stringr::regex(paste0("([0-9]+\\.?[0-9]*(?:\\-[0-9]+\\.?[0-9]*)?).*?",
+                                                   "(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                                   "day|\\bd\\b|[0-9\\.]d\\b|",
+                                                   "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                                   "month|\\bm\\b|[0-9\\.]m\\b|",
+                                                   "year|\\by\\b|[0-9\\.]y\\b|yr)"),
                                             ignore_case = TRUE), group=1) %>%
         c() %>% stringr::str_squish(),
       # Use first "timeframe" appearance as study_duration_units
       study_duration_units = study_duration %>%
-        stringr::str_extract(stringr::regex(paste0("\\d+(?:\\-\\d+)?.*?",
-                                                   "(hour|\\bh\\b|[0-9]h\\b|",
-                                                   "day|\\bd\\b|[0-9]d\\b|",
-                                                   "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
-                                                   "month|\\bm\\b|[0-9]m\\b|",
-                                                   "year|\\by\\b|[0-9]y\\b|yr)"),
+        stringr::str_extract(stringr::regex(paste0("[0-9]+\\.?[0-9]*(?:\\-[0-9]+\\.?[0-9]*)?.*?",
+                                                   "(hour|\\bh\\b|[0-9\\.]h\\b|",
+                                                   "day|\\bd\\b|[0-9\\.]d\\b|",
+                                                   "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                                   "month|\\bm\\b|[0-9\\.]m\\b|",
+                                                   "year|\\by\\b|[0-9\\.]y\\b|yr)"),
                                             ignore_case = TRUE), group=1) %>%
         c(),
       # Perform final processing
       study_duration_units = dplyr::case_when(
-        grepl("m", study_duration_units) ~ "months",
-        grepl("h", study_duration_units) ~ "hours",
-        grepl("d", study_duration_units) ~ "days",
-        grepl("w", study_duration_units) ~ "weeks",
-        grepl("y", study_duration_units) ~ "years",
+        grepl("m", study_duration_units, ignore.case=TRUE) ~ "months",
+        grepl("h", study_duration_units, ignore.case=TRUE) ~ "hours",
+        grepl("d", study_duration_units, ignore.case=TRUE) ~ "days",
+        grepl("w", study_duration_units, ignore.case=TRUE) ~ "weeks",
+        grepl("y", study_duration_units, ignore.case=TRUE) ~ "years",
         TRUE ~ as.character(NA)
       ),
 
       # If study_duration still not extracted, check for PND/GD
       study_duration_value = dplyr::case_when(
         !is.na(study_duration_value) | is.na(pnd_or_gd) ~ study_duration_value,
-        TRUE ~ stringr::str_extract(study_duration, "\\d+\\s*\\-\\s*\\d*") %>% c() %>% stringr::str_squish()
+        TRUE ~ stringr::str_extract(study_duration, "[0-9]+\\.?[0-9]*\\s*\\-?\\s*[0-9\\.]*") %>% c() %>% stringr::str_squish()
       ),
       study_duration_units = dplyr::case_when(
         !is.na(study_duration_units) | is.na(pnd_or_gd) ~ study_duration_units,
         TRUE ~ pnd_or_gd
       ),
 
-      # Set both cols to NA if only one value is present
+      # Set both cols to NA if only one value is present, study_duration_value is 0, or PND edge case
       study_duration_units = dplyr::case_when(
         study_duration_value == as.character(NA) ~ as.character(NA),
+        study_duration_value == "0" ~ as.character(NA),
+        grepl("mating to PND", study_duration_raw) ~ as.character(NA),
         TRUE ~ study_duration_units
       ),
       study_duration_value = dplyr::case_when(
         study_duration_units == as.character(NA) ~ as.character(NA),
+        study_duration_value == "0" ~ as.character(NA),
+        grepl("mating to PND", study_duration_raw) ~ as.character(NA),
         TRUE ~ study_duration_value
-      ) %>% gsub(" \\- ", "-", .),
+      ) %>% gsub("\\s*\\-\\s*", "-", .),
 
       # Select only first study_type value when pipe is used
       study_type = gsub("\\|.+", "", study_type),
