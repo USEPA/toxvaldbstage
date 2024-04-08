@@ -352,26 +352,39 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
       # Get study_duration values with both GD/PND, handle other edge cases
       study_duration = exposure_duration_text %>%
         gsub("\\s?to\\s?|\\s?until\\s?| \\- ", "-", .) %>%
-        gsub("D ([0-9])", "D\\1", .),
+        gsub("D ([0-9\\.])", "D\\1", .) %>%
+        gsub("\\s*\\-\\s*", "-", .),
       study_duration_value = dplyr::case_when(
-        grepl("GD[0-9]+\\-GD[0-9]+", study_duration) ~ gsub("GD([0-9]+)\\-GD([0-9]+)", "\\1-\\2", study_duration),
-        !is.na(study_duration_value) ~ study_duration_value,
-        grepl("GD[0-9]+\\-PND[0-9]+", study_duration) ~ stringr::str_extract(study_duration, "GD[0-9]+\\-PND[0-9]+"),
+        grepl("mating\\-PND", study_duration) ~ as.character(NA),
+        grepl("GD[0-9\\.]+\\-PND[0-9\\.]+", study_duration) ~ gsub(".*(GD[0-9\\.]+)\\-(PND[0-9\\.]+).*", "\\1-\\2", study_duration),
+        grepl("GD[0-9\\.]+\\-GD[0-9\\.]+", study_duration) ~ gsub("GD([0-9\\.]+)\\-GD([0-9\\.]+)", "\\1-\\2", study_duration),
+        grepl("PND[0-9\\.]+\\-PND[0-9\\.]+", study_duration) ~ gsub("PND([0-9\\.]+)\\-PND([0-9\\.]+)", "\\1-\\2", study_duration),
+        grepl("(?:GD|PND)[0-9\\.]+\\-?[0-9\\.]*", study_duration) ~ stringr::str_extract(study_duration,
+                                                                                   "(?:GD|PND)([0-9\\.]+\\-?[0-9\\.]*)",
+                                                                                   group=1),
         TRUE ~ study_duration_value
-      ) %>% gsub("\\b0-0\\b", "0", .),
+      ),
       study_duration_units = dplyr::case_when(
-        grepl("GD[0-9]+\\-GD[0-9]+", study_duration) ~ "GD",
-        !is.na(study_duration_units) ~ study_duration_units,
-        grepl("GD.+PND", study_duration) ~ "day",
+        grepl("mating\\-PND", study_duration) ~ as.character(NA),
+        grepl("GD", study_duration) & grepl("PND", study_duration) ~ "GD,PND",
+        grepl("GD[0-9\\.]+\\-GD[0-9\\.]+", study_duration) ~ "GD",
+        grepl("PND[0-9\\.]+\\-PND[0-9\\.]+", study_duration) ~ "PND",
+        grepl("(?:GD|PND)[0-9\\.]+\\-?[0-9\\.]*", study_duration) ~ stringr::str_extract(study_duration,
+                                                                                   "(GD|PND)(?:[0-9\\.]+\\-?[0-9\\.]*)",
+                                                                                   group=1),
         TRUE ~ study_duration_units
+      ),
+      study_duration_value = dplyr::case_when(
+        study_duration_units != "GD,PND" ~ gsub("\\b0-0\\b", "0", study_duration_value),
+        TRUE ~ study_duration_value
       ),
 
       # Remove excess whitespace and fix unicode
       dplyr::across(dplyr::where(is.character), fix.replace.unicode),
       dplyr::across(dplyr::where(is.character), stringr::str_squish)
-    ) %>%
+    ) #%>%
     # Drop unused study_duration field
-    dplyr::select(-study_duration)
+    # dplyr::select(-study_duration)
 
   # Standardize the names
   names(res) <- names(res) %>%
