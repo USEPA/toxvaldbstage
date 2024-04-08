@@ -382,9 +382,9 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
       # Remove excess whitespace and fix unicode
       dplyr::across(dplyr::where(is.character), fix.replace.unicode),
       dplyr::across(dplyr::where(is.character), stringr::str_squish)
-    ) #%>%
+    ) %>%
     # Drop unused study_duration field
-    # dplyr::select(-study_duration)
+    dplyr::select(-study_duration)
 
   # Standardize the names
   names(res) <- names(res) %>%
