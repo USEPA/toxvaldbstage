@@ -809,7 +809,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       ),
 
       # Clean exposure_route
-      exposure_route_raw = exposure_route,
       exposure_route = dplyr::case_when(
         grepl("\\bother|\\bunspecified|\\bnot specified", gsub(":.+", "", exposure_route)) ~ exposure_route_other,
         exposure_route %in% c(as.character(NA), "-", "", "other route", "other routes") ~ exposure_route_other,
