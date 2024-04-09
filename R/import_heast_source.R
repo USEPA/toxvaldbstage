@@ -213,7 +213,7 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         TRUE ~ "N"
       ),
       target_species = dplyr::case_when(
-        toxval_type %in% c("RfD", "RfC") ~ "Human",
+        toxval_type %in% c("RfD", "RfC") ~ "human",
         TRUE ~ as.character(NA)
       ),
       species = dplyr::case_when(
@@ -222,7 +222,7 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       ),
 
       # Add hardcoded columns
-      human_eco = "human_health",
+      human_eco = "human health",
       source_url = "https://cfpub.epa.gov/ncea/risk/recordisplay.cfm?deid=2877",
       study_type = study_duration_class,
 
