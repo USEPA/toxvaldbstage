@@ -85,60 +85,64 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     )) %>%
     # Drop unused rows/columns after getting extra critical_effect information
     dplyr::filter(keep==1) %>%
-    dplyr::select(-keep, -row_id)
+    dplyr::select(-keep, -row_id) %>%
+    # Add original row as relationship ID before split
+    dplyr::mutate(toxval_relationship_id = dplyr::row_number())
 
-  # Use deduping function to improve collapse behavior for critical_effect
-  hashing_cols = toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]
-  dedup_cols = c("critical_effect", "ornl_table", "comment", "target")
-  res = toxval.source.import.dedup(res, hashing_cols=hashing_cols) %>%
-    dplyr::rowwise() %>%
-    # Create unique list of entries, then collapse for each deduped col
-    dplyr::mutate(
-      critical_effect = critical_effect %>%
-        strsplit(" \\|::\\| ") %>%
-        unlist() %>%
-        unique() %>%
-        paste0(collapse=" |::| "),
-      ornl_table = ornl_table %>%
-        strsplit(" \\|::\\| ") %>%
-        unlist() %>%
-        unique() %>%
-        paste0(collapse=" |::| "),
-      comment = comment %>%
-        strsplit(" \\|::\\| ") %>%
-        unlist() %>%
-        unique() %>%
-        paste0(collapse=" |::| "),
-      target = target %>%
-        gsub(" \\|::\\| ", "; ", .) %>%
-        strsplit("; ") %>%
-        unlist() %>%
-        unique() %>%
-        paste0(collapse=" |::| ")
-    ) %>%
-    dplyr::ungroup() %>%
-
-    # Replace "|::|" in deduped fields with appropriate delimiter
-    dplyr::mutate(
-      critical_effect = critical_effect %>%
-        gsub(" \\|::\\| ", "|", .) %>%
-        gsub(": NA", "", .) %>%
-        dplyr::na_if("NA"),
-      ornl_table = ornl_table %>%
-        gsub(" \\|::\\| ", "; ", .) %>%
-        dplyr::na_if("NA"),
-      comment = comment %>%
-        gsub(" \\|::\\| ", ". ", .) %>%
-        gsub("\\.\\.| \\.", ".", .) %>%
-        stringr::str_squish() %>%
-        dplyr::na_if("NA"),
-      target = target %>%
-        gsub(" \\|::\\| ", "; ", .) %>%
-        dplyr::na_if("NA"),
-
-      # Add original row as relationship ID before split
-      toxval_relationship_id = dplyr::row_number()
-    )
+  # Below is logic to further collapse critical_effect, comment, ornl_table, and target
+  # Uncomment if additional collapsing is desired
+  # # Use deduping function to improve collapse behavior for critical_effect
+  # hashing_cols = toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]
+  # dedup_cols = c("critical_effect", "ornl_table", "comment", "target")
+  # res = toxval.source.import.dedup(res, hashing_cols=hashing_cols) %>%
+  #   dplyr::rowwise() %>%
+  #   # Create unique list of entries, then collapse for each deduped col
+  #   dplyr::mutate(
+  #     critical_effect = critical_effect %>%
+  #       strsplit(" \\|::\\| ") %>%
+  #       unlist() %>%
+  #       unique() %>%
+  #       paste0(collapse=" |::| "),
+  #     ornl_table = ornl_table %>%
+  #       strsplit(" \\|::\\| ") %>%
+  #       unlist() %>%
+  #       unique() %>%
+  #       paste0(collapse=" |::| "),
+  #     comment = comment %>%
+  #       strsplit(" \\|::\\| ") %>%
+  #       unlist() %>%
+  #       unique() %>%
+  #       paste0(collapse=" |::| "),
+  #     target = target %>%
+  #       gsub(" \\|::\\| ", "; ", .) %>%
+  #       strsplit("; ") %>%
+  #       unlist() %>%
+  #       unique() %>%
+  #       paste0(collapse=" |::| ")
+  #   ) %>%
+  #   dplyr::ungroup() %>%
+  #
+  #   # Replace "|::|" in deduped fields with appropriate delimiter
+  #   dplyr::mutate(
+  #     critical_effect = critical_effect %>%
+  #       gsub(" \\|::\\| ", "|", .) %>%
+  #       gsub(": NA", "", .) %>%
+  #       dplyr::na_if("NA"),
+  #     ornl_table = ornl_table %>%
+  #       gsub(" \\|::\\| ", "; ", .) %>%
+  #       dplyr::na_if("NA"),
+  #     comment = comment %>%
+  #       gsub(" \\|::\\| ", ". ", .) %>%
+  #       gsub("\\.\\.| \\.", ".", .) %>%
+  #       stringr::str_squish() %>%
+  #       dplyr::na_if("NA"),
+  #     target = target %>%
+  #       gsub(" \\|::\\| ", "; ", .) %>%
+  #       dplyr::na_if("NA"),
+  #
+  #     # Add original row as relationship ID before split
+  #     toxval_relationship_id = dplyr::row_number()
+  #   )
 
   # Separate and handle NOEL/LOEL, RfC, and RfD fields
   res_orig = res %>%
