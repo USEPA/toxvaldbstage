@@ -78,9 +78,14 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
   }
 
   res = res %>%
+    dplyr::mutate(toxval_type = dplyr::case_when(
+      # Fix typo
+      toxval_type == 'Critial' ~ 'Critical',
+      TRUE ~ toxval_type
+    )) %>%
     # Drop unused rows/columns after getting extra critical_effect information
-    dplyr::filter(keep==1, toxval_type!="Critial") %>%
-    dplyr::select(-tidyselect::all_of(c("keep", "row_id")))
+    dplyr::filter(keep==1) %>%
+    dplyr::select(-keep, -row_id)
 
   # Use deduping function to improve collapse behavior for critical_effect
   hashing_cols = toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]
@@ -132,7 +137,7 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         dplyr::na_if("NA"),
 
       # Add original row as relationship ID before split
-      relationship_id = dplyr::row_number()
+      toxval_relationship_id = dplyr::row_number()
     )
 
   # Separate and handle NOEL/LOEL, RfC, and RfD fields
@@ -218,7 +223,9 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
 
       # Perform other transformations as necessary
       toxval_numeric = as.numeric(toxval_numeric),
-      casrn = sapply(casrn, FUN=fix.casrn) %>% dplyr::na_if("NOCAS"),
+      casrn = casrn %>%
+        sapply(., FUN=fix.casrn) %>%
+        dplyr::na_if("NOCAS"),
 
       # Extract study_duration
       study_duration_qualifier = dplyr::case_when(
@@ -294,7 +301,3 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
