@@ -90,6 +90,7 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     dplyr::mutate(toxval_relationship_id = dplyr::row_number())
 
   # Below is logic to further collapse critical_effect, comment, ornl_table, and target
+  # See TOXVAL-707 comment on Acetonitrile that should be 4 rows, not 3.
   # Uncomment if additional collapsing is desired
   # # Use deduping function to improve collapse behavior for critical_effect
   # hashing_cols = toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]
