@@ -1,16 +1,11 @@
 #--------------------------------------------------------------------------------------
-#' @description Load HAWC Source into toxval_source
-#'
-#' Note that the different tabs in the input sheet have different names, so these need
-#' to be adjusted manually for the code to work. This is a problem wit how the data
-#' is stored in HAWC
-#'
+#' @title import_hawc_source
+#' @description Load HAWC Project data into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
-#' @param infile1 The input file ./hawc/hawc_files/hawc_original_12_06_21.xlsx
-#' @param infile2 The input file ./hawc/hawc_files/dose_dict.xlsx
-#' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @param do.reset If TRUE, delete data from the database for this source before
+#' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -20,20 +15,21 @@
 #' }
 #' @seealso
 #'  \code{\link[openxlsx]{getSheetNames}}, \code{\link[openxlsx]{read.xlsx}}
-#'  \code{\link[stats]{aggregate}}
+#'  \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{count}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{context}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{na_if}}
+#'  \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{drop_na}}
+#'  \code{\link[generics]{setops}}
 #'  \code{\link[digest]{digest}}
+#'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_hawc_source
 #' @export
 #' @importFrom openxlsx getSheetNames read.xlsx
-#' @importFrom stats aggregate
+#' @importFrom dplyr select distinct mutate arrange count left_join bind_rows n everything across na_if where
+#' @importFrom tidyr pivot_wider unite contains drop_na
+#' @importFrom generics is.element
 #' @importFrom digest digest
+#' @importFrom stringr str_extract str_squish
 #--------------------------------------------------------------------------------------
-import_hawc_source <- function(db,
-                               infile1="hawc_original_12_06_21.xlsx",
-                               infile2="dose_dict.xlsx",
-                               chem.check.halt=FALSE,
-                               do.reset=FALSE,
-                               do.insert=FALSE) {
+import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "HAWC Project"
   source_table = "source_hawc"
@@ -43,6 +39,9 @@ import_hawc_source <- function(db,
   #####################################################################
   cat("Build original_hawc table \n")
   #####################################################################
+  infile1 = "hawc_original_12_06_21.xlsx"
+  infile2 = "dose_dict.xlsx"
+
   sheets1 <- openxlsx::getSheetNames(paste0(toxval.config()$datapath,"hawc/hawc_files/",infile1))
   hawc_dfs <- lapply(sheets1, openxlsx::read.xlsx, xlsxFile = paste0(toxval.config()$datapath,"hawc/hawc_files/",infile1))
   # subsetting toxval specific variables from 100's of variables
@@ -133,20 +132,20 @@ import_hawc_source <- function(db,
   new_hawc_df[which(is.na(new_hawc_df$full_text_url)),"full_text_url"] <- "-"
 
   h1 <- new_hawc_df %>%
-    dplyr::select(-contains("loel"), -contains("fel"),
+    dplyr::select(-tidyr::contains("loel"), -tidyr::contains("fel"),
                   toxval_numeric_dose_index=NOEL_original,
                   toxval_type = noel_names,
                   toxval_numeric = NOEL_values,
                   toxval_units = NOEL_units) # [,c(1:33,34,36,37,42:45)]
   h2 <- new_hawc_df %>%
-    dplyr::select(-contains("noel"), -contains("fel"),
+    dplyr::select(-tidyr::contains("noel"), -tidyr::contains("fel"),
                   toxval_numeric_dose_index=LOEL_original,
                   toxval_type = loel_names,
                   toxval_numeric = LOEL_values,
                   toxval_units = LOEL_units) # [,c(1:33,35,38,39,42:45)]
 
   h3 <- new_hawc_df %>%
-    dplyr::select(-contains("noel"), -contains("loel"),
+    dplyr::select(-tidyr::contains("noel"), -tidyr::contains("loel"),
                   toxval_numeric_dose_index=FEL_original,
                   toxval_type = fel_names,
                   toxval_numeric = FEL_values,
@@ -161,7 +160,7 @@ import_hawc_source <- function(db,
                   exposure_method = route_of_exposure,
                   study_duration_value = exposure_duration_text,
                   study_duration_units = exposure_duration_text,
-                  source_id = 1:n()) %>%
+                  source_id = 1:dplyr::n()) %>%
     tidyr::drop_na(toxval_numeric) %>%
     dplyr::select(source_id, dplyr::everything())
 
@@ -315,11 +314,37 @@ import_hawc_source <- function(db,
                     tolower()) %>%
     tidyr::unite("toxval_type", toxval_type, toxval_type_2,
                  sep = " (",
-                 na.rm=TRUE)
+                 na.rm=TRUE) %>%
 
-  # Remove excess whitespace
-  res = res %>%
-    dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish))
+    # Remove "unknown" values
+    dplyr::mutate(dplyr::across(c(species, strain, sex, study_type, exposure_route, exposure_method),
+                                # Not using tolower() to simplify cases due to strain field
+                                ~dplyr::na_if(., "not reported") %>%
+                                  dplyr::na_if("Not reported") %>%
+                                  dplyr::na_if("not-reported") %>%
+                                  dplyr::na_if("Not Reported") %>%
+                                  dplyr::na_if("unspecified") %>%
+                                  dplyr::na_if("other") %>%
+                                  dplyr::na_if("Other") %>%
+                                  dplyr::na_if("unknown")
+                  )) %>%
+    # Filter out entries with missing experimental information
+    tidyr::drop_na(species, study_type, exposure_route) %>%
+
+    dplyr::mutate(
+      # Extract toxval_subtype from toxal_type
+      toxval_subtype = stringr::str_extract(toxval_type, "HED|TAD"),
+      toxval_type = gsub(" \\(.+", "", toxval_type),
+
+      # Clean toxval_units
+      toxval_units = toxval_units %>%
+        stringr::str_squish()
+    ) %>%
+
+    # Remove excess whitespace
+    dplyr::mutate(dplyr::across(dplyr::where(is.character), stringr::str_squish)) %>%
+    # Fix unicode
+    dplyr::mutate(dplyr::across(c(title, short_ref, long_ref, strain, toxval_units), fix.replace.unicode))
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -327,9 +352,6 @@ import_hawc_source <- function(db,
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
-
-  # Fix toxval_units unicode
-  res$toxval_units = fix.replace.unicode(res$toxval_units)
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
@@ -351,4 +373,7 @@ import_hawc_source <- function(db,
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
+
+
+
 
