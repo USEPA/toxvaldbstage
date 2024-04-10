@@ -62,16 +62,17 @@ import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.re
         TRUE ~ toxval_numeric
       ),
 
-      # Extract toxval_subtype from toxval_type
-      toxval_subtype = dplyr::case_when(
-        # grepl("modal", toxval_type) ~ "modal",
-        TRUE ~ stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
-      ),
-      # Remove subtype information from toxval_type
-      toxval_type = toxval_type %>%
-        gsub("\\(.+", "", .) %>%
-        # gsub("modal", "", .) %>%
-        stringr::str_squish(),
+      # Uncomment if splitting toxval_type into toxval_subtype
+      # # Extract toxval_subtype from toxval_type
+      # toxval_subtype = dplyr::case_when(
+      #   # grepl("modal", toxval_type) ~ "modal",
+      #   TRUE ~ stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
+      # ),
+      # # Remove subtype information from toxval_type
+      # toxval_type = toxval_type %>%
+      #   gsub("\\(.+", "", .) %>%
+      #   # gsub("modal", "", .) %>%
+      #   stringr::str_squish(),
 
       # Translate sex into M/F format
       sex = dplyr::case_when(

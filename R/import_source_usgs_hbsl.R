@@ -70,14 +70,16 @@ import_source_usgs_hbsl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
                         ) %>%
     tidyr::separate(col="toxval_type",
                     into = c("toxval_type", "toxval_units"), sep = "\\(") %>%
-    dplyr::mutate(toxval_subtype = toxval_type %>%
-                    gsub("HBSL|HHBP|MCL", "", .) %>%
-                    gsub("Carcinogenic", "Cancer", .) %>%
-                    stringr::str_squish() %>%
-                    dplyr::na_if(""),
-                  toxval_type = toxval_type %>%
-                    gsub("Noncancer|Chronic|Cancer|Carcinogenic", "", .) %>%
-                    stringr::str_squish(),
+    dplyr::mutate(
+                  # Uncomment if splitting toxval_type into toxval_subtype
+                  # toxval_subtype = toxval_type %>%
+                  #   gsub("HBSL|HHBP|MCL", "", .) %>%
+                  #   gsub("Carcinogenic", "Cancer", .) %>%
+                  #   stringr::str_squish() %>%
+                  #   dplyr::na_if(""),
+                  # toxval_type = toxval_type %>%
+                  #   gsub("Noncancer|Chronic|Cancer|Carcinogenic", "", .) %>%
+                  #   stringr::str_squish(),
                   toxval_units = toxval_units %>%
                     # Remove training parentheses
                     gsub("\\)", "", .),

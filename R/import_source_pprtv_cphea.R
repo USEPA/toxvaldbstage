@@ -151,9 +151,11 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         toxval_type == "Unit Risk Factor" ~ "cancer unit risk",
         TRUE ~ toxval_type
       ),
-      # Case of BMCL(1SD) to BMCL1SD for subtype extraction consistency with BMDL1SD(HED)
-      toxval_type = toxval_type %>%
-        gsub("(1SD)", "1SD", ., fixed = TRUE),
+
+      # Uncomment if splitting toxval_type into toxval_subtype
+      # # Case of BMCL(1SD) to BMCL1SD for subtype extraction consistency with BMDL1SD(HED)
+      # toxval_type = toxval_type %>%
+      #   gsub("(1SD)", "1SD", ., fixed = TRUE),
 
       toxval_numeric = toxval_numeric %>%
         gsub("per.+", "", .) %>%
@@ -190,11 +192,12 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         TRUE ~ toxval_units
       ),
 
-      # Extract toxval_subtype from toxval_type where available
-      toxval_subtype = stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
-      toxval_type = toxval_type %>%
-        gsub("\\(.+\\)", "", .) %>%
-        stringr::str_squish(),
+      # Uncomment if splitting toxval_type into toxval_subtype
+      # # Extract toxval_subtype from toxval_type where available
+      # toxval_subtype = stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
+      # toxval_type = toxval_type %>%
+      #   gsub("\\(.+\\)", "", .) %>%
+      #   stringr::str_squish(),
 
       # Extract sex from species when possible
       sex = dplyr::case_when(
