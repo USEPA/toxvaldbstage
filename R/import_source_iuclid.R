@@ -601,7 +601,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("\\b0,([0-9]+\\b)", "0.\\1", .) %>%
         gsub(",", "", .) %>%
         gsub("[0-9\\.]+%", "", .) %>%
-        gsub("\\bhr|hopur|Hr|\\bhs", "hour", .) %>%
         gsub("FR\\-513", "", .) %>%
         tolower() %>%
         gsub("birth to\\b", "", .) %>%
@@ -647,7 +646,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("dose levels? of.+(?:mg|kg|ppm|mg\\kg)", "", .) %>%
         gsub("groups?\\s*[0-9]+\\s*(?:to|through|and)?\\s*[0-9]*(?:,\\s*[0-9]+)?", "", .) %>%
         gsub("[0-9]+\\s*days\\s*(?:before|after)\\s*mating", "", .) %>%
-        gsub("(?:examinations|observations|results):.+", "", .),
+        gsub("(?:examinations|observations|results):.+", "", .) %>%
+        gsub("[0-9]*\\s*times", "", .),
       study_duration = dplyr::case_when(
         grepl("(?:administered|dosed|exposed) for\\s*[0-9\\.]+\\s*(?:hour|day|week|month|year)s?",
               study_duration) ~ stringr::str_extract(study_duration,
@@ -733,6 +733,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                                               "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b))"), "\\1", study_duration),
         TRUE ~ study_duration
       ) %>%
+        gsub("\\bhr|hopur|Hr|\\bhs", "hour", .) %>%
         gsub("through", "-", .) %>%
         gsub("\\s*\\-\\s*", "-", .) %>%
         gsub("\\bto\\b", "-", ., ignore.case=TRUE) %>%
