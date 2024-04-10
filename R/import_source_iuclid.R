@@ -601,7 +601,13 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("\\b0,([0-9]+\\b)", "0.\\1", .) %>%
         gsub(",", "", .) %>%
         gsub("[0-9\\.]+%", "", .) %>%
+        gsub("\\bhr|hopur|Hr|\\bhs", "hour", .) %>%
+        gsub("FR\\-513", "", .) %>%
         tolower() %>%
+        gsub("birth to\\b", "", .) %>%
+        gsub("([0-9]+\\.?[0-9]*)(h|d|w|m|y)", "\\1 \\2", ., ignore.case=TRUE) %>%
+        gsub("[0-9]+\\.?[0-9]*\\s*\\(?(?:mg|kg|ppm|mg\\kg)\\)?,?", "", .) %>%
+        gsub("1 single exposure", "", .) %>%
         gsub("hafter", "h after", .) %>%
         gsub("\\bseveral\\b", "3", ., ignore.case=TRUE) %>%
         gsub("\\btwenty\\s?\\-?\\s?four\\b", "24", ., ignore.case=TRUE) %>%
@@ -633,20 +639,27 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("(?:observed|examined|recorded)\\s*for.+[0-9\\.]+.+?[hdwmy]", "", .) %>%
         gsub("observation (?:for a )?period of\\s*.+[0-9\\.]+.+?[hdwmy]", "", .) %>%
         gsub("observation (?:for|time):?\\s*[0-9\\.]+.+?[hdwmy]", "", .) %>%
-        gsub("[0-9\\.]+\\s*(?:hour|day|week|month|year)s?\\s*(?:post\\-)?observation", "", .) %>%
-        gsub("groups of [0-9]+", "", .),
+        gsub("[0-9\\.]+\\s*(?:hour|day|week|month|year)s?\\s*(?:post\\-?)?\\s*observation", "", .) %>%
+        gsub("groups? of [0-9]+", "", .) %>%
+        gsub("[0-9]+\\s*(?:hour|day|week|month|year)s?\\s*(?:post|pre)?\\s*\\-?\\s*mating", "", .) %>%
+        gsub("day\\s*[0-9]+\\s*(?:to|until|up to|through|\\-)\\s*day\\s*[0-9]+", "", .) %>%
+        gsub("day\\s*[0-9]+", "", .) %>%
+        gsub("dose levels? of.+(?:mg|kg|ppm|mg\\kg)", "", .) %>%
+        gsub("groups?\\s*[0-9]+\\s*(?:to|through|and)?\\s*[0-9]*(?:,\\s*[0-9]+)?", "", .) %>%
+        gsub("[0-9]+\\s*days\\s*(?:before|after)\\s*mating", "", .) %>%
+        gsub("(?:examinations|observations|results):.+", "", .),
       study_duration = dplyr::case_when(
-        grepl("administered for\\s*[0-9\\.]+\\s*(?:hour|day|week|month|year)s?",
+        grepl("(?:administered|dosed|exposed) for\\s*[0-9\\.]+\\s*(?:hour|day|week|month|year)s?",
               study_duration) ~ stringr::str_extract(study_duration,
-                                                     "administered for\\s*([0-9\\.]+\\s*(?:hour|day|week|month|year)s?)",
+                                                     "(?:administered|dosed|exposed) for\\s*([0-9\\.]+\\s*(?:hour|day|week|month|year)s?)",
                                                      group=1),
         grepl("[0-9\\.]+\\s*(?:hour|day|week|month|year)s?\\s*(?:exposure|contact)",
               study_duration) ~ stringr::str_extract(study_duration,
                                                      "([0-9\\.]+\\s*(?:hour|day|week|month|year)s?)\\s*(?:exposure|contact)",
                                                      group=1),
-        grepl("(?:exposure|contact)\\s*period\\s*of\\s*[0-9\\.]+\\s*(?:hour|day|week|month|year)s?",
+        grepl("(?:exposure|contact|dosing)\\s*period\\s*of\\s*[0-9\\.]+\\s*(?:hour|day|week|month|year)s?",
               study_duration) ~ stringr::str_extract(study_duration,
-                                                     "(?:exposure|contact)\\s*period\\s*of\\s*([0-9\\.]+\\s*(?:hour|day|week|month|year)s?)",
+                                                     "(?:exposure|contact|dosing)\\s*period\\s*of\\s*([0-9\\.]+\\s*(?:hour|day|week|month|year)s?)",
                                                      group=1),
         grepl("were dosed [0-9]+\\.?[0-9]* days at a minimum",
               study_duration) ~ stringr::str_extract(study_duration,
@@ -720,18 +733,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                                               "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b))"), "\\1", study_duration),
         TRUE ~ study_duration
       ) %>%
-        gsub("0,5 h\\b", "0.5 h", .) %>%
         gsub("through", "-", .) %>%
-        gsub("birth to\\b", "", .) %>%
-        gsub("([0-9]+\\.?[0-9]*)(h|d|w|m|y)", "\\1 \\2", ., ignore.case=TRUE) %>%
         gsub("\\s*\\-\\s*", "-", .) %>%
         gsub("\\bto\\b", "-", ., ignore.case=TRUE) %>%
         gsub("PND|GD", "", ., ignore.case=TRUE) %>%
-        gsub("[0-9]+\\.?[0-9]*\\s*\\(?(?:mg|kg|ppm|mg\\kg)\\)?,?", "", .) %>%
         gsub("\\s*\\-\\s*", "-", .) %>%
-        gsub("\\bhr|hopur|Hr|\\bhs", "hour", .) %>%
-        gsub("FR\\-513", "", .) %>%
-        gsub("1 single exposure", "", .) %>%
         stringr::str_squish(),
       # Use first number appearance (range possible) as study_duration_value
       study_duration_value = study_duration %>%
