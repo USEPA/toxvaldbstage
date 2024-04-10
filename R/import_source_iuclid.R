@@ -968,12 +968,15 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       )
     ) %>%
 
-    # # Build critical_effect column
-    # tidyr::unite("critical_effect_combined",
-    #              organ_system, target_organ, hazard_category, critical_effect,
-    #              sep=": ",
-    #              remove=FALSE,
-    #              na.rm=TRUE) %>%
+    # Build critical_effect column
+    tidyr::unite("critical_effect_combined",
+                 organ_system, target_organ, hazard_category, critical_effect,
+                 sep=": ",
+                 remove=FALSE,
+                 na.rm=TRUE) %>%
+    # Separately handle original critical_effect so other columns can be kept in unite() call
+    dplyr::mutate(critical_effect = critical_effect_combined) %>%
+    dplyr::select(-critical_effect_combined) %>%
 
     # Remove entries that should be dropped due to experimental_flag/data_purpose_category
     dplyr::filter(temp_to_drop == 0) %>%
