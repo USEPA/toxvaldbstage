@@ -355,6 +355,7 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
         gsub("D ([0-9\\.])", "D\\1", .) %>%
         gsub("\\s*\\-\\s*", "-", .),
       study_duration_value = dplyr::case_when(
+        grepl("GD[0-9]+\\-[0-9]+\\s*weeks", study_duration) ~ stringr::str_extract(study_duration, "GD[0-9]+\\-[0-9]+\\s*weeks") %>% c(),
         grepl("mating\\-PND", study_duration) ~ as.character(NA),
         grepl("GD[0-9\\.]+\\-PND[0-9\\.]+", study_duration) ~ gsub(".*(GD[0-9\\.]+)\\-(PND[0-9\\.]+).*", "\\1-\\2", study_duration),
         grepl("GD[0-9\\.]+\\-GD[0-9\\.]+", study_duration) ~ gsub("GD([0-9\\.]+)\\-GD([0-9\\.]+)", "\\1-\\2", study_duration),
@@ -365,6 +366,7 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
         TRUE ~ study_duration_value
       ),
       study_duration_units = dplyr::case_when(
+        grepl("GD", study_duration_value) & grepl("week", study_duration_value) ~ "GD,weeks",
         grepl("mating\\-PND", study_duration) ~ as.character(NA),
         grepl("GD", study_duration) & grepl("PND", study_duration) ~ "GD,PND",
         grepl("GD[0-9\\.]+\\-GD[0-9\\.]+", study_duration) ~ "GD",
