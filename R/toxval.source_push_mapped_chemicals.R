@@ -5,8 +5,8 @@
 #' @param db The version of toxval source database to use.
 #' @param source.index The source chemical index. Can be full or just numeric (ex. ToxVal00001 vs. 00001)
 #' @param curated.path Input path to the folder directory with expected subdirectories of #' 'BIN Files', 'DSSTox Files', and 'jira_chemical_files'
-#' @param ignore.curation.dups Boolean whether to match with any curated records flagged as "unresolved duplicates" (Default TRUE)
-#' @param match.chemical.id Boolean whether to match by provided chemical_id external identifier (Default FALSE)
+#' @param ignore.curation.dups Boolean whether to match with any curated records flagged as "unresolved duplicates" (Default FALSE)
+#' @param match.chemical.id Boolean whether to match by provided chemical_id external identifier (Default TRUE)
 #' @param reset.mapping Boolean whether to reset chemical mappings in source_chemical table of database
 #' @param bulk.push Boolean whether to bulk push updates, or one at a time. Default is TRUE
 #' @return None. Update SQL statements are executed.
@@ -27,13 +27,44 @@
 #' @importFrom dplyr rename distinct mutate select left_join filter bind_rows
 #--------------------------------------------------------------------------------------
 toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
-                                                ignore.curation.dups=TRUE, match.chemical.id=FALSE,
-                                                reset.mapping=FALSE, bulk.push = TRUE){
+                                                ignore.curation.dups = FALSE, match.chemical.id = TRUE,
+                                                reset.mapping = FALSE, bulk.push = TRUE){
 
   message("Pushing mapped chemicals for chemical_source_index ToxVal", source.index)
   # Map chemical information from curated files and select source.index
   out = map_curated_chemicals(source.index=source.index, curated.path=curated.path,
-                              ignore.curation.dups=ignore.curation.dups, match.chemical.id = match.chemical.id)
+                              ignore.curation.dups=ignore.curation.dups, match.chemical.id = match.chemical.id) %>%
+    dplyr::group_by(chemical_id) %>%
+    dplyr::mutate(dplyr::across(dplyr::any_of(names(.)[!names(.) %in% c("chemical_id")]),
+                                # Ensure unique entries in alphabetic order
+                                # Collapse with unique delimiter
+                                ~paste0(sort(unique(.[!is.na(.)])), collapse="|::|") %>%
+                                  dplyr::na_if("NA") %>%
+                                  dplyr::na_if("")
+    )) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct()
+
+  # Check De-duping collapse (only expect flags field to collapse)
+  dup_collapsed_fields = lapply(names(out), function(f){
+    if(sum(str_detect(out[[f]], '\\|::\\|'), na.rm = TRUE) > 0){
+      return(f)
+    }
+  }) %>%
+    purrr::compact() %>%
+    unlist()
+
+  # Error if any other field collapsed besides flags
+  if(any(names(out)[!names(out) %in% c("flags")] %in% dup_collapsed_fields)){
+    message("Duplicate entries found/collapsed beyond 'flags' field...need to resolve...")
+    browser()
+    stop("Duplicate entries found/collapsed beyond 'flags' field...need to resolve...")
+  }
+
+  out = out %>%
+    # Replace unique delimiter with standard delimiter after checking passed
+    dplyr::mutate(flags = flags %>%
+                    gsub("|::|", "; ", ., fixed=TRUE))
 
   # Get chemical table for source
   chem_tbl = runQuery(paste0("SELECT * FROM source_chemical where ",

@@ -68,7 +68,7 @@ toxval_source_status_report <- function(db){
     dplyr::group_by(source) %>%
     dplyr::summarise(total_chems = n(),
                      dtxrid = length(unique(dtxrid[!is.na(dtxrid)])),
-                     dtxsid = length(unique(dtxsid[!is.na(dtxsid)]))) %>%
+                     dtxsid = length(dtxsid[!is.na(dtxsid)])) %>%
     get_percent_summary("perc_dtxsid", "dtxsid", "total_chems") %>%
     get_percent_summary("perc_dtxrid", "dtxrid", "total_chems") %>%
     left_join(x=chem_index, y=., by="source") %>%
