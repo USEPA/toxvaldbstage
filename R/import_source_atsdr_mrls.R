@@ -128,11 +128,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
     summary_file = paste0(dir,"source_atsdr_mrls_manual_pod_awebb01_20240307.xlsx")
     res1 <- readxl::read_xlsx(summary_file) %>%
       dplyr::filter(toxval_type != "MRL") %>%
-      dplyr::mutate(document_type = "ATSDR MRLs Toxicological Profile",
-                    toxval_subtype = stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
-                    toxval_type = toxval_type %>%
-                      gsub("\\(.+\\)", "", .) %>%
-                      stringr::str_squish()) %>%
+      dplyr::mutate(document_type = "ATSDR MRLs Toxicological Profile") %>%
       dplyr::rename(long_ref = full_study_reference,
                     source_url = document_url,
                     species = species_original) %>%
@@ -150,6 +146,10 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
   # Combine with manual or provisional
   res = res %>%
     dplyr::bind_rows(res1) %>%
+    dplyr::mutate(toxval_subtype = stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
+                  toxval_type = toxval_type %>%
+                    gsub("\\(.+\\)", "", .) %>%
+                    stringr::str_squish()) %>%
     dplyr::distinct()
 
   # Fill blank hashing cols

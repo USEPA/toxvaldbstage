@@ -443,11 +443,8 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
         iris_chemical_id = url %>%
           sub('.*=', '', .) %>%
           as.numeric(),
-        route = tolower(route),
-        toxval_subtype = stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
-        toxval_type = toxval_type %>%
-          gsub("\\(.+\\)", "", .) %>%
-          stringr::str_squish()) %>%
+        route = tolower(route)) %>%
+
       # Remove IRIS Export fields
       # dplyr::select(-principal_study, -document_type, -endpoint) %>%
       dplyr::rename(
@@ -478,7 +475,12 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       TRUE ~ NA_character_
     )) %>%
     # Remove qualifier symbols
-    dplyr::mutate(toxval_numeric = gsub("[<>=~]", "", toxval_numeric))
+    dplyr::mutate(toxval_numeric = gsub("[<>=~]", "", toxval_numeric),
+                  # Put parenthetic toxval_type values into toxval_subtype
+                  toxval_subtype = stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
+                  toxval_type = toxval_type %>%
+                    gsub("\\(.+\\)", "", .) %>%
+                    stringr::str_squish())
 
   # Handle ranged toxval_numeric values
   ranged_res = res %>% dplyr::filter(grepl("[0-9]+-[0-9]+", toxval_numeric))
