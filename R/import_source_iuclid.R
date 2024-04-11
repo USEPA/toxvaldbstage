@@ -488,8 +488,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
     # Filter out entries with differing EC numbers
     dplyr::filter(!grepl("\\|", chemical.ec_number)) %>%
-    # Filter out entries with inadequate toxval_type
-    dplyr::filter(!grepl("dose|other", toxval_type)) %>%
+    # Filter out entries with "other" toxval_type
+    dplyr::filter(!grepl("other", toxval_type)) %>%
     # Drop entries without necessary toxval columns
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type) %>%
     # Drop entries without either name or casrn
@@ -932,13 +932,18 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
     # Drop unused helper cols
     dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper", "toxval_numeric_origin", "pnd_or_gd"))) %>%
-    # Remove entries with "conc. level" toxval_type or "%" toxval_units
-    dplyr::filter(!grepl("conc\\. level", toxval_type),
-                  !grepl("%", toxval_units))  %>%
+    # Remove entries with %" toxval_units
+    dplyr::filter(!grepl("%", toxval_units))  %>%
     # Filter out entries with "other" species
     dplyr::filter(!grepl("\\bother\\b", species, ignore.case=TRUE)) %>%
     # Filter out entries with NA exposure_route
     tidyr::drop_na(exposure_route)
+
+  # Filter out "dose level" and "conc. level" toxval_type if not RepeatedDoseToxicityOral
+  if(subf!="iuclid_repeateddosetoxicityoral") {
+    res = res %>%
+      dplyr::filter(!grepl("(?:conc\\.|dose) level", toxval_type))
+  }
 
   # Account for exposure_route/method/form edge case
   if("exposure_method_other" %in% names(res)) {
@@ -1017,6 +1022,31 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
           dplyr::na_if("maternal:") %>%
           dplyr::na_if("fetus:")
       )
+  }
+
+  # Collapse dose/conc level critical_effect values
+  if("dose level" %in% unique(res$toxval_type) | "conc. level" %in% unique(res$toxval_type)) {
+    # Separate out dose/conc level entries from res
+    dose_conc_res = res %>%
+      dplyr::filter(toxval_type %in% c("dose level", "conc. level"))
+
+    # Use deduping function to collapse just critical_effect
+    dose_conc_hash_Cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))],
+                            "endpoint_uuid")
+    dose_conc_res = toxval.source.import.dedup(dose_conc_res,
+                                               hashing_cols=dose_conc_hash_cols) %>%
+      dplyr::mutate(
+        critical_effect = gsub(" \\|::\\| ", "|", critical_effect),
+        experimental_flag = as.numeric(experimental_flag),
+        year = as.numeric(year)
+      ) %>%
+      dplyr::distinct()
+
+    # Add dose_conc entries back to original data
+    res = res %>%
+      dplyr::filter(!(toxval_type %in% c("dose level", "conc. level"))) %>%
+      dplyr::mutate(range_relationship_id = as.character(range_relationship_id)) %>%
+      dplyr::bind_rows(dose_conc_res)
   }
 
   # Standardize the names
