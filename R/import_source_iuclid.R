@@ -323,34 +323,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       dplyr::select(-generation_details)
   }
 
-  # Add NA toxval_units_other column if it doesn't exist
-  if (!("toxval_units_other" %in% names(res))) {
-    res$toxval_units_other = as.character(NA)
-  }
-  # Add NA strain_other column if it doesn't exist
-  if (!("strain_other" %in% names(res))) {
-    res$strain_other = as.character(NA)
-  }
-  # Add NA exposure_route_other column if it doesn't exist
-  if (!("exposure_route_other" %in% names(res))) {
-    res$exposure_route_other = as.character(NA)
-  }
-  # Add NA organ_system column if it doesn't exist
-  if (!("organ_system" %in% names(res))) {
-    res$organ_system = as.character(NA)
-  }
-  # Add NA target_organ column if it doesn't exist
-  if (!("target_organ" %in% names(res))) {
-    res$target_organ = as.character(NA)
-  }
-  # Add NA hazard_category column if it doesn't exist
-  if (!("hazard_category" %in% names(res))) {
-    res$hazard_category = as.character(NA)
-  }
-  # Add NA critical_effect column if it doesn't exist
-  if (!("critical_effect" %in% names(res))) {
-    res$exposure_route_other = as.character(NA)
-  }
+  # Add specified NA columns if they don't exist
+  na_missing_cols = c("toxval_units_other", "strain_other", "exposure_route_other", "organ_system",
+                      "target_organ", "hazard_category", "critical_effect", "study_duration_class",
+                      "chemical.ec_number", "toxval_numeric_qualifier")
+  res[, na_missing_cols[!na_missing_cols %in% names(res)]] = as.character(NA)
 
   # Add special toxval_units "score" case for certain OHTs
   if (subf %in% c("iuclid_eyeirritation", "iuclid_skinirritationcorrosion", "iuclid_skinsensitisation")) {
@@ -429,10 +406,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       )
   }
 
-  # Handle case where toxval_numeric_qualifier is not supplied
-  if(!("toxval_numeric_qualifier" %in% names(res))) {
-    res$toxval_numeric_qualifier = as.character(NA)
-  }
   # Handle case where only toxval_numeric_qualifier is supplied
   if(!("toxval_qualifier_upper" %in% names(res) & "toxval_qualifier_lower" %in% names(res))) {
     # Set both upper and lower qualifiers to single qualifier supplied
@@ -474,15 +447,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                     gsub("\\(Lower Range\\)|\\(Upper Range\\)", "", .) %>%
                     stringr::str_squish() %>%
                     as.numeric())
-
-  # Handle case where study_duration_class is not supplied
-  if(!("study_duration_class" %in% names(res))) {
-    res$study_duration_class = as.character(NA)
-  }
-  # Handle case where EC number is not supplied
-  if(!("chemical.ec_number" %in% names(res))) {
-    res$chemical.ec_number = as.character(NA)
-  }
 
   res = res %>%
     dplyr::mutate(
@@ -545,51 +509,20 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   res = res %>%
     # Conduct most cleaning operations after dropping rows to improve runtime
     dplyr::mutate(
-      # Clean critical_effect column
-      critical_effect = critical_effect %>%
-        gsub("Results:|other:|not specified", "", ., ignore.case=TRUE) %>%
-        gsub("\\|+", "\\|", .) %>%
-        stringr::str_replace("^\\||\\|$", "") %>%
-        stringr::str_squish() %>%
-        dplyr::na_if("") %>%
-        dplyr::na_if(" ") %>%
-        dplyr::na_if(":") %>%
-        dplyr::na_if("table"),
-      # Clean organ_system column
-      organ_system = organ_system %>%
-        gsub("Results:|other:|not specified", "", ., ignore.case=TRUE) %>%
-        gsub("\\|+", "\\|", .) %>%
-        stringr::str_replace("^\\||\\|$", "") %>%
-        stringr::str_squish() %>%
-        dplyr::na_if("") %>%
-        dplyr::na_if(" ") %>%
-        dplyr::na_if(":") %>%
-        dplyr::na_if("table"),
-      # Clean target_organ column
-      target_organ = target_organ %>%
-        gsub("Results:|other:|not specified", "", ., ignore.case=TRUE) %>%
-        gsub("\\|+", "\\|", .) %>%
-        stringr::str_replace("^\\||\\|$", "") %>%
-        stringr::str_squish() %>%
-        dplyr::na_if("") %>%
-        dplyr::na_if(" ") %>%
-        dplyr::na_if(":") %>%
-        dplyr::na_if("table"),
-      # Clean hazard_category column
-      hazard_category = hazard_category %>%
-        gsub("Results:|other:|not specified", "", ., ignore.case=TRUE) %>%
-        gsub("\\|+", "\\|", .) %>%
-        stringr::str_replace("^\\||\\|$", "") %>%
-        stringr::str_squish() %>%
-        dplyr::na_if("") %>%
-        dplyr::na_if(" ") %>%
-        dplyr::na_if(":") %>%
-        dplyr::na_if("table"),
+      dplyr::across(c("critical_effect", "organ_system", "target_organ", "hazard_category"),
+                    ~stringr::str_replace(., stringr::regex("Results:|other:|not specified", ignore_case=TRUE), "") %>%
+                      stringr::str_replace("\\|+", "\\|") %>%
+                      stringr::str_replace("^\\||\\|$", "") %>%
+                      stringr::str_squish() %>%
+                      dplyr::na_if("") %>%
+                      dplyr::na_if(" ") %>%
+                      dplyr::na_if(":") %>%
+                      dplyr::na_if("table")),
 
       # Add fields to track PND/GD units (units removed from string to improve handling)
       pnd_or_gd = dplyr::case_when(
         grepl("PND|post\\-?natal day", study_duration_units, ignore.case=TRUE) ~ "PND",
-        grepl("GD|gestation day", study_duration_units, ignore.case=TRUE) ~ "GD",
+        grepl("GD|gestation day|days.+of gestation", study_duration_units, ignore.case=TRUE) ~ "GD",
         TRUE ~ as.character(NA)
       ),
 
