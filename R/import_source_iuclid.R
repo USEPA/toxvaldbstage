@@ -133,13 +133,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                                source_table, "_", Sys.Date(),".xlsx"))
   }
 
-  # Old approach, did not account for multiple toxval fields mapped to same field
-  # res <- res0 %>%
-  #   # # Copy columns and rename new columns
-  #   # dplyr::rename(dplyr::all_of(tmp)) %>%
-  #   # Select only to mapped ToxVal fields
-  #   dplyr::select(dplyr::any_of(tmp))
-
   res = res0
   # https://stackoverflow.com/questions/68959057/using-mutate-to-create-column-copies-using-a-named-vector
   # Required for cases where same field is mapped to multiple toxval fields (e.g., exposure_route and method)
@@ -155,9 +148,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   }
 
   # Unite duplicate columns with numbered stems
-  for (field in map$to[grepl("_1\\b", map$to) & map$to %in% names(res)]) {
-    if(grepl("F1|F2|P0|P1", field)) next
-    core_field = gsub("_1", "", field)
+  for (field in map$to[stringr::str_detect(map$to, "_1$") & map$to %in% names(res)]) {
+    # Handle unique toxicityreproduction field mappings
+    if(grepl("F1|F2|P0|P1", field)) {
+      if(!stringr::str_detect(field, "_[0-9]+_[0-9]$")) next
+    }
+
+    # Combine fields, separated by "|"
+    core_field = stringr::str_replace(field, "_1$", "")
     cat("...Combining duplicate column mapping: ", core_field, "\n")
     res = res %>%
       tidyr::unite(
@@ -1056,6 +1054,30 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   if(!"media" %in% names(res)){
     message("Media field is missing a mapping, defaulting to blank for now...")
     res$media = "-"
+  }
+
+  # Add DCAP "notes" to critical_effect for specified OHTs
+  if(subf %in% c("iuclid_toxicityreproduction", "iuclid_developmentaltoxicityteratogenicity")) {
+    res = res %>%
+      dplyr::mutate(
+        dcap_notes = stringr::str_extract(generation, "(maternal|fetus|(?:P|F)[0-2])", group=1)
+      ) %>%
+      tidyr::unite("critical_effect", dcap_notes, critical_effect, sep=": ", remove=TRUE, na.rm=TRUE) %>%
+      dplyr::mutate(
+        critical_effect = critical_effect %>%
+          stringr::str_squish() %>%
+          dplyr::na_if("") %>%
+          dplyr::na_if(" ") %>%
+          dplyr::na_if("-") %>%
+          dplyr::na_if(":") %>%
+          dplyr::na_if("") %>%
+          dplyr::na_if("P0:") %>%
+          dplyr::na_if("P1:") %>%
+          dplyr::na_if("F0:") %>%
+          dplyr::na_if("F1:") %>%
+          dplyr::na_if("maternal:") %>%
+          dplyr::na_if("fetus:")
+      )
   }
 
   # Standardize the names
