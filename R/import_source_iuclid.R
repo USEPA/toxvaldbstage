@@ -597,6 +597,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       study_duration_raw = study_duration_units,
       study_duration = study_duration_raw %>%
         gsub("\\b0,([0-9]+\\b)", "0.\\1", .) %>%
+        gsub("(?:[0-9\\.]+,\\s*)*(?:[0-9\\.]+\\s*(?:and|or)\\s*)?[0-9\\.]+\\s*(?:mg|kg|ppm|mg\\/kg)", "", .) %>%
         gsub(",", "", .) %>%
         gsub("[0-9\\.]+%", "", .) %>%
         gsub("FR\\-513", "", .) %>%
@@ -635,9 +636,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("\\-\\s*day", " day", ., ignore.case=TRUE) %>%
         gsub("\\-\\s*month", " month", ., ignore.case=TRUE) %>%
         gsub("\\-\\s*year", " year", ., ignore.case=TRUE) %>%
+        gsub("[0-9]+ (?:hour|day|week|month|year)s? longer than", "", .) %>%
         gsub("(?:observed|examined|recorded)\\s*for.+[0-9\\.]+.+?[hdwmy]", "", .) %>%
         gsub("observation (?:for a )?period of\\s*.+[0-9\\.]+.+?[hdwmy]", "", .) %>%
         gsub("observation (?:for|time):?\\s*[0-9\\.]+.+?[hdwmy]", "", .) %>%
+        gsub("\\b(?:f|p)[0-2]\\b", "", .) %>%
+        gsub("[0-9]+ applications", "", .) %>%
         gsub("[0-9\\.]+\\s*(?:hour|day|week|month|year)s?\\s*(?:post\\-?)?\\s*observation", "", .) %>%
         gsub("groups? of [0-9]+", "", .) %>%
         gsub("[0-9]+\\s*(?:hour|day|week|month|year)s?\\s*(?:post|pre)?\\s*\\-?\\s*mating", "", .) %>%
