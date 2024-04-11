@@ -601,8 +601,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("[0-9\\.]+%", "", .) %>%
         gsub("FR\\-513", "", .) %>%
         tolower() %>%
+        gsub("zeofree 80", "", .) %>%
         gsub("birth to\\b", "", .) %>%
         gsub("([0-9]+\\.?[0-9]*)(h|d|w|m|y)", "\\1 \\2", ., ignore.case=TRUE) %>%
+        gsub("(?:[0-9\\.]+,\\s*)*(?:[0-9\\.]+\\s*and\\s*)?[0-9\\.]+\\s*(?:mg|kg|ppm|mg\\/kg)", "", .) %>%
         gsub("[0-9]+\\.?[0-9]*\\s*\\(?(?:mg|kg|ppm|mg\\kg)\\)?,?", "", .) %>%
         gsub("1 single exposure", "", .) %>%
         gsub("hafter", "h after", .) %>%
@@ -641,7 +643,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("[0-9]+\\s*(?:hour|day|week|month|year)s?\\s*(?:post|pre)?\\s*\\-?\\s*mating", "", .) %>%
         gsub("day\\s*[0-9]+\\s*(?:to|until|up to|through|\\-)\\s*day\\s*[0-9]+", "", .) %>%
         gsub("day\\s*[0-9]+", "", .) %>%
-        gsub("dose levels? of.+(?:mg|kg|ppm|mg\\kg)", "", .) %>%
+        gsub("dose levels? of.+(?:mg|kg|ppm|mg\\/kg)", "", .) %>%
         gsub("groups?\\s*[0-9]+\\s*(?:to|through|and)?\\s*[0-9]*(?:,\\s*[0-9]+)?", "", .) %>%
         gsub("[0-9]+\\s*days\\s*(?:before|after)\\s*mating", "", .) %>%
         gsub("(?:examinations|observations|results):.+", "", .) %>%
