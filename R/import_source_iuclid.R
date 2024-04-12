@@ -1031,7 +1031,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       dplyr::filter(toxval_type %in% c("dose level", "conc. level"))
 
     # Use deduping function to collapse just critical_effect
-    dose_conc_hash_Cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))],
+    dose_conc_hash_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))],
                             "endpoint_uuid")
     dose_conc_res = toxval.source.import.dedup(dose_conc_res,
                                                hashing_cols=dose_conc_hash_cols) %>%
@@ -1110,9 +1110,10 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
 
-  #####################################################################
-  cat("Load the data\n")
-  #####################################################################
+  # save(res, res0, file=paste0("../../Downloads/iuclid_import_check/", subf, ".RData"))
+  # #####################################################################
+  # cat("Load the data\n")
+  # #####################################################################
   source_prep_and_load(db=db,
                        source=source,
                        table=source_table,
