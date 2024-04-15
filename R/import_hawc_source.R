@@ -191,14 +191,6 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   res[injection_vals, "exposure_method"] <- gsub("(.*\\s+)(injection)","\\2",res[injection_vals, "exposure_method"])
   res$exposure_method <- tolower(res$exposure_method)
 
-  ######### fix study duration value and units
-  #set all developmental records to NA as not to misrepresent the data
-  res <- res %>%
-    dplyr::mutate(
-      study_duration_value = ifelse(study_type == "developmental", NA, study_duration_value),
-      study_duration_units = ifelse(study_type == "developmental", NA, study_duration_units),
-      study_duration_units = ifelse(study_duration_units == "GD 0 until GD 0", NA, study_duration_value)
-    )
   #hour vals
   hour_vals <- grep("hour", res$study_duration_value, ignore.case = T)
   res[hour_vals,"study_duration_units"] <- "hour"
@@ -381,6 +373,23 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
         TRUE ~ study_duration_value
       ),
 
+      ######### fix study duration value and units
+      #set all developmental records to NA as not to misrepresent the data
+      study_duration_value = dplyr::case_when(
+        study_type == "developmental" ~ NA,
+        study_duration_value == "GD 0 until GD 0" ~ NA,
+        exposure_duration_text == "GD 0 until GD 0" ~ NA,
+        grepl("GD0 through lactation", study_duration_value) ~ NA,
+        TRUE ~ study_duration_value
+      ),
+      study_duration_units = dplyr::case_when(
+        study_type == "developmental" ~ NA,
+        study_duration_units == "GD 0 until GD 0" ~ NA,
+        exposure_duration_text == "GD 0 until GD 0" ~ NA,
+        grepl("GD0 through lactation", study_duration_units) ~ NA,
+        TRUE ~ study_duration_units
+      ),
+
       # Remove excess whitespace and fix unicode
       dplyr::across(dplyr::where(is.character), fix.replace.unicode),
       dplyr::across(dplyr::where(is.character), stringr::str_squish)
@@ -402,8 +411,10 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   # res = toxval.source.import.dedup(res)
   # Use deduping function to improve collapse behavior for critical_effect
   # dedup_fields = c("critical_effect", names(res %>% dplyr::select(-dplyr::any_of(toxval.config()$hashing_cols))))
-  hashing_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))],
-                   "dosing_regime_id", "experiment_url")
+  hashing_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]# ,
+                   # "dosing_regime_id",
+                   # "experiment_url"
+                   )
   res = toxval.source.import.dedup(res, hashing_cols=hashing_cols) %>%
     # Replace "|::|" in critical_effect with "|" delimiter
     dplyr::mutate(
@@ -425,7 +436,3 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
