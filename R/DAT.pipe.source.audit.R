@@ -35,13 +35,17 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
     live_dat = live_df %>%
       readxl::read_xlsx() %>%
       # Remove QC fields that will be repopulated in this workflow
-      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))],
+      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))] %>%
+      # Fill NA character fields with "-"
+      dplyr::mutate(dplyr::across(where(is.character), ~tidyr::replace_na(., "-"))),
     audit_dat = audit_df %>%
       readxl::read_xlsx() %>%
       dplyr::rename(src_tbl_name=dataset_name) %>%
       dplyr::mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name)) %>%
       # Remove QC fields that will be repopulated in this workflow
-      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))]
+      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))] %>%
+      # Fill NA character fields with "-"
+      dplyr::mutate(dplyr::across(where(is.character), ~tidyr::replace_na(., "-")))
   )
 
   # Add back columns removed from QC data
@@ -190,6 +194,46 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # Export intermediate before push
   writexl::write_xlsx(list(live=live, audit=audit),
                       paste0(toxval.config()$datapath,"QC Pushed/", source_table,"_QC_push_",Sys.Date(),".xlsx"))
+
+  # Check for needed schema changes
+  src_fields_mismatch = set_field_SQL_type(src_f = live) %>%
+    str_split("\n") %>%
+    unlist() %>%
+    data.frame(src_field = .) %>%
+    dplyr::mutate(src_field = src_field %>%
+                    gsub("`", "",.) %>%
+                    sub('COLLATE.*', '', .) %>%
+                    sub('DEFAULT.*', '', .) %>%
+                    sub(", ", ",", .) %>%
+                    stringr::str_squish() %>%
+                    tolower()) %>%
+    tidyr::separate(src_field, into = c("field_name", "field_type"),
+                    sep=" ",
+                    fill="left",
+                    extra="merge") %>%
+    dplyr::filter(!field_name %in% toxval.config()$non_hash_cols) %>%
+    dplyr::left_join(
+      runQuery(paste0("SELECT COLUMN_NAME as field_name, COLUMN_TYPE as db_field_type ",
+                      "FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '", source_table, "' ",
+                      "AND TABLE_SCHEMA = '", db,"'"), db),
+      by = "field_name"
+    ) %>%
+    dplyr::mutate(mismatch = field_type != db_field_type) %>%
+    dplyr::filter(mismatch == TRUE)
+
+  if(nrow(src_fields_mismatch)){
+    stop("Need to address field type mismatch to avoid truncation of fields...")
+  }
+
+  # Check if triggers are active
+  trigger_check = runQuery(paste0("SHOW TRIGGERS"), db) %>%
+    dplyr::filter(grepl("audit_bu|update_bu", Trigger),
+                  Table %in% c(source_table))
+
+  # Expecting 2 triggers for audit to be active
+  if(nrow(trigger_check) != 2){
+    stop("Ensure audit triggers are active!")
+  }
 
   # Push live and audit table changes
   # runInsertTable(mat=audit, table="source_audit", db=db, get.id = FALSE)
