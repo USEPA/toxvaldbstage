@@ -95,7 +95,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
 
   # Correct version numbers based on parent hash version in toxval_source
   v_list = runQuery(paste0("SELECT source_hash, version as parent_version FROM ",
-                           audit$src_tbl_name %>% unique()), db)
+                           source_table), db)
   # Based on toxval_source parent_hash, increment up
   audit = audit %>%
     dplyr::left_join(v_list, by=c("parent_hash" = "source_hash")) %>%
@@ -233,6 +233,11 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # Expecting 2 triggers for audit to be active
   if(nrow(trigger_check) != 2){
     stop("Ensure audit triggers are active!")
+  }
+
+  # Check missing audit fields
+  if(length(audit_fields[!audit_fields %in% names(audit)])){
+    stop("Audit potentially missing needed fields")
   }
 
   # Push live and audit table changes
