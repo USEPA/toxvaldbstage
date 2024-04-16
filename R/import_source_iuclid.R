@@ -175,11 +175,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Handle fetus and maternal fields separately, tracking origin with generation
     res_fetus = res %>%
       dplyr::select(-tidyselect::starts_with("maternal_")) %>%
-      dplyr::mutate(life_stage="fetus") %>%
+      dplyr::mutate(lifestage="fetus") %>%
       dplyr::rename_with(function(x) gsub("fetus_", "", x))
     res_maternal = res %>%
       dplyr::select(-tidyselect::starts_with("fetus_")) %>%
-      dplyr::mutate(life_stage="maternal") %>%
+      dplyr::mutate(lifestage="maternal") %>%
       dplyr::rename_with(function(x) gsub("maternal_", "", x))
 
     # Recombine fetus and maternal data
@@ -1000,7 +1000,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$media = "-"
   }
 
-  # Add generation/life_stage information to critical_effect for specified OHTs
+  # Add generation/lifestage information to critical_effect for specified OHTs
   if(subf %in% c("iuclid_toxicityreproduction", "iuclid_developmentaltoxicityteratogenicity")) {
     if(subf == "iuclid_toxicityreproduction") {
       res = res %>% dplyr::mutate(
@@ -1008,7 +1008,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       )
     } else {
       res = res %>% dplyr::mutate(
-        dcap_notes = stringr::str_extract(life_stage, "(maternal|fetus)", group=1)
+        dcap_notes = stringr::str_extract(lifestage, "(maternal|fetus)", group=1)
       )
     }
 
