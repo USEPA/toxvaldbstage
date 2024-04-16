@@ -256,8 +256,7 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
       # Replace critical_effect field "-" with NA
       critical_effect = critical_effect %>% dplyr::na_if("-"),
       target_organ = target_organ %>% dplyr::na_if("-"),
-      generation = generation %>% dplyr::na_if("-"),
-      critical_effect_original = critical_effect
+      generation = generation %>% dplyr::na_if("-")
     ) %>%
     tidyr::unite("toxval_type", toxval_type, toxval_type_2,
                  sep = " (",
