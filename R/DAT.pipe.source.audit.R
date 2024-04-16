@@ -71,6 +71,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # Identifiers excluded from source_hash generation
   hash_id_list = append(id_list, toxval.config()$non_hash_cols) %>%
     unique()
+  stop("Ensure hashing ID list matches this source's specific hashing column needs from import!")
 
   # Removing version which is part of source_hash generation
   # hash_id_list = hash_id_list[!hash_id_list %in% c("version")]
@@ -134,7 +135,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
                   qc_notes = data_record_annotation,
                   qc_flags = failure_reason,
                   created_by = create_by) %>%
-    select(any_of(audit_fields))
+    select(any_of(c(audit_fields, "source_version_date")))
 
   # Rename columns as needed
   # Select columns from source_table
@@ -162,13 +163,21 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   source_name <- runQuery(paste0("SELECT source FROM chemical_source_index WHERE source_table = '", source_table,"'"),
                           db=db)[[1]]
   # Re-hash chemical information
-  live = source_chemical.process(db = db,
-                                 res = live,
-                                 source = source_name,
-                                 table = source_table,
-                                 chem.check.halt = FALSE,
-                                 casrn.col = "casrn",
-                                 name.col = "name")
+  live_chems = source_chemical.process(db = db,
+                                       res = live %>%
+                                         dplyr::select(casrn, name) %>%
+                                         dplyr::distinct(),
+                                       source = source_name,
+                                       table = source_table,
+                                       chem.check.halt = FALSE,
+                                       casrn.col = "casrn",
+                                       name.col = "name")
+
+  # Map back chemical information to all records
+  live <- live %>%
+    left_join(live_chems %>%
+                dplyr::select(-chemical_index),
+              by = c("name", "casrn"))
 
   # Check combinations between chemical_id, parent_chemical_id, and old_parent_chemical_id
   # live %>% select(chemical_id, parent_chemical_id, old_parent_chemical_id) %>% distinct()
