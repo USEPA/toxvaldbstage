@@ -435,7 +435,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Add summary data to df before prep and load
   if(do.summary_data){
     # Import manually curated IRIS Summary information
-    res1 <- iris_data$source_iris_summary_curation_20240308.xlsx %>%
+    res1 <- iris_data$source_iris_summary_curation.xlsx %>%
       dplyr::mutate(
         document_type = 'IRIS Summary',
         key_finding = 'No',
@@ -513,7 +513,12 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                  remove = FALSE,
                  na.rm = TRUE) %>%
     dplyr::mutate(toxval_subtype = toxval_subtype %>%
-                    dplyr::na_if(""))
+                    dplyr::na_if(""),
+                  sex = dplyr::case_when(
+                    grepl("^male;", sex) ~ "male/female",
+                    grepl("not reported", sex, ignore.case=TRUE) ~ "not reported",
+                    TRUE ~ sex
+                  ))
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
