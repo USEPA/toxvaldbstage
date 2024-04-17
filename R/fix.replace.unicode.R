@@ -122,9 +122,9 @@ fix.replace.unicode <- function(df) {
             "\u03f9", "\u1d6ba", "\u1d6f4", "\u1d72e", "\u1d768", "\u1d7a2")
 
   delta = c("<U+03B4>", "<U+0394>", "<U+1D6AB>", "<U+1D6E5>", "<U+1D71F>", "<U+1D759>", "<U+1D793>",
-            "<U+1D5F>", "<U+1D6C5>", "<U+1D6FF>", "<U+1D739>", "<U+1D773>", "<U+1D7AD>",
+            "<U+1D5F>", "<U+1D6C5>", "<U+1D6FF>", "<U+1D739>", "<U+1D773>", "<U+1D7AD>", "<U+00F0>",
             "\u03b4", "\u0394", "\u1d6ab", "\u1d6e5", "\u1d71f", "\u1d759", "\u1d793",
-            "\u1d5f", "\u1d6c5", "\u1d6ff", "\u1d739", "\u1d773", "\u1d7ad")
+            "\u1d5f", "\u1d6c5", "\u1d6ff", "\u1d739", "\u1d773", "\u1d7ad", "\u00f0")
 
   upsilon = c("\u03c5")
 
@@ -226,7 +226,8 @@ fix.replace.unicode <- function(df) {
     gsub("\u00ce\u00b1", "a", .) %>%
 
     # Handle dashes/bullets
-    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70|\u25a1|\u2756", "-", .) %>%
+    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70", "-", .) %>%
+    gsub("\u25a1|\u2756|\u00a8|\u00a4|\u00ad|\u25cf|\u00af", "-", .) %>%
 
     # Fix quotations and apostrophes
     gsub("\u201c|<U+201C>|\u201d|<U+201D>|\u201e", '"', .) %>%
@@ -249,6 +250,8 @@ fix.replace.unicode <- function(df) {
     gsub("\u00bf|<U+00BF>", "?", .) %>%
     gsub("\u2026|<U+2026>", "...", .) %>%
     gsub("\u02c6", "^", .) %>%
+    gsub("\u00a1", "!", .) %>%
+    gsub("\u201a", ",", .) %>%
 
     # Fix math symbols
     gsub("\u2265|<U+2265>", ">=", .) %>%
@@ -290,10 +293,7 @@ fix.replace.unicode <- function(df) {
     gsub("\uff5b", "{", .) %>%
 
     # Fix roman numeral 2
-    gsub("\u2161","II", .) %>%
-
-    # Fix fullwidth latin small letter o
-    gsub("\uff4f", "o", .) %>%
+    gsub("\u2161", "II", .) %>%
 
     # Fix fullwidth digit 1
     gsub("\uff11", 1, .) %>%
@@ -305,29 +305,36 @@ fix.replace.unicode <- function(df) {
     gsub("\uff17", 7, .) %>%
 
     # Fix divider
-    gsub("\u2223", "|", .) %>%
+    gsub("\u2223|\u00a6|\u2020", "|", .) %>%
 
     # Fix miscellaneous letters
     gsub("\u0067", "g", .) %>%
     gsub("\u00fc", "u", .) %>%
-    gsub("\u00a5", "y", .) %>%
-    gsub("\u00c2|\u00c3|\u00c4|\u0391", "A", .) %>%
-    gsub("\u00ba|\u00f6|\u00f8|\u00f2|\u00f3|\u00f4", "o", .) %>%
-    gsub("\u00e9|\u00e8", "e", .) %>%
-    gsub("\u00ce|\u00cf", "I", .) %>%
+    gsub("\u00a5|\u00fd", "y", .) %>%
+    gsub("\u0178|\u00dd", "Y", .) %>%
+    gsub("\u00c2|\u00c3|\u00c4|\u0391|\u00c1|\u00c0", "A", .) %>%
+    gsub("\u00ba|\u00f6|\u00f8|\u00f2|\u00f3|\u00f4|\uff4f|\u02da", "o", .) %>%
+    gsub("\u00d6", "O", .) %>%
+    gsub("\u00e9|\u00e8|\u00eb", "e", .) %>%
+    gsub("\u00ce|\u00cf|\u00cc", "I", .) %>%
     gsub("\u00e7", "c", .) %>%
-    gsub("\u00e2|\u00e4|\u00e1", "a", .) %>%
+    gsub("\u00e2|\u00e4|\u00e1|\u00e5|\u00e0|\u00e3", "a", .) %>%
     gsub("\ufb02", "fl", .) %>%
-    gsub("\u00c9", "E", .) %>%
-    gsub("\u00ef|\u00ec", "i", .) %>%
+    gsub("\u0192", "f", .) %>%
+    gsub("\u00c9|\u00ca", "E", .) %>%
+    gsub("\u00ef|\u00ec|\u00ee", "i", .) %>%
     gsub("\u00dc", "U", .) %>%
     gsub(" \u017e", "z", .) %>%
     gsub("\u0165", "t'", .) %>%
     gsub("\u0127", "h", .) %>%
     gsub("\u03a4", "T", .) %>%
+    gsub("\u00c6", "AE", .) %>%
 
     # Fix section sign
     gsub("\u00a7", "S", .) %>%
+
+    # Fix paragraph sign
+    gsub("\u00b6", "P", .) %>%
 
     # Fix arrows
     gsub("\u2192", "->", .) %>%
@@ -338,7 +345,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u2193", "", .) %>%
 
     # Remove unidentified characters
-    gsub("\ufffd", "", .)
+    gsub("\ufffd|\uf8e8|\ufeff|\uf6da|\uf06e|\uf020", "", .)
 
   # Identify and print unicode symbols that were not handled
   not_handled = df %>%
