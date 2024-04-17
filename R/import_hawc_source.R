@@ -115,7 +115,7 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
 
   # remove dose dict expressed as groups variable
   new_hawc_df <- new_hawc_df[,names(new_hawc_df)[names(new_hawc_df) != "groups"]]
-  names.list <- c("assessment","critical_effect","target","NOEL_original","LOEL_original",
+  names.list <- c("assessment","critical_effect","target_organ","NOEL_original","LOEL_original",
                   "FEL_original","endpoint_url_original","study_id","title","authors_short","author","year","journal",
                   "full_text_url","short_ref","long_ref","study_url_original","experiment_name","experiment_type",
                   "name","casrn","chemical_source","media","guideline_compliance",
@@ -236,80 +236,37 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   res[or_vals,"study_duration_units"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\4",res[or_vals,"study_duration_value"])
   res[or_vals,"study_duration_value"] <- gsub("(.*or\\s+)(\\d+)(\\s+)(\\w+)","\\2",res[or_vals,"study_duration_value"])
 
-  # #####################################################################
-  # cat("Collapse duplicated that just differ by critical effect \n")
-  # #####################################################################
-  # # critical_effect_map = res %>%
-  # #   dplyr::select(critical_effect,source_id,endpoint_url_original,endpoint_url,target) %>%
-  # #   tidyr::unite(col="critical_effect", target, critical_effect, sep = ": ", na.rm = TRUE) %>%
-  # #   dplyr::group_by(endpoint_url_original, endpoint_url) %>%
-  # #   dplyr::summarize(critical_effect = paste0(sort(critical_effect), collapse = "|")) %>%
-  # #   dplyr::ungroup()
-  #
-  # res2 = res[,!names(res)%in%c("critical_effect","source_id","endpoint_url_original","endpoint_url","target")]
-  # cat(nrow(res),"\n")
-  # res2$hashkey = NA
-  # for(i in 1:nrow(res2)) {
-  #   hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
-  #   res2[i,"hashkey"] = hashkey
-  #   res[i,"hashkey"] = hashkey
-  # }
-  # res2 = unique(res2)
-  # res2$critical_effect = NA
-  # for(i in 1:nrow(res2)) {
-  #   hashkey = res2[i,"hashkey"]
-  #   res3 = res[res$hashkey==hashkey,]
-  #   x = res3$target
-  #   y = res3$critical_effect
-  #   ce = ""
-  #   for(j in 1:length(x)) {
-  #     # Skip blank entries
-  #     if(is.na(x[j]) & is.na(y[j])){
-  #       next
-  #     } else if (is.na(x[j])){
-  #       ce=paste0(ce,y[j],"|")
-  #     } else if (is.na(y[j])){
-  #       ce=paste0(ce,x[j],"|")
-  #     } else {
-  #       if(grepl(paste0(x[j], ":"), y[j])) {
-  #         ce=paste0(ce,y[j],"|")
-  #       } else {
-  #         ce=paste0(ce,x[j],":",y[j],"|")
-  #       }
-  #     }
-  #   }
-  #   ce = substr(ce,1,(nchar(ce)-1))
-  #   res2[i,"critical_effect"] = ce
-  # }
-  # res2$source_id = NA
-  # res2$endpoint_url_original = NA
-  # res2$endpoint_url = NA
-  # res2$target = NA
-  # res2 = res2[,!names(res2)%in%c("hashkey")]
-  # res = res2
-  # cat(nrow(res),"\n")
-
   res = res %>%
-    tidyr::unite("critical_effect", critical_effect, target,
-                 sep = ": ",
-                 na.rm=TRUE) %>%
-    # Add additional toxval_type details from units
-    dplyr::mutate(toxval_type_2 = toxval_units %>%
-                    stringr::str_extract("TAD|HED") %>%
-                    paste0(")") %>%
-                    gsub("NA\\)", NA, .),
-                  toxval_units = toxval_units %>%
-                    gsub("TAD|HED", "", .) %>%
-                    stringr::str_squish(),
-                  # Lowercase species
-                  species = species %>%
-                    tolower(),
-                  sex = sex %>%
-                    gsub("Combined", "male/female", .) %>%
-                    tolower()) %>%
+    dplyr::mutate(
+      # Add additional toxval_type details from units
+      toxval_type_2 = toxval_units %>%
+        stringr::str_extract("TAD|HED") %>%
+        paste0(")") %>%
+        gsub("NA\\)", NA, .),
+      toxval_units = toxval_units %>%
+        gsub("TAD|HED", "", .) %>%
+        stringr::str_squish(),
+      # Lowercase species
+      species = species %>%
+        tolower(),
+      sex = sex %>%
+        gsub("Combined", "male/female", .) %>%
+        tolower(),
+
+      # Replace critical_effect field "-" with NA
+      critical_effect = critical_effect %>% dplyr::na_if("-"),
+      target_organ = target_organ %>% dplyr::na_if("-"),
+      generation = generation %>% dplyr::na_if("-")
+    ) %>%
     tidyr::unite("toxval_type", toxval_type, toxval_type_2,
                  sep = " (",
                  na.rm=TRUE) %>%
+
+    # Build critical_effect value in form generation: target_organ: critical_effect
+    tidyr::unite("critical_effect", generation, target_organ, critical_effect,
+                 sep = ": ",
+                 na.rm=TRUE,
+                 remove=FALSE) %>%
 
     # Remove "unknown" values
     dplyr::mutate(dplyr::across(c(species, strain, sex, study_type, exposure_route, exposure_method),
