@@ -284,9 +284,10 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
     tidyr::drop_na(species, study_type, exposure_route) %>%
 
     dplyr::mutate(
-      # Extract toxval_subtype from toxal_type
-      toxval_subtype = stringr::str_extract(toxval_type, "HED|TAD"),
-      toxval_type = gsub(" \\(.+", "", toxval_type),
+      # Uncomment if splitting toxval_subtype from toxval_type
+      # # Extract toxval_subtype from toxal_type
+      # toxval_subtype = stringr::str_extract(toxval_type, "HED|TAD"),
+      # toxval_type = gsub(" \\(.+", "", toxval_type),
 
       # Clean toxval_units
       toxval_units = toxval_units %>%
