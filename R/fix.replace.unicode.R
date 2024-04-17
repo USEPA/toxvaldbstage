@@ -326,6 +326,9 @@ fix.replace.unicode <- function(df) {
     gsub("\u0127", "h", .) %>%
     gsub("\u03a4", "T", .) %>%
 
+    # Fix section sign
+    gsub("\u00a7", "S", .) %>%
+
     # Fix arrows
     gsub("\u2192", "->", .) %>%
     gsub("\u2191|\u25b3", "^", .) %>%

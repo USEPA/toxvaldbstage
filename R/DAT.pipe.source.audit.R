@@ -35,13 +35,17 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
     live_dat = live_df %>%
       readxl::read_xlsx() %>%
       # Remove QC fields that will be repopulated in this workflow
-      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))],
+      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))] %>%
+      # Fill NA character fields with "-"
+      dplyr::mutate(dplyr::across(where(is.character), ~tidyr::replace_na(., "-"))),
     audit_dat = audit_df %>%
       readxl::read_xlsx() %>%
       dplyr::rename(src_tbl_name=dataset_name) %>%
       dplyr::mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name)) %>%
       # Remove QC fields that will be repopulated in this workflow
-      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))]
+      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))] %>%
+      # Fill NA character fields with "-"
+      dplyr::mutate(dplyr::across(where(is.character), ~tidyr::replace_na(., "-")))
   )
 
   # Add back columns removed from QC data
@@ -71,6 +75,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # Identifiers excluded from source_hash generation
   hash_id_list = append(id_list, toxval.config()$non_hash_cols) %>%
     unique()
+  stop("Ensure hashing ID list matches this source's specific hashing column needs from import!")
 
   # Removing version which is part of source_hash generation
   # hash_id_list = hash_id_list[!hash_id_list %in% c("version")]
@@ -90,7 +95,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
 
   # Correct version numbers based on parent hash version in toxval_source
   v_list = runQuery(paste0("SELECT source_hash, version as parent_version FROM ",
-                           audit$src_tbl_name %>% unique()), db)
+                           source_table), db)
   # Based on toxval_source parent_hash, increment up
   audit = audit %>%
     dplyr::left_join(v_list, by=c("parent_hash" = "source_hash")) %>%
@@ -134,7 +139,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
                   qc_notes = data_record_annotation,
                   qc_flags = failure_reason,
                   created_by = create_by) %>%
-    select(any_of(audit_fields))
+    select(any_of(c(audit_fields, "source_version_date")))
 
   # Rename columns as needed
   # Select columns from source_table
@@ -162,13 +167,21 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   source_name <- runQuery(paste0("SELECT source FROM chemical_source_index WHERE source_table = '", source_table,"'"),
                           db=db)[[1]]
   # Re-hash chemical information
-  live = source_chemical.process(db = db,
-                                 res = live,
-                                 source = source_name,
-                                 table = source_table,
-                                 chem.check.halt = FALSE,
-                                 casrn.col = "casrn",
-                                 name.col = "name")
+  live_chems = source_chemical.process(db = db,
+                                       res = live %>%
+                                         dplyr::select(casrn, name) %>%
+                                         dplyr::distinct(),
+                                       source = source_name,
+                                       table = source_table,
+                                       chem.check.halt = FALSE,
+                                       casrn.col = "casrn",
+                                       name.col = "name")
+
+  # Map back chemical information to all records
+  live <- live %>%
+    left_join(live_chems %>%
+                dplyr::select(-chemical_index),
+              by = c("name", "casrn"))
 
   # Check combinations between chemical_id, parent_chemical_id, and old_parent_chemical_id
   # live %>% select(chemical_id, parent_chemical_id, old_parent_chemical_id) %>% distinct()
@@ -181,6 +194,51 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # Export intermediate before push
   writexl::write_xlsx(list(live=live, audit=audit),
                       paste0(toxval.config()$datapath,"QC Pushed/", source_table,"_QC_push_",Sys.Date(),".xlsx"))
+
+  # Check for needed schema changes
+  src_fields_mismatch = set_field_SQL_type(src_f = live) %>%
+    str_split("\n") %>%
+    unlist() %>%
+    data.frame(src_field = .) %>%
+    dplyr::mutate(src_field = src_field %>%
+                    gsub("`", "",.) %>%
+                    sub('COLLATE.*', '', .) %>%
+                    sub('DEFAULT.*', '', .) %>%
+                    sub(", ", ",", .) %>%
+                    stringr::str_squish() %>%
+                    tolower()) %>%
+    tidyr::separate(src_field, into = c("field_name", "field_type"),
+                    sep=" ",
+                    fill="left",
+                    extra="merge") %>%
+    dplyr::filter(!field_name %in% toxval.config()$non_hash_cols) %>%
+    dplyr::left_join(
+      runQuery(paste0("SELECT COLUMN_NAME as field_name, COLUMN_TYPE as db_field_type ",
+                      "FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '", source_table, "' ",
+                      "AND TABLE_SCHEMA = '", db,"'"), db),
+      by = "field_name"
+    ) %>%
+    dplyr::mutate(mismatch = field_type != db_field_type) %>%
+    dplyr::filter(mismatch == TRUE)
+
+  if(nrow(src_fields_mismatch)){
+    stop("Need to address field type mismatch to avoid truncation of fields...")
+  }
+
+  # Check if triggers are active
+  trigger_check = runQuery(paste0("SHOW TRIGGERS"), db) %>%
+    dplyr::filter(grepl("audit_bu|update_bu", Trigger),
+                  Table %in% c(source_table))
+
+  # Expecting 2 triggers for audit to be active
+  if(nrow(trigger_check) != 2){
+    stop("Ensure audit triggers are active!")
+  }
+
+  # Check missing audit fields
+  if(length(audit_fields[!audit_fields %in% names(audit)])){
+    stop("Audit potentially missing needed fields")
+  }
 
   # Push live and audit table changes
   # runInsertTable(mat=audit, table="source_audit", db=db, get.id = FALSE)
