@@ -392,18 +392,18 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
       year = as.integer(year),
 
       # Comment out if splitting toxval_type into toxval_subtype
-      toxval_type = toxval_type %>%
-        gsub("_less_serious", " Less Serious", .) %>%
-        gsub("_serious", " Serious", .),
+      # toxval_type = toxval_type %>%
+      #   gsub("_less_serious", " Less Serious", .) %>%
+      #   gsub("_serious", " Serious", .),
 
       # Uncomment if splitting toxval_type into toxval_subtype
-      # # Separate "less_serious" and "serious" into toxval_subtype
-      # toxval_subtype = dplyr::case_when(
-      #   grepl("_less_serious", toxval_type) ~ "Less Serious",
-      #   grepl("_serious", toxval_type) ~ "Serious",
-      #   TRUE ~ as.character(NA)
-      # ),
-      # toxval_type = gsub("_.+", "", toxval_type),
+      # Separate "less_serious" and "serious" into toxval_subtype
+      toxval_subtype = dplyr::case_when(
+        grepl("_less_serious", toxval_type) ~ "Less Serious",
+        grepl("_serious", toxval_type) ~ "Serious",
+        TRUE ~ as.character(NA)
+      ),
+      toxval_type = gsub("_.+", "", toxval_type),
 
       # Use information stored in ref to fix line with shifted data
       # Ref: Zhao Y, Tan YS, Haslam SZ, et al. 2010. Perfluorooctanoic

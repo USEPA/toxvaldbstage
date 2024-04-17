@@ -74,6 +74,14 @@ import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.re
       #   # gsub("modal", "", .) %>%
       #   stringr::str_squish(),
 
+      # Handle special NOEL EHMI case for toxval_type
+      toxval_type = dplyr::case_when(
+        toxval_type == "NOEL (EHMI)" ~ "EHMI (NOEL)",
+        # Uncomment if LOEL EHMI swap is desired
+        # toxval_type == "LOEL (EHMI)" ~ "EHMI (LOEL)",
+        TRUE ~ toxval_type
+      ),
+
       # Translate sex into M/F format
       sex = dplyr::case_when(
         sex == "male" ~ "M",
