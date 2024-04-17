@@ -524,27 +524,8 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
   hpvis_all_data[grep("SI", hpvis_all_data$hpvis_source_key), "new_study_type"] <- "skin irritation"
   hpvis_all_data[grep("SS", hpvis_all_data$hpvis_source_key), "new_study_type"] <- "skin sensitization"
   res = hpvis_all_data
-  nlist = c(
-    "hpvis_id","casrn","cas_key",
-    "name","name_key","toxval_type",
-    "toxval_numeric","toxval_numeric_qualifier","toxval_units",
-    "toxval_basis_for_concentration","toxval_upper_range","new_species",
-    "new_strain","new_route_of_administration","duration",
-    "duration_units","duration_index_name","year_study_performed",
-    "program_flag","consortium_name","glp",
-    "reliability","study_reference","hpvis_source_key",
-    "category_chemical_cas_number_c_c_cas_n","category_chemical_name_c_c_n","dose_remarks",
-    "key_study_sponsor_indicator","method_guideline_followed","reliability_remarks",
-    "results_remarks","sponsor_name","sponsored_chemical_cas_number_s_c_cas_n",
-    "sponsored_chemical_name_s_c_n","sponsored_chemical_result_type","submission_name",
-    "submitter_s_name","test_conditions_remarks","test_substance_cas_number_t_s_cas_n",
-    "test_substance_chemical_name_t_s_c_n","test_substance_purity","sex",
-    "type_of_exposure","study_type","population",
-    "new_study_type", "raw_input_file"
-  )
 
-
-  nlist = c(
+  nlist_prev = c(
     "hpvis_id","casrn",
     "name","toxval_type",
     "toxval_numeric","toxval_numeric_qualifier","toxval_units",
@@ -565,9 +546,7 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     "test_conditions_remarks",
     "submission_name","sponsor_name","submitter_s_name",
     "sponsored_chemical_result_type", "raw_input_file")
-  res = res[,nlist]
-
-  nlist = c(
+  nlist_new = c(
     "hpvis_id","casrn",
     "name","toxval_type",
     "toxval_numeric","toxval_numeric_qualifier","toxval_units",
@@ -588,7 +567,14 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     "test_conditions_remarks",
     "submission_name","sponsor_name","submitter_s_name",
     "sponsored_chemical_result_type", "raw_input_file")
-  names(res) = nlist
+  rename_list = setNames(nlist_prev, nlist_new)
+
+  res = res %>%
+    # Handle multiple studY_type fields
+    dplyr::rename(study_type_source = study_type) %>%
+    # Rename columns
+    dplyr::rename(!!rename_list)
+
   res = res[!is.na(res$toxval_numeric),]
   res = res[!is.na(res$casrn),]
   res = res[!is.na(res$name),]
@@ -642,6 +628,15 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       # Fix unicode symbols across DF
       dplyr::across(dplyr::where(is.character), fix.replace.unicode),
 
+      # Use test_substance for name/casrn
+      name_source = name,
+      casrn_source = casrn,
+      name = test_substance_chemical_name_t_s_c_n,
+      casrn = test_substance_cas_number_t_s_cas_n,
+
+      # Set blank character values as NA
+      dplyr::across(dplyr::where(is.character), ~dplyr::na_if(., "")),
+
       # Add assignments from previous load script
       long_ref = study_reference,
       quality = reliability,
@@ -653,6 +648,8 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         stringr::str_replace_all("other,|no data,", "") %>%
         stringr::str_replace_all(",multiple \\- see method remarks|,?\\s*see remarks", "") %>%
         stringr::str_replace(":$", "") %>%
+        stringr::str_replace("fresh wate?\\b", "fresh_water)") %>%
+        stringr::str_replace("zebra.fish", "zebrafish") %>%
         stringr::str_squish(),
       # Perform cleaning operations
       strain = strain %>%
@@ -664,6 +661,10 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       toxval_numeric_qualifier = toxval_numeric_qualifier %>%
         stringr::str_replace("circa", "~") %>%
         dplyr::na_if("between"),
+
+      toxval_units = toxval_units %>%
+        dplyr::na_if("Other") %>%
+        dplyr::na_if("No Data"),
 
       study_duration_value = dplyr::case_when(
         study_duration_units %in% c("Other", "No Data", as.character(NA), "") ~ NA,
@@ -684,14 +685,41 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         tolower(),
       generation = stringr::str_extract(population, "F[0-2]") %>%
         c() %>%
-        tolower(),
+        toupper(),
+
+      # Set invalid exposure_route entries as NA
+      exposure_route = exposure_route %>%
+        dplyr::na_if("Other") %>%
+        dplyr::na_if("No Data") %>%
+        dplyr::na_if("Unknown"),
 
       # Add range_relationship_id
       range_relationship_id = dplyr::row_number()
     ) %>%
-    # Uncomment if removal of "Unknown"/"Other"/"No Data" species is desired
-    dplyr::filter(!(species %in% c(# "other", "unknown", "no data",
-                                   as.character(NA), NULL, "")))
+    # Additional species filtering
+    dplyr::filter(!(species %in% c("other", "unknown", "no data", "not specified",
+                                   as.character(NA), NULL, ""))) %>%
+    # Remove entries without exposure_route
+    dplyr::filter(!is.na(exposure_route)) %>%
+
+    # Create properly formatted population field
+    tidyr::unite("population",
+                 sex, strain, species, generation,
+                 sep=" ",
+                 remove=FALSE,
+                 na.rm=TRUE) %>%
+    dplyr::mutate(
+      population = population %>%
+        gsub("\\b([FP][0-2])$", "\\(\\1\\)", .) %>%
+        gsub("Other|Unknown|no data|unknown|other|not specified", "", .) %>%
+        gsub(paste0("\\b(rat|dog|hamster|rabbit|pig|hen|cat|minnow|soybean|crab|cucumber|",
+                    "shell|earthworm|human|mammal|onion|arthropod|mollusc|plant|moorfrog|duck)\\b"),
+             "\\1s", .) %>%
+        gsub("\\bmouse\\b", "mice", .) %>%
+        gsub("\\btomato\\b", "tomatoes", .) %>%
+        stringr::str_squish() %>%
+        dplyr::na_if("")
+    )
 
   # Handle entries with upper ranges
   lower_range_res = res %>%
@@ -739,7 +767,6 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
 
 
 
