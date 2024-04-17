@@ -635,7 +635,8 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
 
   res = res %>%
     # Filter out null species and non-"Measured" sponsored_chemical_result_type
-    dplyr::filter(!(species %in% c(as.character(NA), NULL, ""))) %>%
+    dplyr::filter(!(species %in% c(as.character(NA), NULL, "")),
+                  sponsored_chemical_result_type %in% c("Measured")) %>%
 
     dplyr::mutate(
       # Fix unicode symbols across DF
@@ -687,10 +688,10 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
 
       # Add range_relationship_id
       range_relationship_id = dplyr::row_number()
-    ) # %>%
-
+    ) %>%
     # Uncomment if removal of "Unknown"/"Other"/"No Data" species is desired
-    # dplyr::filter(!(species %in% c("other", "unknown", "no data"))) %>%
+    dplyr::filter(!(species %in% c(# "other", "unknown", "no data",
+                                   as.character(NA), NULL, "")))
 
   # Handle entries with upper ranges
   lower_range_res = res %>%
