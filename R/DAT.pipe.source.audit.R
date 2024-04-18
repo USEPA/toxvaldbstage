@@ -191,6 +191,24 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # Ensure fields match source table fields
   live <- select(live, any_of(src_tbl_fields))
 
+  stop("Compare hash and redo hash as needed for live and rejoin to audit")
+  View(live %>%
+         select(source_hash, parent_hash) %>%
+         mutate(compare = source_hash == parent_hash) %>%
+         distinct())
+  View(audit %>%
+         select(fk_source_hash, parent_hash) %>%
+         mutate(compare = fk_source_hash == parent_hash) %>%
+         distinct())
+  audit$fk_source_hash[!audit$fk_source_hash %in% live$source_hash]
+  live$source_hash[!live$source_hash %in% audit$fk_source_hash]
+
+  audit = audit %>%
+    # dplyr::rename(fk_source_hash_old = fk_source_hash) %>%
+    dplyr::left_join(live %>%
+                       dplyr::select(parent_hash, fk_source_hash=source_hash),
+                     by="parent_hash")
+
   # Export intermediate before push
   writexl::write_xlsx(list(live=live, audit=audit),
                       paste0(toxval.config()$datapath,"QC Pushed/", source_table,"_QC_push_",Sys.Date(),".xlsx"))
@@ -254,7 +272,8 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
 ################################################################################
   updateQuery = paste0("UPDATE ", source_table," a INNER JOIN z_updated_df b ",
                        "ON (a.source_hash = b.source_hash) SET ",
-                       paste0("a.", names(live),  " = b.", names(live), collapse = ", ")
+                       paste0("a.", names(live)[!names(live) %in% c("source_id")],  " = b.",
+                              names(live)[!names(live) %in% c("source_id")], collapse = ", ")
   )
   # Update again (source_hash = source_hash) WITHOUT TRIGGERS to get true version in source_table
   # runUpdate(table=source_table, updateQuery=updateQuery, updated_df=live, db, trigger_check=FALSE)
