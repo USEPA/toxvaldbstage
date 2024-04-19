@@ -727,10 +727,7 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     dplyr::select(-toxval_upper_range) %>%
     dplyr::mutate(
       toxval_subtype = "Lower Range",
-      toxval_numeric_qualifier = dplyr::case_when(
-        !is.na(toxval_numeric_qualifier) ~ toxval_numeric_qualifier,
-        TRUE ~ ">="
-      )
+      toxval_numeric_qualifier = ">="
     )
   upper_range_res = res %>%
     dplyr::filter(!is.na(toxval_upper_range)) %>%
@@ -767,6 +764,3 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
