@@ -138,8 +138,9 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
                   version = audit_version,
                   qc_notes = data_record_annotation,
                   qc_flags = failure_reason,
-                  created_by = create_by) %>%
-    select(any_of(c(audit_fields, "source_version_date")))
+                  created_by = create_by,
+                  src_version_date = source_version_date) %>%
+    select(any_of(c(audit_fields, "src_version_date")))
 
   # Rename columns as needed
   # Select columns from source_table
@@ -209,10 +210,6 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
                        dplyr::select(parent_hash, fk_source_hash=source_hash),
                      by="parent_hash")
 
-  # Export intermediate before push
-  writexl::write_xlsx(list(live=live, audit=audit),
-                      paste0(toxval.config()$datapath,"QC Pushed/", source_table,"_QC_push_",Sys.Date(),".xlsx"))
-
   # Check for needed schema changes
   src_fields_mismatch = set_field_SQL_type(src_f = live) %>%
     str_split("\n") %>%
@@ -255,8 +252,13 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
 
   # Check missing audit fields
   if(length(audit_fields[!audit_fields %in% names(audit)])){
+    cat(paste0("- ", audit_fields[!audit_fields %in% names(audit)], "\n", collapse="\n"))
     stop("Audit potentially missing needed fields")
   }
+
+  # Export intermediate before push
+  writexl::write_xlsx(list(live=live, audit=audit),
+                      paste0(toxval.config()$datapath,"QC Pushed/", source_table,"_QC_push_",Sys.Date(),".xlsx"))
 
   # Push live and audit table changes
   # runInsertTable(mat=audit, table="source_audit", db=db, get.id = FALSE)
