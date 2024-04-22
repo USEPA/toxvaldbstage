@@ -369,10 +369,12 @@ import_hawc_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   # res = toxval.source.import.dedup(res)
   # Use deduping function to improve collapse behavior for critical_effect
   # dedup_fields = c("critical_effect", names(res %>% dplyr::select(-dplyr::any_of(toxval.config()$hashing_cols))))
+
   hashing_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]# ,
                    # "dosing_regime_id",
                    # "experiment_url"
                    )
+
   res = toxval.source.import.dedup(res, hashing_cols=hashing_cols) %>%
     # Replace "|::|" in critical_effect with "|" delimiter
     dplyr::mutate(

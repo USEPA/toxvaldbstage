@@ -391,6 +391,12 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
       toxval_numeric = as.numeric(toxval_numeric),
       year = as.integer(year),
 
+      # Comment out if splitting toxval_type into toxval_subtype
+      # toxval_type = toxval_type %>%
+      #   gsub("_less_serious", " Less Serious", .) %>%
+      #   gsub("_serious", " Serious", .),
+
+      # Uncomment if splitting toxval_type into toxval_subtype
       # Separate "less_serious" and "serious" into toxval_subtype
       toxval_subtype = dplyr::case_when(
         grepl("_less_serious", toxval_type) ~ "Less Serious",
