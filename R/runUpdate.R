@@ -7,18 +7,18 @@
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
 #' @param trigger_check if FALSE, audit triggers are ignored/bypassed
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @param table PARAM_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
 #'  \code{\link[DBI]{dbSendStatement}}
 #' @rdname runUpdate
@@ -55,13 +55,23 @@ runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE
     cat("db: ",db,"\n")
   }
   tryCatch({
+    # Add session_stem in case multiple users use runUpdate() at the same time
+    session_stem = paste0(DB.USER,"_",
+                          substr(digest::digest(Sys.time()), 1, 5))
+    updateTable = paste0("z_updated_df_", session_stem)
+
+    updateQuery = updateQuery %>%
+      gsub("z_updated_df", updateTable, .)
+    # Drop temp table
+
+    runStatement(query=paste0("DROP TABLE IF EXISTS ", updateTable), db=db)
     # Push temp table of updates
     # Create a table like the source table so the COLLATE and encoding arguments match
-    runQuery(paste0("CREATE TABLE z_updated_df LIKE ", table), db)
+    runQuery(paste0("CREATE TABLE ", updateTable," LIKE ", table), db)
     con <- RMySQL::dbConnect(drv=RMySQL::MySQL(),user=DB.USER,password=DB.PASSWORD,host=DB.SERVER,dbname=db)
 
     res = RMySQL::dbWriteTable(con,
-                       name="z_updated_df",
+                       name=updateTable,
                        value=updated_df,
                        row.names=FALSE,
                        append=TRUE)
@@ -71,7 +81,7 @@ runUpdate <- function(table, updateQuery=NULL, updated_df=NULL, db, do.halt=TRUE
     DBI::dbSendStatement(con, updateQuery)
     RMySQL::dbDisconnect(con)
     # Drop temp table
-    runStatement(query="DROP TABLE IF EXISTS z_updated_df", db=db)
+    runStatement(query=paste0("DROP TABLE IF EXISTS ", updateTable), db=db)
     #}, warning = function(w) {
     #  cat("WARNING:",updateQuery,"\n")
     #  if(do.halt) browser()
