@@ -931,7 +931,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::select(!temp_to_drop) %>%
 
     # Drop unused helper cols
-    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper", "toxval_numeric_origin", "pnd_or_gd"))) %>%
+    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper", "toxval_numeric_origin", "pnd_or_gd", "study_duration"))) %>%
     # Remove entries with %" toxval_units
     dplyr::filter(!grepl("%", toxval_units))  %>%
     # Filter out entries with "other" species
