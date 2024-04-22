@@ -752,6 +752,9 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
+
+  # Add experimental_record value
+  res$experimental_record = 1
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
