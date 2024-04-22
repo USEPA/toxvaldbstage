@@ -208,7 +208,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u00b4|<U+00B4>|\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>|\u2032", "'", .) %>%
 
     # Handle special case for micro sign
-    gsub("\u00c2|\u00b5|\u00c2u", "u", .) %>%
+    gsub("\u00c2\u00b5|\u00b5|\u00c2u", "u", .) %>%
 
     # Remove euro/pound currency symbol unicode
     gsub("\u20ac|u00a3", "", .) %>%
@@ -294,13 +294,13 @@ fix.replace.unicode <- function(df) {
     gsub("\u2161", "II", .) %>%
 
     # Fix fullwidth digit 1
-    gsub("\uff11", 1, .) %>%
+    gsub("\uff11", "1", .) %>%
 
     # Fix fullwidth digit 3
-    gsub("\uff13", 3, .) %>%
+    gsub("\uff13", "3", .) %>%
 
     # Fix fullwidth digit 7
-    gsub("\uff17", 7, .) %>%
+    gsub("\uff17", "7", .) %>%
 
     # Fix divider
     gsub("\u2223|\u00a6|\u2020", "|", .) %>%
