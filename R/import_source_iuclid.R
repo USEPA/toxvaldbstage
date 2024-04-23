@@ -175,11 +175,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Handle fetus and maternal fields separately, tracking origin with generation
     res_fetus = res %>%
       dplyr::select(-tidyselect::starts_with("maternal_")) %>%
-      dplyr::mutate(generation="fetus") %>%
+      dplyr::mutate(lifestage="fetus") %>%
       dplyr::rename_with(function(x) gsub("fetus_", "", x))
     res_maternal = res %>%
       dplyr::select(-tidyselect::starts_with("fetus_")) %>%
-      dplyr::mutate(generation="maternal") %>%
+      dplyr::mutate(lifestage="maternal") %>%
       dplyr::rename_with(function(x) gsub("maternal_", "", x))
 
     # Recombine fetus and maternal data
@@ -931,7 +931,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::select(!temp_to_drop) %>%
 
     # Drop unused helper cols
-    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper", "toxval_numeric_origin", "pnd_or_gd"))) %>%
+    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper", "toxval_numeric_origin", "pnd_or_gd", "study_duration"))) %>%
     # Remove entries with %" toxval_units
     dplyr::filter(!grepl("%", toxval_units))  %>%
     # Filter out entries with "other" species
@@ -1000,16 +1000,24 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$media = "-"
   }
 
-  # Add DCAP "notes" to critical_effect for specified OHTs
+  # Add generation/lifestage information to critical_effect for specified OHTs
   if(subf %in% c("iuclid_toxicityreproduction", "iuclid_developmentaltoxicityteratogenicity")) {
+    if(subf == "iuclid_toxicityreproduction") {
+      res = res %>% dplyr::mutate(
+        dcap_notes = stringr::str_extract(generation, "((?:P|F)[0-2])", group=1)
+      )
+    } else {
+      res = res %>% dplyr::mutate(
+        dcap_notes = stringr::str_extract(lifestage, "(maternal|fetus)", group=1)
+      )
+    }
+
     res = res %>%
       dplyr::mutate(
-        dcap_notes = stringr::str_extract(generation, "(maternal|fetus|(?:P|F)[0-2])", group=1)
-      ) %>%
-      tidyr::unite("critical_effect", dcap_notes, critical_effect, sep=": ", remove=TRUE, na.rm=TRUE) %>%
-      dplyr::mutate(
-        critical_effect = critical_effect %>%
-          stringr::str_squish() %>%
+        # Carry over dynamic generation value by using two separate assignments
+        critical_effect = stringr::str_c(dcap_notes, ": ", critical_effect),
+        critical_effect = stringr::str_replace_all(critical_effect, "\\|", stringr::str_c("\\|", dcap_notes, ": ")) %>%
+          stringr::str_squish()  %>%
           dplyr::na_if("") %>%
           dplyr::na_if(" ") %>%
           dplyr::na_if("-") %>%
@@ -1021,7 +1029,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
           dplyr::na_if("F1:") %>%
           dplyr::na_if("maternal:") %>%
           dplyr::na_if("fetus:")
-      )
+      ) %>%
+      dplyr::select(-dcap_notes)
   }
 
   # Collapse dose/conc level critical_effect values

@@ -59,7 +59,7 @@ fix.replace.unicode <- function(df) {
             "\u1D5E", "\u1D67", "\u1D26", "\u0263")
 
   mu = c("<U+03BC>", "<U+00B5>", "<U+1D6CD>", "<U+1D707>", "<U+1D741>", "<U+1D77B>", "<U+1D7B5>",
-         "\u03BC", "\u00B5", "\u1D6CD", "\u1D707", "\u1D741", "\u1D77B", "\u1D7B5")
+         "\u03BC", "\u00B5", "\u1D6CD", "\u1D707", "\u1D741", "\u1D77B", "\u1D7B5", "\u039c", "\u03bc")
 
   epsilon = c("<U+03B5>", "<U+03AD>", "<U+03F5>", "<U+1F10>", "<U+1F11>", "<U+1F72>",
               "<U+1D6C6>", "<U+1D700>", "<U+1D73A>", "<U+1D774>", "<U+1D7AE>", "<U+0395>",
@@ -130,8 +130,6 @@ fix.replace.unicode <- function(df) {
 
   iota = c("\u03b9", "\u0399")
 
-  mu = c("\u039c", "\u03bc")
-
   nu = c("\u039d", "\u03bd")
 
   tau = c("\u03c4")
@@ -167,7 +165,7 @@ fix.replace.unicode <- function(df) {
     gsub(paste0(delta, collapse="|"), "d", .) %>%
     gsub(paste0(upsilon, collapse="|"), "u", .) %>%
     gsub(paste0(iota, collapse="|"), "i", .) %>%
-    gsub(paste0(mu, collapse="|"), "m", .) %>%
+    # gsub(paste0(mu, collapse="|"), "m", .) %>%
     gsub(paste0(nu, collapse="|"), "n", .) %>%
     gsub(paste0(tau, collapse="|"), "t", .) %>%
     gsub(paste0(theta, collapse="|"), "th", .) %>%
@@ -210,7 +208,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u00b4|<U+00B4>|\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>|\u2032", "'", .) %>%
 
     # Handle special case for micro sign
-    gsub("\u00c2|\u00b5|\u00c2u", "u", .) %>%
+    gsub("\u00c2\u00b5|\u00b5|\u00c2u", "u", .) %>%
 
     # Remove euro/pound currency symbol unicode
     gsub("\u20ac|u00a3", "", .) %>%
@@ -296,13 +294,13 @@ fix.replace.unicode <- function(df) {
     gsub("\u2161", "II", .) %>%
 
     # Fix fullwidth digit 1
-    gsub("\uff11", 1, .) %>%
+    gsub("\uff11", "1", .) %>%
 
     # Fix fullwidth digit 3
-    gsub("\uff13", 3, .) %>%
+    gsub("\uff13", "3", .) %>%
 
     # Fix fullwidth digit 7
-    gsub("\uff17", 7, .) %>%
+    gsub("\uff17", "7", .) %>%
 
     # Fix divider
     gsub("\u2223|\u00a6|\u2020", "|", .) %>%
