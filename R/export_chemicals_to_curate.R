@@ -38,10 +38,41 @@ export_chemicals_to_curate <- function(db, export_all=FALSE){
     # Filter to only active Chemical ID values
     chems_curate <- chems_curate %>%
       dplyr::filter(external_id %in% active_chem_ids$chemical_id)
+
+    # Pull list of curated DSSTOX files
+    dsstox_files = list.files("Repo/chemical_mapping/",
+                              full.names = TRUE,
+                              recursive = TRUE,
+                              pattern = "DSSTox_") %>%
+      .[grepl("xlsx$", .)]
+
+    dsstox_data = lapply(dsstox_files, function(f){
+      tmp = readxl::read_xlsx(f)
+      if(!"Extenal_ID" %in% names(tmp)) return(NULL)
+      tmp %>%
+        dplyr::select(Extenal_ID) %>%
+        dplyr::mutate(Extenal_ID = as.character(Extenal_ID)) %>%
+        unique() %>%
+        dplyr::filter(grepl("ToxVal", Extenal_ID)) %>%
+        return()
+    }) %>%
+      dplyr::bind_rows()
+
+    # Filter out any previously attempted for curation
+    chems_curate = chems_curate %>%
+      dplyr::filter(!external_id %in% dsstox_data$Extenal_ID)
   }
 
   # Export into subfiles by chemical index
   out = chems_curate %>%
+    dplyr::rowwise() %>%
+    # check_sum replace casrn with "-" if failed
+    dplyr::mutate(check_sum = cas_checkSum(cleaned_casrn),
+                  cleaned_casrn = dplyr::case_when(
+                    check_sum %in% c(0, NA) ~ "-",
+                    TRUE ~ cleaned_casrn
+                  )) %>%
+    dplyr::ungroup() %>%
     dplyr::group_split(chemical_index)
 
   # Prepare output directory

@@ -17,13 +17,13 @@
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{filter}}
 #'  \code{\link[tidyr]{separate_rows}}
-#'  \code{\link[stringr]{str_trim}}
+#'  \code{\link[stringr]{str_trim}} \code{\link[stringr]{str_extract}}
 #' @rdname import_source_who_jecfa_tox_studies
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate case_when filter
 #' @importFrom tidyr separate_rows
-#' @importFrom stringr str_squish
+#' @importFrom stringr str_squish str_extract
 #--------------------------------------------------------------------------------------
 import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -43,19 +43,43 @@ import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.re
     tidyr::separate_rows(casrn, sep=";") %>%
     # Copy toxval fields from originals
     dplyr::mutate(
+      source_url = chemical_url,
       name = fix.replace.unicode(name) %>% toupper(),
+      species = tolower(species),
       casrn = gsub("\\s*\\([^\\)]+\\)","", casrn),
       toxval_units = fix.replace.unicode(toxval_units) %>%
         # Fix unit cases and remove excess whitespace
         gsub("bw/ d", "bw/d", ., fixed=TRUE) %>%
         gsub("mg/kgbw per day", "mg/kg bw per day", ., fixed=TRUE) %>%
         gsub("ug/kg bw /d", "ug/kg bw/d", ., fixed=TRUE) %>%
+        gsub(" per ", "/", .) %>%
+        gsub("\\/d\\b", "/day", .) %>%
         stringr::str_squish(),
 
       # Replace non-number toxval_numeric values with blank entry (not NA to preserve char col)
       toxval_numeric = dplyr::case_when(
         grepl("[a-zA-Z]", toxval_numeric) ~ "-",
         TRUE ~ toxval_numeric
+      ),
+
+      # Uncomment if splitting toxval_type into toxval_subtype
+      # # Extract toxval_subtype from toxval_type
+      # toxval_subtype = dplyr::case_when(
+      #   # grepl("modal", toxval_type) ~ "modal",
+      #   TRUE ~ stringr::str_extract(toxval_type, "\\((.+)\\)", group=1),
+      # ),
+      # # Remove subtype information from toxval_type
+      # toxval_type = toxval_type %>%
+      #   gsub("\\(.+", "", .) %>%
+      #   # gsub("modal", "", .) %>%
+      #   stringr::str_squish(),
+
+      # Handle special NOEL EHMI case for toxval_type
+      toxval_type = dplyr::case_when(
+        toxval_type == "NOEL (EHMI)" ~ "EHMI (NOEL)",
+        # Uncomment if LOEL EHMI swap is desired
+        # toxval_type == "LOEL (EHMI)" ~ "EHMI (LOEL)",
+        TRUE ~ toxval_type
       ),
 
       # Translate sex into M/F format
@@ -89,7 +113,7 @@ import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.re
       dplyr::group_by(range_relationship_id) %>%
       dplyr::mutate(
         toxval_numeric = as.numeric(toxval_numeric),
-        toxval_subtype = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
+        relationship = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
       ) %>%
       ungroup()
   } else {
@@ -112,6 +136,9 @@ import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.re
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

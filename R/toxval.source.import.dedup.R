@@ -67,7 +67,6 @@ toxval.source.import.dedup <- function(res,
       dplyr::group_by(source_hash) %>%
       dplyr::summarise(n = dplyr::n()) %>%
       dplyr::filter(n > 1)
-    res = res %>% dplyr::select(-source_hash)
 
     if(nrow(dup_hashes)) {
       cat("Deduping failed. Duplicate records still present.\n")
@@ -79,9 +78,6 @@ toxval.source.import.dedup <- function(res,
     cat("No duplicate records found.\n")
   }
 
+  res = res %>% dplyr::select(-source_hash)
   return(res)
 }
-
-
-
-

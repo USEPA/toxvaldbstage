@@ -23,8 +23,8 @@ prep.DAT.conversion <- function(in_dat, hash_id_list){
   in_dat = in_dat %>%
     dplyr::rename(parent_hash = src_record_id) %>%
     # Remove extraneous DAT fields
-    dplyr::select(-uuid, -description, -total_fields_changed, -dataset_description, -DAT_domain_name,
-                  -domain_description, -DAT_source_name, -source_description, -status_description) %>%
+    dplyr::select(-dplyr::any_of(c("uuid", "description", "total_fields_changed", "dataset_description", "DAT_domain_name",
+                  "domain_description", "DAT_source_name", "source_description", "status_description"))) %>%
     # Alphabetize the columns to ensure consistent hashing column order
     .[, sort(colnames(.))] %>%
     tidyr::unite("pre_source_hash", tidyr::any_of(names(.)[!names(.) %in% hash_id_list]),

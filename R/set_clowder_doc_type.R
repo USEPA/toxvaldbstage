@@ -79,14 +79,24 @@ set_clowder_doc_type <- function(source_table=NULL,
     for(doc_type in c("extraction", "origin")){
       docs_push = file_info %>%
         dplyr::filter(grepl(paste0("^",doc_type), foldersname, ignore.case = TRUE)) %>%
-        dplyr::select(id) %>%
+        dplyr::select(clowder_id = id, document_name = filename) %>%
+        dplyr::mutate(document_type = !!doc_type) %>%
         dplyr::distinct()
 
-      # Push Update by clowder_id
-      runQuery(paste0("UPDATE documents SET document_type = '", doc_type, "' ",
-                      "WHERE clowder_id in ('",
-                      paste0(docs_push$id, collapse = "', '"),"')"),
-               source.db)
+      updateQuery = paste0("UPDATE documents a INNER JOIN z_updated_df b ",
+                           "ON (a.clowder_id = b.clowder_id) SET ",
+                           paste0("a.", names(docs_push)[!names(docs_push) %in% c("clowder_id")],
+                                  " = b.", names(docs_push)[!names(docs_push) %in% c("clowder_id")], collapse = ", ")
+      )
+      runUpdate(table="documents", updateQuery=updateQuery, updated_df=docs_push, db=db)
+
+      # # Push Update by clowder_id
+      # runQuery(paste0("UPDATE documents SET document_type = '", doc_type, "' ",
+      #                 "WHERE clowder_id in ('",
+      #                 paste0(docs_push$id, collapse = "', '"),"')"),
+      #          source.db)
+
+      # TODO INSERT UPDATE QUERY and runUpdate
     }
   }
 

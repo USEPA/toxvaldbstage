@@ -19,7 +19,7 @@
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{context}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{pull}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{select}}
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{drop_na}}
-#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}} \code{\link[stringr]{str_detect}}
+#'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}} \code{\link[stringr]{str_detect}} \code{\link[stringr]{str_split}} \code{\link[stringr]{str_unique}}
 #'  \code{\link[tidyselect]{starts_with}}, \code{\link[tidyselect]{all_of}}
 #'  \code{\link[textclean]{mgsub}}
 #' @rdname import_source_iuclid
@@ -27,7 +27,7 @@
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr filter group_by mutate row_number n case_when pull rename select
 #' @importFrom tidyr separate_rows separate unite pivot_longer starts_with pivot_wider drop_na matches
-#' @importFrom stringr str_squish str_extract regex str_detect
+#' @importFrom stringr str_squish str_extract regex str_detect str_split str_unique
 #' @importFrom tidyselect starts_with any_of all_of
 #' @importFrom textclean mgsub
 #--------------------------------------------------------------------------------------
@@ -80,8 +80,16 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Create a named vector to handle renaming from the map
   map = map %>%
     dplyr::filter(!is.na(to)) %>%
+    # Handle consistency issues with study_duration mappings
+    dplyr::mutate(
+      to = dplyr::case_when(
+        to == "study_duration : study_duration_units" ~ "study_duration_units",
+        TRUE ~ to
+      )
+    ) %>%
     tidyr::separate_rows(to, sep=" : ") %>%
-
+    # Sort rows to enforce combination order is consistent
+    dplyr::arrange(to, from) %>%
     # Add "occurrence" stem to duplicate values
     dplyr::group_by(to) %>%
     dplyr::mutate(
@@ -98,7 +106,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       )
     )
 
-  tmp = map %>%
+  oht_field_map = map %>%
     dplyr::pull(from, to)
 
   # If "name" field exists in source data, rename to avoid conflicts
@@ -106,11 +114,31 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res0 = res0 %>% dplyr::rename(study_name = name)
   }
 
-  res <- res0 %>%
-    # # Copy columns and rename new columns
-    # dplyr::rename(dplyr::all_of(tmp)) %>%
-    # Select only to mapped ToxVal fields
-    dplyr::select(dplyr::any_of(tmp))
+  # Special case for ec_number na_if() and report missing cases
+  res0 = res0 %>%
+    dplyr::mutate(dplyr::across(tidyr::any_of(c("chemical_ECnumber", "reference_substance_ECnumber")),
+                                ~na_if(., "-")))
+
+  if(!dir.exists(file.path(toxval.config()$datapath, "iuclid/ec_number_issue"))){
+    dir.create(file.path(toxval.config()$datapath, "iuclid/ec_number_issue"))
+  }
+  # Export case of missing reference EC number but has chemical EC number
+  ec_number_report = res0 %>%
+    dplyr::filter(is.na(reference_substance_ECnumber), !is.na(chemical_ECnumber))
+
+  if(nrow(ec_number_report)){
+    writexl::write_xlsx(ec_number_report,
+                        paste0(toxval.config()$datapath,
+                               "iuclid/ec_number_issue/ec_number_issue_",
+                               source_table, "_", Sys.Date(),".xlsx"))
+  }
+
+  res = res0
+  # https://stackoverflow.com/questions/68959057/using-mutate-to-create-column-copies-using-a-named-vector
+  # Required for cases where same field is mapped to multiple toxval fields (e.g., exposure_route and method)
+  res[names(oht_field_map)] <- res[oht_field_map]
+  res = res %>%
+    dplyr::select(dplyr::any_of(c(names(oht_field_map), "endpoint_uuid")))
 
   # Split columns and name them (handle case where exposure_route is already provided)
   if("exposure_route" %in% names(res) | "exposure_route_1" %in% names(res)) {
@@ -119,19 +147,16 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res = res %>% tidyr::separate(study_type_1, c("study_type_1","exposure_route"), sep=": ", fill="right", remove=TRUE)
   }
 
-  # If exposure_method column is present, fix it
-  if ("exposure_method" %in% names(res)) {
-    res = res %>%
-      dplyr::mutate(
-        exposure_method = gsub(".+:", "", exposure_method) %>%
-          stringr::str_squish()
-      )
-  }
-
   # Unite duplicate columns with numbered stems
-  for (field in map$to[grepl("_1", map$to) & map$to %in% names(res)]) {
-    cat("...Combining duplicate column mapping: ", field, "\n")
-    core_field = gsub("_1", "", field)
+  for (field in map$to[stringr::str_detect(map$to, "_1$") & map$to %in% names(res)]) {
+    # Handle unique toxicityreproduction field mappings
+    if(grepl("F1|F2|P0|P1", field)) {
+      if(!stringr::str_detect(field, "_[0-9]+_[0-9]$")) next
+    }
+
+    # Combine fields, separated by "|"
+    core_field = stringr::str_replace(field, "_1$", "")
+    cat("...Combining duplicate column mapping: ", core_field, "\n")
     res = res %>%
       tidyr::unite(
         col = !!core_field,
@@ -147,41 +172,162 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Fill default maternal sex
     res$maternal_sex = "female"
 
-    # Handle fetus and maternal fields separately, tracking origin with generation_type
+    # Handle fetus and maternal fields separately, tracking origin with generation
     res_fetus = res %>%
       dplyr::select(-tidyselect::starts_with("maternal_")) %>%
-      dplyr::mutate(generation_type="fetus") %>%
+      dplyr::mutate(lifestage="fetus") %>%
       dplyr::rename_with(function(x) gsub("fetus_", "", x))
     res_maternal = res %>%
       dplyr::select(-tidyselect::starts_with("fetus_")) %>%
-      dplyr::mutate(generation_type="maternal") %>%
+      dplyr::mutate(lifestage="maternal") %>%
       dplyr::rename_with(function(x) gsub("maternal_", "", x))
 
     # Recombine fetus and maternal data
     res = dplyr::bind_rows(res_fetus, res_maternal)
   }
 
-  # Handle reproduction offspring vs. parental studies as needed
+  # Handle different generations as needed for ToxicityReproduction OHT
   if(subf == "iuclid_toxicityreproduction"){
-    message("Handling reproduction OHT offspring vs. parental field pivots...")
-    # Handle offspring and parental fields separately, tracking origin with generation_type
-    res_offspring = res %>%
-      dplyr::select(-tidyselect::starts_with("parental_")) %>%
-      dplyr::mutate(generation_type="offspring") %>%
-      dplyr::rename_with(function(x) gsub("offspring_", "", x))
-    res_parental = res %>%
-      dplyr::select(-tidyselect::starts_with("offspring_")) %>%
-      dplyr::mutate(generation_type="parental") %>%
-      dplyr::rename_with(function(x) gsub("parental_", "", x))
+    message("Handling reproduction OHT generation field pivots...")
+    # Handle generation fields separately, tracking origin with generation_class
+    res0_p0 = res %>%
+      dplyr::select(-tidyselect::starts_with("P1_")) %>%
+      dplyr::select(-tidyselect::starts_with("F1_")) %>%
+      dplyr::select(-tidyselect::starts_with("F2_")) %>%
+      dplyr::mutate(
+        # No generation mapping, so hardcode and set NA generation_details
+        generation = "P0",
+        generation_details = as.character(NA)
+      )
+    # Handle different column groupings to extract all data
+    max_stem = NULL
+    res_p0 = NULL
+    for(name in names(res0_p0)) {
+      if(!grepl("_[0-9]+", name)) next
+      stem = as.numeric(stringr::str_extract(name, "_([0-9]+)", group=1))
+      max_stem = max(stem, max_stem)
+    }
+    for(i in 0:max_stem) {
+      curr_res = res0_p0 %>%
+        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("P0")) %>%
+        dplyr::rename_with(function(x) gsub("P0_", "", x)) %>%
+        dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
+      # Handle potential missing columns for rbind
+      if(!("toxval_qualifier_upper") %in% names(curr_res)) curr_res$toxval_qualifier_upper = as.character(NA)
+      if(!("toxval_numeric_upper") %in% names(curr_res)) curr_res$toxval_numeric_upper = as.character(NA)
+      res_p0 = rbind(res_p0, curr_res)
+    }
 
-    # Recombine offspring and parental data
-    res = dplyr::bind_rows(res_offspring, res_parental)
+    res0_p1 = res %>%
+      dplyr::select(-tidyselect::starts_with("P0_")) %>%
+      dplyr::select(-tidyselect::starts_with("F1_")) %>%
+      dplyr::select(-tidyselect::starts_with("F2_")) %>%
+      dplyr::mutate(
+        # No generation mapping, so hardcode and set NA generation_details
+        generation = "P1",
+        generation_details = as.character(NA)
+      )
+    # Handle different column groupings to extract all data
+    max_stem = NULL
+    res_p1 = NULL
+    for(name in names(res0_p1)) {
+      if(!grepl("_[0-9]+", name)) next
+      stem = as.numeric(stringr::str_extract(name, "_([0-9]+)", group=1))
+      max_stem = max(stem, max_stem)
+    }
+    for(i in 0:max_stem) {
+      curr_res = res0_p1 %>%
+        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("P1")) %>%
+        dplyr::rename_with(function(x) gsub("P1_", "", x)) %>%
+        dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
+      # Handle potential missing columns for rbind
+      if(!("toxval_qualifier_upper") %in% names(curr_res)) curr_res$toxval_qualifier_upper = as.character(NA)
+      if(!("toxval_numeric_upper") %in% names(curr_res)) curr_res$toxval_numeric_upper = as.character(NA)
+      res_p1 = rbind(res_p1, curr_res)
+    }
+
+    res0_f1 = res %>%
+      dplyr::select(-tidyselect::starts_with("P0_")) %>%
+      dplyr::select(-tidyselect::starts_with("P1_")) %>%
+      dplyr::select(-tidyselect::starts_with("F2_"))
+    # Handle different column groupings to extract all data
+    max_stem = NULL
+    res_f1 = NULL
+    for(name in names(res0_f1)) {
+      if(!grepl("_[0-9]+", name)) next
+      stem = as.numeric(stringr::str_extract(name, "_([0-9]+)", group=1))
+      max_stem = max(stem, max_stem)
+    }
+    for(i in 0:max_stem) {
+      curr_res = res0_f1 %>%
+        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("F1")) %>%
+        dplyr::rename_with(function(x) gsub("F1_", "", x)) %>%
+        dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
+      # Handle potential missing columns for rbind
+      if(!("toxval_qualifier_upper") %in% names(curr_res)) curr_res$toxval_qualifier_upper = as.character(NA)
+      if(!("toxval_numeric_upper") %in% names(curr_res)) curr_res$toxval_numeric_upper = as.character(NA)
+      res_f1 = rbind(res_f1, curr_res)
+    }
+    res_f1 = res_f1  %>% dplyr::mutate(
+      # Extract generation_details from F1_generation
+      generation_details = generation %>%
+        gsub("F1|\\(|\\)|other:?", "", .) %>%
+        stringr::str_squish(),
+      # Set hardcoded generation
+      generation = "F1"
+    )
+
+    res0_f2 = res %>%
+      dplyr::select(-tidyselect::starts_with("P0_")) %>%
+      dplyr::select(-tidyselect::starts_with("P1_")) %>%
+      dplyr::select(-tidyselect::starts_with("F1_"))
+    # Handle different column groupings to extract all data
+    max_stem = NULL
+    res_f2 = NULL
+    for(name in names(res0_f2)) {
+      if(!grepl("_[0-9]+", name)) next
+      stem = as.numeric(stringr::str_extract(name, "_([0-9]+)", group=1))
+      max_stem = max(stem, max_stem)
+    }
+    for(i in 0:max_stem) {
+      curr_res = res0_f2 %>%
+        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("F2")) %>%
+        dplyr::rename_with(function(x) gsub("F2_", "", x)) %>%
+        dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
+      # Handle potential missing columns for rbind
+      if(!("toxval_qualifier_upper") %in% names(curr_res)) curr_res$toxval_qualifier_upper = as.character(NA)
+      if(!("toxval_numeric_upper") %in% names(curr_res)) curr_res$toxval_numeric_upper = as.character(NA)
+      res_f2 = rbind(res_f2, curr_res)
+    }
+    res_f2 = res_f2 %>% dplyr::mutate(
+      # Extract generation_details from F2_generation
+      generation_details = generation %>%
+        gsub("F2|\\(|\\)|other:?", "", .) %>%
+        stringr::str_squish(),
+      # Set hardcoded generation
+      generation = "F2"
+    )
+
+    # Recombine data from different generations
+    res = dplyr::bind_rows(res_p0, res_p1, res_f1, res_f2) %>%
+      # Drop entries without generation
+      dplyr::filter(!is.na(generation)) %>%
+      dplyr::mutate(
+        # Add generation_details to generation if necessary
+        generation = dplyr::case_when(
+          generation_details %in% c(as.character(NA), "", "-") ~ generation,
+          TRUE ~ paste0(generation, " (", generation_details, ")")
+        )
+      ) %>%
+      # Drop unused generation_details column
+      dplyr::select(-generation_details)
   }
 
-  # Add NA toxval_units_other column if it doesn't exist
-  if (!("toxval_units_other" %in% names(res))) {
-    res$toxval_units_other = as.character(NA)
-  }
+  # Add specified NA columns if they don't exist
+  na_missing_cols = c("toxval_units_other", "strain_other", "exposure_route_other", "organ_system",
+                      "target_organ", "hazard_category", "critical_effect", "study_duration_class",
+                      "chemical.ec_number", "toxval_numeric_qualifier")
+  res[, na_missing_cols[!na_missing_cols %in% names(res)]] = as.character(NA)
 
   # Add special toxval_units "score" case for certain OHTs
   if (subf %in% c("iuclid_eyeirritation", "iuclid_skinirritationcorrosion", "iuclid_skinsensitisation")) {
@@ -193,26 +339,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$name = res$name_primary
   } else {
     res = res %>% dplyr::mutate(
-      # OLD NAME LOGIC, WHERE FIRST NAME IN LIST IS SELECTED
-      # # Create new name field using name_primary and name_secondary values
-      # name = dplyr::case_when(
-      #   # Primary exists: if semicolon does not separate different chemicals, use value as-is
-      #   stringr::str_detect(name_primary, "\\[[^\\]]+;[^\\]]+\\]") ~ name_primary,
-      #   # Primary exists: if semicolon separates different chemicals, choose the first
-      #   grepl(";", name_primary) ~ gsub(";.+", "", name_primary),
-      #   # Use primary name if it exists
-      #   !is.na(name_primary) & name_primary != "-" ~ name_primary,
-      #
-      #   # Secondary exists: if semicolon does not separate different chemicals, use value as-is
-      #   stringr::str_detect(name_secondary, "\\[[^\\]]+;[^\\]]+\\]") ~ name_secondary,
-      #   # Secondary exists: if semicolon separates different chemicals, choose the first
-      #   grepl(";", name_secondary) ~ gsub(";.+", "", name_secondary),
-      #   # Use secondary name if it exists
-      #   !is.na(name_secondary) & name_secondary != "-" ~ name_secondary,
-      #
-      #   # Return NA if there is not a valid name value
-      #   TRUE ~ as.character(NA)
-      # ),
       name = dplyr::case_when(
         # Primary name exists and is valid (not NA, -, or list)
         !is.na(name_primary) & name_primary != "-" & !grepl(";", name_primary) ~ name_primary,
@@ -259,6 +385,18 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
     # Combine toxval_numeric_lower and toxval_numeric_upper for relationship tracking
     res = res %>%
+      # Note origin to help with qualifier/relationship assignment
+      dplyr::mutate(
+        toxval_numeric_lower = dplyr::case_when(
+          is.na(toxval_numeric_lower) ~ NA,
+          TRUE ~ paste0(toxval_numeric_lower, " (Lower Range)")
+        ),
+
+        toxval_numeric_upper = dplyr::case_when(
+          is.na(toxval_numeric_upper) ~ NA,
+          TRUE ~ paste0(toxval_numeric_upper, " (Upper Range)")
+        )
+      ) %>%
       tidyr::unite(
         "toxval_numeric",
         toxval_numeric_lower, toxval_numeric_upper,
@@ -268,10 +406,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       )
   }
 
-  # Handle case where toxval_numeric_qualifier is not supplied
-  if(!("toxval_numeric_qualifier" %in% names(res))) {
-    res$toxval_numeric_qualifier = as.character(NA)
-  }
   # Handle case where only toxval_numeric_qualifier is supplied
   if(!("toxval_qualifier_upper" %in% names(res) & "toxval_qualifier_lower" %in% names(res))) {
     # Set both upper and lower qualifiers to single qualifier supplied
@@ -292,32 +426,41 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       tidyr::separate_rows(toxval_numeric, sep="-") %>%
       dplyr::group_by(range_relationship_id) %>%
       dplyr::mutate(
-        toxval_numeric = as.numeric(toxval_numeric),
-        toxval_subtype = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
+        toxval_subtype = toxval_numeric %>%
+          stringr::str_extract("Lower Range|Upper Range")
       ) %>%
       ungroup()
   } else {
     # Empty dataframe with res cols to bind_rows()
     ranged = res[0,] %>%
-      dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric))
+      dplyr::mutate(toxval_numeric = toxval_numeric)
   }
 
-  # Join back the range split rows
+  # Join back the range split rows and set origin
   res <- res %>%
     dplyr::filter(!grepl("-(?![eE])", toxval_numeric, perl=TRUE),
                   !is.na(suppressWarnings(toxval_numeric))) %>%
-    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
-    dplyr::bind_rows(ranged)
-
-  # Handle case where study_duration_class is not supplied
-  if(!("study_duration_class" %in% names(res))) {
-    res$study_duration_class = as.character(NA)
-  }
+    dplyr::bind_rows(ranged) %>%
+    dplyr::mutate(toxval_numeric_origin = toxval_numeric %>%
+                    stringr::str_extract("Lower Range|Upper Range"),
+                  toxval_numeric = toxval_numeric %>%
+                    gsub("\\(Lower Range\\)|\\(Upper Range\\)", "", .) %>%
+                    stringr::str_squish() %>%
+                    as.numeric())
 
   res = res %>%
     dplyr::mutate(
-      # Fill "-" casrn with NA
-      casrn = dplyr::na_if(casrn, "-"),
+      # Fill "-" casrn with NA and address date-formatted casrn values
+      casrn = dplyr::case_when(
+        casrn == "-" ~ as.character(NA),
+        # Special case where "/" in casrn
+        grepl("/", casrn) ~ paste0(stringr::str_split_i(casrn, "/", 3),
+                                   "-",
+                                   stringr::str_pad(stringr::str_split_i(casrn, "/", 1), width=2, side="left", pad="0"),
+                                   "-",
+                                   stringr::str_split_i(casrn, "/", 2)),
+        TRUE ~ casrn
+      ),
 
       # Clean toxval_units/make value substitutions when necessary
       toxval_units = dplyr::case_when(
@@ -331,10 +474,22 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         gsub("\\(.+\\)", "", .) %>%
         gsub("micro", "u", .) %>%
         gsub(" per ", "/", .) %>%
-        stringr::str_squish()
+        stringr::str_squish(),
     ) %>%
-    # Filter out entries with inadequate toxval_type
-    dplyr::filter(!grepl("dose|other", toxval_type)) %>%
+    # Collapse duplicate EC numbers
+    dplyr::rowwise() %>%
+    dplyr::mutate(
+      chemical.ec_number = stringr::str_split(string=chemical.ec_number, pattern="\\|") %>%
+        .[[1]] %>%
+        stringr::str_unique() %>%
+        paste0(collapse="|")
+    ) %>%
+    dplyr::ungroup() %>%
+
+    # Filter out entries with differing EC numbers
+    dplyr::filter(!grepl("\\|", chemical.ec_number)) %>%
+    # Filter out entries with "other" toxval_type
+    dplyr::filter(!grepl("other", toxval_type)) %>%
     # Drop entries without necessary toxval columns
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type) %>%
     # Drop entries without either name or casrn
@@ -354,54 +509,232 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   res = res %>%
     # Conduct most cleaning operations after dropping rows to improve runtime
     dplyr::mutate(
-      # Clean critical_effect column
-      critical_effect = critical_effect %>%
-        gsub("Results:|other:|not specified", "", ., ignore.case=TRUE) %>%
-        stringr::str_squish() %>%
-        dplyr::na_if("") %>%
-        dplyr::na_if(" ") %>%
-        dplyr::na_if(":"),
+      dplyr::across(c("critical_effect", "organ_system", "target_organ", "hazard_category"),
+                    ~stringr::str_replace(., stringr::regex("Results:|other:|not specified", ignore_case=TRUE), "") %>%
+                      stringr::str_replace("\\|+", "\\|") %>%
+                      stringr::str_replace("^\\||\\|$", "") %>%
+                      stringr::str_squish() %>%
+                      dplyr::na_if("") %>%
+                      dplyr::na_if(" ") %>%
+                      dplyr::na_if(":") %>%
+                      dplyr::na_if("table")),
+
+      # Add fields to track PND/GD units (units removed from string to improve handling)
+      pnd_or_gd = dplyr::case_when(
+        grepl("PND|post\\-?natal day", study_duration_units, ignore.case=TRUE) ~ "PND",
+        grepl("GD|gestation day|days.+of gestation", study_duration_units, ignore.case=TRUE) ~ "GD",
+        TRUE ~ as.character(NA)
+      ),
 
       # Extract study_duration_value and study_duration_units
-      study_duration = study_duration_units,
+      study_duration_raw = study_duration_units,
+      study_duration = study_duration_raw %>%
+        gsub("\\b0,([0-9]+\\b)", "0.\\1", .) %>%
+        gsub("(?:[0-9\\.]+,\\s*)*(?:[0-9\\.]+\\s*(?:and|or)\\s*)?[0-9\\.]+\\s*(?:mg|kg|ppm|mg\\/kg)", "", .) %>%
+        gsub(",", "", .) %>%
+        gsub("[0-9\\.]+%", "", .) %>%
+        gsub("FR\\-513", "", .) %>%
+        tolower() %>%
+        gsub("zeofree 80", "", .) %>%
+        gsub("birth to\\b", "", .) %>%
+        gsub("([0-9]+\\.?[0-9]*)(h|d|w|m|y)", "\\1 \\2", ., ignore.case=TRUE) %>%
+        gsub("(?:[0-9\\.]+,\\s*)*(?:[0-9\\.]+\\s*and\\s*)?[0-9\\.]+\\s*(?:mg|kg|ppm|mg\\/kg)", "", .) %>%
+        gsub("[0-9]+\\.?[0-9]*\\s*\\(?(?:mg|kg|ppm|mg\\kg)\\)?,?", "", .) %>%
+        gsub("1 single exposure", "", .) %>%
+        gsub("hafter", "h after", .) %>%
+        gsub("\\bseveral\\b", "3", ., ignore.case=TRUE) %>%
+        gsub("\\btwenty\\s?\\-?\\s?four\\b", "24", ., ignore.case=TRUE) %>%
+        gsub("\\beleven\\b", "11", ., ignore.case=TRUE) %>%
+        gsub("\\btwelve\\b", "12", ., ignore.case=TRUE) %>%
+        gsub("\\bthirteen\\b", "13", ., ignore.case=TRUE) %>%
+        gsub("\\bfourteen\\b", "14", ., ignore.case=TRUE) %>%
+        gsub("\\bfifteen\\b", "15", ., ignore.case=TRUE) %>%
+        gsub("\\bsixteen\\b", "16", ., ignore.case=TRUE) %>%
+        gsub("\\bseventeen\\b", "17", ., ignore.case=TRUE) %>%
+        gsub("\\beighteen\\b", "18", ., ignore.case=TRUE) %>%
+        gsub("\\bnineteen\\b", "19", ., ignore.case=TRUE) %>%
+        gsub("\\btwenty\\b", "20", ., ignore.case=TRUE) %>%
+        gsub("\\bone\\b", "1", ., ignore.case=TRUE) %>%
+        gsub("\\btwo\\b", "2", ., ignore.case=TRUE) %>%
+        gsub("\\bthree\\b", "3", ., ignore.case=TRUE) %>%
+        gsub("\\bfour\\b", "4", ., ignore.case=TRUE) %>%
+        gsub("\\bfive\\b", "5", ., ignore.case=TRUE) %>%
+        gsub("\\bsix\\b", "6", ., ignore.case=TRUE) %>%
+        gsub("\\bseven\\b", "7", ., ignore.case=TRUE) %>%
+        gsub("\\beight\\b", "8", ., ignore.case=TRUE) %>%
+        gsub("\\bnine\\b", "9", ., ignore.case=TRUE) %>%
+        gsub("\\bten\\b", "10", ., ignore.case=TRUE) %>%
+        gsub("\\-\\s*week", " week", ., ignore.case=TRUE) %>%
+        gsub("\\-\\s*hour", " hour", ., ignore.case=TRUE) %>%
+        gsub("\\-\\s*day", " day", ., ignore.case=TRUE) %>%
+        gsub("\\-\\s*month", " month", ., ignore.case=TRUE) %>%
+        gsub("\\-\\s*year", " year", ., ignore.case=TRUE) %>%
+        gsub("[0-9]+ (?:hour|day|week|month|year)s? longer than", "", .) %>%
+        gsub("(?:observed|examined|recorded)\\s*for.+[0-9\\.]+.+?[hdwmy]", "", .) %>%
+        gsub("observation (?:for a )?period of\\s*.+[0-9\\.]+.+?[hdwmy]", "", .) %>%
+        gsub("observation (?:for|time):?\\s*[0-9\\.]+.+?[hdwmy]", "", .) %>%
+        gsub("\\b(?:f|p)[0-2]\\b", "", .) %>%
+        gsub("[0-9]+ applications", "", .) %>%
+        gsub("[0-9\\.]+\\s*(?:hour|day|week|month|year)s?\\s*(?:post\\-?)?\\s*observation", "", .) %>%
+        gsub("groups? of [0-9]+", "", .) %>%
+        gsub("[0-9]+\\s*(?:hour|day|week|month|year)s?\\s*(?:post|pre)?\\s*\\-?\\s*mating", "", .) %>%
+        gsub("day\\s*[0-9]+\\s*(?:to|until|up to|through|\\-)\\s*day\\s*[0-9]+", "", .) %>%
+        gsub("day\\s*[0-9]+", "", .) %>%
+        gsub("dose levels? of.+(?:mg|kg|ppm|mg\\/kg)", "", .) %>%
+        gsub("groups?\\s*[0-9]+\\s*(?:to|through|and)?\\s*[0-9]*(?:,\\s*[0-9]+)?", "", .) %>%
+        gsub("[0-9]+\\s*days\\s*(?:before|after)\\s*mating", "", .) %>%
+        gsub("(?:examinations|observations|results):.+", "", .) %>%
+        gsub("[0-9]*\\s*times", "", .),
+      study_duration = dplyr::case_when(
+        grepl("(?:administered|dosed|exposed) for\\s*[0-9\\.]+\\s*(?:hour|day|week|month|year)s?",
+              study_duration) ~ stringr::str_extract(study_duration,
+                                                     "(?:administered|dosed|exposed) for\\s*([0-9\\.]+\\s*(?:hour|day|week|month|year)s?)",
+                                                     group=1),
+        grepl("[0-9\\.]+\\s*(?:hour|day|week|month|year)s?\\s*(?:exposure|contact)",
+              study_duration) ~ stringr::str_extract(study_duration,
+                                                     "([0-9\\.]+\\s*(?:hour|day|week|month|year)s?)\\s*(?:exposure|contact)",
+                                                     group=1),
+        grepl("(?:exposure|contact|dosing)\\s*period\\s*of\\s*[0-9\\.]+\\s*(?:hour|day|week|month|year)s?",
+              study_duration) ~ stringr::str_extract(study_duration,
+                                                     "(?:exposure|contact|dosing)\\s*period\\s*of\\s*([0-9\\.]+\\s*(?:hour|day|week|month|year)s?)",
+                                                     group=1),
+        grepl("were dosed [0-9]+\\.?[0-9]* days at a minimum",
+              study_duration) ~ stringr::str_extract(study_duration,
+                                                     "were dosed ([0-9]+\\.?[0-9]* days) at a minimum",
+                                                     group=1),
+        grepl("[0-9\\.]+\\s*(?:hour|day|week|month|year)s?\\s*of treatment",
+              study_duration) ~ stringr::str_extract(study_duration,
+                                                     "([0-9\\.]+\\s*(?:hour|day|week|month|year)s?)\\s*of treatment",
+                                                     group=1),
+        grepl(paste0("[0-9]+\\.?[0-9]* consecutive ",
+                     "(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                     "day|\\bd\\b|[0-9\\.]d\\b|",
+                     "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9\\.]m\\b|",
+                     "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b)"),
+              study_duration,
+              ignore.case=TRUE) ~ stringr::str_extract(study_duration,
+                                                       paste0("[0-9]+\\.?[0-9]* consecutive ",
+                                                              "(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                                              "day|\\bd\\b|[0-9\\.]d\\b|",
+                                                              "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                                              "month|\\bm\\b|[0-9\\.]m\\b|",
+                                                              "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b)")),
+        grepl("observations then continued for", study_duration) ~ gsub("observations then continued for.+", "", study_duration),
+        grepl("for a minimum of", study_duration) ~ stringr::str_extract(study_duration,
+                                                                                  paste0("for a minimum of [0-9]+\\.?[0-9]*.+",
+                                                                                         "(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                                                                         "day|\\bd\\b|[0-9\\.]d\\b|",
+                                                                                         "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                                                                         "month|\\bm\\b|[0-9\\.]m\\b|",
+                                                                                         "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b)")),
+        grepl(paste0("\\bfor up to\\b.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                     "day|\\bd\\b|[0-9\\.]d\\b|",
+                     "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9\\.]m\\b|",
+                     "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b)"),
+              study_duration,
+              ignore.case=TRUE) ~ gsub(paste0(".*\\bfor up to\\b(.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                              "day|\\bd\\b|[0-9\\.]d\\b|",
+                                              "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                              "month|\\bm\\b|[0-9\\.]m\\b|",
+                                              "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b))"), "\\1", study_duration),
+        grepl(paste0("\\bfor\\b.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                     "day|\\bd\\b|[0-9\\.]d\\b|",
+                     "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9\\.]m\\b|",
+                     "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b)"),
+              study_duration,
+              ignore.case=TRUE) ~ gsub(paste0(".*\\bfor\\b(.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                              "day|\\bd\\b|[0-9\\.]d\\b|",
+                                              "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                              "month|\\bm\\b|[0-9\\.]m\\b|",
+                                              "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b))"), "\\1", study_duration),
+        grepl(paste0("\\bin\\b.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                     "day|\\bd\\b|[0-9\\.]d\\b|",
+                     "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9\\.]m\\b|",
+                     "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b)"),
+              study_duration,
+              ignore.case=TRUE) ~ gsub(paste0(".*\\bin\\b(.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                              "day|\\bd\\b|[0-9\\.]d\\b|",
+                                              "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                              "month|\\bm\\b|[0-9\\.]m\\b|",
+                                              "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b))"), "\\1", study_duration),
+        grepl(paste0("\\bover a period of\\b.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                     "day|\\bd\\b|[0-9\\.]d\\b|",
+                     "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                     "month|\\bm\\b|[0-9\\.]m\\b|",
+                     "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b)"),
+              study_duration,
+              ignore.case=TRUE) ~ gsub(paste0(".*\\bover a period of\\b(.*[0-9]+\\.?[0-9]*.*(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                              "day|\\bd\\b|[0-9\\.]d\\b|",
+                                              "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                              "month|\\bm\\b|[0-9\\.]m\\b|",
+                                              "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b))"), "\\1", study_duration),
+        TRUE ~ study_duration
+      ) %>%
+        gsub("\\bhr|hopur|Hr|\\bhs", "hour", .) %>%
+        gsub("through", "-", .) %>%
+        gsub("\\s*\\-\\s*", "-", .) %>%
+        gsub("\\bto\\b", "-", ., ignore.case=TRUE) %>%
+        gsub("PND|GD", "", ., ignore.case=TRUE) %>%
+        gsub("\\s*\\-\\s*", "-", .) %>%
+        stringr::str_squish(),
       # Use first number appearance (range possible) as study_duration_value
       study_duration_value = study_duration %>%
-        stringr::str_extract(stringr::regex(paste0("(\\d+(?:\\-\\d+)?).*?",
-                                                   "(?:hour|\\bh\\b|[0-9]h\\b|",
-                                                   "day|\\bd\\b|[0-9]d\\b|",
-                                                   "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
-                                                   "month|\\bm\\b|[0-9]m\\b|",
-                                                   "year|\\by\\b|[0-9]y\\b|yr)"),
+        stringr::str_extract(stringr::regex(paste0("([0-9]+\\.?[0-9]*(?:\\-[0-9]+\\.?[0-9]*)?).*?",
+                                                   "(?:hour|\\bh\\b|[0-9\\.]h\\b|",
+                                                   "day|\\bd\\b|[0-9\\.]d\\b|",
+                                                   "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                                   "month|\\bm\\b|[0-9\\.]m\\b|",
+                                                   "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b)"),
                                             ignore_case = TRUE), group=1) %>%
         c() %>% stringr::str_squish(),
       # Use first "timeframe" appearance as study_duration_units
       study_duration_units = study_duration %>%
-        stringr::str_extract(stringr::regex(paste0("\\d+(?:\\-\\d+)?.*?",
-                                                   "(hour|\\bh\\b|[0-9]h\\b|",
-                                                   "day|\\bd\\b|[0-9]d\\b|",
-                                                   "week|\\bw\\b|[0-9]w\\b|wk|weeek|wwek|",
-                                                   "month|\\bm\\b|[0-9]m\\b|",
-                                                   "year|\\by\\b|[0-9]y\\b|yr)"),
+        stringr::str_extract(stringr::regex(paste0("[0-9]+\\.?[0-9]*(?:\\-[0-9]+\\.?[0-9]*)?.*?",
+                                                   "(hour|\\bh\\b|[0-9\\.]h\\b|",
+                                                   "day|\\bd\\b|[0-9\\.]d\\b|",
+                                                   "week|\\bw\\b|[0-9\\.]w\\b|wk|weeek|wwek|",
+                                                   "month|\\bm\\b|[0-9\\.]m\\b|",
+                                                   "year|\\by\\b|[0-9\\.]y\\b|yr|min\\b)"),
                                             ignore_case = TRUE), group=1) %>%
         c(),
       # Perform final processing
       study_duration_units = dplyr::case_when(
-        grepl("h", study_duration_units) ~ "hours",
-        grepl("d", study_duration_units) ~ "days",
-        grepl("w", study_duration_units) ~ "weeks",
-        grepl("m", study_duration_units) ~ "months",
-        grepl("y", study_duration_units) ~ "years",
+        grepl("min", study_duration_units, ignore.case=TRUE) ~ "minutes",
+        grepl("m", study_duration_units, ignore.case=TRUE) ~ "months",
+        grepl("h", study_duration_units, ignore.case=TRUE) ~ "hours",
+        grepl("d", study_duration_units, ignore.case=TRUE) ~ "days",
+        grepl("w", study_duration_units, ignore.case=TRUE) ~ "weeks",
+        grepl("y", study_duration_units, ignore.case=TRUE) ~ "years",
         TRUE ~ as.character(NA)
       ),
-      # Set both cols to NA if only one value is present
+
+      # If study_duration still not extracted, check for PND/GD
+      study_duration_value = dplyr::case_when(
+        !is.na(study_duration_value) | is.na(pnd_or_gd) ~ study_duration_value,
+        TRUE ~ stringr::str_extract(study_duration, "[0-9]+\\.?[0-9]*\\s*\\-?\\s*[0-9\\.]*") %>% c() %>% stringr::str_squish()
+      ),
+      study_duration_units = dplyr::case_when(
+        !is.na(study_duration_units) | is.na(pnd_or_gd) ~ study_duration_units,
+        TRUE ~ pnd_or_gd
+      ),
+
+      # Set both cols to NA if only one value is present, study_duration_value is 0, or PND edge case
       study_duration_units = dplyr::case_when(
         study_duration_value == as.character(NA) ~ as.character(NA),
+        study_duration_value == "0" ~ as.character(NA),
+        grepl("mating to PND", study_duration_raw) ~ as.character(NA),
         TRUE ~ study_duration_units
       ),
       study_duration_value = dplyr::case_when(
         study_duration_units == as.character(NA) ~ as.character(NA),
+        study_duration_value == "0" ~ as.character(NA),
+        grepl("mating to PND", study_duration_raw) ~ as.character(NA),
         TRUE ~ study_duration_value
-      ),
+      ) %>% gsub("\\s*\\-\\s*", "-", .),
 
       # Select only first study_type value when pipe is used
       study_type = gsub("\\|.+", "", study_type),
@@ -412,15 +745,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ study_duration_class
       ),
 
-      # Clean species column
-      species = species %>%
-        tolower() %>%
-        gsub(":", "", .) %>%
-        stringr::str_squish(),
-
       # Clean strain column
-      strain = strain %>%
-        tolower() %>%
+      strain = dplyr::case_when(
+        grepl("hamster,", species, ignore.case=TRUE) ~ gsub("hamster,", "", species, ignore.case=TRUE),
+        grepl("\\bother:?", strain) ~ strain_other,
+        TRUE ~ strain
+      ) %>%
         gsub("(?:animal )?strain:", "", ., ignore.case=TRUE) %>%
         gsub("WIST", "wistar", .) %>%
         gsub("no data", "", .) %>%
@@ -434,9 +764,18 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         # Remove for now
         # nchar(strain) > 100 ~ as.character(NA),
         # Filter out entries with "age"
-        grepl("age", strain, ignore.case=TRUE) ~ as.character(NA),
+        grepl("\\bage\\b|lot #|weeks old|substance", strain, ignore.case=TRUE) ~ as.character(NA),
         TRUE ~ strain
       ),
+
+      # Clean species column
+      species = dplyr::case_when(
+        grepl("hamster,", species, ignore.case=TRUE) ~ gsub(",.+", "", species, ignore.case=TRUE),
+        TRUE ~ species
+      ) %>%
+        tolower() %>%
+        gsub(":", "", .) %>%
+        stringr::str_squish(),
 
       # Clean toxval_type
       toxval_type = toxval_type %>%
@@ -454,39 +793,59 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         stringr::str_squish(),
 
       # Clean exposure_method
-      exposure_method =  exposure_method %>%
-        gsub("\\|other:|other:\\|", "", .) %>%
-        gsub("\\|unspecified|unspecified\\|", "", .) %>%
-        gsub("\\|not specified|not specified\\|", "", .) %>%
+      exposure_method =  dplyr::case_when(
+        !(grepl(":", exposure_method)) ~ gsub(".+\\|", "", exposure_method),
+        TRUE ~ gsub(".+:", "", exposure_method)
+      ) %>%
+        stringr::str_replace("^\\|", "") %>%
+        gsub("\\|?\\bother\\b\\|?", "", .) %>%
+        gsub("\\|?\\bunspecified\\b\\|?", "", .) %>%
+        gsub("\\|?not specified|not specified\\|?", "", .) %>%
         stringr::str_squish(),
       exposure_method = dplyr::case_when(
-        grepl("gavage", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "gavage",
-        grepl("gas", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "gas",
-        grepl("vapour", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "vapour",
-        grepl("drinking water", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "drinking water",
-        grepl("feed", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "feed",
-        grepl("aerosol", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "aerosol",
-        grepl("capsule", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "capsule",
-        grepl("dust", exposure_route) & exposure_method %in% c("-", as.character(NA))~ "dust",
-        grepl("mixture", exposure_route) & exposure_method %in% c("-", as.character(NA))~ stringr::str_extract(exposure_route,
-                                                                                                                    "mixture.+") %>% c(),
+        !(exposure_method %in% c("-", as.character(NA), "")) ~ exposure_method,
+        grepl("gavage", exposure_route) ~ "gavage",
+        grepl("drinking water", exposure_route) ~ "drinking water",
+        grepl("feed", exposure_route) ~ "feed",
+        grepl("capsule", exposure_route) ~ "capsule",
         TRUE ~ exposure_method
+      ) %>%
+        gsub("mixture of.+\\|", "", .) %>%
+        gsub("\\|?(?:gas|vapour|aerosol|dust)\\|?", "", ., ignore.case=TRUE) %>%
+        stringr::str_replace("^\\||\\|$", "") %>%
+        stringr::str_squish(),
+
+      # Extract exposure_form
+      exposure_form = dplyr::case_when(
+        grepl("mixture", exposure_route) ~ stringr::str_extract(exposure_route, "mixture.+") %>% c(),
+        grepl("gas", exposure_route) ~ "gas",
+        grepl("vapour", exposure_route) ~ "vapour",
+        grepl("aerosol", exposure_route) ~ "aerosol",
+        grepl("dust", exposure_route) ~ "dust",
+        TRUE ~ exposure_form
       ),
 
       # Clean exposure_route
-      exposure_route = exposure_route %>%
-        gsub(":", "", .) %>%
-        gsub("\\|?other\\|?", "", .) %>%
-        gsub("\\|?unspecified\\|?", "", .) %>%
-        gsub("\\|?not specified\\|?", "", .) %>%
-        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule|mixture.+|dust", "", ., ignore.case=TRUE) %>%
+      exposure_route = dplyr::case_when(
+        grepl("\\bother|\\bunspecified|\\bnot specified", gsub(":.+", "", exposure_route)) ~ exposure_route_other,
+        exposure_route %in% c(as.character(NA), "-", "", "other route", "other routes") ~ exposure_route_other,
+        TRUE ~ exposure_route
+      ) %>%
+        gsub(":.+", "", .) %>%
+        gsub("gavage|gas|vapour|drinking water|feed|aerosol|capsule|mixture.+|dust|other routes?|acute|(?:sub)?chronic", "", ., ignore.case=TRUE) %>%
         stringr::str_squish(),
+
+      # Handle edge case where exposure_method equals exposure_route
+      exposure_method = dplyr::case_when(
+        exposure_method == exposure_route ~ as.character(NA),
+        TRUE ~ exposure_method
+      ),
 
       # Clean sex field
       sex = dplyr::case_when(
-        grepl("no", sex) ~ as.character(NA),
+        !grepl("male", sex) ~ as.character(NA),
         TRUE ~ sex
-      ),
+      ) %>% gsub("not specified", "", .),
 
       # Ensure normal range for year
       year = dplyr::case_when(
@@ -512,8 +871,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
       # Select and clean appropriate toxval_numeric_qualifier
       toxval_numeric_qualifier = dplyr::case_when(
-        !is.na(toxval_qualifier_lower) ~ toxval_qualifier_lower,
-        !is.na(toxval_qualifier_upper) ~ toxval_qualifier_upper,
+        !is.na(toxval_qualifier_lower) & toxval_numeric_origin == "Lower Range" ~ toxval_qualifier_lower,
+        !is.na(toxval_qualifier_upper) & toxval_numeric_origin == "Upper Range" ~ toxval_qualifier_upper,
         TRUE ~ toxval_numeric_qualifier
       ) %>% gsub("ca\\.", "~", .),
 
@@ -546,22 +905,67 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ as.character(NA)
       ),
       name = dplyr::case_when(
-        grepl("NDA[0-9]+\\-", name) ~ gsub(".+\\-", "", name),
+        grepl("NDA[0-9]+\\-", name) ~ gsub("NDA[0-9]+\\-", "", name),
         TRUE ~ name
+      ),
+
+      # Set critical_effect to mortality when toxval_type starts with LD
+      critical_effect = dplyr::case_when(
+        startsWith(toupper(toxval_type), "LD") ~ "mortality",
+        TRUE ~ critical_effect
       )
     ) %>%
+
+    # Build critical_effect column
+    tidyr::unite("critical_effect_combined",
+                 organ_system, target_organ, hazard_category, critical_effect,
+                 sep=": ",
+                 remove=FALSE,
+                 na.rm=TRUE) %>%
+    # Separately handle original critical_effect so other columns can be kept in unite() call
+    dplyr::mutate(critical_effect = critical_effect_combined) %>%
+    dplyr::select(-critical_effect_combined) %>%
 
     # Remove entries that should be dropped due to experimental_flag/data_purpose_category
     dplyr::filter(temp_to_drop == 0) %>%
     dplyr::select(!temp_to_drop) %>%
 
-    # Drop unused toxval_qualifier cols
-    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper"))) %>%
-    # Remove entries with "conc. level" toxval_type or "%" toxval_units
-    dplyr::filter(!grepl("conc\\. level", toxval_type),
-                  !grepl("%", toxval_units))  %>%
+    # Drop unused helper cols
+    dplyr::select(!tidyselect::any_of(c("toxval_qualifier_lower", "toxval_qualifier_upper", "toxval_numeric_origin", "pnd_or_gd", "study_duration"))) %>%
+    # Remove entries with %" toxval_units
+    dplyr::filter(!grepl("%", toxval_units))  %>%
     # Filter out entries with "other" species
-    dplyr::filter(!grepl("\\bother\\b", species, ignore.case=TRUE))
+    dplyr::filter(!grepl("\\bother\\b", species, ignore.case=TRUE)) %>%
+    # Filter out entries with NA exposure_route
+    tidyr::drop_na(exposure_route)
+
+  # Filter out "dose level" and "conc. level" toxval_type if not RepeatedDoseToxicityOral
+  if(subf!="iuclid_repeateddosetoxicityoral") {
+    res = res %>%
+      dplyr::filter(!grepl("(?:conc\\.|dose) level", toxval_type))
+  }
+
+  # Account for exposure_route/method/form edge case
+  if("exposure_method_other" %in% names(res)) {
+    res = res %>%
+      dplyr::mutate(
+        # Set exposure_form when necessary
+        exposure_form = dplyr::case_when(
+          grepl("inhalation", exposure_route) ~ exposure_method,
+          TRUE ~ as.character(NA)
+        ),
+
+        # Set correct exposure_method where appropriate
+        exposure_method = dplyr::case_when(
+          grepl("inhalation", exposure_route) ~ exposure_method_other,
+          TRUE ~ exposure_method
+        ) %>%
+          gsub("not specified|other:", "", .) %>%
+          stringr::str_squish()
+      ) %>%
+      # Drop exposure_method_other column
+      dplyr::select(-exposure_method_other)
+  }
 
   # Handle sex column duplicates
   res = res %>%
@@ -575,6 +979,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
                     paste0(collapse="/")) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(sex = sex %>%
+                    stringr::str_replace("^\\/", "") %>%
                     dplyr::na_if("") %>%
                     dplyr::na_if("NA") %>%
                     # Standardize "both" order
@@ -595,64 +1000,93 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res$media = "-"
   }
 
-  # Drop duplicates
-  res = dplyr::distinct(res)
+  # Add generation/lifestage information to critical_effect for specified OHTs
+  if(subf %in% c("iuclid_toxicityreproduction", "iuclid_developmentaltoxicityteratogenicity")) {
+    if(subf == "iuclid_toxicityreproduction") {
+      res = res %>% dplyr::mutate(
+        dcap_notes = stringr::str_extract(generation, "((?:P|F)[0-2])", group=1)
+      )
+    } else {
+      res = res %>% dplyr::mutate(
+        dcap_notes = stringr::str_extract(lifestage, "(maternal|fetus)", group=1)
+      )
+    }
 
-  # Replace with NA
-  res[res == ""] = NA
+    res = res %>%
+      dplyr::mutate(
+        # Carry over dynamic generation value by using two separate assignments
+        critical_effect = stringr::str_c(dcap_notes, ": ", critical_effect),
+        critical_effect = stringr::str_replace_all(critical_effect, "\\|", stringr::str_c("\\|", dcap_notes, ": ")) %>%
+          stringr::str_squish()  %>%
+          dplyr::na_if("") %>%
+          dplyr::na_if(" ") %>%
+          dplyr::na_if("-") %>%
+          dplyr::na_if(":") %>%
+          dplyr::na_if("") %>%
+          dplyr::na_if("P0:") %>%
+          dplyr::na_if("P1:") %>%
+          dplyr::na_if("F0:") %>%
+          dplyr::na_if("F1:") %>%
+          dplyr::na_if("maternal:") %>%
+          dplyr::na_if("fetus:")
+      ) %>%
+      dplyr::select(-dcap_notes)
+  }
+
+  # Collapse dose/conc level critical_effect values
+  if("dose level" %in% unique(res$toxval_type) | "conc. level" %in% unique(res$toxval_type)) {
+    # Separate out dose/conc level entries from res
+    dose_conc_res = res %>%
+      dplyr::filter(toxval_type %in% c("dose level", "conc. level"))
+
+    # Use deduping function to collapse just critical_effect
+    dose_conc_hash_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))],
+                            "endpoint_uuid")
+    dose_conc_res = toxval.source.import.dedup(dose_conc_res,
+                                               hashing_cols=dose_conc_hash_cols) %>%
+      dplyr::mutate(
+        critical_effect = gsub(" \\|::\\| ", "|", critical_effect),
+        experimental_flag = as.numeric(experimental_flag),
+        year = as.numeric(year)
+      ) %>%
+      dplyr::distinct()
+
+    # Add dose_conc entries back to original data
+    res = res %>%
+      dplyr::filter(!(toxval_type %in% c("dose level", "conc. level"))) %>%
+      dplyr::mutate(range_relationship_id = as.character(range_relationship_id)) %>%
+      dplyr::bind_rows(dose_conc_res)
+  }
 
   # Standardize the names
   names(res) <- names(res) %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]|[\\(]|[\\)]", "_", .) %>%
     stringr::str_squish() %>%
-    tolower() %>%
-    # Truncate field names to abbreviated strings
-    textclean::mgsub(.,
-                     pattern = c("__", "administrativedata", "materialsandmethods", "administrationexposure", "administration",
-                                 "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity", "inhalation",
-                                 "developmental", "maternal", "fetuses", "fetal", "results", "abnormalities", "animals",
-                                 "fetus", "remarks", "details", "concentration", "observation", "examination", "material",
-                                 "background", "publication", "description", "attach", "histopath", "observe", "overall",
-                                 "docsforpub", "severity", "dermal", "incidence"
-                     ),
-                     replace = c("_", "addata", "matmet", "adexp", "ad",
-                                 "mat", "resdisc", "efflvs", "sys", "tox", "inh",
-                                 "dvmtl", "mtnl", "fts", "ftl", "res", "abnrm", "anim",
-                                 "fts", "rmrk", "dtls", "conc", "obs", "exam", "mat",
-                                 "bgrd", "pub", "desc", "atch", "hist", "obs", "ovrll",
-                                 "pubdocs", "sev", "derm", "inc")) %>%
-    gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .) %>%
-    gsub("targetsysorgantox", "trgsysorgtox", .)
+    tolower() # %>%
+    # # Truncate field names to abbreviated strings
+    # textclean::mgsub(.,
+    #                  pattern = c("__", "administrativedata", "materialsandmethods", "administrationexposure", "administration",
+    #                              "materials", "resultsanddiscussion", "effectlevels", "system", "toxicity", "inhalation",
+    #                              "developmental", "maternal", "fetuses", "fetal", "results", "abnormalities", "animals",
+    #                              "fetus", "remarks", "details", "concentration", "observation", "examination", "material",
+    #                              "background", "publication", "description", "attach", "histopath", "observe", "overall",
+    #                              "docsforpub", "severity", "dermal", "incidence"
+    #                  ),
+    #                  replace = c("_", "addata", "matmet", "adexp", "ad",
+    #                              "mat", "resdisc", "efflvs", "sys", "tox", "inh",
+    #                              "dvmtl", "mtnl", "fts", "ftl", "res", "abnrm", "anim",
+    #                              "fts", "rmrk", "dtls", "conc", "obs", "exam", "mat",
+    #                              "bgrd", "pub", "desc", "atch", "hist", "obs", "ovrll",
+    #                              "pubdocs", "sev", "derm", "inc")) %>%
+    # gsub("targetsysorgantox_targetsysorgantox", "targetsysorgantox", .) %>%
+    # gsub("targetsysorgantox", "trgsysorgtox", .)
 
   # Halt if field names are still too long
   if(any(nchar(names(res)) >= 65)){
     message("Error: field names too long: ", names(res)[nchar(names(res)) >= 65] %>% toString())
     browser()
   }
-
-  # Perform deduping
-  res = toxval.source.import.dedup(res, hashing_cols=hashing_cols)
-
-  # Add version date. Can be converted to a mutate statement as needed
-  res$source_version_date <- src_version_date
-
-  # # Check for immediate duplicate hashes
-  # dup_hashes = res %>%
-  #   dplyr::group_by(source_hash) %>%
-  #   dplyr::summarise(n = dplyr::n()) %>%
-  #   dplyr::filter(n > 1)
-  #
-  # # Stop if duplicate source_hash values present
-  # if(nrow(dup_hashes)){
-  #   cat("Duplicate source_hash values present in res...\n")
-  #   # Export log file to review
-  #   writexl::write_xlsx(res %>% dplyr::filter(source_hash %in% dup_hashes$source_hash),
-  #                       paste0(toxval.config()$datapath,"iuclid/",subf,"/",
-  #                              subf, "_dup_records_check.xlsx"))
-  #   browser()
-  #   stop("Duplicate source_hash values present in res...")
-  # }
 
   # Select down columns due to MySQL row size constrictions
   res = res %>%
@@ -661,15 +1095,34 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         "substance_uuid_entity_uuid_",
         "datasource_reference_i6:key",
         "resdisc_efflvs_efflevel_@i6:uuid"
-        )
+      )
       ),
-    -dplyr::matches(paste0("resdisc_trgsysorgtox_entry_[0-9]+_@i6:uuid|",
-                           "matmet_adexp_dosesconcs_entry_[0-9]+_@|",
-                           "matmet_guideline_entry_[0-9]+_@")))
+      -dplyr::matches(paste0("resdisc_trgsysorgtox_entry_[0-9]+_@i6:uuid|",
+                             "matmet_adexp_dosesconcs_entry_[0-9]+_@|",
+                             "matmet_guideline_entry_[0-9]+_@")))
 
-  #####################################################################
-  cat("Load the data\n")
-  #####################################################################
+  # Apply str_squish to all character columns
+  res = res %>%
+    dplyr::mutate(dplyr::across(dplyr::where(is.character), stringr::str_squish))
+
+  # Replace with NA
+  res[res == ""] = NA
+
+  # Remove duplicates and drop NA species
+  res = res %>%
+    dplyr::distinct() %>%
+    tidyr::drop_na(species)
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res, hashing_cols=hashing_cols)
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
+
+  # save(res, res0, file=paste0("../../Downloads/iuclid_import_check/", subf, ".RData"))
+  # #####################################################################
+  # cat("Load the data\n")
+  # #####################################################################
   source_prep_and_load(db=db,
                        source=source,
                        table=source_table,

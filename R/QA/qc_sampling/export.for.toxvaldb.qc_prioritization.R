@@ -27,8 +27,8 @@ export.for.toxvaldb.qc_prioritization <- function(toxval.db) {
                     b.source_table
                     FROM
                     toxval b
-                    INNER JOIN source_chemical a on a.chemical_id=b.chemical_id
-                    INNER JOIN toxval_type_dictionary c on b.toxval_type=c.toxval_type
+                    LEFT JOIN source_chemical a on a.chemical_id=b.chemical_id
+                    LEFT JOIN toxval_type_dictionary c on b.toxval_type=c.toxval_type
                     WHERE
                     b.source='",src,"'")
  #                   and toxval_type_supercategory in ('Point of Departure','Lethality Effect Level','Toxicity Value')")
