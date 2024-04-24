@@ -520,6 +520,30 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                     TRUE ~ sex
                   ))
 
+  # Fix special case of study_type information set to toxval_subtype
+  res = res %>%
+    dplyr::mutate(toxval_subtype = dplyr::case_when(
+      grepl("acute:", study_type) ~ study_type,
+      TRUE ~ toxval_subtype
+    ),
+    long_ref = dplyr::case_when(
+      long_ref %in% c(NA, "-") ~ study_reference,
+      TRUE ~ long_ref
+    ),# %>%
+      # # Remove extraneous whitespace and escaped symbols
+      # stringr::str_squish() %>%
+      # gsub("\\r|\\n|\\\\r|\\\\n", "", .) %>%
+      # gsub("\\\\'", "'", .) %>%
+      # gsub('\\\\\\"', '"', .),
+
+    dplyr::across(dplyr::where(is.character), ~tidyr::replace_na(., "-") %>%
+                    fix.replace.unicode() %>%
+                    stringr::str_squish()),
+    dplyr::across(dplyr::where(is.character), ~gsub("\\r|\\n|\\\\r|\\\\n", "", .)),
+    dplyr::across(dplyr::where(is.character), ~gsub("\\\\'", "'", .)),
+    dplyr::across(dplyr::where(is.character), ~gsub('\\\\\\"', '"', .))
+    )
+
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 

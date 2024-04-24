@@ -224,7 +224,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u00ce\u00b1", "a", .) %>%
 
     # Handle dashes/bullets
-    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70", "-", .) %>%
+    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70|\u2011", "-", .) %>%
     gsub("\u25a1|\u2756|\u00a8|\u00a4|\u00ad|\u25cf|\u00af", "-", .) %>%
 
     # Fix quotations and apostrophes
@@ -343,7 +343,10 @@ fix.replace.unicode <- function(df) {
     gsub("\u2193", "", .) %>%
 
     # Remove unidentified characters
-    gsub("\ufffd|\uf8e8|\ufeff|\uf6da|\uf06e|\uf020", "", .)
+    gsub("\ufffd|\uf8e8|\ufeff|\uf6da|\uf06e|\uf020", "", .) %>%
+
+    # Unicode small n
+    gsub("\u0144", "n", .)
 
   # Identify and print unicode symbols that were not handled
   not_handled = df %>%
