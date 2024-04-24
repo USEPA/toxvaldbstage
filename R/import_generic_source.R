@@ -41,17 +41,32 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   # described in the SOP - they will get added in source_prep_and_load
   #
 
-  res = source.specific.transformations(res0)
+  # Add source specific transformations
+  res = res0
 
   # Standardize the names
-  names(res0) <- names(res0) %>%
+  names(res) <- names(res) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
+  res = res %>%
+    # Generic cleanup of strings before dedup check
+    dplyr::mutate(
+      dplyr::across(dplyr::where(is.character), ~tidyr::replace_na(., "-") %>%
+                      fix.replace.unicode() %>%
+                      stringr::str_squish()),
+      dplyr::across(dplyr::where(is.character), ~gsub("\\r|\\n|\\\\r|\\\\n", "", .)),
+      dplyr::across(dplyr::where(is.character), ~gsub("\\\\'", "'", .)),
+      dplyr::across(dplyr::where(is.character), ~gsub('\\\\\\"', '"', .))
+    )
+
   # Fill blank hashing cols
-  res0[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res0)]] <- "-"
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res, hashing_cols=toxval.config()$hashing_cols)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
@@ -67,7 +82,3 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
