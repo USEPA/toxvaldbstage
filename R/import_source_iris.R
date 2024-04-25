@@ -611,9 +611,9 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       dplyr::left_join(summary_ref_data,
                        by = c("study_reference", "principal_study", "document_type")) %>%
       dplyr::mutate(
-        full_reference = dplyr::case_when(
+        long_ref = dplyr::case_when(
           !(full_reference %in% c(as.character(NA), "-", "")) ~ full_reference,
-          TRUE ~ prev_full_reference
+          TRUE ~ long_ref
         )
       ) %>%
       dplyr::select(-prev_full_reference)
