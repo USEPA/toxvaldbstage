@@ -103,7 +103,9 @@ import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Perform deduping
-  res = toxval.source.import.dedup(res)
+  hashing_cols = toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% c("long_ref", "study_duration_qualifier")]
+  res = toxval.source.import.dedup(res,
+                                   hashing_cols = hashing_cols)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

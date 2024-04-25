@@ -94,14 +94,17 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
            study_duration_units = "days") %>%
     # splitting ROUTE into exposure_route and exposure_method columns
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
-    dplyr::mutate(dplyr::across(where(is.character), fix.replace.unicode)) %>%
 
     # Remove unneeded ID fields from original source
     dplyr::select(-tidyr::matches("_id")) %>%
+
+    dplyr::mutate(dplyr::across(where(is.character), fix.replace.unicode)) %>%
     dplyr::distinct()
 
   # Perform deduping
-  res = toxval.source.import.dedup(res)
+  hashing_cols = toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% c("long_ref", "study_duration_qualifier")]
+  res = toxval.source.import.dedup(res,
+                                   hashing_cols = hashing_cols)
 
   #####################################################################
   cat("Prep and load the data\n")
