@@ -33,7 +33,9 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
   src_version_date = as.Date("2021-06-16")
   dir = paste0(toxval.config()$datapath,"hess/hess_files/")
   file = paste0(dir,"hess_6_16_21.xlsx")
-  res0 = readxl::read_xlsx(file)
+  res0 = readxl::read_xlsx(file) %>%
+    # Remove unnamed columns
+    dplyr::select(-tidyr::starts_with("..."))
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -44,13 +46,13 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
       names_to="toxval_type",
       values_to="toxval_numeric_units"
     ) %>%
-
+    dplyr::rename(src_document_name = document_name) %>%
     dplyr::mutate(
       name = chemical_name,
       source_url = "https://www.nite.go.jp/en/chem/qsar/hess_update-e.html",
 
       # Set document name extension to PDF
-      document_name = gsub("docx", "pdf", document_name),
+      src_document_name = gsub("docx", "pdf", src_document_name),
 
       # Initial cleaning of character columns
       dplyr::across(dplyr::where(is.character), ~stringr::str_replace_all(., "\\'", "") %>%
@@ -98,6 +100,7 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
     tidyr::unite("critical_effect", !!crit_effect_fields, sep="|", na.rm=TRUE, remove=FALSE) %>%
 
     dplyr::mutate(
+      long_ref = associated_publication,
       # Extract sex information from subject_type and critical_effect fields
       sex = dplyr::case_when(
         grepl("male", subject_type) ~ stringr::str_extract(subject_type, "(?:fe)?male") %>% c(),
@@ -259,13 +262,13 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
     dplyr::select(-study_duration, -toxval_numeric_units) %>%
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type)
 
-  # Assign document url from clowder to corresponding documents
-  clowder_file = paste0(dir,"hess_record_urls_from_clowder.xlsx")
-  url_from_clowder = readxl::read_xlsx(clowder_file) %>%
-    dplyr::select(filename, doc_url) %>%
-    dplyr::rename(document_name=filename, record_url=doc_url)
+  # Remove casrn from name
   res = res %>%
-    dplyr::left_join(url_from_clowder, by="document_name")
+    dplyr::rowwise() %>%
+    dplyr::mutate(name = name %>%
+                    gsub(paste0(casrn, ", "), "", .) %>%
+                    stringr::str_squish()) %>%
+    dplyr::ungroup()
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -294,7 +297,3 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
