@@ -195,7 +195,7 @@ fix.replace.unicode <- function(df) {
     # Fix whitespace
     gsub("[\r\n][\r\n]", " ", .) %>%
     gsub("\u00a0|<U+00A0>|\u2003", " ", .) %>%
-    gsub("\u200b|\u0081|\u008d|\u0090", "", .) %>%
+    gsub("\u200b|\u0081|\u008d|\u0090|\u0002", "", .) %>%
 
     # Fix escaped quotation marks
     gsub("\\\\{1,}'", "'", .) %>%
