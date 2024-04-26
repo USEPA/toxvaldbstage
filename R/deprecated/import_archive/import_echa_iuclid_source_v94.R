@@ -8,16 +8,15 @@
 #' @param verbose PARAM_DESCRIPTION, Default: T
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #' @rdname import_echa_iuclid_source
-#' @export 
 #' @importFrom openxlsx read.xlsx
 
 #--------------------------------------------------------------------------------------

@@ -6,18 +6,17 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[utils]{type.convert}}
 #'  \code{\link[data.table]{rbindlist}}
 #' @rdname import_echa_echemportal_api_source
-#' @export 
 #' @importFrom openxlsx read.xlsx
 #' @importFrom utils type.convert
 #' @importFrom data.table rbindlist

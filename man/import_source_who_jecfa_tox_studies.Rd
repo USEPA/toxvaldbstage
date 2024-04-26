@@ -40,5 +40,5 @@ if(interactive()){
 \code{\link[readxl]{read_excel}}
  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{filter}}
  \code{\link[tidyr]{separate_rows}}
- \code{\link[stringr]{str_trim}}
+ \code{\link[stringr]{str_trim}} \code{\link[stringr]{str_extract}}
 }
