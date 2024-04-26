@@ -2,12 +2,10 @@
 % Please edit documentation in R/import_hawc_source.R
 \name{import_hawc_source}
 \alias{import_hawc_source}
-\title{FUNCTION_TITLE}
+\title{import_hawc_source}
 \usage{
 import_hawc_source(
   db,
-  infile1 = "hawc_original_12_06_21.xlsx",
-  infile2 = "dose_dict.xlsx",
   chem.check.halt = FALSE,
   do.reset = FALSE,
   do.insert = FALSE
@@ -16,21 +14,17 @@ import_hawc_source(
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}
 
-\item{infile1}{The input file ./hawc/hawc_files/hawc_original_12_06_21.xlsx}
+\item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
 
-\item{infile2}{The input file ./hawc/hawc_files/dose_dict.xlsx}
+\item{do.reset}{If TRUE, delete data from the database for this source before}
 
-\item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is pushed to toxval_source
 }
 \description{
-Load HAWC Source into toxval_source
-
-Note that the different tabs in the input sheet have different names, so these need
-to be adjusted manually for the code to work. This is a problem wit how the data
-is stored in HAWC
+Load HAWC Project data into toxval_source
 }
 \details{
 DETAILS
@@ -44,6 +38,9 @@ if(interactive()){
 }
 \seealso{
 \code{\link[openxlsx]{getSheetNames}}, \code{\link[openxlsx]{read.xlsx}}
- \code{\link[stats]{aggregate}}
+ \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{count}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{context}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{na_if}}
+ \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{drop_na}}
+ \code{\link[generics]{setops}}
  \code{\link[digest]{digest}}
+ \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}
 }

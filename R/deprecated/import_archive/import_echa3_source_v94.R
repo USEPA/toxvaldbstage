@@ -18,18 +18,17 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[janitor]{excel_numeric_to_date}}
 #'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_split}}
 #' @rdname import_echa3_source
-#' @export 
 #' @importFrom openxlsx read.xlsx
 #' @importFrom janitor excel_numeric_to_date
 #' @importFrom stringr str_extract_all regex str_split

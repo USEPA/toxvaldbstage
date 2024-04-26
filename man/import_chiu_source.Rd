@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_chiu_source.R
 \name{import_chiu_source}
 \alias{import_chiu_source}
-\title{FUNCTION_TITLE}
+\title{import_chiu_source}
 \usage{
 import_chiu_source(
   db,
@@ -16,18 +16,15 @@ import_chiu_source(
 
 \item{chem.check.halt}{If TRUE and there are bad chemical names or casrn, #' stop to look at the results in indir/chemcheck.xlsx}
 
-\item{infile}{The input file ./chiu/chiu_files/Full_RfD_databaseQAed-FINAL.xlsx}
+\item{infile}{The input file ./chiu/chiu_files/RfD_HDMI_mc_results.csv}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is pushed to toxval_source
 }
 \description{
-FUNCTION_DESCRIPTION
+Load chiu Source into toxval_source, only HDMI values
 }
 \details{
-#' Load chiu Source into dev_toxval_source_v3.
-Data from the Chiu et al. paper on RfD values
-
 DETAILS
 }
 \examples{

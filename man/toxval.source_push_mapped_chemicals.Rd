@@ -8,8 +8,8 @@ toxval.source_push_mapped_chemicals(
   db,
   source.index,
   curated.path,
-  ignore.curation.dups = TRUE,
-  match.chemical.id = FALSE,
+  ignore.curation.dups = FALSE,
+  match.chemical.id = TRUE,
   reset.mapping = FALSE,
   bulk.push = TRUE
 )
@@ -21,9 +21,9 @@ toxval.source_push_mapped_chemicals(
 
 \item{curated.path}{Input path to the folder directory with expected subdirectories of #' 'BIN Files', 'DSSTox Files', and 'jira_chemical_files'}
 
-\item{ignore.curation.dups}{Boolean whether to match with any curated records flagged as "unresolved duplicates" (Default TRUE)}
+\item{ignore.curation.dups}{Boolean whether to match with any curated records flagged as "unresolved duplicates" (Default FALSE)}
 
-\item{match.chemical.id}{Boolean whether to match by provided chemical_id external identifier (Default FALSE)}
+\item{match.chemical.id}{Boolean whether to match by provided chemical_id external identifier (Default TRUE)}
 
 \item{reset.mapping}{Boolean whether to reset chemical mappings in source_chemical table of database}
 
