@@ -434,7 +434,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Add summary data to df before prep and load
   if(do.summary_data){
     # Import manually curated IRIS Summary information
-    res1 <- iris_data$source_iris_summary_curation_20240308.xlsx %>%
+    res1 <- iris_data$source_iris_summary_curation.xlsx %>%
       dplyr::mutate(
         document_type = 'IRIS Summary',
         key_finding = 'No',
@@ -460,8 +460,8 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       dplyr::distinct()
   } else {
     res = res0 %>%
-      dplyr::distinct()
-    res$long_ref = as.character(NA)
+      dplyr::distinct() %>%
+      dplyr::mutate(long_ref = as.character(NA))
   }
 
   res = res %>%
