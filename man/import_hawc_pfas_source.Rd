@@ -2,22 +2,32 @@
 % Please edit documentation in R/import_hawc_pfas_source.R
 \name{import_hawc_pfas_source}
 \alias{import_hawc_pfas_source}
-\title{FUNCTION_TITLE}
+\title{import_hawc_pfas_source}
 \usage{
-import_hawc_pfas_source(db, hawc_num = NULL, chem.check.halt = F)
+import_hawc_pfas_source(
+  db,
+  hawc_num = NULL,
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
+)
 }
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}
 
 \item{hawc_num}{The HAWC number being processed (e.g. 150, 430)}
 
-\item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+\item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
+
+\item{do.reset}{If TRUE, delete data from the database for this source before}
+
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is added to toxval_source
 }
 \description{
-Load HAWC PFAS Source into toxval_source
+Load HAWC PFAS data into toxval_source
 }
 \details{
 DETAILS
@@ -30,10 +40,11 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[openxlsx]{read.xlsx}}
- \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{count}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}
- \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
- \code{\link[stringr]{str_trim}}
+\code{\link[readxl]{read_excel}}
+ \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{count}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{case_when}}
+ \code{\link[tidyselect]{all_of}}
+ \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{separate_rows}}
+ \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_detect}}, \code{\link[stringr]{str_extract}}
  \code{\link[purrr]{map2}}
  \code{\link[digest]{digest}}
 }

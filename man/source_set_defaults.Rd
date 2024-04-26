@@ -15,7 +15,7 @@ source_set_defaults(res, source)
 Returns the input dataframe with defaults set
 }
 \description{
-Set default value for NAs - jsut set NA to "-" for columns of type character
+Set default value for NAs - just set NA to "-" for columns of type character
 }
 \details{
 DETAILS
