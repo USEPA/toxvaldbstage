@@ -1,4 +1,3 @@
-
 #--------------------------------------------------------------------------------------
 #' @description Import of IRIS 2023-05-09 source into toxval_source
 #'
@@ -442,11 +441,11 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
         iris_chemical_id = url %>%
           sub('.*=', '', .) %>%
           as.numeric(),
-        route = tolower(route)) %>%
+        route = tolower(route),
+        long_ref=full_reference) %>%
       # Remove IRIS Export fields
       # dplyr::select(-principal_study, -document_type, -endpoint) %>%
       dplyr::rename(
-        long_ref=full_reference,
         exposure_route = route,
         species = species_original,
         sex = sex_original,
@@ -456,11 +455,13 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     res1[, c(#"principal_study", "exposure_route", "critical_effect", "assessment_type",
       "risk_assessment_duration", "endpoint")] <- "-"
     res = res0 %>%
+      dplyr::mutate(full_reference = as.character(NA)) %>%
       dplyr::bind_rows(res1) %>%
       dplyr::distinct()
   } else {
     res = res0 %>%
-      dplyr::distinct()
+      dplyr::distinct() %>%
+      dplyr::mutate(long_ref = as.character(NA))
   }
 
   res = res %>%
@@ -495,6 +496,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       )
   } else {
     # Empty dataframe with res cols to bind_rows()
+    res$numeric_relationship_description = as.character(NA)
     ranged_res = res[0,]
   }
 
@@ -546,6 +548,76 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Map summary information back to export entries
+  if("IRIS Summary" %in% unique(res$document_type)) {
+    # Separate out relevant summary data
+    summary_data = res %>%
+      dplyr::filter(document_type == "IRIS Summary") %>%
+      dplyr::select(iris_chemical_id, toxval_numeric, toxval_units, toxval_type,
+                    study_type, principal_study) %>%
+      # Set IRIS Export document_type to avoid many-to-many mapping
+      dplyr::mutate(document_type = "IRIS Export") %>%
+      dplyr::rename(principal_study_summary = principal_study)
+
+    res = res %>%
+      # Add summary data to export entries
+      dplyr::rename(export_study_type = study_type) %>%
+      dplyr::left_join(summary_data,
+                       by = c("iris_chemical_id", "toxval_numeric", "toxval_units",
+                              "toxval_type", "document_type")) %>%
+      # Use export study_type when summary mapping not available
+      dplyr::mutate(
+        study_type = dplyr::case_when(
+          !(study_type %in% c(as.character(NA), "-", "")) ~ study_type,
+          TRUE ~ export_study_type
+        ),
+
+        # Set toxval_subtype from summary study_type without overwriting range subtypes
+        toxval_subtype = dplyr::case_when(
+          study_type %in% c(as.character(NA), "-", "") ~ toxval_subtype,
+          grepl("(?:Upper|Lower) Range", toxval_subtype) ~ stringr::str_c(study_type,
+                                                                          stringr::str_extract(toxval_subtype,
+                                                                                               "((?:Upper|Lower) Range)",
+                                                                                               group = 1),
+                                                                          sep = " "),
+          TRUE ~ study_type
+        ),
+
+        # Directly assign study_duration_class from summary principal_study
+        study_duration_class = dplyr::case_when(
+          !(principal_study_summary %in% c(as.character(NA), "-", "")) ~ principal_study_summary,
+          TRUE ~ study_duration_class
+        )
+      ) %>%
+      dplyr::select(-export_study_type, -principal_study_summary)
+
+    # Separate out summary reference data
+    summary_ref_data = res %>%
+      dplyr::filter(document_type == "IRIS Summary") %>%
+      dplyr::select(study_reference, principal_study, full_reference) %>%
+      # Set full_reference to be first group appearance to avoid many-to-many issue
+      dplyr::group_by(study_reference, principal_study) %>%
+      dplyr::mutate(full_reference = dplyr::first(full_reference)) %>%
+      dplyr::ungroup() %>%
+      # Set IRIS Export document_type to avoid many-to-many mapping
+      dplyr::mutate(document_type = "IRIS Export") %>%
+      dplyr::distinct() %>%
+      dplyr::filter(!(full_reference %in% c(as.character(NA), "-", "")))
+
+    # Add summary long_ref to export entries
+    res = res %>%
+      dplyr::rename(prev_full_reference = full_reference) %>%
+      dplyr::left_join(summary_ref_data,
+                       by = c("study_reference", "principal_study", "document_type")) %>%
+      dplyr::mutate(
+        long_ref = dplyr::case_when(
+          !(full_reference %in% c(as.character(NA), "-", "")) ~ full_reference,
+          TRUE ~ long_ref
+        )
+      ) %>%
+      dplyr::select(-prev_full_reference)
+  }
 
   # Perform deduping
   res = toxval.source.import.dedup(res, hashing_cols=toxval.config()$hashing_cols)
