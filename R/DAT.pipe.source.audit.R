@@ -125,7 +125,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # Unchanged records = PASS outright
   # live$qc_status[live$source_hash %in% v_list$source_hash] = "pass"
   # If record changed and has a failure reason
-  live$qc_status[!is.na(live$failure_reason)] = "fail"
+  live$qc_status[!live$failure_reason %in% c(NA, "-")] = "fail"
 
   # qc_status spot check
   # live %>% select(data_record_annotation, failure_reason, qc_status)
