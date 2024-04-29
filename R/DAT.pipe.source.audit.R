@@ -193,6 +193,16 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   live <- select(live, any_of(src_tbl_fields))
 
   stop("Compare hash and redo hash as needed for live and rejoin to audit")
+  # Check for duplicate hashes
+  dup_hashes = live %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::summarise(n = n()) %>%
+    dplyr::filter(n > 1)
+
+  if(nrow(dup_hashes)){
+    stop("Duplicate hashes found!")
+  }
+
   View(live %>%
          select(source_hash, parent_hash) %>%
          mutate(compare = source_hash == parent_hash) %>%
