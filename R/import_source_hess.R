@@ -256,7 +256,7 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
         stringr::str_squish() %>%
         dplyr::na_if(""),
       toxval_numeric_qualifier = toxval_numeric_units %>%
-        stringr::str_extract("[<>~=]*") %>% c() %>%
+        stringr::str_extract("[<>~=]") %>% c() %>%
         dplyr::na_if(""),
     ) %>%
     dplyr::select(-study_duration, -toxval_numeric_units) %>%
