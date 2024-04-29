@@ -620,7 +620,7 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Match to extraction doc
                     extraction_doc <- map_file %>%
-                      dplyr::filter(is.na(parent_flag))
+                      dplyr::filter(!is.na(parent_flag))
                     tmp = res %>%
                       dplyr::select(source_hash, source_version_date) %>%
                       merge(extraction_doc %>%
@@ -628,9 +628,6 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Combine origin and extraction document associations
                     res = rbind(res1, tmp)
-
-                    # Return res
-                    res
 
                     # Return res
                     res
