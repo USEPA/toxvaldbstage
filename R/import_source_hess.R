@@ -55,7 +55,9 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
       src_document_name = gsub("docx", "pdf", src_document_name),
 
       # Initial cleaning of character columns
-      dplyr::across(dplyr::where(is.character), ~stringr::str_replace_all(., "\\'", "") %>%
+      dplyr::across(dplyr::where(is.character),
+                    # Remove start/end quotation
+                    ~ trimws(., whitespace = "'") %>%
                       stringr::str_squish() %>%
                       fix.replace.unicode() %>%
                       stringr::str_replace_all("male s\\b", "males") %>%
