@@ -325,7 +325,9 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     dplyr::mutate(
       # Replace critical_effect field "-" with NA
       critical_effect = critical_effect %>% dplyr::na_if("-"),
-      target_organ = target_organ %>% dplyr::na_if("-"),
+      target_organ = target_organ %>%
+        dplyr::na_if("-") %>%
+        dplyr::na_if("[Organ]"),
       generation = generation %>% dplyr::na_if("-")
     ) %>%
     # Build critical_effect value in form generation: target_organ: critical_effect
@@ -410,6 +412,15 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
       toxval_numeric = as.numeric(toxval_numeric),
       toxval_units = toxval_units %>% stringr::str_squish(),
       casrn = gsub("([a-zA-Z]+\\s+[a-zA-Z]*\\:*\\s*)(.*)", "\\2", casrn),
+
+      # Remove "Not Specified" strain
+      strain = strain %>%
+        dplyr::na_if("Not Specified"),
+
+      # Clean sex values
+      sex = sex %>%
+        gsub("Combined", "male/female", .) %>%
+        tolower(),
 
       # Fix exposure details
       exposure_route = gsub("(^[a-zA-Z]+)(\\s*.*)", "\\1", route_of_exposure) %>%
