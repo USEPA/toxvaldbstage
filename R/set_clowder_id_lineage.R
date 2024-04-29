@@ -159,13 +159,8 @@ set_clowder_id_lineage <- function(source_table,
                       #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
                       "source_rsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/source_rsl_document_map_20240227.xlsx")),
-                      "source_hess_20210616" = {
-                        paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx") %>%
-                          readxl::read_xlsx() %>%
-                          fix.non_ascii.v2(.,"map.icf")
-                      },
-                      "source_hess" = data.frame(clowder_id = "65cba45be4b063812d69d110",
-                                                 document_name = "hess_20231109_fixed.xlsx"),
+                      "source_hess" =  readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                "clowder_v3/source_hess_2021_doc_map_20240429.xlsx")),
                       "source_copper" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/source_copper_document_map.xlsx")),
 
@@ -329,14 +324,30 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
 
-                  #"source_hess" = {
-                  #  res <- res %>%
-                  #    left_join(map_file %>%
-                  #                select(clowder_id, document_name, fk_doc_id),
-                  #              by="document_name")
-                  #  # Return res
-                  #  res
-                  #},
+                  "source_hess" = {
+                    # Match to origin docs based on document names
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+                    res1 <- res %>%
+                      dplyr::select(source_hash, src_document_name, source_version_date) %>%
+                      left_join(origin_docs %>%
+                                  select(clowder_id, filename, fk_doc_id) %>%
+                                  distinct(),
+                                by = c("src_document_name" = "filename"))
+
+                    # Match to extraction doc
+                    extraction_doc <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+                    tmp = res %>%
+                      dplyr::select(source_hash, src_document_name, source_version_date) %>%
+                      merge(extraction_doc %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res1, tmp)
+                    # Return res
+                    res
+                  },
 
                   "source_rsl" = {
                     res <- res %>%
