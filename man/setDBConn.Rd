@@ -4,7 +4,13 @@
 \alias{setDBConn}
 \title{FUNCTION_TITLE}
 \usage{
-setDBConn(server = "ccte-mysql-res.epa.gov", user, password, api_auth)
+setDBConn(
+  server = "ccte-mysql-res.epa.gov",
+  user = NULL,
+  password = NULL,
+  api_auth = NULL,
+  port = 3306
+)
 }
 \arguments{
 \item{server}{SQL server on which relevant database lives}

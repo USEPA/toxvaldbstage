@@ -125,7 +125,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # Unchanged records = PASS outright
   # live$qc_status[live$source_hash %in% v_list$source_hash] = "pass"
   # If record changed and has a failure reason
-  live$qc_status[!is.na(live$failure_reason)] = "fail"
+  live$qc_status[!live$failure_reason %in% c(NA, "-")] = "fail"
 
   # qc_status spot check
   # live %>% select(data_record_annotation, failure_reason, qc_status)
@@ -193,6 +193,16 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   live <- select(live, any_of(src_tbl_fields))
 
   stop("Compare hash and redo hash as needed for live and rejoin to audit")
+  # Check for duplicate hashes
+  dup_hashes = live %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::summarise(n = n()) %>%
+    dplyr::filter(n > 1)
+
+  if(nrow(dup_hashes)){
+    stop("Duplicate hashes found!")
+  }
+
   View(live %>%
          select(source_hash, parent_hash) %>%
          mutate(compare = source_hash == parent_hash) %>%

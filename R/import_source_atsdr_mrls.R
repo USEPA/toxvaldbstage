@@ -136,17 +136,20 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
       dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish))
     res <- res %>%
       dplyr::mutate(document_type = "ATSDR MRLs")
-  } else {
-    # If no manual curation of PODs, provisionally calculate NOAEL with UF
-    res1 <- res %>%
-      dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric) * as.numeric(`Total Factors`),
-                    toxval_type = "NOAEL",
-                    toxval_subtype = 'Provisional: MRL multiplied by UF')
   }
+  # else {
+  #   # If no manual curation of PODs, provisionally calculate NOAEL with UF
+  #   res1 <- res %>%
+  #     dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric) * as.numeric(`Total Factors`),
+  #                   toxval_type = "NOAEL",
+  #                   toxval_subtype = 'Provisional: MRL multiplied by UF')
+  # }
   # Combine with manual or provisional
   res = res %>%
     dplyr::bind_rows(res1) %>%
-    dplyr::distinct()
+    dplyr::distinct() %>%
+    dplyr::mutate(study_type = tolower(study_type),
+                  toxval_subtype = study_type)
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
