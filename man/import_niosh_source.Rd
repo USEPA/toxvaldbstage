@@ -2,22 +2,29 @@
 % Please edit documentation in R/import_niosh_source.R
 \name{import_niosh_source}
 \alias{import_niosh_source}
-\title{FUNCTION_TITLE}
+\title{import_niosh_source}
 \usage{
-import_niosh_source(db, infile = "niosh_IDLH_2020.xlsx", chem.check.halt = T)
+import_niosh_source(
+  db,
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
+)
 }
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}
 
-\item{infile}{The input file ./niosh/niosh_files/niosh_IDLH_2020.xlsx}
+\item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
 
-\item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+\item{do.reset}{If TRUE, delete data from the database for this source before}
+
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is pushed to toxval_source
 }
 \description{
-Load NIOSH Source into toxval_source
+Load NIOSH data into toxval_source
 }
 \details{
 DETAILS
@@ -30,5 +37,8 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[openxlsx]{read.xlsx}}
+\code{\link[readxl]{read_excel}}
+ \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}
+ \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
+ \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}} \code{\link[tidyr]{pivot_longer}}
 }

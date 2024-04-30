@@ -195,7 +195,7 @@ fix.replace.unicode <- function(df) {
     # Fix whitespace
     gsub("[\r\n][\r\n]", " ", .) %>%
     gsub("\u00a0|<U+00A0>|\u2003", " ", .) %>%
-    gsub("\u200b", "", .) %>%
+    gsub("\u200b|\u0081|\u008d|\u0090|\u0002", "", .) %>%
 
     # Fix escaped quotation marks
     gsub("\\\\{1,}'", "'", .) %>%
@@ -224,7 +224,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u00ce\u00b1", "a", .) %>%
 
     # Handle dashes/bullets
-    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70", "-", .) %>%
+    gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70|\u2011", "-", .) %>%
     gsub("\u25a1|\u2756|\u00a8|\u00a4|\u00ad|\u25cf|\u00af", "-", .) %>%
 
     # Fix quotations and apostrophes
@@ -249,7 +249,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u2026|<U+2026>", "...", .) %>%
     gsub("\u02c6", "^", .) %>%
     gsub("\u00a1", "!", .) %>%
-    gsub("\u201a", ",", .) %>%
+    gsub("\u201a|\u00b8", ",", .) %>%
 
     # Fix math symbols
     gsub("\u2265|<U+2265>", ">=", .) %>%
@@ -287,7 +287,7 @@ fix.replace.unicode <- function(df) {
     gsub("\uff3b", "[", .) %>%
     gsub("\u00ab", "<<", .) %>%
     gsub("\u00bb", ">>", .) %>%
-    gsub("\u2329", "<", .) %>%
+    gsub("\u2329|\u2039", "<", .) %>%
     gsub("\uff5b", "{", .) %>%
 
     # Fix roman numeral 2
@@ -327,6 +327,10 @@ fix.replace.unicode <- function(df) {
     gsub("\u0127", "h", .) %>%
     gsub("\u03a4", "T", .) %>%
     gsub("\u00c6", "AE", .) %>%
+    gsub("\u00e6", "ae", .) %>%
+    gsub("\u0160", "S", .) %>%
+    # Latin Small Letter N with Acute
+    gsub("\u0144", "n", .) %>%
 
     # Fix section sign
     gsub("\u00a7", "S", .) %>%
