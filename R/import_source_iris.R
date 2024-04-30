@@ -380,7 +380,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::bind_rows(pod_fix)
 
   # Hardcode species as human for RfD, RfD, HED, HED, Slope Factor, Unit Risk
-  human_toxval_type = c("RfD", "Inhalation Unit Risk", "RfC", "Oral Slope Factor", "HED", "HEC")
+  human_toxval_type = c("RfD", "Inhalation Unit Risk", "RfC", "Oral Slope Factor")
   res0$species[res0$toxval_type %in% human_toxval_type] = "human"
 
   # Fix names
