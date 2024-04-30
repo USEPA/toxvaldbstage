@@ -219,7 +219,7 @@ import_dod_ered_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Perform deduping
-  hashing_cols = toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% c("long_ref", "study_duration_qualifier")]
+  hashing_cols = toxval.config()$hashing_cols# [!toxval.config()$hashing_cols %in% c("long_ref")]
   res = toxval.source.import.dedup(res,
                                    hashing_cols = hashing_cols)
 
