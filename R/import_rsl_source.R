@@ -327,9 +327,5 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
                        # Special hashing case for RSL
-                       hashing_cols=c(toxval.config()$hashing_cols, "raw_input_file"))
+                       hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
