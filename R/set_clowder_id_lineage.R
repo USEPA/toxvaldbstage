@@ -7,7 +7,7 @@
 #' @param clowder_api_key API key to access Clowder resources
 #' @param sync_clowder_metadata Boolean whether to sync Clowder metadata for new document records. Default is False.
 #' @return Returns an updated map with newly associated toxval_source table ID values
-#' @title FUNCTION_TITLE
+#' @title set_clowder_id_lineage
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -1027,8 +1027,8 @@ set_clowder_id_lineage <- function(source_table,
                     # Sync map_file chemical name cleaning
                     map_file = map_file %>%
                       dplyr::mutate(name = name %>%
-                                    # Fix Greek symbols
-                                    fix.greek.symbols() %>%
+                                    # Fix Unicode symbols
+                                    fix.replace.unicode() %>%
 
                                     # Remove trademark symbols
                                     gsub("\u00ae|<U+00ae>", "", .) %>%

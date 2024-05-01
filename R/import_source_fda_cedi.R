@@ -5,7 +5,7 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
+#' @title import_source_fda_cedi
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples
@@ -63,7 +63,7 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     ),
     toxval_units = toxval_units %>%
       gsub("\\)", "", .) %>%
-      fix.greek.symbols(),
+      fix.replace.unicode(),
     toxval_numeric = toxval_numeric %>%
       sub('.*?"(.*?)"\\)', '\\1', .) %>%
       as.numeric(),
