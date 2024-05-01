@@ -44,15 +44,12 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
   res = res0 %>%
     # Copy toxval fields from originals
     dplyr::mutate(name = `Webpage Name` %>%
-                    fix.replace.unicode() %>%
-                    gsub("\\bASC\\b", "Acidifed Sodium Chlorate", .),
+                    fix.replace.unicode(),
                   casrn = `CAS number` %>%
                     # Remove parenthetics
                     gsub("\\s*\\([^\\)]+\\)","", .) %>%
                     # Replace unicode
                     fix.replace.unicode() %>%
-                    # Replace separators with |::|
-                    gsub(";|,|and|\\/", " |::| ", .) %>%
                     stringr::str_squish(),
                   year = `Evaluation year`) %>%
     # Separate casrn lists
