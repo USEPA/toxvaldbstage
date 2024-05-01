@@ -133,7 +133,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
                     source_url = document_url,
                     species = species_original) %>%
       # Squish all character fields
-      dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish))
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), stringr::str_squish))
     res <- res %>%
       dplyr::mutate(document_type = "ATSDR MRLs")
   }

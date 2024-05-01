@@ -82,7 +82,7 @@ set_clowder_doc_type <- function(source_table=NULL,
         dplyr::select(clowder_id = id, document_name = filename) %>%
         dplyr::mutate(document_type = !!doc_type) %>%
         dplyr::distinct() %>%
-        dplyr::mutate(dplyr::across(where(is.character), ~fix.replace.unicode(.)))
+        dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~fix.replace.unicode(.)))
 
       updateQuery = paste0("UPDATE documents a INNER JOIN z_updated_df b ",
                            "ON (a.clowder_id = b.clowder_id) SET ",

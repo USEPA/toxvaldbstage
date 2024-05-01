@@ -55,7 +55,7 @@ update_chemical_preferred_info_by_dtxsid <- function(source.db){
     fix.non_ascii.v2(source=NULL) %>%
     # Add placeholder chemical_id for runUpdate query "LIKE source_chemical" which
     # adds unique chemical_id table constraint
-    dplyr::mutate(chemical_id = 1:n())
+    dplyr::mutate(chemical_id = 1:dplyr::n())
 
   if(nrow(updated_chem_details)){
     # Query to inner join and make updates with updated_chem_details dataframe (temp table added/dropped)

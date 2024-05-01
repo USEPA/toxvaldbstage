@@ -52,12 +52,12 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     tidyr::unite(Reg, dplyr::starts_with("Reg"), sep = ", ", na.rm = TRUE)
 
   res <- res %>%
-    pivot_longer(cols = c("CEDI (μg/kb bw/d)", "CDC (ppb)"),
+    tidyr::pivot_longer(cols = c("CEDI (μg/kb bw/d)", "CDC (ppb)"),
                  names_to = "toxval_type",
                  values_to = "toxval_numeric") %>%
     tidyr::separate(col="toxval_type",
                     into = c("toxval_type", "toxval_units"), sep = "\\(") %>%
-    mutate(toxval_type = case_when(
+    dplyr::mutate(toxval_type = dplyr::case_when(
       grepl("CEDI", toxval_type) ~ "Cumulative Estimated Daily Intake",
       grepl("CDC", toxval_type) ~ "Cumulative Dietary Concentration"
     ),

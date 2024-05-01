@@ -53,7 +53,7 @@ import_source_epa_ow_nrwqc_alc <- function(db,chem.check.halt=FALSE, do.reset=FA
     dplyr::rename(name="Pollutant_(P_=_Priority_Pollutant)",
                   casrn="CAS_Number") %>%
     # Remove non-chemicals, like pH
-    filter(!name %in% c("pH")) %>%
+    dplyr::filter(!name %in% c("pH")) %>%
     dplyr::rowwise() %>%
     # Making priority_pollutant column based on (P) in name column
     dplyr::mutate(priority_pollutant = ifelse(endsWith(name, "(P)"), "yes", "no")) %>%
@@ -89,7 +89,7 @@ import_source_epa_ow_nrwqc_alc <- function(db,chem.check.halt=FALSE, do.reset=FA
                   toxval_numeric = suppressWarnings(as.numeric(toxval_numeric))
     ) %>%
     # drop rows with NA for toxval_numeric
-    filter(!is.na(toxval_numeric)) %>%
+    dplyr::filter(!is.na(toxval_numeric)) %>%
     # Split CASRN lists into unique rows
     # https://stackoverflow.com/questions/15347282/split-delimited-strings-in-a-column-and-insert-as-new-rows
     tidyr::separate_rows(casrn, sep=" ")

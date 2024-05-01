@@ -100,7 +100,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
     n0 = in_cas
     if(!is.na(n0)) {
       n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
-      n2 = stri_escape_unicode(n1) %>%
+      n2 = stringi::stri_escape_unicode(n1) %>%
         fix.casrn()
       cs = cas_checkSum(n2)
       if(is.na(cs)) cs = 0
@@ -144,7 +144,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
                   escaped=n1,
                   cleaned=n2,
                   checksum=cs) %>%
-    distinct()
+    dplyr::distinct()
 
   indir = paste0(toxval.config()$datapath,"chemcheck/")
   if(is.null(source)) {

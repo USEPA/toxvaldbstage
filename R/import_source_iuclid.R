@@ -117,7 +117,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Special case for ec_number na_if() and report missing cases
   res0 = res0 %>%
     dplyr::mutate(dplyr::across(tidyr::any_of(c("chemical_ECnumber", "reference_substance_ECnumber")),
-                                ~na_if(., "-")))
+                                ~dplyr::na_if(., "-")))
 
   if(!dir.exists(file.path(toxval.config()$datapath, "iuclid/ec_number_issue"))){
     dir.create(file.path(toxval.config()$datapath, "iuclid/ec_number_issue"))
@@ -209,7 +209,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     }
     for(i in 0:max_stem) {
       curr_res = res0_p0 %>%
-        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("P0")) %>%
+        dplyr::select(tidyselect::ends_with(paste0("_", !!i)) | !tidyselect::starts_with("P0")) %>%
         dplyr::rename_with(function(x) gsub("P0_", "", x)) %>%
         dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
       # Handle potential missing columns for rbind
@@ -237,7 +237,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     }
     for(i in 0:max_stem) {
       curr_res = res0_p1 %>%
-        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("P1")) %>%
+        dplyr::select(tidyselect::ends_with(paste0("_", !!i)) | !tidyselect::starts_with("P1")) %>%
         dplyr::rename_with(function(x) gsub("P1_", "", x)) %>%
         dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
       # Handle potential missing columns for rbind
@@ -260,7 +260,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     }
     for(i in 0:max_stem) {
       curr_res = res0_f1 %>%
-        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("F1")) %>%
+        dplyr::select(tidyselect::ends_with(paste0("_", !!i)) | !tidyselect::starts_with("F1")) %>%
         dplyr::rename_with(function(x) gsub("F1_", "", x)) %>%
         dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
       # Handle potential missing columns for rbind
@@ -291,7 +291,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     }
     for(i in 0:max_stem) {
       curr_res = res0_f2 %>%
-        dplyr::select(ends_with(paste0("_", !!i)) | !starts_with("F2")) %>%
+        dplyr::select(tidyselect::ends_with(paste0("_", !!i)) | !tidyselect::starts_with("F2")) %>%
         dplyr::rename_with(function(x) gsub("F2_", "", x)) %>%
         dplyr::rename_with(function(x) gsub("_[0-9]+", "", x))
       # Handle potential missing columns for rbind
@@ -429,7 +429,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         toxval_subtype = toxval_numeric %>%
           stringr::str_extract("Lower Range|Upper Range")
       ) %>%
-      ungroup()
+      dplyr::ungroup()
   } else {
     # Empty dataframe with res cols to bind_rows()
     ranged = res[0,] %>%

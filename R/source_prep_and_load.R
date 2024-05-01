@@ -97,7 +97,7 @@ source_prep_and_load <- function(db,source,table,res,
 
   # Map back chemical information to all records
   res <- res %>%
-    left_join(chem_map %>%
+    dplyr::left_join(chem_map %>%
                 dplyr::select(-chemical_index),
               by = c("name", "casrn"))
 

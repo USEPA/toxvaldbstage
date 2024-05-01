@@ -172,7 +172,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
     ) %>%
 
     # Replace NAs with actual NA value
-    dplyr::mutate(dplyr::across(where(is.character),
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character),
                                 .fns = ~replace(., . == "NA", NA))) %>%
 
     # Clean values as needed

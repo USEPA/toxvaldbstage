@@ -40,7 +40,7 @@ import_dod_ered_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
 
   res0 = res0 %>%
     # Handle unicode symbols
-    dplyr::mutate(dplyr::across(where(is.character), fix.replace.unicode),
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character), fix.replace.unicode),
                   # Remove any instances of N/A, N/I, N/R, and N/S
                   dplyr::across(.fns = ~replace(., . %in% c("N/A", "N/I", "N/R", "N/S", "(N/I)"),
                                                 NA))

@@ -40,16 +40,16 @@ import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   #####################################################################
   res = res0 %>%
     # Replace NAs with actual NA value
-    dplyr::mutate(dplyr::across(where(is.character),
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character),
                                 .fns = ~replace(., . %in% c("--", "n/a", "withdrawn Nov. 2001", "none"),
                                                 NA))) %>%
 
     # Replace "zero" with actual 0
-    dplyr::mutate(dplyr::across(where(is.character),
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character),
                                 .fns = ~replace(., . == "zero", 0))) %>%
 
     # Replace scientific notation with numbers understandable to R
-    dplyr::mutate(dplyr::across(where(is.character),
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character),
                                 .fns = ~gsub("x10\\-", "e-", .))) %>%
 
     dplyr::mutate(

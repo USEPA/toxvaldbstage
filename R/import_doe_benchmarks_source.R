@@ -84,11 +84,11 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
   }
 
   res0_endpoint_N = res0_endpoint_N %>%
-    tidyr::unite(col = "toxval_subtype", starts_with("NOAEL"),
+    tidyr::unite(col = "toxval_subtype", tidyselect::starts_with("NOAEL"),
                  sep = ", ",
                  na.rm = TRUE)
   res0_endpoint_L = res0_endpoint_L %>%
-    tidyr::unite(col = "toxval_subtype", starts_with("LOAEL"),
+    tidyr::unite(col = "toxval_subtype", tidyselect::starts_with("LOAEL"),
                  sep = ", ",
                  na.rm = TRUE)
 

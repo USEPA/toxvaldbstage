@@ -202,7 +202,7 @@ import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
       exposure_route = tolower(exposure_route),
       exposure_method = tolower(exposure_method),
       # Remove excess whitespace
-      dplyr::across(where(is.character), stringr::str_squish)
+      dplyr::across(tidyselect::where(is.character), stringr::str_squish)
     ) %>%
     dplyr::distinct()
 

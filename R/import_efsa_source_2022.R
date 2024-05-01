@@ -100,7 +100,7 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     # Remove unneeded ID fields from original source
     dplyr::select(-tidyr::matches("_id")) %>%
 
-    dplyr::mutate(dplyr::across(where(is.character), fix.replace.unicode)) %>%
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character), fix.replace.unicode)) %>%
     dplyr::distinct()
 
   # Fill blank hashing cols

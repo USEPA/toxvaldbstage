@@ -41,7 +41,7 @@ import_source_mass_mmcl <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
   #####################################################################
   res = res0 %>%
     # Remove any instances of N/A
-    dplyr::mutate(dplyr::across(where(purrr::is_character),
+    dplyr::mutate(dplyr::across(tidyselect::where(purrr::is_character),
                                 .fns = ~replace(., . %in% c("N/A", "N/A10"), NA))) %>%
 
     # Rename columns as needed to avoid duplicates

@@ -41,7 +41,7 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   res <- res0 %>%
     dplyr::mutate(
       # Get rid of excess whitespace
-      dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish)),
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), stringr::str_squish)),
       # Assign appropriate names
       name = TG230_CHEMICAL_NAME,
       casrn = TG230_CASRN,

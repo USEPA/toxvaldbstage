@@ -384,7 +384,7 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
   # Check if any available
   if(nrow(relationship)){
     relationship = relationship %>%
-      dplyr::mutate(relationship_id = 1:n())
+      dplyr::mutate(relationship_id = 1:dplyr::n())
   } else {
     # Empty dataframe with res cols to bind_rows()
     relationship = res[0,]

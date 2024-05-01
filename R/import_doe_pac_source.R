@@ -100,7 +100,7 @@ import_doe_pac_source <- function(db,
       toxval_type = toxval_type %>%
         gsub("\\(ppm\\)", "", .),
       # Remove excess whitespace for all character columns
-      dplyr::across(where(is.character), ~stringr::str_squish(.))
+      dplyr::across(tidyselect::where(is.character), ~stringr::str_squish(.))
     ) %>%
     dplyr::select(-`No.`) %>%
     # Split CASRN lists

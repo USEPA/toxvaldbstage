@@ -213,7 +213,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Combine chemical detail files
   chem_details <- iris_data$chemicals_details.xlsx %>%
     dplyr::left_join(iris_data$Chemical_Rev_History.xlsx %>%
-                       select(-`CHEMICAL NAME`, -CASRN, -URL),
+                       dplyr::select(-`CHEMICAL NAME`, -CASRN, -URL),
                      by="CHEMICAL ID") %>%
     dplyr::distinct()
 
@@ -343,12 +343,12 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Transform/relabel `EXPERIMENTAL DOSE TYPE` into a toxval_type with POD as the toxval_numeric/units
   pod_fix <- res0 %>%
     # Only available for those with toxval_type RfC and RfD
-    filter(toxval_type %in% c("RfC", "RfD")) %>%
+    dplyr::filter(toxval_type %in% c("RfC", "RfD")) %>%
     dplyr::select(-toxval_type, -toxval_numeric, -toxval_units) %>%
     dplyr::rename(toxval_type = `EXPERIMENTAL DOSE TYPE`,
                   toxval_numeric = `POD VALUE`) %>%
     # Rename POD labels
-    dplyr::mutate(toxval_type = case_when(
+    dplyr::mutate(toxval_type = dplyr::case_when(
       `toxval_type` == "No Observable Adverse Effect Level" ~ "NOAEL",
       `toxval_type` == "Lowest Effect Level" ~ "LEL",
       `toxval_type` == "Lowest Observable Adverse Effect Level" ~ "LOAEL",
@@ -466,7 +466,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
   res = res %>%
     # Handle toxval_numeric_qualifier
-    dplyr::mutate(toxval_numeric_qualifier = case_when(
+    dplyr::mutate(toxval_numeric_qualifier = dplyr::case_when(
       grepl("<", toxval_numeric) ~ "<",
       grepl(">", toxval_numeric) ~ ">",
       grepl("~", toxval_numeric) ~ "~",
