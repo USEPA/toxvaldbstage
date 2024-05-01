@@ -45,6 +45,8 @@ import_copper_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.in
       year = `year...28`, year1 = `year...34`
     ) %>%
 
+    dplyr::mutate(casrn = dplyr::na_if(casrn, "NA")) %>%
+
     # Drop entries with no casrn
     tidyr::drop_na(casrn) %>%
 
@@ -155,7 +157,3 @@ import_copper_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.in
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
