@@ -21,9 +21,14 @@
 #--------------------------------------------------------------------------------------
 toxval.source.import.dedup <- function(res,
                                        dedup_fields=NULL,
-                                       hashing_cols=toxval.config()$hashing_cols,
+                                       hashing_cols=NULL,
                                        delim=" |::| ") {
   cat("Deduping data\n")
+
+  # If no hashing_cols provided, use toxval.config()$hashing_cols
+  if(is.null(hashing_cols)) {
+    hashing_cols = toxval.config()$hashing_cols
+  }
 
   # If no dedup fields provided, set dedup_fields to be all cols but source_hash and hashing_cols
   if(is.null(dedup_fields)) {
@@ -42,7 +47,8 @@ toxval.source.import.dedup <- function(res,
 
   # Perform deduping only if there are duplicate entries
   if(nrow(dup_hashes)) {
-    cat("Duplicate records identified. Performing deduping...\n")
+    cat(paste0("Duplicate records identified (", sum(dup_hashes$n) - nrow(dup_hashes), " records are duplicates)\n"))
+    cat("Performing deduping...\n")
     # Dedup by collapsing non hashing columns to dedup
     res = res %>%
       dplyr::group_by(source_hash) %>%
@@ -50,7 +56,8 @@ toxval.source.import.dedup <- function(res,
                                   # Ensure unique entries in alphabetic order
                                   ~paste0(sort(unique(.[!is.na(.)])), collapse=!!delim) %>%
                                     dplyr::na_if("NA") %>%
-                                    dplyr::na_if("")
+                                    dplyr::na_if("") %>%
+                                    dplyr::na_if("-")
       )) %>%
       dplyr::ungroup() %>%
       dplyr::distinct()

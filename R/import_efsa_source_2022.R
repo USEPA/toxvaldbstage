@@ -30,6 +30,8 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   printCurrentFunction(db)
   source = "EFSA"
   source_table = "source_efsa"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2022-06-16")
   dir = paste0(toxval.config()$datapath,"efsa/efsa_files/")
   file = paste0(dir,"efsa_openfoodtox_raw_2022.xlsx")
   res0 = readxl::read_xlsx(file)
@@ -94,13 +96,21 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
            study_duration_units = "days") %>%
     # splitting ROUTE into exposure_route and exposure_method columns
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
-    dplyr::mutate(dplyr::across(where(is.character), fix.replace.unicode)) %>%
 
-  # Remove unneeded ID fields from original source
-  res = res %>%
-    dplyr::select(-tidyr::matches("_id"), -testtype_code) %>%
+    # Remove unneeded ID fields from original source
+    dplyr::select(-tidyr::matches("_id")) %>%
+
+    dplyr::mutate(dplyr::across(where(is.character), fix.replace.unicode)) %>%
     dplyr::distinct()
 
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Perform deduping
+  hashing_cols = toxval.config()$hashing_cols
+  res = toxval.source.import.dedup(res, hashing_cols = hashing_cols)
+
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -110,7 +120,6 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        res=res,
                        do.reset=do.reset,
                        do.insert=do.insert,
-                       chem.check.halt=chem.check.halt)
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
-
-
