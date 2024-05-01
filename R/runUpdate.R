@@ -8,7 +8,7 @@
 #' @param verbose if TRUE, print diagnostic information
 #' @param trigger_check if FALSE, audit triggers are ignored/bypassed
 #' @export
-#' @title FUNCTION_TITLE
+#' @title runUpdate
 #' @param table PARAM_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS

@@ -8,7 +8,7 @@
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
 #' @export
-#' @title FUNCTION_TITLE
+#' @title runQuery
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples

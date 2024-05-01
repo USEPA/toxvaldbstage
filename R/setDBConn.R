@@ -6,7 +6,8 @@
 #' @param user SQL username to access database
 #' @param password SQL password corresponding to username
 #' @param api_auth API Key for CCTE API's
-#' @title FUNCTION_TITLE
+#' @param port Port for the server connection. Default of 3306.
+#' @title setDBConn
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples

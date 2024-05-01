@@ -1,7 +1,7 @@
 #--------------------------------------------------------------------------------------
 #' @description Print the name of the current function
 #' @param comment.string An optional string to be printed
-#' @title FUNCTION_TITLE
+#' @title printCurrentFunction
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples

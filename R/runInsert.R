@@ -10,17 +10,17 @@
 #' @param verbose if TRUE, print diagnostic information
 #' @param auto.increment if TRUE, add the auto increment primary key even if not part of the query
 #' @return Returns the database table auto incremented primary key ID
-#' @export 
-#' @title FUNCTION_TITLE
+#' @export
+#' @title runInsert
 #' @param auto.increment.id PARAM_DESCRIPTION, Default: F
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[RMySQL]{character(0)}}, \code{\link[RMySQL]{MySQLDriver-class}}
 #' @rdname runInsert
 #' @importFrom RMySQL dbConnect MySQL dbSendQuery dbHasCompleted dbClearResult dbFetch dbDisconnect
