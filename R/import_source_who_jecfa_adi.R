@@ -8,19 +8,21 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_generic_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
+#' @importFrom dplyr mutate rename case_when filter select n group_by ungroup bind_rows
+#' @importFrom tidyr separate_rows
 #--------------------------------------------------------------------------------------
 import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

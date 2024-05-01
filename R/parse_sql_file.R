@@ -3,8 +3,8 @@
 #' @param filepath Input SQL filepath
 #' @import stringr dplyr
 #' @export
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title parse_sql_file
+#' @return SQL query strings
 #' @details DETAILS
 #' @examples
 #' \dontrun{

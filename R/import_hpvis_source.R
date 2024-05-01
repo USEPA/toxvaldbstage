@@ -8,25 +8,26 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[stats]{setNames}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{setops}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{bind_rows}}
 #'  \code{\link[utils]{type.convert}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_extract}}
 #' @rdname import_hpvis_source
-#' @export
+#' @export 
 #' @importFrom openxlsx read.xlsx
 #' @importFrom stats setNames
 #' @importFrom dplyr mutate setdiff intersect filter across where na_if case_when row_number select bind_rows
 #' @importFrom utils type.convert
 #' @importFrom stringr str_squish str_replace_all str_replace str_extract
+#' @importFrom tidyr unite
 #--------------------------------------------------------------------------------------
 import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

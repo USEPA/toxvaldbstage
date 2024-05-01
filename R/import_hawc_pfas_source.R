@@ -8,13 +8,13 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is added to toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{count}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[tidyselect]{all_of}}
@@ -23,7 +23,7 @@
 #'  \code{\link[purrr]{map2}}
 #'  \code{\link[digest]{digest}}
 #' @rdname import_hawc_pfas_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate select distinct arrange count left_join filter rename case_when
 #' @importFrom tidyselect all_of
@@ -31,6 +31,7 @@
 #' @importFrom stringr str_squish str_detect str_extract
 #' @importFrom purrr map2_chr
 #' @importFrom digest digest
+#' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
 import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

@@ -7,17 +7,17 @@
 #' @return the fixed CASRN
 #' @title fix.casrn
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  fix.casrn("107028")
 #'  # Expected output "107-02-8"
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[tidyr]{reexports}}
 #' @rdname fix.casrn
-#' @export
+#' @export 
 #
 #--------------------------------------------------------------------------------------
 fix.casrn <- function(casrn, cname="", verbose=FALSE) {

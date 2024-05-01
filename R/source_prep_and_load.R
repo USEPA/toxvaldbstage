@@ -9,8 +9,8 @@
 #' @param chem.check.halt If TRUE, stop the execution if there are errors in the #' chemical mapping
 #' @param verbose If TRUE, write out diagnostic messages #'
 #' @param hashing_cols Optional list of columns to use for generating source_hash
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title source_prep_and_load
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -22,6 +22,8 @@
 #'  \code{\link[tidyr]{reexports}}
 #' @rdname source_prep_and_load
 #' @export
+#' @importFrom generics is.element
+#' @importFrom dplyr select distinct left_join
 #--------------------------------------------------------------------------------------
 source_prep_and_load <- function(db,source,table,res,
                                  do.reset=FALSE, do.insert=FALSE,

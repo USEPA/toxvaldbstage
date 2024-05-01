@@ -7,18 +7,18 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{na_if}}
 #'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_count}}
 #' @rdname import_health_canada_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate across where case_when na_if
 #' @importFrom stringr str_extract str_squish regex str_count

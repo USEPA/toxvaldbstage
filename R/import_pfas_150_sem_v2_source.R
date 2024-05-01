@@ -18,6 +18,7 @@
 #' @export 
 #' @importFrom openxlsx read.xlsx
 #' @importFrom digest digest
+#' @importFrom generics is.element
 #--------------------------------------------------------------------------------------
 import_pfas_150_sem_v2_source <- function(db,
                                           chem.check.halt=F) {

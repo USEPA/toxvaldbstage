@@ -8,8 +8,8 @@
 #' @import dplyr DBI magrittr
 #'
 #' @export
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title DAT.pipe.source.audit
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -27,6 +27,8 @@
 #' @importFrom dplyr rename mutate left_join select filter
 #' @importFrom tidyr any_of
 #' @importFrom writexl write_xlsx
+#' @importFrom tidyselect where any_of
+#' @importFrom stringr str_split str_squish
 #--------------------------------------------------------------------------------------
 DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
 

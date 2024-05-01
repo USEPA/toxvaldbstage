@@ -20,6 +20,7 @@
 #'  \code{\link[openxlsx]{read.xlsx}}
 #' @rdname import_flex_source
 #' @importFrom openxlsx read.xlsx
+#' @importFrom generics is.element
 #--------------------------------------------------------------------------------------
 import_flex_source <- function(db,
                                filepath="ACToR replacements",

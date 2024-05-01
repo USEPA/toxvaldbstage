@@ -7,25 +7,26 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is loaded into toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{coalesce}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[purrr]{reexports}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[stringr]{str_match}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_source_mass_mmcl
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate across rename coalesce filter case_when
 #' @importFrom purrr is_character
 #' @importFrom tidyr pivot_longer drop_na separate
 #' @importFrom stringr str_match str_squish
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_source_mass_mmcl <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

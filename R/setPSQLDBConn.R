@@ -1,14 +1,11 @@
-# #library(RPostgreSQL)
-# library(DBI)
-#--------------------------------------------------------------------------------------
 #' @description set PSQL connection to the database
 #' @param server SQL server on which relevant database lives
+#' @param port port to use
 #' @param user SQL username to access database
 #' @param password SQL password corresponding to username
 #' @param api_auth API Key for CCTE API's
-#' @title FUNCTION_TITLE
-#' @param port PARAM_DESCRIPTION
-#' @return OUTPUT_DESCRIPTION
+#' @title setPSQLDBConn
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{

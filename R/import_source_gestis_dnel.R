@@ -8,19 +8,19 @@
 #' @title import_source_gestis_dnel
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  [read_xlsx][readxl::read_xlsx]
 #'  [str_squish][stringr::str_squish]
 #'  [mutate][dplyr::mutate], [across][dplyr::across], [select][dplyr::select], [distinct][dplyr::distinct], [filter][dplyr::filter]
 #'  [pivot_longer][tidyr::pivot_longer]
 #' @rdname import_source_gestis_dnel
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr mutate across select distinct filter

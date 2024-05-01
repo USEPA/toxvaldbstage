@@ -7,23 +7,24 @@
 #' @param do.insert If TRUE, insert data into the database, default FALS
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{filter}}
 #'  \code{\link[tidyr]{separate_rows}}
 #'  \code{\link[stringr]{str_trim}} \code{\link[stringr]{str_extract}}
 #' @rdname import_source_who_jecfa_tox_studies
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate case_when filter
 #' @importFrom tidyr separate_rows
 #' @importFrom stringr str_squish str_extract
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

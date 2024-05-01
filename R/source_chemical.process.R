@@ -10,7 +10,7 @@
 #' @param verbose If TRUE, write out diagnostic messages #'
 #' @return Returns the original dataframe with a chemical_id appended
 #' @export
-#' @title FUNCTION_TITLE
+#' @title source_chemical.process
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -26,6 +26,9 @@
 #' @importFrom tidyr unite
 #' @importFrom utils tail
 #' @importFrom digest digest
+#' @importFrom tidyselect all_of
+#' @importFrom dplyr distinct
+#' @importFrom generics is.element
 #--------------------------------------------------------------------------------------
 source_chemical.process <- function(db,
                                     res,

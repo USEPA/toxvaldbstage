@@ -3,7 +3,7 @@
 #' @param src_f Dataframe to generate field types from
 #' @param default_fields Default fields already handled by input generic SQL
 #' @return SQL string for the input dataframe's fields
-#' @title FUNCTION_TITLE
+#' @title set_field_SQL_type
 #' @details DETAILS
 #' @examples
 #' \dontrun{

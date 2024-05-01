@@ -6,20 +6,21 @@
 #' @title source_hash_vectorized
 #' @return Input dataframe with new source_hash field
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[digest]{digest}}
 #'  \code{\link[dplyr]{distinct}}
 #' @rdname toxval_source.hash.and.load
-#' @export
+#' @export 
 #' @importFrom digest digest
 #' @importFrom dplyr distinct mutate ungroup rowwise
 #' @importFrom tidyr unite
+#' @importFrom tidyselect any_of
 source_hash_vectorized <- function(res, hashing_cols){
   if(is.null(hashing_cols)){
     hashing_cols = names(res)

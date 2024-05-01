@@ -8,13 +8,13 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is pushed to ToxVal
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[purrr]{map}}
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[readr]{read_delim}}
@@ -23,7 +23,7 @@
 #'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{drop_na}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_generic_source
-#' @export
+#' @export 
 #' @importFrom purrr map
 #' @importFrom readxl read_xlsx
 #' @importFrom readr read_csv

@@ -7,14 +7,14 @@
 #' @param chem.check.halt If TRUE, stop the execution if there are errors in the
 #' @return None, subsources loaded
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
 #' @rdname import_source_iuclid_orchestrate
-#' @export
+#' @export 
 #--------------------------------------------------------------------------------------
 
 import_source_iuclid_orchestrate <- function(dir=paste0(toxval.config()$datapath, "iuclid")) {

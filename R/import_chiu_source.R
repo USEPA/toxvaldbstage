@@ -6,23 +6,26 @@
 #' @title import_chiu_source
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[tidyr]{drop_na}}
 #'  \code{\link[stringr]{str_remove}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_chiu_source
-#' @export
+#' @export 
 #' @importFrom readr read_csv
 #' @importFrom dplyr select mutate distinct
 #' @importFrom tidyr drop_na
 #' @importFrom stringr str_remove fixed str_squish str_trim str_extract str_detect
+#' @param do.reset PARAM_DESCRIPTION, Default: FALSE
+#' @param do.insert PARAM_DESCRIPTION, Default: FALSE
+#' @importFrom tidyselect any_of where
 #--------------------------------------------------------------------------------------
 import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

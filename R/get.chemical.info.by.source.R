@@ -6,7 +6,7 @@
 #' @param file_id The suffixed 5 digit identifiers specified in the file names in the folder ./chemical_mapping/source_chemical_files
 #' @return database info collected
 #' @export
-#' @title FUNCTION_TITLE
+#' @title get.chemical.info.by.source
 #' @details DETAILS
 #' @examples
 #' \dontrun{

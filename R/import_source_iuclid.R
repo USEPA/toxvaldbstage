@@ -9,13 +9,13 @@
 #' @title import_source_iuclid
 #' @return None; data is sent to ToxVal
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{context}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{pull}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{select}}
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{drop_na}}
@@ -23,13 +23,14 @@
 #'  \code{\link[tidyselect]{starts_with}}, \code{\link[tidyselect]{all_of}}
 #'  \code{\link[textclean]{mgsub}}
 #' @rdname import_source_iuclid
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr filter group_by mutate row_number n case_when pull rename select
 #' @importFrom tidyr separate_rows separate unite pivot_longer starts_with pivot_wider drop_na matches
 #' @importFrom stringr str_squish str_extract regex str_detect str_split str_unique
 #' @importFrom tidyselect starts_with any_of all_of
 #' @importFrom textclean mgsub
+#' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
 import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

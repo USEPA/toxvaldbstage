@@ -11,17 +11,26 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[openxlsx]{read.xlsx}}
 #' @rdname import_caloehha_source
-#' @export
+#' @export 
 #' @importFrom openxlsx read.xlsx
+#' @param do.reset PARAM_DESCRIPTION, Default: FALSE
+#' @param do.insert PARAM_DESCRIPTION, Default: FALSE
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr rename all_of mutate distinct across na_if filter bind_rows rowwise ungroup select
+#' @importFrom tidyselect where
+#' @importFrom tidyr separate_rows separate
+#' @importFrom stringr str_squish str_to_title str_replace_all
+#' @importFrom janitor excel_numeric_to_date
+#' @importFrom stats complete.cases
 #--------------------------------------------------------------------------------------
 import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

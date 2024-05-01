@@ -7,19 +7,19 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is added to toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{bind_rows}}
 #'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{pivot_longer}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_ow_dwsha_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate case_when filter row_number bind_rows
 #' @importFrom tidyr separate pivot_longer

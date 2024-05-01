@@ -7,23 +7,24 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; the script sends data to toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{replace_na}}, \code{\link[tidyr]{drop_na}}
 #' @rdname import_dod_ered_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate across case_when rename distinct
 #' @importFrom stringr str_extract str_squish
 #' @importFrom tidyr replace_na drop_na
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_dod_ered_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

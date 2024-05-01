@@ -26,8 +26,8 @@ library(logr)
 #' and the urls for the ACToR web services.
 #' @details DETAILS
 #' @return Returns a set of parameters to be used throughout the package
-#' @export
-#' @examples
+#' @export 
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1

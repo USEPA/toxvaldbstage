@@ -17,6 +17,7 @@
 #' @rdname import_pprtv_ornl_source
 #' @export 
 #' @importFrom openxlsx read.xlsx
+#' @importFrom generics is.element
 #--------------------------------------------------------------------------------------
 import_pprtv_ornl_source <- function(db,
                                      infile="new_PPRTV_ORNL cancer noncancer.xlsx",

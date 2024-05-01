@@ -1,16 +1,36 @@
 #--------------------------------------------------------------------------------------
-#' Check the chemicals from a file
-#' Names with special characters are cleaned and trimmed
-#' CASRN are fixed (dashes put in, trimmed) and check sums are calculated
-#' The output is sent to a file called chemcheck.xlsx in the source data file
-#' One option for using this is to edit the source file until no errors are found
-#'
-#' @param res0  The data frame in which chemicals names and CASRN will be replaced
+#' @param res0 The data frame in which chemicals names and CASRN will be replaced
 #' @param source The source to be processed. If source=NULL, process all sources
 #' @param verbose If TRUE, print diagnostic messages
 #' @return Return a list with fixed CASRN and name and flags indicating if fixes were made:
 #' res0=res0,name.OK=name.OK,casrn.OK=casrn.OK,checksum.OK=checksum.OK
 #'
+#' @title chem.check.v2
+#' @description Check the chemicals from a file
+#' Names with special characters are cleaned and trimmed
+#' CASRN are fixed (dashes put in, trimmed) and check sums are calculated
+#' The output is sent to a file called chemcheck.xlsx in the source data file
+#' One option for using this is to edit the source file until no errors are found
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso
+#'  [stri_escape_unicode][stringi::stri_escape_unicode]
+#'  [str_replace_all][stringr::str_replace_all], [str_squish][stringr::str_squish]
+#'  [rowwise][dplyr::rowwise], [mutate][dplyr::mutate], [ungroup][dplyr::ungroup], [filter][dplyr::filter], [select][dplyr::select], [rename][dplyr::rename], [distinct][dplyr::distinct]
+#'  [separate][tidyr::separate]
+#'  [write_xlsx][writexl::write_xlsx]
+#' @rdname chem.check.v2
+#' @export
+#' @importFrom stringi stri_escape_unicode
+#' @importFrom stringr str_replace_all str_squish
+#' @importFrom dplyr rowwise mutate ungroup filter select rename distinct
+#' @importFrom tidyr separate
+#' @importFrom writexl write_xlsx
 #--------------------------------------------------------------------------------------
 chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
   printCurrentFunction(source)

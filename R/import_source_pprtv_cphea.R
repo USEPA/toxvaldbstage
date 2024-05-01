@@ -8,20 +8,20 @@
 #' @param do.summary_data If TRUE, add PPRTV CPHEA Summary data to table before insertion
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}, \code{\link[tidyr]{drop_na}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
 #'  \code{\link[tidyselect]{all_of}}
 #' @rdname import_source_pprtv_cphea
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom tidyr pivot_longer all_of separate replace_na drop_na
 #' @importFrom dplyr mutate across case_when select where distinct

@@ -7,23 +7,24 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is loaded into toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{filter}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{separate}}
 #' @rdname import_source_cosmos
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate case_when filter
 #' @importFrom stringr str_squish
 #' @importFrom tidyr separate_rows drop_na separate
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_source_cosmos <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

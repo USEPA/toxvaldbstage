@@ -1,6 +1,4 @@
 #--------------------------------------------------------------------------------------
-#' @#' Processes manually QC'd (sans-DAT) QC audit information into database
-#'
 #' @param source name of ToxVal source table audit information is associated with
 #' @param db the name of the database
 #' @param live_df a filepath to the DAT live data to push to the 'source' table
@@ -8,9 +6,9 @@
 #' @import dplyr DBI magrittr
 #'
 #' @export
-#' @title FUNCTION_TITLE
-#' @description FUNCTION_DESCRIPTION
-#' @return OUTPUT_DESCRIPTION
+#' @title DAT.manual.pipe.source.audit
+#' @description Processes manually QC'd (sans-DAT) QC audit information into database
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -30,6 +28,7 @@
 #' @importFrom stringr str_squish
 #' @importFrom tidyr contains any_of separate unite
 #' @importFrom writexl write_xlsx
+#' @importFrom generics is.element
 #--------------------------------------------------------------------------------------
 DAT.manual.pipe.source.audit <- function(source, db, live_df, qc_user = "Evelyn Rowan") {
   # live_df = list("Repo/DAT reports/qc_update_hawc_pfas_430_hashed_20221013.xlsx",

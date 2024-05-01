@@ -7,7 +7,7 @@
 #' @param dsID Clowder Dataset ID
 #' @import httr jsonlite
 #' @param batch_size PARAM_DESCRIPTION, Default: 250
-#' @return OUTPUT_DESCRIPTION
+#' @return Clowder metadata
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -30,6 +30,8 @@
 #' @importFrom dplyr filter mutate select bind_rows
 #' @importFrom purrr compact
 #' @importFrom stringr str_replace_all str_squish
+#' @param baseurl PARAM_DESCRIPTION
+#' @param apiKey PARAM_DESCRIPTION
 doc_lineage_sync_clowder_metadata <- function(source_table,
                                               db,
                                               clowder_url,

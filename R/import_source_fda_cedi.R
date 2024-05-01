@@ -8,19 +8,21 @@
 #' @title import_source_fda_cedi
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readr]{read_csv}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_generic_source
-#' @export
+#' @export 
 #' @importFrom readr read_csv
 #' @importFrom stringr str_squish
+#' @importFrom dplyr mutate across starts_with case_when
+#' @importFrom tidyr unite pivot_longer separate
 #--------------------------------------------------------------------------------------
 import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

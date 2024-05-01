@@ -9,21 +9,24 @@
 #' @return Returns an updated map with newly associated toxval_source table ID values
 #' @title set_clowder_id_lineage
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
 #' @rdname set_clowder_id_lineage
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename filter select left_join mutate
 #' @importFrom tidyr separate_rows unite
+#' @importFrom readr read_csv cols
+#' @importFrom tidyselect where
+#' @importFrom stringr str_squish str_extract str_trim
 #--------------------------------------------------------------------------------------
 set_clowder_id_lineage <- function(source_table,
                                    map_clowder_id_field,

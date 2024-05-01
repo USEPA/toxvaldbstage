@@ -10,18 +10,23 @@
 #' @return None. SQL statements are performed.
 #' @title set_clowder_doc_type
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
 #' @rdname set_clowder_doc_type
-#' @export
+#' @export 
+#' @importFrom httr GET add_headers content
+#' @importFrom jsonlite fromJSON
+#' @importFrom tidyr unnest
+#' @importFrom dplyr filter select mutate distinct across
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 set_clowder_doc_type <- function(source_table=NULL,
                                  source_version_date=NULL,
