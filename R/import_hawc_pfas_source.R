@@ -336,35 +336,6 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
                  na.rm=TRUE,
                  remove=FALSE)
 
-  # # Collapse duplicated that just differ by critical effect
-  # res2 = res %>%
-  #   dplyr::select(-c("critical_effect","endpoint_url_original","record_url","target_organ"))
-  #
-  # res2$hashkey = NA
-  # res$hashkey = NA
-  # for(i in 1:nrow(res2)) {
-  #   hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
-  #   res2[i,"hashkey"] = hashkey
-  #   res[i,"hashkey"] = hashkey
-  # }
-  # res2 = dplyr::distinct(res2)
-  # res2$critical_effect = NA
-  # for(i in 1:nrow(res2)) {
-  #   hashkey = res2[[i,"hashkey"]]
-  #   res3 = res[res$hashkey==hashkey,]
-  #   x = res3$target_organ
-  #   y = res3$critical_effect
-  #   ce = ""
-  #   for(j in 1:length(x)) ce=paste0(ce,x[j],":",y[j],"|")
-  #   ce = substr(ce,1,(nchar(ce)-1))
-  #   res2[i,"critical_effect"] = ce
-  # }
-  # res2$endpoint_url_original = NA
-  # res2$record_url = NA
-  # res2$target_organ = NA
-  # res2 = res2[,!names(res2)%in%c("hashkey")]
-  # res = res2
-
   # strip begining and ending quotation marks
   res <- as.data.frame(sapply(res, function(x) gsub("\"", "", x)))
 
@@ -408,6 +379,7 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
 
     dplyr::mutate(
       dplyr::across(c(doses, doses_units, toxval_numeric, toxval_units), stringr::str_squish),
+      dplyr::across(tidyselect::where(is.character), fix.replace.unicode),
       species = tolower(species),
       toxval_numeric = as.numeric(toxval_numeric),
       toxval_units = toxval_units %>% stringr::str_squish(),
@@ -430,60 +402,62 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
         gsub("^\\-\\s+", "", .) %>%
         dplyr::na_if(., ""),
 
-      # Fix fields related to study_duration
+      study_duration = exposure_duration_text %>%
+        gsub("([0-9])([A-Za-z])", "\\1 \\2", .) %>%
+        gsub("(PND|GD|LD)s", "\\1", .) %>%
+        gsub("D([0-9])", "D \\1", .) %>%
+        gsub("\\s*\\(.+", "", .) %>%
+        gsub("\\s*\\-\\s*", "-", .) %>%
+        gsub("[0-9\\.]+\\s*[a-z]\\/[a-z]", "", .) %>%
+        gsub("1 hr 20 min to 4 h", "1.33-4 h", .) %>%
+        gsub("\\s*via.+", "", .),
       study_duration_value = dplyr::case_when(
-        # Remove "dose" entry
-        grepl("dose", exposure_duration_text) & !grepl("[0-9](d|wk)\\s", exposure_duration_text) ~ as.character(NA),
-        # Handle normal entries
-        stringr::str_detect(exposure_duration_text, "[0-9]+\\s?(d|min|wk|h|hr|yr)s?$") ~ stringr::str_extract(exposure_duration_text,
-                                                                                                              "([0-9]+)\\s?(d|min|wk|h|hr|yr)s?$",
-                                                                                                              group=1),
-        stringr::str_detect(exposure_duration_text, "[0-9]+\\s?(d|min|wk|h|hr|yr)s?\\s") ~ stringr::str_extract(exposure_duration_text,
-                                                                                                                "([0-9]+)\\s?(d|min|wk|h|hr|yr)s?\\s",
-                                                                                                                group=1),
-        # Handle GD/LD/PND cases
-        grepl("D", exposure_duration_text) ~ gsub(".+\\-[a-zA-Z]*", "", exposure_duration_text),
-        # Return NA if no matches
+        grepl("dose", study_duration) ~ as.character(NA),
+        grepl("[0-9\\.]+(?:\\-[0-9\\.]+)?\\s*(?:d|wk|yr|min|h)", study_duration) ~ stringr::str_extract(study_duration,
+                                                                                                        "([0-9\\.]+(?:\\-[0-9\\.]+)?)\\s*(?:d|wk|yr|min|h)",
+                                                                                                        group=1),
+        grepl("GD [0-9]+\\-[0-9]+", study_duration) ~ stringr::str_extract(study_duration,
+                                                                           "GD ([0-9]+\\-[0-9]+)",
+                                                                           group=1),
+        grepl("(?:GD|PND|LD|PNW) [0-9]+\\-(?:GD|PND|LD|PNW) [0-9]+", study_duration) ~ stringr::str_extract(study_duration,
+                                                                                                            "((?:GD|PND|LD|PNW) [0-9]+\\-(?:GD|PND|LD|PNW) [0-9]+)",
+                                                                                                            group=1),
+        grepl("premating-LD 4", study_duration) ~ "4",
         TRUE ~ as.character(NA)
-      ) %>% gsub(",.+", "", .) %>% c() %>% as.numeric(),
+      ) %>%
+        gsub("GD ([0-9]+\\-)GD ([0-9]+)", "\\1\\2", .),
       study_duration_units = dplyr::case_when(
-        # Handle normal entries
-        stringr::str_detect(exposure_duration_text, "[0-9]+\\s?(d|min|wk|h|hr|yr)s?$") ~ stringr::str_extract(exposure_duration_text,
-                                                                                                              "([0-9]+)\\s?(d|min|wk|h|hr|yr)s?$",
-                                                                                                              group=2),
-        stringr::str_detect(exposure_duration_text, "[0-9]+\\s?(d|min|wk|h|hr|yr)s?\\s") ~ stringr::str_extract(exposure_duration_text,
-                                                                                                                "([0-9]+)\\s?(d|min|wk|h|hr|yr)s?\\s",
-                                                                                                                group=2),
-        # Check for GD/LD/PND
-        grepl("D", exposure_duration_text) ~ "days",
-        # Return NA if no matches
+        is.na(study_duration_value) ~ as.character(NA),
+        grepl("[0-9\\.]+(?:\\-[0-9\\.]+)?\\s*(?:d|wk|yr|min|h)", study_duration) ~ stringr::str_extract(study_duration,
+                                                                                                        "[0-9\\.]+(?:\\-[0-9\\.]+)?\\s*(d|wk|yr|min|h)",
+                                                                                                        group=1),
+        grepl("GD [0-9]+\\-[0-9]+", study_duration) ~ "GD",
+        grepl("(?:GD|PND|LD|PNW) [0-9]+\\-(?:GD|PND|LD|PNW) [0-9]+", study_duration) ~ gsub("(GD|PND|LD|PNW) [0-9]+\\-(GD|PND|LD|PNW) [0-9]+",
+                                                                                            "\\1,\\2",
+                                                                                            study_duration),
+        grepl("premating-LD 4", study_duration) ~ "LD",
         TRUE ~ as.character(NA)
-      ),
-      # Translate study_duration_units
-      study_duration_units = dplyr::case_when(
-        study_duration_units == "d" ~ "days",
-        study_duration_units == "min" ~ "minutes",
-        study_duration_units == "wk" ~ "weeks",
-        study_duration_units %in% c("h", "hr") ~ "hours",
-        TRUE ~ study_duration_units
-      ),
+      ) %>%
+        gsub("d", "days", .) %>%
+        gsub("wk", "weeks", .) %>%
+        gsub("yr", "years", .) %>%
+        gsub("min", "minutes", .) %>%
+        gsub("h", "hours", .) %>%
+        gsub("(?:(GD),GD)|(?:(PND),PND)|(?:(LD),LD)|(?:(PNW),PNW)", "\\1", .),
 
       study_type = gsub("(^\\w+\\-*\\w*)(\\s*.*)", "\\1", study_type),
-      # NA for duration values that mix PND, GD, and LD units
-      study_duration_value = dplyr::case_when(
-        grepl("PND", exposure_duration_text) & grepl("GD", exposure_duration_text) ~ NA,
-        grepl("PND", exposure_duration_text) & grepl("LD", exposure_duration_text) ~ NA,
-        grepl("GD", exposure_duration_text) & grepl("LD", exposure_duration_text) ~ NA,
-        grepl("GD", exposure_duration_text) & grepl("PNW", exposure_duration_text) ~ NA,
-        TRUE ~ study_duration_value
-      ),
-      # NA if NA value
-      study_duration_units = dplyr::case_when(
-        is.null(study_duration_value) ~ as.character(NA),
-        is.na(study_duration_value) ~ as.character(NA),
-        TRUE ~ study_duration_units
+
+      # Extract exposure_form from media field
+      exposure_form = dplyr::case_when(
+        grepl("not reported|not large enough|\\bother|none|no vehicle", media, ignore.case=TRUE) ~ as.character(NA),
+        TRUE ~ media
       )
-    )
+    ) %>%
+    # Drop unused study_duration field
+    dplyr::select(-study_duration) %>%
+    # Filter out invalid entries
+    dplyr::filter(!(toxval_numeric %in% c(0, NA))) %>%
+    dplyr::distinct()
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
@@ -498,7 +472,8 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
     # Replace "|::|" in critical_effect with "|" delimiter
     dplyr::mutate(
       critical_effect = critical_effect %>%
-        gsub(" \\|::\\| ", "|", .)
+        gsub(" \\|::\\| ", "|", .) %>%
+        stringr::str_squish()
     )
 
   # Add version date. Can be converted to a mutate statement as needed
