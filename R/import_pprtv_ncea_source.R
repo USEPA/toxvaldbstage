@@ -196,10 +196,9 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
   res = res0 %>%
     # Add transformations from old load script
     dplyr::filter(casrn != "VARIOUS") %>%
-
     dplyr::mutate(
       # Add new columns
-      critical_effect = stringr::str_squish(phenotype),
+      phenotype = stringr::str_squish(phenotype),
       subsource = "EPA ORD",
       source_url = "https://www.epa.gov/pprtv/basic-information-about-provisional-peer-reviewed-toxicity-values-pprtvs",
       human_eco = "human_health",
@@ -245,12 +244,15 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
         grepl("M", sex) ~ "male",
         TRUE ~ as.character(NA),
       )
-    )
+    ) %>%
+    tidyr::unite(col="critical_effect", toxval_subtype, phenotype,
+                 sep = ": ", na.rm = TRUE, remove = FALSE)
 
   # Separate out POD data and add back to res
   pod_res = res %>%
     dplyr::select(!tidyselect::any_of(c("toxval_type", "toxval_numeric", "toxval_units"))) %>%
     dplyr::rename(toxval_type=POD_type, toxval_numeric=POD_numeric, toxval_units=POD_units)
+
   res = res %>%
     dplyr::select(!tidyselect::any_of(c("POD_type", "POD_numeric", "POD_units"))) %>%
     rbind(pod_res) %>%
@@ -258,6 +260,8 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
     dplyr::distinct() %>%
 
     dplyr::mutate(
+      critical_effect = critical_effect %>%
+        dplyr::na_if(""),
       # Preserve toxval_type additional detail from units
       toxval_type_2 = toxval_units %>%
         stringr::str_extract("ADD|HED|HEC") %>%
@@ -312,7 +316,8 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
 
   # Perform deduping
   res = toxval.source.import.dedup(res,
-                                   dedup_fields=c("uf_a", "uf_d", "uf_h", "uf_l", "uf_s", "uf_c", "rfv_id"))
+                                   # dedup_fields=c("uf_a", "uf_d", "uf_h", "uf_l", "uf_s", "uf_c", "rfv_id")
+                                   )
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
@@ -328,7 +333,3 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
