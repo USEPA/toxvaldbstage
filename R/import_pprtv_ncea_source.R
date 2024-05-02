@@ -74,10 +74,10 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
   cat("Provide dataframe names prefixed with pprtv_ncea and update column names by making necessary substitutions\n")
   #####################################################################
   res_list_names <- c('assessment_study', 'assessments','cancer', 'cancer_tt','cancer_types','chem_groups',
-                 'dose','dose_reg','dosimetry_lkp', 'dosimetry_rqd', 'endpoints',
-                 'endpoints_tier','exposure_route','exposure_units','PPRTV_scrape_11_2017',
-                 'ref_value_type','ref_value_units','reference','reference_tt','species',
-                 'study','study_type', 'tissue_gen','tissue_gen_types','dose_reg2','new_scrape_table')
+                      'dose','dose_reg','dosimetry_lkp', 'dosimetry_rqd', 'endpoints',
+                      'endpoints_tier','exposure_route','exposure_units','PPRTV_scrape_11_2017',
+                      'ref_value_type','ref_value_units','reference','reference_tt','species',
+                      'study','study_type', 'tissue_gen','tissue_gen_types','dose_reg2','new_scrape_table')
   names(res_list) <- paste0("pprtv_ncea_", res_list_names)
 
   # Handle difference between Linux and Windows file sorting (flips endpoints and endpoints_tier load order)
@@ -172,16 +172,16 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
 
     dplyr::left_join(res_list$pprtv_ncea_reference %>%
                        dplyr::mutate(raw_input_file="pprtv_ncea_reference"),
-              by = c("Assessment ID", "Study ID" = "StudyID"),
-              relationship="many-to-many") %>%
+                     by = c("Assessment ID", "Study ID" = "StudyID"),
+                     relationship="many-to-many") %>%
 
     dplyr::select(casrn=CASRN,name=`Chemical Name`,RFV_ID,toxval_type=`Reference Value Type`,toxval_numeric=`Reference Value`,
-           toxval_units=`RfV Units`,study_type=StudyType,toxval_subtype=`Tissue_Gen`,phenotype=Endpoint,
-           POD_numeric=`Point of Departure`,POD_type=`Source of POD`,POD_units=`PoD Units`,
-           UF_A,UF_D,UF_H,UF_L,UF_S,UF_C,year=`Study_Year`,Author,title=`Study_Title`,long_ref=`Full Reference`,
-           species=`Animal Species`,strain=`Animal Strain`,sex,`Route of Exposure`,study_duration_class=`Duration Classification`,
-           study_duration_value=`Duration of Study`,study_duration_units=`Duration Units`,
-           raw_input_file.x, raw_input_file.x.x, raw_input_file.y, raw_input_file.y.y) %>%
+                  toxval_units=`RfV Units`,study_type=StudyType,`Tissue_Gen`,phenotype=Endpoint,
+                  POD_numeric=`Point of Departure`,POD_type=`Source of POD`,POD_units=`PoD Units`,
+                  UF_A,UF_D,UF_H,UF_L,UF_S,UF_C,year=`Study_Year`,Author,title=`Study_Title`,long_ref=`Full Reference`,
+                  species=`Animal Species`,strain=`Animal Strain`,sex,`Route of Exposure`,study_duration_class=`Duration Classification`,
+                  study_duration_value=`Duration of Study`,study_duration_units=`Duration Units`,
+                  raw_input_file.x, raw_input_file.x.x, raw_input_file.y, raw_input_file.y.y) %>%
 
     tidyr::separate(`Route of Exposure`, c("exposure_route", "exposure_method"), sep = " - ", fill = "right") %>%
     tidyr::unite(col="raw_input_file",
@@ -245,7 +245,7 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
         TRUE ~ as.character(NA),
       )
     ) %>%
-    tidyr::unite(col="critical_effect", toxval_subtype, phenotype,
+    tidyr::unite(col="critical_effect", `Tissue_Gen`, phenotype,
                  sep = ": ", na.rm = TRUE, remove = FALSE)
 
   # Separate out POD data and add back to res
@@ -302,7 +302,8 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
 
     # Drop entries missing required fields (both name and casrn blank for same entries)
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type, name) %>%
-    dplyr::distinct()
+    dplyr::distinct() %>%
+    dplyr::mutate(toxval_subtype = toxval_type)
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -317,7 +318,7 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
   # Perform deduping
   res = toxval.source.import.dedup(res,
                                    # dedup_fields=c("uf_a", "uf_d", "uf_h", "uf_l", "uf_s", "uf_c", "rfv_id")
-                                   )
+  )
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
