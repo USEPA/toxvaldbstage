@@ -308,10 +308,6 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::select(-`EXPERIMENTAL DOSE TYPE`, -`POD VALUE`) %>%
     dplyr::bind_rows(pod_fix)
 
-  # Hardcode species as human for RfD, RfD, HED, HED, Slope Factor, Unit Risk
-  human_toxval_type = c("RfD", "Inhalation Unit Risk", "RfC", "Oral Slope Factor")
-  res0$species[res0$toxval_type %in% human_toxval_type] = "human"
-
   # Fix names
   names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
@@ -557,23 +553,37 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   ) %>% unlist() %>%
     paste0(collapse="|")
 
+  # Lifestage list to attempt string matches
+  lifestage_list <- list(child=list("child", "children"),
+                         young=list("young"),
+                         infant=list("infant", "infants"),
+                         adult=list("adult", "adults"),
+                         maternal=list("maternal"),
+                         paternal=list("paternal"),
+                         fetal=list("fetal", "fetotoxic")
+  ) %>% unlist() %>%
+    paste0(collapse="|")
+
   res = res %>%
     dplyr::mutate(
       # Extract species from principal_study if species not already present
-      species = purrr::map_chr(stringr::str_extract_all(tolower(principal_study), species_list), paste, collapse = "; ") %>%
-        stringr::str_split("; ") %>%
-        sapply(stringr::str_squish) %>%
-        sapply(unique) %>%
-        sapply(paste, collapse="; ") %>%
-        tolower() %>%
-        gsub("mice", "mouse", .) %>%
-        gsub("rats", "rat", .) %>%
-        gsub("occupational|epidemiology|epidemiological|epidemiologic|workers", "human", .) %>%
-        stringr::str_split("; ") %>%
-        sapply(stringr::str_squish) %>%
-        sapply(unique) %>%
-        sapply(paste, collapse="; ") %>%
-        gsub("rat; human", "human", .),
+      species = dplyr::case_when(
+        species %in% c(NA, "-", "") ~ purrr::map_chr(stringr::str_extract_all(tolower(principal_study), species_list), paste, collapse = "; ") %>%
+          stringr::str_split("; ") %>%
+          sapply(stringr::str_squish) %>%
+          sapply(unique) %>%
+          sapply(paste, collapse="; ") %>%
+          tolower() %>%
+          gsub("mice", "mouse", .) %>%
+          gsub("rats", "rat", .) %>%
+          gsub("occupational|epidemiology|epidemiological|epidemiologic|workers", "human", .) %>%
+          stringr::str_split("; ") %>%
+          sapply(stringr::str_squish) %>%
+          sapply(unique) %>%
+          sapply(paste, collapse="; ") %>%
+          gsub("rat; human", "human", .),
+        TRUE ~ species
+      ),
 
       # Extract sex from principal_study if sex not already present
       sex = dplyr::case_when(
@@ -585,16 +595,14 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       ),
 
       # Extract strain from principal_study
-      strain = purrr::map_chr(stringr::str_extract_all(principal_study, paste0("(CD\\-1|B6C3F1|Carworth Farm E|New Zealand White",
-                                                                               "|F344(?:\\/N)?|(?:Crl:CD |Harlan )?Sprague\\-Dawley|beagle)")),
-                              paste, collapse = "; ") %>%
-        stringr::str_split("; ") %>%
-        sapply(stringr::str_squish) %>%
-        sapply(unique) %>%
-        sapply(paste, collapse="; "),
-      # Set strain as NA if human is species
       strain = dplyr::case_when(
-        species %in% c("human", as.character(NA)) ~ as.character(NA),
+        strain %in% c(NA, "-", "") ~ purrr::map_chr(stringr::str_extract_all(principal_study, paste0("(CD\\-1|B6C3F1|Carworth Farm E|New Zealand White",
+                                                                                                     "|F344(?:\\/N)?|(?:Crl:CD |Harlan )?Sprague\\-Dawley|beagle)")),
+                                                    paste, collapse = "; ") %>%
+          stringr::str_split("; ") %>%
+          sapply(stringr::str_squish) %>%
+          sapply(unique) %>%
+          sapply(paste, collapse="; "),
         TRUE ~ strain
       ),
 
@@ -643,9 +651,13 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
         gsub("hr", "hour", .),
 
       # Extract lifestage from principal_study
-      lifestage = principal_study %>%
+      lifestage = purrr::map_chr(stringr::str_extract_all(tolower(principal_study), lifestage_list), paste, collapse = "; ") %>%
+        stringr::str_split("; ") %>%
+        sapply(stringr::str_squish) %>%
+        sapply(unique) %>%
+        sapply(paste, collapse="; ") %>%
         tolower() %>%
-        stringr::str_extract("(child|infant|adult|maternal|paternal)", group=1),
+        gsub("fetotoxic", "fetal", .),
 
       # Extract exposure_method from principal_study
       exposure_method = principal_study %>%
@@ -667,6 +679,25 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Set occupational or epidemilog* studies to human species
   res$species[grepl("occupation|epidemiolog", res$species)] <- "human"
   res$sex[res$sex %in% c("", "NA")] <- "-"
+
+  # Hardcode species as human for RfD, RfD, HED, HED, Slope Factor, Unit Risk
+  human_toxval_type = c("RfD", "Inhalation Unit Risk", "RfC", "Oral Slope Factor")
+  res$species[res$toxval_type %in% human_toxval_type] = "human"
+  blank_hash_cols = c("exposure_method", "exposure_form", "media",
+                      "generation", "lifestage", "population",
+                      "study_duration_qualifier", "study_duration_value", "study_duration_units",
+                      "sex", "strain")
+  # Set blank if toxval_type is a derived value
+  res = res %>%
+    dplyr::mutate(dplyr::across(blank_hash_cols, ~ dplyr::case_when(
+      toxval_type %in% human_toxval_type ~ "-",
+      TRUE ~ .
+    )),
+    # Fill blank/NA character fields with "-"
+    dplyr::across(dplyr::where(is.character), ~ dplyr::na_if(., "") %>%
+                    tidyr::replace_na("-") %>%
+                    fix.replace.unicode() %>%
+                    stringr::str_squish()))
 
   # Perform deduping
   res = toxval.source.import.dedup(res, hashing_cols=toxval.config()$hashing_cols)
