@@ -103,7 +103,7 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
   res$document_type = "PPRTV Webpage"
   if(do.summary_data){
     # Import manually curated PPRTV CPHEA Summary information
-    summary_file = "source_pprtv_cphea_origin_manual_curation_20240322_awebb01.xlsx"
+    summary_file = "source_pprtv_cphea_summary_curation.xlsx"
     res1 = readxl::read_xlsx(paste0(dir, summary_file), col_types="text") %>%
       dplyr::mutate(document_type = 'PPRTV Summary') %>%
       .[ , (names(.) %in% names(res))]
