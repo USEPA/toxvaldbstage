@@ -673,7 +673,9 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
         exposure_method %in% c("gavage", "feed", "drinking water") ~ "oral",
         TRUE ~ exposure_route
       )
-    )
+    ) %>%
+    # Remove intermediate study_duration parsing field
+    dplyr::select(-study_duration)
   # Fill in missing with "-"
   res$species[res$species %in% c("", "NA")] <- "-"
   # Set occupational or epidemilog* studies to human species
