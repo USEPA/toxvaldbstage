@@ -694,7 +694,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::mutate(
       # Remove species lists, set as "-"
       species = dplyr::case_when(
-        grepl(";", species) = "-",
+        grepl(";", species) ~ "-",
         TRUE ~ species
       ),
       dplyr::across(blank_hash_cols, ~ dplyr::case_when(
