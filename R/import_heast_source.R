@@ -212,10 +212,6 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         toxval_type %in% c("RfD", "RfC") ~ "Y",
         TRUE ~ "N"
       ),
-      target_species = dplyr::case_when(
-        toxval_type %in% c("RfD", "RfC") ~ "human",
-        TRUE ~ as.character(NA)
-      ),
       species = dplyr::case_when(
         toxval_type %in% c("RfD", "RfC") ~ as.character(NA),
         TRUE ~ species
