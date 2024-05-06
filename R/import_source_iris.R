@@ -691,15 +691,21 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                       "sex", "strain")
   # Set blank if toxval_type is a derived value
   res = res %>%
-    dplyr::mutate(dplyr::across(blank_hash_cols, ~ dplyr::case_when(
-      toxval_type %in% human_toxval_type ~ "-",
-      TRUE ~ .
-    )),
-    # Fill blank/NA character fields with "-"
-    dplyr::across(dplyr::where(is.character), ~ dplyr::na_if(., "") %>%
-                    tidyr::replace_na("-") %>%
-                    fix.replace.unicode() %>%
-                    stringr::str_squish()))
+    dplyr::mutate(
+      # Remove species lists, set as "-"
+      species = dplyr::case_when(
+        grepl(";", species) = "-",
+        TRUE ~ species
+      ),
+      dplyr::across(blank_hash_cols, ~ dplyr::case_when(
+        toxval_type %in% human_toxval_type ~ "-",
+        TRUE ~ .
+      )),
+      # Fill blank/NA character fields with "-"
+      dplyr::across(dplyr::where(is.character), ~ dplyr::na_if(., "") %>%
+                      tidyr::replace_na("-") %>%
+                      fix.replace.unicode() %>%
+                      stringr::str_squish()))
 
   # Perform deduping
   res = toxval.source.import.dedup(res, hashing_cols=toxval.config()$hashing_cols)
