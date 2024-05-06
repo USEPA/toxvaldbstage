@@ -291,10 +291,6 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         toxval_type %in% c("RfD", "RfC", "cancer slope factor", "cancer unit risk") ~ "No",
         TRUE ~ "Yes"
       ),
-      human_ra = dplyr::case_when(
-        toxval_type %in% c("RfD", "RfC", "cancer slope factor", "cancer unit risk") ~ "Yes",
-        TRUE ~ "No"
-      ),
 
       # Set values to NA to prepare for tidyr::unite
       tumor_site = tumor_site %>%

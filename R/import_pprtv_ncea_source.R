@@ -279,10 +279,6 @@ import_pprtv_ncea_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, d
         grepl("RfC|RfD", toxval_type) ~ as.character(NA),
         TRUE ~ species
       ),
-      human_ra = dplyr::case_when(
-        grepl("RfC|RfD", toxval_type) ~ "Y",
-        TRUE ~ "N"
-      ),
       strain = dplyr::case_when(
         is.na(species) ~ as.character(NA),
         TRUE ~ strain
