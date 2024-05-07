@@ -26,9 +26,9 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 1: ", fraction*100, "% human health repeat dose points of departure, mg/kg-day, mg/m3, exclude ECOTOX and ToxRefDB\n")
   tv2 = tv[!is.element(tv$source,c("ECOTOX","ToxRefDB")),]
-  tv2 = tv2[tv2$human_eco=="human health",]
+  tv2 = tv2[tv2$human_eco %in% "human health",]
   tv2 = tv2[is.element(tv2$toxval_units,c("mg/kg-day","mg/m3")),]
-  tv2 = tv2[tv2$toxval_type_supercategory=="Point of Departure",]
+  tv2 = tv2[tv2$toxval_type_supercategory%in%"Point of Departure",]
   tv2 = tv2[is.element(tv2$study_type,repdose),]
   slist = tv2$source_hash
   if((length(slist)*fraction) <= 100){
@@ -46,9 +46,9 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
   pfas = read.xlsx(file)
   dlist = pfas$dtxsid
   tv2 = tv[is.element(tv$dtxsid,dlist),]
-  tv2 = tv2[tv2$human_eco=="human health",]
+  tv2 = tv2[tv2$human_eco%in%"human health",]
   tv2 = tv2[is.element(tv2$toxval_units,c("mg/kg-day","mg/m3")),]
-  tv2 = tv2[tv2$toxval_type_supercategory=="Point of Departure",]
+  tv2 = tv2[tv2$toxval_type_supercategory%in%"Point of Departure",]
   tv2 = tv2[is.element(tv2$study_type,repdose),]
   slist = tv2$source_hash
   tv$rule2 = 0
@@ -57,10 +57,10 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
 
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 3: ", fraction*100, "% eco with units of mg/L\n")
-  tv2 = tv[tv$human_eco=="eco",]
+  tv2 = tv[tv$human_eco%in%"eco",]
   tv2 = tv2[!is.element(tv2$source,c("ECOTOX","ToxRefDB")),]
   tv2 = tv2[is.element(tv2$toxval_units,c("mg/L")),]
-  tv2 = tv2[tv2$toxval_type_supercategory=="Point of Departure",]
+  tv2 = tv2[tv2$toxval_type_supercategory%in%"Point of Departure",]
   #tv2 = tv2[is.element(tv2$study_type,repdose),]
   slist = tv2$source_hash
   if((length(slist)*fraction) <= 100){
@@ -75,18 +75,22 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 4: ", fraction*100, "% points of departure, human health, each source\n")
   slist = NULL
-  tv2 = tv[tv$human_eco=="human health",]
+  tv2 = tv[tv$human_eco%in%"human health",]
   tv2 = tv2[!is.element(tv2$source,c("ECOTOX","ToxRefDB")),]
   srclist = sort(unique(tv2$source))
   for(src in srclist) {
     tv3 = tv2[tv2$source==src,]
-    tv3 = tv3[tv3$toxval_type_supercategory=="Point of Departure",]
+    tv3 = tv3[tv3$toxval_type_supercategory %in% "Point of Departure",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
       if((length(slist3)*fraction) <= 100){
         slist3 = sample(slist3,length(slist3)*fraction)
       } else{
         slist3 = sample(slist3, 100)
+      }
+      if(anyNA(slist3)){
+        message("NA found...")
+        browser()
       }
       slist = c(slist,slist3)
     }
@@ -98,12 +102,12 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 5: ", fraction*100, "% lethality effect level, human health, each source\n")
   slist = NULL
-  tv2 = tv[tv$human_eco=="human health",]
+  tv2 = tv[tv$human_eco%in%"human health",]
   tv2 = tv2[!is.element(tv2$source,c("ECOTOX","ToxRefDB")),]
   srclist = sort(unique(tv2$source))
   for(src in srclist) {
     tv3 = tv2[tv2$source==src,]
-    tv3 = tv3[tv3$toxval_type_supercategory=="Lethality Effect Level",]
+    tv3 = tv3[tv3$toxval_type_supercategory%in%"Lethality Effect Level",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
       if((length(slist3)*fraction) <= 100){
@@ -121,12 +125,12 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 6: ", fraction*100, "% toxicity value, human health, each source\n")
   slist = NULL
-  tv2 = tv[tv$human_eco=="human health",]
+  tv2 = tv[tv$human_eco%in%"human health",]
   tv2 = tv2[!is.element(tv2$source,c("ECOTOX","ToxRefDB")),]
   srclist = sort(unique(tv2$source))
   for(src in srclist) {
     tv3 = tv2[tv2$source==src,]
-    tv3 = tv3[tv3$toxval_type_supercategory=="Toxicity Value",]
+    tv3 = tv3[tv3$toxval_type_supercategory%in%"Toxicity Value",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
       if((length(slist3)*fraction) <= 100){
@@ -144,12 +148,12 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 7: ", fraction*100, "% points of departure, eco, each source\n")
   slist = NULL
-  tv2 = tv[tv$human_eco=="eco",]
+  tv2 = tv[tv$human_eco%in%"eco",]
   tv2 = tv2[!is.element(tv2$source,c("ECOTOX","ToxRefDB")),]
   srclist = sort(unique(tv2$source))
   for(src in srclist) {
     tv3 = tv2[tv2$source==src,]
-    tv3 = tv3[tv3$toxval_type_supercategory=="Point of Departure",]
+    tv3 = tv3[tv3$toxval_type_supercategory%in%"Point of Departure",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
       if((length(slist3)*fraction) <= 100){
@@ -167,12 +171,12 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
   #---------------------------------------------------------------------------------------------------------------
   cat("Rule 8: ", fraction*100, "% lethality effect level, eco, each source\n")
   slist = NULL
-  tv2 = tv[tv$human_eco=="eco",]
+  tv2 = tv[tv$human_eco%in%"eco",]
   tv2 = tv2[!is.element(tv2$source,c("ECOTOX","ToxRefDB")),]
   srclist = sort(unique(tv2$source))
   for(src in srclist) {
     tv3 = tv2[tv2$source==src,]
-    tv3 = tv3[tv3$toxval_type_supercategory=="Lethality Effect Level",]
+    tv3 = tv3[tv3$toxval_type_supercategory%in%"Lethality Effect Level",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
       if((length(slist3)*fraction) <= 100){
@@ -195,7 +199,7 @@ prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0
   srclist = sort(unique(tv2$source))
   for(src in srclist) {
     tv3 = tv2[tv2$source==src,]
-    tv3 = tv3[tv3$toxval_type_supercategory=="Toxicity Value",]
+    tv3 = tv3[tv3$toxval_type_supercategory%in%"Toxicity Value",]
     if(nrow(tv3)>0) {
       slist3 = tv3$source_hash
       if((length(slist3)*fraction) <= 100){
