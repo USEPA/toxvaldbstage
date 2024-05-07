@@ -450,6 +450,30 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
+  # Normalized short_ref and long_ref to map back to res
+  refs = res %>%
+    dplyr::select(short_ref, full_long_ref = long_ref) %>%
+    dplyr::filter(!full_long_ref %in% c(NA, "-")) %>%
+    # Add ending period if missing
+    dplyr::mutate(full_long_ref = dplyr::case_when(
+      !endsWith(full_long_ref, ".") ~ paste0(full_long_ref, "."),
+      TRUE ~ full_long_ref
+    )) %>%
+    dplyr::distinct() %>%
+    dplyr::group_by(short_ref) %>%
+    # Collapse duplicates
+    dplyr::mutate(full_long_ref = paste0(full_long_ref, collapse = " |::| ")) %>%
+    dplyr::distinct() %>%
+    # Filter out any conflicting long_ref values from map
+    dplyr::filter(!grepl("\\|::\\|", full_long_ref))
+
+  # Map long_ref back by short_ref map
+  res = res %>%
+    dplyr::select(-long_ref) %>%
+    dplyr::left_join(refs %>%
+                       dplyr::rename(long_ref = full_long_ref),
+                     by="short_ref")
+
   hashing_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]# ,
                    # "dosing_regime_id",
                    # "experiment_url"
