@@ -18,7 +18,6 @@
 #'  \code{\link[tidyr]{drop_na}}
 #'  \code{\link[stringr]{str_remove}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_chiu_source
-#' @export
 #' @importFrom readr read_csv
 #' @importFrom dplyr select mutate distinct
 #' @importFrom tidyr drop_na
