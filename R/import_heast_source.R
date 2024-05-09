@@ -90,6 +90,7 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     dplyr::mutate(toxval_relationship_id = dplyr::row_number())
 
   # Below is logic to further collapse critical_effect, comment, ornl_table, and target
+  # See TOXVAL-707 comment on Acetonitrile that should be 4 rows, not 3.
   # Uncomment if additional collapsing is desired
   # # Use deduping function to improve collapse behavior for critical_effect
   # hashing_cols = toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]
@@ -206,24 +207,16 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     tidyr::drop_na(toxval_numeric, toxval_type, toxval_units) %>%
 
     dplyr::mutate(
-      # Set values based on toxval_type
-      human_ra = dplyr::case_when(
-        toxval_type %in% c("RfD", "RfC") ~ "Y",
-        TRUE ~ "N"
-      ),
-      target_species = dplyr::case_when(
-        toxval_type %in% c("RfD", "RfC") ~ "Human",
-        TRUE ~ as.character(NA)
-      ),
       species = dplyr::case_when(
         toxval_type %in% c("RfD", "RfC") ~ as.character(NA),
         TRUE ~ species
       ),
 
       # Add hardcoded columns
-      human_eco = "human_health",
+      human_eco = "human health",
       source_url = "https://cfpub.epa.gov/ncea/risk/recordisplay.cfm?deid=2877",
       study_type = study_duration_class,
+      long_ref = "U.S. EPA. Health Effects Assessment Summary Tables (Heast). U.S. Environmental Protection Agency, Washington, D.C., 1997. https://cfpub.epa.gov/ncea/risk/recordisplay.cfm?deid=2877.",
 
       # Perform other transformations as necessary
       toxval_numeric = as.numeric(toxval_numeric),
@@ -275,7 +268,13 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       species = species %>%
         gsub("occupational|infants|, young", "", .) %>%
         tolower() %>%
-        stringr::str_squish()
+        stringr::str_squish(),
+
+      # Set toxval_subtype using study_type
+      toxval_subtype = dplyr::case_when(
+        toxval_type %in% c("RfD", "RfC") ~ study_type,
+        TRUE ~ as.character(NA)
+      )
     )
 
   # Standardize the names
