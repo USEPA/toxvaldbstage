@@ -8,7 +8,7 @@
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ="../caloehha/caloehha_files/OEHHA-chemicals_2018-10-30T08-50-47.xlsx",
 #' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
-#' @title import_caloehha_source
+#' @title import_source_caloehha
 #' @return None; data is pushed to ToxVal_Source
 #' @details DETAILS
 #' @examples
@@ -23,7 +23,7 @@
 #' @export
 #' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
-import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source="Cal OEHHA"
   source_table = "source_caloehha"
