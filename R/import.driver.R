@@ -59,7 +59,6 @@ import.driver <- function(db="res_toxval_source_v5",
   import_atsdr_pfas_2021_source(db,chem.check.halt=chem.check.halt) # ATSDR PFAS 2021 [v1]
   # import_source_atsdr_mrls(db,chem.check.halt=chem.check.halt) # ATSDR MRLs 2023 (TBD)
   import_caloehha_source(db,chem.check.halt=chem.check.halt) # Cal OEHHA [v1]
-  import_chiu_source(db,chem.check.halt=chem.check.halt) # Chiu [v1]
   import_copper_source(db,chem.check.halt=chem.check.halt) # Copper Manufacturers [v1]
   import_cosmos_source(db,chem.check.halt=chem.check.halt) # COSMOS [v1]
   import_dod_ered_source(db,chem.check.halt=chem.check.halt) # DOD ERED [v1]

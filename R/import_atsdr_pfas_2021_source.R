@@ -270,8 +270,6 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
     dplyr::select(!tidyselect::any_of(c("study_duration_low", "study_duration_high"))) %>%
 
     dplyr::mutate(
-      # Get critical_effect and toxval_details
-      critical_effect = effect,
       toxval_details = comments,
 
       # Assign toxval_units based on file
@@ -304,7 +302,9 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
       # Make key replacements
       endpoint = endpoint %>%
         stringr::str_replace_all(!!agg_key) %>%
-        stringr::str_squish(),
+        gsub(":", "", .) %>%
+        stringr::str_squish() %>%
+        stringr::str_to_title(),
       paramaters_monitored = parameters_monitored %>%
         stringr::str_replace_all(!!agg_key) %>%
         stringr::str_squish(),
@@ -429,6 +429,12 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
       risk_assessment_class = study_type,
       source_url = "https://www.atsdr.cdc.gov/toxprofiledocs/index.html"
     ) %>%
+    # Only have endpoint: effect pairs or just effect, otherwise NA
+    dplyr::mutate(critical_effect = dplyr::case_when(
+      !is.na(endpoint) & !is.na(effect) ~ paste0(endpoint, ": ", effect),
+      is.na(endpoint) & !is.na(effect) ~ effect,
+      TRUE ~ NA
+    )) %>%
 
     # Drop entries without required ToxVal information
     tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
@@ -444,8 +450,41 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
-  # Perform deduping
-  res = toxval.source.import.dedup(res, dedup_fields=c("endpoint"), delim="; ")
+  # Normalized short_ref and long_ref to map back to res
+  refs = res %>%
+    dplyr::select(short_ref, full_long_ref = long_ref) %>%
+    dplyr::filter(!full_long_ref %in% c(NA, "-")) %>%
+    # Add ending period if missing
+    dplyr::mutate(full_long_ref = dplyr::case_when(
+      !endsWith(full_long_ref, ".") ~ paste0(full_long_ref, "."),
+      TRUE ~ full_long_ref
+    )) %>%
+    dplyr::distinct() %>%
+    dplyr::group_by(short_ref) %>%
+    # Collapse duplicates
+    dplyr::mutate(full_long_ref = paste0(full_long_ref, collapse = " |::| ")) %>%
+    dplyr::distinct() %>%
+    # Filter out any conflicting long_ref values from map
+    dplyr::filter(!grepl("\\|::\\|", full_long_ref))
+
+  # Map long_ref back by short_ref map
+  res = res %>%
+    dplyr::select(-long_ref) %>%
+    dplyr::left_join(refs %>%
+                       dplyr::rename(long_ref = full_long_ref),
+                     by="short_ref")
+
+  hashing_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))]# ,
+                   # "dosing_regime_id",
+                   # "experiment_url"
+  )
+
+  res = toxval.source.import.dedup(res, hashing_cols=hashing_cols) %>%
+    # Replace "|::|" in critical_effect with "|" delimiter
+    dplyr::mutate(
+      critical_effect = critical_effect %>%
+        gsub(" \\|::\\| ", "|", .)
+    )
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

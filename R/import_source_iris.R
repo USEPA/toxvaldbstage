@@ -269,77 +269,6 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                     fix.replace.unicode() %>%
                     stringr::str_squish())
 
-
-  # Check joins (identified issue with float/double versus character toxval_numeric join)
-  # tmp <- chem_details %>%
-  #   filter(toxval_type %in% c("RfC", "RfD"),
-  #          `CHEMICAL ID` == 71) %>%
-  #   select(c("CHEMICAL ID",
-  #            "critical_effect_tumor_type",
-  #            "toxval_type",
-  #            "toxval_numeric",
-  #            "toxval_units")) %>%
-  #   # Required so that the join will work due to float/double precision
-  #   dplyr::mutate(toxval_numeric = as.character(toxval_numeric))
-  #
-  # tmp2 <- rfc_rfd %>%
-  #   filter(toxval_type %in% c("RfC", "RfD"),
-  #          `CHEMICAL ID` == 71) %>%
-  #   select(c("CHEMICAL ID",
-  #            "critical_effect_tumor_type" = "PRINCIPAL CRITICAL DESCRIPTION",
-  #            "toxval_type",
-  #            "toxval_numeric",
-  #            "toxval_units"),
-  #          `POD VALUE`) %>%
-  #   # Required so that the join will work due to float/double precision
-  #   dplyr::mutate(toxval_numeric = as.character(toxval_numeric))
-  #
-  # tmp3 <- tmp %>%
-  #   left_join(tmp2)
-
-  # Check for duplicates - some known for chemical ID 73. 701, and 197 (different POD or Duration)
-  # dups <- out %>% group_by(tmp_id) %>% dplyr::summarise(n=n()) %>% filter(n > 1)
-  # View(out %>% filter(tmp_id %in% dups$tmp_id))
-
-  # Species list to attempt string matches
-  species_list <- list(dog=list("dog", "dogs"),
-                       human=list("human", "humans", "occupational", "epidemiology", "epidemiological", "epidemiologic"),
-                       mouse=list("mouse", "mice", "mouses"),
-                       `monkey`=list("nonhuman primate", "monkey", "primate", "monkies", "monkeys",
-                                     "rhesus monkeys (macaca mulatta)", "rhesus monkeys",
-                                     "cynomolgus monkeys (macaca fascicularis)"),
-                       rat=list("rat", "rats"),
-                       rabbit = list("rabbit", "rabbits"),
-                       `guinea pig` = list("guinea pig", "guinea pigs"),
-                       frog = list("frog", "frogs"),
-                       hen = list("hen")
-  ) %>% unlist() %>%
-    paste0(collapse="|")
-
-  res0 <- res0 %>%
-    dplyr::rowwise() %>%
-    dplyr::mutate(species = `PRINCIPAL STUDY` %>%
-                    tolower() %>%
-                    # Extract species from `PRINCIPAL STUDY`
-                    stringr::str_extract_all(., species_list) %>%
-                    unlist() %>%
-                    unique() %>%
-                    paste0(collapse="; "),
-                  # Extract sex from `PRINCIPAL STUDY`
-                  sex = `PRINCIPAL STUDY` %>%
-                    tolower() %>%
-                    # Extract any matches to sex
-                    stringr::str_extract_all(., "female|females|male|males") %>%
-                    unlist() %>%
-                    unique() %>%
-                    paste0(collapse="; "))
-  # Fill in missing with "-"
-  res0$species[res0$species %in% c("", "NA")] <- "-"
-  # Set occupational or epidemilog* studies to human species
-  res0$species[grepl("occupation|epidemiolog", res0$species)] <- "human"
-  # res0 %>% select(`PRINCIPAL STUDY`, species) %>% distinct() %>% View()
-  res0$sex[res0$sex %in% c("", "NA")] <- "-"
-
   # Transform/relabel `EXPERIMENTAL DOSE TYPE` into a toxval_type with POD as the toxval_numeric/units
   pod_fix <- res0 %>%
     # Only available for those with toxval_type RfC and RfD
@@ -378,10 +307,6 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   res0 <- res0 %>%
     dplyr::select(-`EXPERIMENTAL DOSE TYPE`, -`POD VALUE`) %>%
     dplyr::bind_rows(pod_fix)
-
-  # Hardcode species as human for RfD, RfD, HED, HED, Slope Factor, Unit Risk
-  human_toxval_type = c("RfD", "Inhalation Unit Risk", "RfC", "Oral Slope Factor")
-  res0$species[res0$toxval_type %in% human_toxval_type] = "human"
 
   # Fix names
   names(res0) <- names(res0) %>%
@@ -531,12 +456,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     long_ref = dplyr::case_when(
       long_ref %in% c(NA, "-") ~ study_reference,
       TRUE ~ long_ref
-    ),# %>%
-      # # Remove extraneous whitespace and escaped symbols
-      # stringr::str_squish() %>%
-      # gsub("\\r|\\n|\\\\r|\\\\n", "", .) %>%
-      # gsub("\\\\'", "'", .) %>%
-      # gsub('\\\\\\"', '"', .),
+    ),
 
     dplyr::across(dplyr::where(is.character), ~tidyr::replace_na(., "-") %>%
                     fix.replace.unicode() %>%
@@ -618,6 +538,174 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       ) %>%
       dplyr::select(-prev_full_reference)
   }
+
+  # Species list to attempt string matches
+  species_list <- list(dog=list("dog"),
+                       human=list("human", "occupational", "epidemiology", "epidemiological", "epidemiologic", "workers"),
+                       mouse=list("mouse", "mice"),
+                       monkey=list("nonhuman primate", "monkey", "primate", "monkies", "monkeys"),
+                       rat=list("\\brat\\b", "\\brats\\b"),
+                       rabbit = list("rabbit"),
+                       `guinea pig` = list("guinea pig"),
+                       frog = list("frog"),
+                       hen = list("\\bhen\\b"),
+                       hamster = list("hamster")
+  ) %>% unlist() %>%
+    paste0(collapse="|")
+
+  # Lifestage list to attempt string matches
+  lifestage_list <- list(child=list("child", "children"),
+                         young=list("young"),
+                         infant=list("infant", "infants"),
+                         adult=list("adult", "adults"),
+                         maternal=list("maternal"),
+                         paternal=list("paternal"),
+                         fetal=list("fetal", "fetotoxic")
+  ) %>% unlist() %>%
+    paste0(collapse="|")
+
+  res = res %>%
+    dplyr::mutate(
+      # Extract species from principal_study if species not already present
+      species = dplyr::case_when(
+        species %in% c(NA, "-", "") ~ purrr::map_chr(stringr::str_extract_all(tolower(principal_study), species_list), paste, collapse = "; ") %>%
+          stringr::str_split("; ") %>%
+          sapply(stringr::str_squish) %>%
+          sapply(unique) %>%
+          sapply(paste, collapse="; ") %>%
+          tolower() %>%
+          gsub("mice", "mouse", .) %>%
+          gsub("rats", "rat", .) %>%
+          gsub("occupational|epidemiology|epidemiological|epidemiologic|workers", "human", .) %>%
+          stringr::str_split("; ") %>%
+          sapply(stringr::str_squish) %>%
+          sapply(unique) %>%
+          sapply(paste, collapse="; ") %>%
+          gsub("rat; human", "human", .),
+        TRUE ~ species
+      ),
+
+      # Extract sex from principal_study if sex not already present
+      sex = dplyr::case_when(
+        !(sex %in% c("", "-", as.character(NA), "not reported")) ~ sex,
+        grepl("\\bmale", principal_study) & grepl("female", principal_study) ~ "male/female",
+        grepl("female", principal_study) ~ "female",
+        grepl("\\bmale", principal_study) ~ "male",
+        TRUE ~ as.character(NA)
+      ),
+
+      # Extract strain from principal_study
+      strain = dplyr::case_when(
+        strain %in% c(NA, "-", "") ~ purrr::map_chr(stringr::str_extract_all(principal_study, paste0("(CD\\-1|B6C3F1|Carworth Farm E|New Zealand White",
+                                                                                                     "|F344(?:\\/N)?|(?:Crl:CD |Harlan )?Sprague\\-Dawley|beagle)")),
+                                                    paste, collapse = "; ") %>%
+          stringr::str_split("; ") %>%
+          sapply(stringr::str_squish) %>%
+          sapply(unique) %>%
+          sapply(paste, collapse="; "),
+        TRUE ~ strain
+      ),
+
+      # Extract study_duration from principal_study
+      study_duration = principal_study %>%
+        gsub("Ds", "D", .) %>%
+        gsub("D([0-9])", "D \\1", .) %>%
+        gsub("\\[|\\]", "", .) %>%
+        gsub("[Tt]wo", "2", .) %>%
+        gsub("3, 6 or 8", "3-8", .) %>%
+        gsub("2\\- to 9", "2-9", .) %>%
+        gsub("0 to 3 or 8", "0-8", .) %>%
+        gsub("\\(GD\\)", "GD", .) %>%
+        gsub("([0-9])\\-([a-zA-Z])", "\\1 \\2", .) %>%
+        gsub("\\?", "-", .) %>%
+        gsub("\\s*to\\s*|\\s*\\-\\s*", "-", .) %>%
+        gsub("GD ([0-9]+) GD ([0-9]+)", "GD \\1-\\2", .),
+      study_duration_value = dplyr::case_when(
+        grepl("GD [0-9]+\\-[0-9+] weeks", study_duration) ~ stringr::str_extract(study_duration,
+                                                                                 "(GD [0-9]+\\-[0-9+] weeks)",
+                                                                                 group=1),
+        grepl("[0-9\\.]+(?:\\-[0-9\\.]+)?\\s*(?:day|generation|year|month|\\bd\\b|week|hr)",
+              study_duration,
+              ignore.case=TRUE) ~ stringr::str_extract(tolower(study_duration),
+                                                       "([0-9\\.]+(?:\\-[0-9\\.]+)?)\\s*(?:day|generation|year|month|\\bd\\b|week|hr)",
+                                                       group=1),
+        grepl("(?:GD|PND) [0-9]+\\-[0-9]+", study_duration) ~ stringr::str_extract(study_duration,
+                                                                                   "(?:GD|PND) ([0-9]+\\-[0-9]+)",
+                                                                                   group=1),
+        TRUE ~ as.character(NA)
+      ),
+      study_duration_units = dplyr::case_when(
+        is.na(study_duration_value) ~ as.character(NA),
+        grepl("GD [0-9]+\\-[0-9+] weeks", study_duration) ~ "GD,weeks",
+        grepl("[0-9\\.]+(?:\\-[0-9\\.]+)?\\s*(?:day|generation|year|month|\\bd\\b|week|hr)",
+              study_duration,
+              ignore.case=TRUE) ~ stringr::str_extract(tolower(study_duration),
+                                                       "[0-9\\.]+(?:\\-[0-9\\.]+)?\\s*(day|generation|year|month|\\bd\\b|week|hr)",
+                                                       group=1),
+        grepl("(?:GD|PND) [0-9]+\\-[0-9]+", study_duration) ~ stringr::str_extract(study_duration,
+                                                                                   "(GD|PND) [0-9]+\\-[0-9]+",
+                                                                                   group=1),
+        TRUE ~ as.character(NA)
+      ) %>%
+        gsub("\\bd\\b", "day", .) %>%
+        gsub("hr", "hour", .),
+
+      # Extract lifestage from principal_study
+      lifestage = purrr::map_chr(stringr::str_extract_all(tolower(principal_study), lifestage_list), paste, collapse = "; ") %>%
+        stringr::str_split("; ") %>%
+        sapply(stringr::str_squish) %>%
+        sapply(unique) %>%
+        sapply(paste, collapse="; ") %>%
+        tolower() %>%
+        gsub("fetotoxic", "fetal", .),
+
+      # Extract exposure_method from principal_study
+      exposure_method = principal_study %>%
+        tolower() %>%
+        stringr::str_extract("(drinking water|feed|gavage|diet|capsule)", group=1),
+      #  Remove "feed" exposure_method from subcutaneous entry
+      exposure_method = dplyr::case_when(
+        exposure_route == "subcutaneous" ~ as.character(NA),
+        TRUE ~ exposure_method
+      ),
+      #  Ensure exposure_route matches extracted exposure_method
+      exposure_route = dplyr::case_when(
+        exposure_method %in% c("gavage", "feed", "drinking water") ~ "oral",
+        TRUE ~ exposure_route
+      )
+    ) %>%
+    # Remove intermediate study_duration parsing field
+    dplyr::select(-study_duration)
+  # Fill in missing with "-"
+  res$species[res$species %in% c("", "NA")] <- "-"
+  # Set occupational or epidemilog* studies to human species
+  res$species[grepl("occupation|epidemiolog", res$species)] <- "human"
+  res$sex[res$sex %in% c("", "NA")] <- "-"
+
+  # Hardcode species as human for RfD, RfD, HED, HED, Slope Factor, Unit Risk
+  human_toxval_type = c("RfD", "Inhalation Unit Risk", "RfC", "Oral Slope Factor")
+  res$species[res$toxval_type %in% human_toxval_type] = "human"
+  blank_hash_cols = c("exposure_method", "exposure_form", "media",
+                      "generation", "lifestage", "population",
+                      "study_duration_qualifier", "study_duration_value", "study_duration_units",
+                      "sex", "strain")
+  # Set blank if toxval_type is a derived value
+  res = res %>%
+    dplyr::mutate(
+      # Remove species lists, set as "-"
+      species = dplyr::case_when(
+        grepl(";", species) ~ "-",
+        TRUE ~ species
+      ),
+      dplyr::across(blank_hash_cols, ~ dplyr::case_when(
+        toxval_type %in% human_toxval_type ~ "-",
+        TRUE ~ .
+      )),
+      # Fill blank/NA character fields with "-"
+      dplyr::across(dplyr::where(is.character), ~ dplyr::na_if(., "") %>%
+                      tidyr::replace_na("-") %>%
+                      fix.replace.unicode() %>%
+                      stringr::str_squish()))
 
   # Perform deduping
   res = toxval.source.import.dedup(res, hashing_cols=toxval.config()$hashing_cols)

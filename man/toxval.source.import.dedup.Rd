@@ -7,7 +7,7 @@
 toxval.source.import.dedup(
   res,
   dedup_fields = NULL,
-  hashing_cols = toxval.config()$hashing_cols,
+  hashing_cols = NULL,
   delim = " |::| "
 )
 }

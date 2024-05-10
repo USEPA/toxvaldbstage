@@ -9,18 +9,18 @@
 #' @return Returns an updated map with newly associated toxval_source table ID values
 #' @title set_clowder_id_lineage
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
 #' @rdname set_clowder_id_lineage
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename filter select left_join mutate
 #' @importFrom tidyr separate_rows unite
@@ -124,8 +124,6 @@ set_clowder_id_lineage <- function(source_table,
                       #                     document_name = "tp200-c2.pdf"),
                       "source_atsdr_pfas_2021" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                           "clowder_v3/source_atsdr_pfas_2021_document_map_20240221_jnhope.xlsx")),
-                      "source_chiu" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_chiu_document_map_20231109.xlsx")),
                       "source_dod_meg" = data.frame(clowder_id = "651c7a8fe4b0d99f5a8c9983",
                                                     document_name = "TG230MilitaryExposureGuidelines.xls"),
                       "source_doe_benchmarks" = data.frame(clowder_id = "65de658de4b063812d6afc53",
@@ -162,13 +160,8 @@ set_clowder_id_lineage <- function(source_table,
                       #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
                       "source_rsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/source_rsl_document_map_20240227.xlsx")),
-                      "source_hess_20210616" = {
-                        paste0(toxval.config()$datapath,"clowder_v3/toxval_document_map_icf.xlsx") %>%
-                          readxl::read_xlsx() %>%
-                          fix.non_ascii.v2(.,"map.icf")
-                      },
-                      "source_hess" = data.frame(clowder_id = "65cba45be4b063812d69d110",
-                                                 document_name = "hess_20231109_fixed.xlsx"),
+                      "source_hess" =  readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                "clowder_v3/source_hess_2021_doc_map_20240429.xlsx")),
                       "source_copper" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                  "clowder_v3/source_copper_document_map.xlsx")),
 
@@ -332,14 +325,30 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
 
-                  #"source_hess" = {
-                  #  res <- res %>%
-                  #    left_join(map_file %>%
-                  #                select(clowder_id, document_name, fk_doc_id),
-                  #              by="document_name")
-                  #  # Return res
-                  #  res
-                  #},
+                  "source_hess" = {
+                    # Match to origin docs based on document names
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+                    res1 <- res %>%
+                      dplyr::select(source_hash, src_document_name, source_version_date) %>%
+                      left_join(origin_docs %>%
+                                  select(clowder_id, filename, fk_doc_id) %>%
+                                  distinct(),
+                                by = c("src_document_name" = "filename"))
+
+                    # Match to extraction doc
+                    extraction_doc <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+                    tmp = res %>%
+                      dplyr::select(source_hash, src_document_name, source_version_date) %>%
+                      merge(extraction_doc %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res1, tmp)
+                    # Return res
+                    res
+                  },
 
                   "source_rsl" = {
                     res <- res %>%
@@ -974,27 +983,6 @@ set_clowder_id_lineage <- function(source_table,
                     # Match to extraction doc
                     tmp = res %>%
                       dplyr::select(short_ref, source_hash, source_version_date) %>%
-                      merge(map_file %>%
-                              dplyr::filter(!is.na(parent_flag)) %>%
-                              dplyr::select(clowder_id, fk_doc_id))
-
-                    # Combine origin and extraction document associations
-                    res = rbind(res, tmp)
-
-                    # Return res
-                    res
-                  },
-                  "source_chiu" = {
-                    # Match to origin doc
-                    res <- res %>%
-                      dplyr::select(long_ref, source_hash, source_version_date) %>%
-                      dplyr::left_join(map_file %>%
-                                  dplyr::select(long_ref, clowder_id, fk_doc_id) %>%
-                                  dplyr::distinct(),
-                                by = "long_ref")
-                    # Match to extraction doc
-                    tmp = res %>%
-                      dplyr::select(long_ref, source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(!is.na(parent_flag)) %>%
                               dplyr::select(clowder_id, fk_doc_id))
