@@ -48,6 +48,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
       cat("NA name found...\n")
       browser()
     }
+    # Handle translation to ASCII
     n1 = n0 %>%
       iconv(.,from="UTF-8",to="ASCII//TRANSLIT")
     n2 <- n1 %>%
@@ -118,6 +119,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
   chem.check.casrn <- function(in_cas, verbose){
     n0 = in_cas
     if(!is.na(n0)) {
+      # Translate to ASCII and clean CASRN formatting
       n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
       n2 = stringi::stri_escape_unicode(n1) %>%
         fix.casrn()

@@ -21,6 +21,7 @@ import.driver <- function(db="res_toxval_source_v5",
                           do.clean=FALSE) {
   printCurrentFunction(db)
 
+  # Clear out all tables in toxval_source if specified
   if(do.clean) {
     tlist = runQuery("show tables",db)[,1] #%>%
       # Only delete source tables
@@ -34,6 +35,7 @@ import.driver <- function(db="res_toxval_source_v5",
     }
   }
   drop = FALSE
+  # If specified, drop all source tables in toxval_source
   if(drop){
     tlist = runQuery("show tables",db)[,1] %>%
     # Only drop source tables to be rebuilt entirely

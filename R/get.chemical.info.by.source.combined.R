@@ -12,15 +12,15 @@
 #' @param source The name of toxval source to use.
 #' @param source_table The name of toxval source table to use.
 #' @return database info collected
-#' @export 
+#' @export
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[dplyr]{bind}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{context}}
 #' @rdname get.chemical.info.by.source.combined
 #' @importFrom dplyr bind_rows mutate n
@@ -52,6 +52,7 @@ get.chemical.info.by.source.combined <- function(source.db,source_table,source){
     #####################################################################
     mat = runQuery(paste0("select * from ",src), source.db)
 
+    # Rename fields containing chemical name information to "name"
     name_synonyms <- c("name","NAME","Analyte.Name","Chemical.Name")
     if(!any(name_synonyms %in% names(mat))){
       cat(paste0(src, " missing chemical name column...\n"))
@@ -59,6 +60,7 @@ get.chemical.info.by.source.combined <- function(source.db,source_table,source){
     }
     names(mat)[names(mat) %in% name_synonyms] <- "name"
 
+    # Rename fields containing chemical CASRN information to "casrn"
     casrn_synonyms <- c("casrn","CASRN","Analyte.Code","CAS.Number")
     if(!any(casrn_synonyms %in% names(mat))){
       cat(paste0(src, " missing casrn column...\n"))
@@ -66,6 +68,7 @@ get.chemical.info.by.source.combined <- function(source.db,source_table,source){
     }
     names(mat)[names(mat) %in% casrn_synonyms] <- "casrn"
 
+    # Export source chemical information
     chemical_information <- mat[,c("casrn","name")]
     chemical_information <- unique(chemical_information)
     chemical_information["chemical_id"] <- c(1:length(chemical_information[,1]))

@@ -18,6 +18,7 @@
 #' @importFrom stringr str_trim
 #--------------------------------------------------------------------------------------
 clean.last.character <- function(x) {
+  # Remove any of ; / . _ at the end of strings
   ylist = c(";","/",".", "_")
   x = stringr::str_trim(x)
   for(i in 1:3) {

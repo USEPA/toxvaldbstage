@@ -26,9 +26,9 @@ get.chemical.info.by.source <- function(source.db,source_table,source, file_id){
 
   mat = runQuery(paste0("select * from ",source_table," "), source.db)
 
+  # Ensure name and CASRN columns are named appropriately
   name_synonyms <- c("name","NAME","Analyte.Name","Chemical.Name")
   names(mat)[names(mat) %in% name_synonyms] <- "name"
-
   casrn_synonyms <- c("casrn","CASRN","Analyte.Code","CAS.Number")
   names(mat)[names(mat) %in% casrn_synonyms] <- "casrn"
 
@@ -54,9 +54,7 @@ get.chemical.info.by.source <- function(source.db,source_table,source, file_id){
   chem_table_name <- tolower(chem_table_name)
   print(chem_table_name)
 
-
+  # Insert chemical information to ToxVal
   runInsertTable(chemical_information,chem_table_name,source.db,do.halt=T,verbose=F)
-
-
 }
 
