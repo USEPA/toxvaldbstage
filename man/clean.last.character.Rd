@@ -2,7 +2,7 @@
 % Please edit documentation in R/clean.last.character.R
 \name{clean.last.character}
 \alias{clean.last.character}
-\title{FUNCTION_TITLE}
+\title{clean.last.character}
 \usage{
 clean.last.character(x)
 }

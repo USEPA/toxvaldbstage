@@ -2,7 +2,7 @@
 % Please edit documentation in R/DAT.manual.pipe.source.audit.R
 \name{DAT.manual.pipe.source.audit}
 \alias{DAT.manual.pipe.source.audit}
-\title{FUNCTION_TITLE}
+\title{DAT.manual.pipe.source.audit}
 \usage{
 DAT.manual.pipe.source.audit(source, db, live_df, qc_user = "Evelyn Rowan")
 }
@@ -16,14 +16,12 @@ DAT.manual.pipe.source.audit(source, db, live_df, qc_user = "Evelyn Rowan")
 \item{qc_user}{The name of the user who completed the QC #'}
 }
 \value{
-OUTPUT_DESCRIPTION
+None
 }
 \description{
-FUNCTION_DESCRIPTION
+Processes manually QC'd (sans-DAT) QC audit information into database
 }
 \details{
-#' Processes manually QC'd (sans-DAT) QC audit information into database
-
 DETAILS
 }
 \examples{

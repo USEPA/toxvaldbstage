@@ -2,7 +2,7 @@
 % Please edit documentation in R/getDBConn.R
 \name{getDBConn}
 \alias{getDBConn}
-\title{FUNCTION_TITLE}
+\title{getDBConn}
 \usage{
 getDBConn()
 }

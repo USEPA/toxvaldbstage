@@ -119,6 +119,9 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
   chem.check.casrn <- function(in_cas, verbose){
     n0 = in_cas
     if(!is.na(n0)) {
+      n0 = n0 %>%
+        # Replace NO-BREAK SPACE unicode
+        gsub("\u00a0", "", .)
       # Translate to ASCII and clean CASRN formatting
       n1 = iconv(n0,from="UTF-8",to="ASCII//TRANSLIT")
       n2 = stringi::stri_escape_unicode(n1) %>%

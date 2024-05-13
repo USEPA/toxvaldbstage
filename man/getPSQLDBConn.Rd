@@ -2,7 +2,7 @@
 % Please edit documentation in R/getPSQLDBConn.R
 \name{getPSQLDBConn}
 \alias{getPSQLDBConn}
-\title{FUNCTION_TITLE}
+\title{getPSQLDBConn}
 \usage{
 getPSQLDBConn()
 }

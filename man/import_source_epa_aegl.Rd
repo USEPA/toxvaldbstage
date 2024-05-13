@@ -15,6 +15,10 @@ import_source_epa_aegl(
 \item{db}{PARAM_DESCRIPTION}
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+
+\item{do.reset}{PARAM_DESCRIPTION, Default: FALSE}
+
+\item{do.insert}{PARAM_DESCRIPTION, Default: FALSE}
 }
 \value{
 OUTPUT_DESCRIPTION

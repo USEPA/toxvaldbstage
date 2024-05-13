@@ -16,6 +16,10 @@ import_rsl_source(
 
 \item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
 
+\item{do.reset}{PARAM_DESCRIPTION, Default: FALSE}
+
+\item{do.insert}{PARAM_DESCRIPTION, Default: FALSE}
+
 \item{infile1}{The input file ./rsl/rsl_files/rsl_thq10_nov_2022.xlsx}
 
 \item{infile2}{The input file ./rsl/rsl_files/rsl_thq01_nov_2022.xlsx}

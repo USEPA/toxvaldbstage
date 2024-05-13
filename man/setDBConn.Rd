@@ -2,7 +2,7 @@
 % Please edit documentation in R/setDBConn.R
 \name{setDBConn}
 \alias{setDBConn}
-\title{FUNCTION_TITLE}
+\title{setDBConn}
 \usage{
 setDBConn(
   server = "ccte-mysql-res.epa.gov",
@@ -20,9 +20,11 @@ setDBConn(
 \item{password}{SQL password corresponding to username}
 
 \item{api_auth}{API Key for CCTE API's}
+
+\item{port}{Port for the server connection. Default of 3306.}
 }
 \value{
-OUTPUT_DESCRIPTION
+None
 }
 \description{
 set SQL connection to the database

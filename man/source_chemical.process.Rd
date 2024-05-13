@@ -2,7 +2,7 @@
 % Please edit documentation in R/source_chemical.process.R
 \name{source_chemical.process}
 \alias{source_chemical.process}
-\title{FUNCTION_TITLE}
+\title{source_chemical.process}
 \usage{
 source_chemical.process(
   db,

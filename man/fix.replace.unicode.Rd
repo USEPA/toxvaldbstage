@@ -26,3 +26,7 @@ if(interactive()){
  }
 }
 }
+\seealso{
+[stri_escape_unicode][stringi::stri_escape_unicode]
+ [str_extract][stringr::str_extract]
+}

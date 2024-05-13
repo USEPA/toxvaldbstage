@@ -2,7 +2,7 @@
 % Please edit documentation in R/source_prep_and_load.R
 \name{source_prep_and_load}
 \alias{source_prep_and_load}
-\title{FUNCTION_TITLE}
+\title{source_prep_and_load}
 \usage{
 source_prep_and_load(
   db,
@@ -36,7 +36,7 @@ source_prep_and_load(
 \item{hashing_cols}{Optional list of columns to use for generating source_hash}
 }
 \value{
-OUTPUT_DESCRIPTION
+None
 }
 \description{
 Prep the source data aand load

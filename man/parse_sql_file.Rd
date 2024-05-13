@@ -2,7 +2,7 @@
 % Please edit documentation in R/parse_sql_file.R
 \name{parse_sql_file}
 \alias{parse_sql_file}
-\title{FUNCTION_TITLE}
+\title{parse_sql_file}
 \usage{
 parse_sql_file(filepath = NULL)
 }
@@ -10,7 +10,7 @@ parse_sql_file(filepath = NULL)
 \item{filepath}{Input SQL filepath}
 }
 \value{
-OUTPUT_DESCRIPTION
+SQL query strings
 }
 \description{
 Function to parse SQL file into SQL query strings

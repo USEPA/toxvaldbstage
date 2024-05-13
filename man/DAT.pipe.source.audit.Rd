@@ -2,7 +2,7 @@
 % Please edit documentation in R/DAT.pipe.source.audit.R
 \name{DAT.pipe.source.audit}
 \alias{DAT.pipe.source.audit}
-\title{FUNCTION_TITLE}
+\title{DAT.pipe.source.audit}
 \usage{
 DAT.pipe.source.audit(source_table, db, live_df, audit_df)
 }
@@ -16,7 +16,7 @@ DAT.pipe.source.audit(source_table, db, live_df, audit_df)
 \item{audit_df}{a filepath to the DAT audit data to push to source_audit #'}
 }
 \value{
-OUTPUT_DESCRIPTION
+None
 }
 \description{
 Processes DAT QC audit information into database

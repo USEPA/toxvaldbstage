@@ -2,7 +2,7 @@
 % Please edit documentation in R/source_set_defaults.R
 \name{source_set_defaults}
 \alias{source_set_defaults}
-\title{FUNCTION_TITLE}
+\title{source_set_defaults}
 \usage{
 source_set_defaults(res, source)
 }
@@ -26,4 +26,7 @@ if(interactive()){
  #EXAMPLE1
  }
 }
+}
+\seealso{
+[pull][dplyr::pull]
 }
