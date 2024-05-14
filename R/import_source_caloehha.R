@@ -19,7 +19,7 @@
 #' }
 #' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
-#' @rdname import_caloehha_source
+#' @rdname import_source_caloehha
 #' @export
 #' @importFrom openxlsx read.xlsx
 #--------------------------------------------------------------------------------------
@@ -565,7 +565,7 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
     res <- res %>%
       dplyr::mutate(
         species = "human",
-        experimental_records = "No",
+        experimental_record = "No",
         toxval_type = dplyr::case_when(
           toxval_type == "REL" ~ "Reference Exposure Level",
           TRUE ~ toxval_type
