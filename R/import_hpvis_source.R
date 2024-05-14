@@ -693,9 +693,20 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         dplyr::na_if("No Data") %>%
         dplyr::na_if("Unknown"),
 
+      # Add description of external source ID
+      external_source_id_desc = "HPVIS ID",
+
+      # Extract subsource from raw_input_file
+      subsource = raw_input_file %>%
+        gsub("[0-9].+", "", .) %>%
+        stringr::str_squish(),
+
       # Add range_relationship_id
       range_relationship_id = dplyr::row_number()
     ) %>%
+    # Rename ID and key finding fields
+    dplyr::rename(external_source_id = hpvis_id,
+                  key_finding = key_study_sponsor_indicator) %>%
     # Additional species filtering
     dplyr::filter(!(species %in% c("other", "unknown", "no data", "not specified",
                                    as.character(NA), NULL, ""))) %>%
