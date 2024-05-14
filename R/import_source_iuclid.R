@@ -939,11 +939,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Filter out entries with NA exposure_route
     tidyr::drop_na(exposure_route)
 
-  # Filter out "dose level" and "conc. level" toxval_type if not RepeatedDoseToxicityOral
-  if(subf!="iuclid_repeateddosetoxicityoral") {
-    res = res %>%
-      dplyr::filter(!grepl("(?:conc\\.|dose) level", toxval_type))
-  }
+  # LOGIC COMMENTED OUT; desired behavior is to maintain these entries for all OHTs
+  # # Filter out "dose level" and "conc. level" toxval_type if not RepeatedDoseToxicityOral
+  # if(subf!="iuclid_repeateddosetoxicityoral") {
+  #   res = res %>%
+  #     dplyr::filter(!grepl("(?:conc\\.|dose) level", toxval_type))
+  # }
 
   # Account for exposure_route/method/form edge case
   if("exposure_method_other" %in% names(res)) {
@@ -1035,9 +1036,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   # Collapse dose/conc level critical_effect values
   if("dose level" %in% unique(res$toxval_type) | "conc. level" %in% unique(res$toxval_type)) {
+    cat("Source has dose/conc. level toxval_type. Converting to LEL...\n")
     # Separate out dose/conc level entries from res
     dose_conc_res = res %>%
-      dplyr::filter(toxval_type %in% c("dose level", "conc. level"))
+      dplyr::filter(toxval_type %in% c("dose level", "conc. level")) %>%
+      # Set toxval_type for dose/conc level to be LEL
+      dplyr::mutate(toxval_type = "LEL")
 
     # Use deduping function to collapse just critical_effect
     dose_conc_hash_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))],
