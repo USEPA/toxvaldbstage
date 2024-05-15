@@ -569,6 +569,10 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
         toxval_type = dplyr::case_when(
           toxval_type == "REL" ~ "Reference Exposure Level",
           TRUE ~ toxval_type
+        ),
+        exposure_route = dplyr::case_when(
+          toxval_subtype == "acute REL" ~ "inhalation",
+          TRUE ~ exposure_route
         )
       )
 
