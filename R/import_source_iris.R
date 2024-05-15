@@ -362,7 +362,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     res1 <- iris_data$source_iris_summary_curation.xlsx %>%
       dplyr::mutate(
         document_type = 'IRIS Summary',
-        key_finding = 'No',
+        key_finding = 'Yes',
         iris_chemical_id = url %>%
           sub('.*=', '', .) %>%
           as.numeric(),

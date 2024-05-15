@@ -947,6 +947,19 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   #     dplyr::filter(!grepl("(?:conc\\.|dose) level", toxval_type))
   # }
 
+  # Translate key_finding values
+  if("key_finding" %in% names(res)) {
+    res = res %>%
+      dplyr::mutate(
+        key_finding = dplyr::case_when(
+          grepl("true", key_finding, ignore.case=TRUE) ~ "Yes",
+          grepl("false", key_finding, ignore.case=TRUE) ~ "No",
+          TRUE ~ key_finding
+
+        )
+      )
+  }
+
   # Account for exposure_route/method/form edge case
   if("exposure_method_other" %in% names(res)) {
     res = res %>%

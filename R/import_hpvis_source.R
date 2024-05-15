@@ -729,7 +729,11 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         gsub("\\bmouse\\b", "mice", .) %>%
         gsub("\\btomato\\b", "tomatoes", .) %>%
         stringr::str_squish() %>%
-        dplyr::na_if("")
+        dplyr::na_if(""),
+
+      # Set NA key_finding to "unspecified"
+      key_finding = key_finding %>%
+        tidyr::replace_na("unspecified")
     )
 
   # Handle entries with upper ranges
