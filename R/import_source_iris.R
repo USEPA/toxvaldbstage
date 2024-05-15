@@ -697,7 +697,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
         grepl(";", species) ~ "-",
         TRUE ~ species
       ),
-      dplyr::across(blank_hash_cols, ~ dplyr::case_when(
+      dplyr::across(any_of(blank_hash_cols), ~ dplyr::case_when(
         toxval_type %in% human_toxval_type ~ "-",
         TRUE ~ .
       )),
