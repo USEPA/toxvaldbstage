@@ -422,7 +422,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Check if any available
   if(nrow(ranged)){
     ranged = ranged %>%
-      dplyr::mutate(range_relationship_id = 1:n()) %>%
+      dplyr::mutate(range_relationship_id = as.character(1:n())) %>%
       tidyr::separate_rows(toxval_numeric, sep="-") %>%
       dplyr::group_by(range_relationship_id) %>%
       dplyr::mutate(
@@ -433,7 +433,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   } else {
     # Empty dataframe with res cols to bind_rows()
     ranged = res[0,] %>%
-      dplyr::mutate(toxval_numeric = toxval_numeric)
+      dplyr::mutate(toxval_numeric = toxval_numeric,
+                    range_relationship_id = as.character(NA))
   }
 
   # Join back the range split rows and set origin
