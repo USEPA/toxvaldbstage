@@ -106,6 +106,8 @@ import_pfas_150_sem_v2_source <- function(db,chem.check.halt=FALSE, do.reset=FAL
 
   # Combine observation sets
   res = dplyr::bind_rows(res_study_1, res_study_2, res_system_1, res_system_2) %>%
+    # Remove "_original" fields
+    dplyr::select(-dplyr::contains("_original")) %>%
     dplyr::mutate(
       # Extract appropriate "effect" from study/system_effect
       effect = dplyr::case_when(
