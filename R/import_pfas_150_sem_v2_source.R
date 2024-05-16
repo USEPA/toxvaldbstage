@@ -31,7 +31,7 @@ import_pfas_150_sem_v2_source <- function(db,chem.check.halt=FALSE, do.reset=FAL
   source_table = "source_pfas_150_sem_v2"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2022-05-17")
-  dir = paste0(toxval.config()$datapath,"pfas_150_sem_v2/PFAS 150 SEM v2_files/")
+  dir = paste0(toxval.config()$datapath,"pfas_150_sem_v2/pfas_150_sem_v2_files/")
 
   # Read separate files for experimental data, chemical information, and citation
   file_chems = paste0(dir,"PFAS 150 SEM chemicals.xlsx")
