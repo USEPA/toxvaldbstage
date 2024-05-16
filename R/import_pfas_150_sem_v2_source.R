@@ -17,7 +17,7 @@
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
-#' @rdname import_generic_source
+#' @rdname import_pfas_150_sem_v2_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
@@ -25,7 +25,7 @@
 #' @importFrom tidyselect matches
 #' @importFrom tidyr unite drop_na replace_na
 #--------------------------------------------------------------------------------------
-import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_pfas_150_sem_v2_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "PFAS 150 SEM v2"
   source_table = "source_pfas_150_sem_v2"
@@ -150,6 +150,7 @@ import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
       # Add hard-coded fields
       name = chemical_name,
       external_source_id = hero_id,
+      external_source_id_desc = "HERO ID",
       source_url = "https://ehp.niehs.nih.gov/doi/full/10.1289/EHP10343",
       population = animal_group_name,
       toxval_numeric = as.numeric(toxval_numeric)
