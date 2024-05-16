@@ -510,7 +510,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   res = res %>%
     # Conduct most cleaning operations after dropping rows to improve runtime
     dplyr::mutate(
-      dplyr::across(c("critical_effect", "organ_system", "target_organ", "hazard_category"),
+      dplyr::across(tidyselect::any_of(c("critical_effect", "organ_system", "target_organ",
+                                         "hazard_category", "critical_effect_other")),
                     ~stringr::str_replace(., stringr::regex("Results:|other:|not specified", ignore_case=TRUE), "") %>%
                       stringr::str_replace("\\|+", "\\|") %>%
                       stringr::str_replace("^\\||\\|$", "") %>%
@@ -915,18 +916,34 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         startsWith(toupper(toxval_type), "LD") ~ "mortality",
         TRUE ~ critical_effect
       )
-    ) %>%
+    )
 
-    # Build critical_effect column
-    tidyr::unite("critical_effect_combined",
-                 organ_system, target_organ, hazard_category, critical_effect,
-                 sep=": ",
-                 remove=FALSE,
-                 na.rm=TRUE) %>%
-    # Separately handle original critical_effect so other columns can be kept in unite() call
-    dplyr::mutate(critical_effect = critical_effect_combined) %>%
-    dplyr::select(-critical_effect_combined) %>%
+  # Handle critical_effect construction differently for RepeatedDoseToxicityOral
+  if("critical_effect_other" %in% names(res)) {
+    res = res %>%
+      dplyr::mutate(
+        critical_effect = dplyr::case_when(
+          is.na(critical_effect) & is.na(hazard_category) ~ critical_effect_other,
+          is.na(critical_effect) ~ hazard_category,
+          TRUE ~ stringr::str_c(hazard_category, ": ", critical_effect)
+        )
+      ) %>%
+      tidyr::unite("critical_effect", target_organ, critical_effect, remove=FALSE, na.rm=TRUE, sep=": ") %>%
+      dplyr::select(-critical_effect_other)
+  } else {
+    res = res %>%
+      # Build critical_effect column
+      tidyr::unite("critical_effect_combined",
+                   organ_system, target_organ, hazard_category, critical_effect,
+                   sep=": ",
+                   remove=FALSE,
+                   na.rm=TRUE) %>%
+      # Separately handle original critical_effect so other columns can be kept in unite() call
+      dplyr::mutate(critical_effect = critical_effect_combined) %>%
+      dplyr::select(-critical_effect_combined)
+  }
 
+  res = res %>%
     # Remove entries that should be dropped due to experimental_flag/data_purpose_category
     dplyr::filter(temp_to_drop == 0) %>%
     dplyr::select(!temp_to_drop) %>%
