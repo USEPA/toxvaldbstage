@@ -1,161 +1,212 @@
 #--------------------------------------------------------------------------------------
 #' @description Load PFAS 150 SEM V2 Source data into toxval_source
-#' @param db The version of toxval_source into which the source info is loaded.
-#' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#'
+#' @param db The version of toxval_source into which the source is loaded.
+#' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
+#' @param do.reset If TRUE, delete data from the database for this source before
+#' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @title import_pfas_150_sem_v2_source
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
-#'  \code{\link[openxlsx]{read.xlsx}}
-#'  \code{\link[digest]{digest}}
+#' @seealso
+#'  \code{\link[readxl]{read_excel}}
+#'  \code{\link[stringr]{str_trim}}
 #' @rdname import_pfas_150_sem_v2_source
-#' @export 
-#' @importFrom openxlsx read.xlsx
-#' @importFrom digest digest
+#' @export
+#' @importFrom readxl read_xlsx
+#' @importFrom stringr str_squish
+#' @importFrom dplyr rename distinct mutate left_join case_when select rename_with bind_cols bind_rows across na_if where
+#' @importFrom tidyselect matches
+#' @importFrom tidyr unite drop_na replace_na
 #--------------------------------------------------------------------------------------
-import_pfas_150_sem_v2_source <- function(db,
-                                          chem.check.halt=F) {
+import_pfas_150_sem_v2_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  indir = paste0(toxval.config()$datapath,"pfas_150_sem_v2/PFAS 150 SEM v2_files/")
+  source = "PFAS 150 SEM v2"
+  source_table = "source_pfas_150_sem_v2"
+  # Date provided by the source or the date the data was extracted
+  src_version_date = as.Date("2022-05-17")
+  dir = paste0(toxval.config()$datapath,"pfas_150_sem_v2/pfas_150_sem_v2_files/")
 
-  file = paste0(indir,"PFAS 150 SEM chemicals.xlsx")
-  chems = openxlsx::read.xlsx(file)
-  file = paste0(indir,"PFAS 150 SEM results.xlsx")
-  res = openxlsx::read.xlsx(file)
-  file = paste0(indir,"PFAS 150 SEM HERO ID vs citation.xlsx")
-  hero = openxlsx::read.xlsx(file)
+  # Read separate files for experimental data, chemical information, and citation
+  file_chems = paste0(dir,"PFAS 150 SEM chemicals.xlsx")
+  res0_chems = readxl::read_xlsx(file_chems)
 
-  res[is.na(res$hero_id),"hero_id"] = -1
-  res$long_ref = res$citation
-  res$casrn = NA
-  res$dtxsid = NA
-  hlist = unique(res$hero_id)
-  hlist = hlist[!is.na(hlist)]
-  hlist = hlist[hlist>0]
-  for(hero_id in hlist) {
-    if(generics::is.element(hero_id,hero$HERO.ID)) cit = hero[hero$HERO.ID==hero_id,"Citation"]
-    else cit = unique(res[generics::is.element(res$hero_id,hero_id),"citation"])[1]
-    res[generics::is.element(res$hero_id,hero_id),"long_ref"] = cit
-  }
-  clist = unique(res$chemical_name)
-  for(name in clist) {
-    if(generics::is.element(name,chems$name)) {
-      dtxsid = chems[generics::is.element(chems$name,name),"dtxsid"]
-      casrn = chems[generics::is.element(chems$name,name),"casrn"]
-      res[generics::is.element(res$chemical_name,name),"dtxsid"] = dtxsid
-      res[generics::is.element(res$chemical_name,name),"casrn"] = casrn
-      #cat(casrn,dtxsid,name,"\n")
-    }
-    else {
-      cat("missing name:[",name,"]\n")
-      browser()
-    }
-  }
+  file_results = paste0(dir,"PFAS 150 SEM results.xlsx")
+  res0_results = readxl::read_xlsx(file_results)
 
+  file_hero = paste0(dir,"PFAS 150 SEM HERO ID vs citation.xlsx")
+  res0_hero = readxl::read_xlsx(file_hero)
   #####################################################################
-  cat("pull the different PODs apart \n")
+  cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  names(res)[generics::is.element(names(res),"chemical_name")] = "name"
-  cenames2 = c("endpoint_system","endpoint_organ","endpoint","system_descriptor")
-  res$critical_effect = NA
-  res.ce = res[,cenames2]
-  x = as.data.frame(do.call(paste,c(res.ce,sep=":")))
-  res$critical_effect = x[,1]
 
-  nlist1=c("dtxsid","casrn","name",
-           "species","strain","sex","generation",
-           "exposure_route","exposure_method",
-           "study_type","study_duration_value","study_duration_units",
-           "toxval_type_1_system","toxval_numeric_1_system","toxval_units_1_system","critical_effect","hero_id","citation")
+  # Prepare chemical/citation files for merging
+  res_chems = res0_chems %>%
+    dplyr::rename(chemical_name = name) %>%
+    dplyr::distinct()
+  res_hero = res0_hero %>%
+    dplyr::rename(long_ref = Citation, hero_id = `HERO ID`) %>%
+    dplyr::mutate(hero_id = as.character(hero_id)) %>%
+    dplyr::distinct()
 
-  nlist2=c("dtxsid","casrn","name",
-           "species","strain","sex","generation",
-           "exposure_route","exposure_method",
-           "study_type","study_duration_value","study_duration_units",
-           "toxval_type_2_system","toxval_numeric_2_system","toxval_units_2_system","critical_effect","hero_id","citation")
+  res = res0_results %>%
+    # Add dtxsid, casrn, and long_ref information from input files
+    dplyr::left_join(res_chems, by="chemical_name") %>%
+    dplyr::left_join(res_hero, by="hero_id") %>%
 
-  nlist3=c("dtxsid","casrn","name",
-           "species","strain","sex","generation",
-           "exposure_route","exposure_method",
-           "study_type","study_duration_value","study_duration_units",
-           "toxval_type_1_study","toxval_numeric_1_study","toxval_units_1_study","critical_effect","hero_id","citation")
+    dplyr::mutate(
+      # Set missing long_ref values and clean entries
+      long_ref = dplyr::case_when(
+        long_ref %in% c(as.character(NA), "-", "") ~ citation,
+        TRUE ~ long_ref
+      ) %>%
+        gsub("(?:\\.,)+", ".,", .) %>%
+        gsub("\\b\\.,\\b", "", .) %>%
+        gsub("M, \\.,", "M.,", .) %>%
+        gsub("\\.,\\.", ".", .) %>%
+        stringr::str_squish()
+    )
 
-  nlist4=c("dtxsid","casrn","name",
-           "species","strain","sex","generation",
-           "exposure_route","exposure_method",
-           "study_type","study_duration_value","study_duration_units",
-           "toxval_type_2_study","toxval_numeric_2_study","toxval_units_2_study","critical_effect","hero_id","citation")
+  # Extract columns that match each set of observations
+  res_basic = res %>%
+    dplyr::select(!tidyselect::matches("[1-2]_(?:system|study)") & !tidyselect::matches("level_[1-2]")) %>%
+    dplyr::select(!tidyselect::matches("effect_level_rationale"))
 
-  nlist = names(res)
+  # Extract columns for each separate set of observations
+  res_study_1 = res %>%
+    dplyr::select(tidyselect::matches("1_study|study_effect_level_1|study_effect_level_rationale")) %>%
+    dplyr::rename_with(~gsub("_[1-2]_(?:study|system)|_level_[1-2]", "", .)) %>%
+    dplyr::rename(effect_level_rationale = study_effect_level_rationale) %>%
+    dplyr::mutate(toxval_subtype = "Study-level NOAEL") %>%
+    dplyr::bind_cols(res_basic)
+  res_study_2 = res %>%
+    dplyr::select(tidyselect::matches("2_study|study_effect_level_2|study_effect_level_rationale")) %>%
+    dplyr::rename_with(~gsub("_[1-2]_(?:study|system)|_level_[1-2]", "", .)) %>%
+    dplyr::rename(effect_level_rationale = study_effect_level_rationale) %>%
+    dplyr::mutate(toxval_subtype = "Study-level LOAEL") %>%
+    dplyr::bind_cols(res_basic)
+  res_system_1 = res %>%
+    dplyr::select(tidyselect::matches("1_system|system_effect_level_1|system_effect_level_rationale")) %>%
+    dplyr::rename_with(~gsub("_[1-2]_(?:study|system)|_level_[1-2]", "", .)) %>%
+    dplyr::rename(effect_level_rationale = system_effect_level_rationale) %>%
+    dplyr::mutate(toxval_subtype = "System-level NOAEL") %>%
+    dplyr::bind_cols(res_basic)
+  res_system_2 = res %>%
+    dplyr::select(tidyselect::matches("2_system|system_effect_level_2|system_effect_level_rationale")) %>%
+    dplyr::rename_with(~gsub("_[1-2]_(?:study|system)|_level_[1-2]", "", .)) %>%
+    dplyr::rename(effect_level_rationale = system_effect_level_rationale) %>%
+    dplyr::mutate(toxval_subtype = "System-level LOAEL") %>%
+    dplyr::bind_cols(res_basic)
 
-  res1 = res[,nlist1]
-  res2 = res[,nlist2]
-  res3 = res[,nlist3]
-  res4 = res[,nlist4]
-  res1$toxval_subtype = "System-level NOAEL"
-  res2$toxval_subtype = "System-level LOAEL"
-  res3$toxval_subtype = "Study-level NOAEL"
-  res4$toxval_subtype = "Study-level LOAEL"
+  # Combine observation sets
+  res = dplyr::bind_rows(res_study_1, res_study_2, res_system_1, res_system_2) %>%
+    dplyr::mutate(
+      # Extract appropriate "effect" from study/system_effect
+      effect = dplyr::case_when(
+        grepl("System", toxval_subtype) ~ system_effect,
+        grepl("Study", toxval_subtype) ~ study_effect,
+        TRUE ~ as.character(NA)
+      ),
 
-  nlist=c("dtxsid","casrn","name",
-          "species","strain","sex","generation",
-          "exposure_route","exposure_method",
-          "study_type","study_duration_value","study_duration_units",
-          "toxval_type","toxval_numeric","toxval_units","critical_effect","hero_id","citation","toxval_subtype")
-  names(res1) = nlist
-  names(res2) = nlist
-  names(res3) = nlist
-  names(res4) = nlist
-  res = rbind(res1,res2,res3,res4)
-  res = res[!is.na(res$toxval_numeric),]
-  #####################################################################
-  cat("Collapse duplicated that just differ by critical effect \n")
-  #####################################################################
-  res2 = res[,!names(res)%in%c("critical_effect")]
+      # Set "unknown" values as NA
+      dplyr::across(c("strain", "sex", "generation", "endpoint_system", "endpoint_organ", "endpoint"),
+                    ~dplyr::na_if(., "unknown") %>%
+                      dplyr::na_if("-")),
 
-  res2$hashkey = NA
-  for(i in 1:nrow(res2)) {
-    hashkey = digest::digest(paste0(res2[i,],collapse=""), serialize = FALSE)
-    res2[i,"hashkey"] = hashkey
-    res[i,"hashkey"] = hashkey
-  }
-  res2 = unique(res2)
-  res2$critical_effect = NA
-  for(i in 1:nrow(res2)) {
-    hashkey = res2[i,"hashkey"]
-    res3 = res[res$hashkey==hashkey,]
-    y = unique(sort(res3$critical_effect))
-    ce = paste0(y,collapse="|")
-    res2[i,"critical_effect"] = ce
-  }
-  res2 = res2[,!names(res2)%in%c("hashkey")]
+      # Translate sex values
+      sex = dplyr::case_when(
+        grepl("M", sex) & grepl("F", sex) ~ "male/female",
+        grepl("F", sex) ~ "female",
+        grepl("M", sex) ~ "male",
+        TRUE ~ as.character(NA)
+      ),
 
-  nlist.final=c("dtxsid","casrn","name",
-                "toxval_type","toxval_subtype","toxval_numeric","toxval_units",
-                "species","strain","sex","generation",
-                "exposure_route","exposure_method",
-                "study_type","study_duration_value","study_duration_units",
-                "hero_id","citation","critical_effect")
-  res = res2[,nlist.final]
+      # Handle GD/LD/PNW study_duration values
+      study_duration = study_duration_units %>%
+        gsub("D([0-9])", "D \\1", .),
+      study_duration_value = dplyr::case_when(
+        !is.na(study_duration_value) ~ as.character(study_duration_value),
+        grepl("GD [0-9]+\\-[0-9]+", study_duration) ~ stringr::str_extract(study_duration,
+                                                                           "GD ([0-9]+\\-[0-9]+)",
+                                                                           group=1),
+        grepl("LD|PNW", study_duration) ~ stringr::str_extract(study_duration,
+                                                               "(GD [0-9]+\\-(?:LD|PNW) [0-9]+)",
+                                                               group=1),
+        TRUE ~ as.character(study_duration_value)
+      ),
+      study_duration_units = dplyr::case_when(
+        !grepl("GD", study_duration) ~ study_duration_units,
+        grepl("GD [0-9]+\\-[0-9]+", study_duration) ~ "GD",
+        grepl("LD|PNW", study_duration) ~ gsub("(GD) [0-9]+\\-(LD|PNW) [0-9]+", "\\1,\\2", study_duration),
+        TRUE ~ study_duration_units
+      ),
 
+      # Add hard-coded fields
+      name = chemical_name,
+      external_source_id = hero_id,
+      external_source_id_desc = "HERO ID",
+      source_url = "https://ehp.niehs.nih.gov/doi/full/10.1289/EHP10343",
+      population = animal_group_name,
+      toxval_numeric = as.numeric(toxval_numeric)
+    ) %>%
+    # Build critical_effect field
+    tidyr::unite("critical_effect",
+                 generation, endpoint_system, endpoint_organ, endpoint,
+                 sep = ": ",
+                 remove = FALSE,
+                 na.rm = TRUE) %>%
+    # Drop intermediate columns
+    dplyr::select(-c(study_effect, system_effect, study_duration)) %>%
+    # Drop rows that do not have necessary ToxVal information
+    tidyr::drop_na(toxval_numeric, toxval_type, toxval_units)
+
+  # Standardize the names
+  names(res) <- names(res) %>%
+    stringr::str_squish() %>%
+    # Replace whitespace and periods with underscore
+    gsub("[[:space:]]|[.]", "_", .) %>%
+    tolower()
+
+  res = res %>%
+    # Generic cleanup of strings before dedup check
+    dplyr::mutate(
+      dplyr::across(dplyr::where(is.character), ~tidyr::replace_na(., "-") %>%
+                      fix.replace.unicode() %>%
+                      stringr::str_squish()),
+      dplyr::across(dplyr::where(is.character), ~gsub("\\r|\\n|\\\\r|\\\\n", "", .)),
+      dplyr::across(dplyr::where(is.character), ~gsub("\\\\'", "'", .)),
+      dplyr::across(dplyr::where(is.character), ~gsub('\\\\\\"', '"', .))
+    )
+
+  # Fill blank hashing cols
+  res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Perform deduping/collapse critical_effect
+  hashing_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))])
+  res = toxval.source.import.dedup(res, hashing_cols=hashing_cols) %>%
+    # Replace "|::|" in critical_effect with "|" delimiter
+    dplyr::mutate(
+      critical_effect = critical_effect %>%
+        gsub(" \\|::\\| ", "|", .)
+    )
+
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  #names(res)[names(res)=="chemical_name"] = "name"
-  res$long_ref = res$citation
-  chems = unique(res[,c("dtxsid","casrn","name")])
-  chems$raw_casrn = chems$casrn
-  chems$cleaned_casrn = chems$casrn
-  chems$raw_name = chems$name
-  chems$cleaned_name = chems$name
-  chems$quality = "Pass from source"
-  res = res[ , !(names(res) %in% c("dtxsid"))]
-  source_prep_and_load(db,source="PFAS 150 SEM v2",table="source_pfas_150_sem_v2",res=res,F,T,T)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
-
