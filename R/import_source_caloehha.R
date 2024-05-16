@@ -470,9 +470,9 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                                                          "TBD")
                                            )
                        ),
-                       exposure_route = ifelse(grepl("inhalation", f_name),
+                       exposure_route = ifelse(grepl("inhalation|acute_rel", f_name),
                                                "inhalation",
-                                               ifelse(grepl("oral|acute_rel", f_name),
+                                               ifelse(grepl("oral", f_name),
                                                       "oral",
                                                       ifelse(grepl("dermal", f_name),
                                                             "dermal",
