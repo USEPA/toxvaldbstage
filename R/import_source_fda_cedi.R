@@ -5,22 +5,24 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
+#' @title import_source_fda_cedi
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readr]{read_csv}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_generic_source
-#' @export
+#' @export 
 #' @importFrom readr read_csv
 #' @importFrom stringr str_squish
+#' @importFrom dplyr mutate across starts_with case_when
+#' @importFrom tidyr unite pivot_longer separate
 #--------------------------------------------------------------------------------------
 import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -52,18 +54,18 @@ import_source_fda_cedi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     tidyr::unite(Reg, dplyr::starts_with("Reg"), sep = ", ", na.rm = TRUE)
 
   res <- res %>%
-    pivot_longer(cols = c("CEDI (μg/kb bw/d)", "CDC (ppb)"),
+    tidyr::pivot_longer(cols = c("CEDI (μg/kb bw/d)", "CDC (ppb)"),
                  names_to = "toxval_type",
                  values_to = "toxval_numeric") %>%
     tidyr::separate(col="toxval_type",
                     into = c("toxval_type", "toxval_units"), sep = "\\(") %>%
-    mutate(toxval_type = case_when(
+    dplyr::mutate(toxval_type = dplyr::case_when(
       grepl("CEDI", toxval_type) ~ "Cumulative Estimated Daily Intake",
       grepl("CDC", toxval_type) ~ "Cumulative Dietary Concentration"
     ),
     toxval_units = toxval_units %>%
       gsub("\\)", "", .) %>%
-      fix.greek.symbols(),
+      fix.replace.unicode(),
     toxval_numeric = toxval_numeric %>%
       sub('.*?"(.*?)"\\)', '\\1', .) %>%
       as.numeric(),

@@ -7,7 +7,7 @@
 #' @param clowder_api_key API key to access Clowder resources
 #' @param sync_clowder_metadata Boolean whether to sync Clowder metadata for new document records. Default is False.
 #' @return Returns an updated map with newly associated toxval_source table ID values
-#' @title FUNCTION_TITLE
+#' @title set_clowder_id_lineage
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -24,6 +24,9 @@
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename filter select left_join mutate
 #' @importFrom tidyr separate_rows unite
+#' @importFrom readr read_csv cols
+#' @importFrom tidyselect where
+#' @importFrom stringr str_squish str_extract str_trim
 #--------------------------------------------------------------------------------------
 set_clowder_id_lineage <- function(source_table,
                                    map_clowder_id_field,
@@ -41,7 +44,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_cosmos" = { readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_cosmos_document_map_20240227.xlsx"),
                                                             guess_max=21474836) %>%
-                          filter(!is.na(clowder_id))
+                          dplyr::filter(!is.na(clowder_id))
                       },
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/source_iris_2023_document_map_20240319.xlsx"), col_type = "text"),
@@ -186,8 +189,8 @@ set_clowder_id_lineage <- function(source_table,
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/source_single_doc_map.xlsx")) %>%
         dplyr::rename(src_tbl = source_table) %>%
-        filter(src_tbl %in% source_table) %>%
-        select(clowder_id, document_name)
+        dplyr::filter(src_tbl %in% source_table) %>%
+        dplyr::select(clowder_id, document_name)
     }
 
     # IUCLID sources in a combined map
@@ -270,7 +273,7 @@ set_clowder_id_lineage <- function(source_table,
       # Split parent_clowder_id list (provided as semicolon separated list)
       tidyr::separate_rows(parent_clowder_id, parent_flag, sep="; ", convert=TRUE) %>%
       # Fix split columns extra whitespace
-      dplyr::mutate(across(where(is.character), ~stringr::str_squish(.))) %>%
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~stringr::str_squish(.))) %>%
       # Filter out NA split parent fields
       dplyr::filter(!is.na(parent_clowder_id)) %>%
       # Map document ID values from database by Clowder ID
@@ -349,7 +352,7 @@ set_clowder_id_lineage <- function(source_table,
 
                   "source_rsl" = {
                     res <- res %>%
-                      left_join(map_file,
+                      dplyr::left_join(map_file,
                                 by=c("raw_input_file"="document_name"))
                     # Return res
                     res
@@ -467,23 +470,23 @@ set_clowder_id_lineage <- function(source_table,
                     res$document_name <- NULL
                     # Match by chemical name
                     res0 = res %>%
-                      left_join(map_file %>%
-                                  select(Chemical, clowder_id, fk_doc_id),
+                      dplyr::left_join(map_file %>%
+                                  dplyr::select(Chemical, clowder_id, fk_doc_id),
                                 by=c("name" = "Chemical")) %>%
-                      filter(!is.na(clowder_id))
+                      dplyr::filter(!is.na(clowder_id))
                     # Filter to non-matches
                     res = res %>%
-                      filter(!name %in% res0$name)
+                      dplyr::filter(!name %in% res0$name)
                     # Match by cas
                     res1 = res %>%
-                      left_join(map_file %>%
-                                  select(CASRN, clowder_id, fk_doc_id),
+                      dplyr::left_join(map_file %>%
+                                  dplyr::select(CASRN, clowder_id, fk_doc_id),
                                 by= c("casrn"="CASRN")) %>%
-                      filter(!is.na(clowder_id))
+                      dplyr::filter(!is.na(clowder_id))
                     # Filter to non-matches
                     res = res %>%
-                      filter(!casrn %in% res1$casrn) %>%
-                      mutate(clowder_id = NA)
+                      dplyr::filter(!casrn %in% res1$casrn) %>%
+                      dplyr::mutate(clowder_id = NA)
 
                     # Hardcode matching of "thiocyanate" to "thiocyanates"
                     res$clowder_id[which(res$name == "Thiocyanate")] <- "639a2fe6e4b04f6bb14a2734"
@@ -578,8 +581,8 @@ set_clowder_id_lineage <- function(source_table,
 
                   "source_hpvis" = {
                     res = res %>%
-                      left_join(map_file %>%
-                                  select(clowder_id, document_name, fk_doc_id),
+                      dplyr::left_join(map_file %>%
+                                  dplyr::select(clowder_id, document_name, fk_doc_id),
                                 by = c("raw_input_file"="document_name"))
                     # Return res
                     res
@@ -592,9 +595,9 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::filter(is.na(parent_flag))
 
                     res1 <- res %>%
-                      select(source_hash, source_version_date, srcf) %>%
-                      left_join(origin_docs %>%
-                                  select(clowder_id, filename, fk_doc_id),
+                      dplyr::select(source_hash, source_version_date, srcf) %>%
+                      dplyr::left_join(origin_docs %>%
+                                  dplyr::select(clowder_id, filename, fk_doc_id),
                                 by = c("srcf"="filename"))
 
                     # Associates extraction document to all records
@@ -622,9 +625,9 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::filter(is.na(parent_flag))
                     res1 <- res %>%
                       dplyr::select(source_hash, title, source_version_date) %>%
-                      left_join(origin_docs %>%
-                                  select(clowder_id, title, fk_doc_id) %>%
-                                  distinct(),
+                      dplyr::left_join(origin_docs %>%
+                                  dplyr::select(clowder_id, title, fk_doc_id) %>%
+                                  dplyr::distinct(),
                                 by = "title")
 
                     # Match to extraction doc
@@ -646,10 +649,10 @@ set_clowder_id_lineage <- function(source_table,
                     # Match origin docs
                     # Focus only on the study id and clowder id fields for matching
                     res <- res %>%
-                      left_join(map_file %>%
-                                  filter(!is.na(clowder_id)) %>%
-                                  select(clowder_id, fk_doc_id, animal_group.experiment.study.id) %>%
-                                  distinct(),
+                      dplyr::left_join(map_file %>%
+                                  dplyr::filter(!is.na(clowder_id)) %>%
+                                  dplyr::select(clowder_id, fk_doc_id, animal_group.experiment.study.id) %>%
+                                  dplyr::distinct(),
                                 by=c("study_id" = "animal_group.experiment.study.id")) %>%
                       dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
 
@@ -695,7 +698,7 @@ set_clowder_id_lineage <- function(source_table,
                   "source_opp" = {
                     #Perform a left join on chemical names to match clowder ids and document names
                     res <- res %>%
-                      left_join(map_file %>%
+                      dplyr::left_join(map_file %>%
                                   dplyr::select(name = Chemical, clowder_id, filename, fk_doc_id),
                                 by = "name")
                     #Return the mapped res with document names and clowder ids
@@ -712,9 +715,9 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::mutate(chemical_id = as.numeric(chemical_id))
 
                     res1 <- res %>%
-                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
-                      left_join(origin_docs %>%
-                                  select(clowder_id, filename, chemical_id, fk_doc_id),
+                      dplyr::select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      dplyr::left_join(origin_docs %>%
+                                  dplyr::select(clowder_id, filename, chemical_id, fk_doc_id),
                                 by = "chemical_id")
 
                     # Associates extraction document to all records
@@ -743,9 +746,9 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::mutate(chemical_id = as.numeric(chemical_id))
 
                     res1 <- res %>%
-                      select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
-                      left_join(origin_docs %>%
-                                  select(clowder_id, filename, chemical_id, fk_doc_id),
+                      dplyr::select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      dplyr::left_join(origin_docs %>%
+                                  dplyr::select(clowder_id, filename, chemical_id, fk_doc_id),
                                 by = "chemical_id")
 
                     # Associates extraction document to all records
@@ -973,9 +976,9 @@ set_clowder_id_lineage <- function(source_table,
                     # Match to origin doc
                     res <- res %>%
                       dplyr::select(short_ref, source_hash, source_version_date) %>%
-                      left_join(map_file %>%
-                                  select(short_ref, clowder_id, fk_doc_id) %>%
-                                  distinct(),
+                      dplyr::left_join(map_file %>%
+                                  dplyr::select(short_ref, clowder_id, fk_doc_id) %>%
+                                  dplyr::distinct(),
                                 by = "short_ref")
                     # Match to extraction doc
                     tmp = res %>%
@@ -1015,8 +1018,8 @@ set_clowder_id_lineage <- function(source_table,
                     # Sync map_file chemical name cleaning
                     map_file = map_file %>%
                       dplyr::mutate(name = name %>%
-                                    # Fix Greek symbols
-                                    fix.greek.symbols() %>%
+                                    # Fix Unicode symbols
+                                    fix.replace.unicode() %>%
 
                                     # Remove trademark symbols
                                     gsub("\u00ae|<U+00ae>", "", .) %>%
@@ -1187,22 +1190,22 @@ set_clowder_id_lineage <- function(source_table,
     # Handle HAWC PFAS 150/430
     if(source_table %in% c("source_hawc_pfas_150","source_hawc_pfas_430")) {
       map = map_file %>%
-        select(-fk_doc_id)
+        dplyr::select(-fk_doc_id)
       if(!"study_name" %in% names(map)){
-        map = map %>% rename(study_name = `Study Name`)
+        map = map %>% dplyr::rename(study_name = `Study Name`)
       }
       title2 = res$title
       title2 = gsub("Registration dossier: |RRegistration dossier: ","", title2)
       title2 = gsub('\\.$','',title2)
       res$title2 = title2
-      res$title2 = tolower(str_trim(title2))
+      res$title2 = tolower(stringr::str_trim(title2))
       res$title3 = gsub("\\s*\\([^\\)]+\\)", "", res$title2)
       for(i in 1:nrow(map)) {
         cid = map[i,"clowder_id"]
 
         docname = map[i,"document_name"]
         title = map[i,"study_name"]
-        title2 = str_trim(tolower(title)) %>%
+        title2 = stringr::str_trim(tolower(title)) %>%
           gsub('\\.$','',.)
         # Remove trailing . information
         title2b = sub('\\..*', '', title2)

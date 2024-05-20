@@ -2,7 +2,7 @@
 % Please edit documentation in R/runQuery.R
 \name{runQuery}
 \alias{runQuery}
-\title{FUNCTION_TITLE}
+\title{runQuery}
 \usage{
 runQuery(query = NULL, db, do.halt = T, verbose = F)
 }
@@ -16,7 +16,7 @@ runQuery(query = NULL, db, do.halt = T, verbose = F)
 \item{verbose}{if TRUE, print diagnostic information}
 }
 \value{
-OUTPUT_DESCRIPTION
+Query results
 }
 \description{
 Runs a database query and returns a result set

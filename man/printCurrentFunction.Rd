@@ -2,7 +2,7 @@
 % Please edit documentation in R/printCurrentFunction.R
 \name{printCurrentFunction}
 \alias{printCurrentFunction}
-\title{FUNCTION_TITLE}
+\title{printCurrentFunction}
 \usage{
 printCurrentFunction(comment.string = NA)
 }
@@ -10,7 +10,7 @@ printCurrentFunction(comment.string = NA)
 \item{comment.string}{An optional string to be printed}
 }
 \value{
-OUTPUT_DESCRIPTION
+None
 }
 \description{
 Print the name of the current function

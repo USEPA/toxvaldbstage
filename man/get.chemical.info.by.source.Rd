@@ -2,7 +2,7 @@
 % Please edit documentation in R/get.chemical.info.by.source.R
 \name{get.chemical.info.by.source}
 \alias{get.chemical.info.by.source}
-\title{FUNCTION_TITLE}
+\title{get.chemical.info.by.source}
 \usage{
 get.chemical.info.by.source(source.db, source_table, source, file_id)
 }

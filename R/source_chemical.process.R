@@ -10,7 +10,7 @@
 #' @param verbose If TRUE, write out diagnostic messages #'
 #' @return Returns the original dataframe with a chemical_id appended
 #' @export
-#' @title FUNCTION_TITLE
+#' @title source_chemical.process
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -26,6 +26,8 @@
 #' @importFrom tidyr unite
 #' @importFrom utils tail
 #' @importFrom digest digest
+#' @importFrom dplyr distinct all_of
+#' @importFrom generics is.element
 #--------------------------------------------------------------------------------------
 source_chemical.process <- function(db,
                                     res,
@@ -41,7 +43,7 @@ source_chemical.process <- function(db,
   #####################################################################
   # res$chemical_index = paste(res[,casrn.col],res[,name.col])
   res = res %>%
-    tidyr::unite(col="chemical_index", all_of(c(casrn.col, name.col)), sep=" ", remove=FALSE)
+    tidyr::unite(col="chemical_index", dplyr::all_of(c(casrn.col, name.col)), sep=" ", remove=FALSE)
   # result = chem.check(res,name.col=name.col,casrn.col=casrn.col,verbose=verbose,source)
   result = chem.check.v2(res0=res, source=source, verbose=verbose)
   if(chem.check.halt) if(!result$name.OK || !result$casrn.OK || !result$checksum.OK) browser()
@@ -51,7 +53,7 @@ source_chemical.process <- function(db,
   #####################################################################
   chems = cbind(res[,c(casrn.col,name.col)], result$res0[,c(casrn.col,name.col)])
   names(chems) = c("raw_casrn","raw_name","cleaned_casrn","cleaned_name")
-  chems = distinct(chems)
+  chems = dplyr::distinct(chems)
   chems$source = source
 
   prefix = runQuery(paste0("select chemprefix from chemical_source_index where source='",source,"'"),db)[1,1]

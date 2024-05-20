@@ -38,15 +38,15 @@
 #'  \code{\link[stringr]{str_detect}}, \code{\link[stringr]{str_pad}}
 #' @rdname cas_checkSum
 cas_checkSum <- function(x, checkLEN = TRUE) {
-
+  # Ensure input values are of type character and contains digits
   if(!is.character(x)) {
     stop("input must be of class character")
   }
-
   if(!stringr::str_detect(x,"[0-9]")) {
     return(0)
   }
 
+  # Remove all non-digit characters from input values
   x_clean  <- gsub("\\D", "", x)
   if(checkLEN) {
     x_clean[nchar(x_clean)>10 | nchar(x_clean)<4] <- NA
@@ -57,17 +57,21 @@ cas_checkSum <- function(x, checkLEN = TRUE) {
     return(rep(NA, length(x)))
   }
 
+  # Extract the last digit in each input value
   checksum <- as.integer(substr(x_clean, nchar(x_clean), nchar(x_clean)))
 
+  # Get the longest input value and pad all values to that length
   maxlen  <- max(nchar(x_clean), na.rm = TRUE)
   x_clean <- stringr::str_pad(x_clean, width = maxlen, side = "left", pad = "0")
 
+  # Get list of integer characters in cleaned input values
   x_split <- do.call(
     cbind,
     strsplit(substr(x_clean, 1, nchar(x_clean)-1), "")
   )
   mode(x_split) <- "integer"
 
+  # Perform check
   x_pos  <- rev(seq_len(nrow(x_split)))
   x_calc <- colSums(x_split * x_pos)
   x_modulo10 <- x_calc %% 10

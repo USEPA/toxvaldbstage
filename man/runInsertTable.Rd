@@ -2,7 +2,7 @@
 % Please edit documentation in R/runInsertTable.R
 \name{runInsertTable}
 \alias{runInsertTable}
-\title{FUNCTION_TITLE}
+\title{runInsertTable}
 \usage{
 runInsertTable(mat, table, db, do.halt = T, verbose = F, get.id = T)
 }
@@ -17,10 +17,10 @@ runInsertTable(mat, table, db, do.halt = T, verbose = F, get.id = T)
 
 \item{verbose}{if TRUE, print diagnostic information}
 
-\item{get.id}{PARAM_DESCRIPTION, Default: T}
+\item{get.id}{Whether to return ID or not, Default: T}
 }
 \value{
-OUTPUT_DESCRIPTION
+ID or None
 }
 \description{
 Inserts multiple rows into a database table

@@ -5,23 +5,26 @@
 #' @title import_doe_pac_source
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  [read_xlsx][readxl::read_xlsx]
 #'  [str_squish][stringr::str_squish], [str_extract_all][stringr::str_extract_all]
 #'  [mutate][dplyr::mutate], [across][dplyr::across], [rename][dplyr::rename], [select][dplyr::select], [rowwise][dplyr::rowwise], [ungroup][dplyr::ungroup]
 #'  [pivot_longer][tidyr::pivot_longer]
 #' @rdname import_doe_pac_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_extract_all
 #' @importFrom dplyr mutate across rename select rowwise ungroup
 #' @importFrom tidyr pivot_longer
+#' @param do.reset PARAM_DESCRIPTION, Default: FALSE
+#' @param do.insert PARAM_DESCRIPTION, Default: FALSE
+#' @importFrom tidyselect where
 import_doe_pac_source <- function(db,
                                   chem.check.halt=FALSE,
                                   do.reset=FALSE,
@@ -100,7 +103,7 @@ import_doe_pac_source <- function(db,
       toxval_type = toxval_type %>%
         gsub("\\(ppm\\)", "", .),
       # Remove excess whitespace for all character columns
-      dplyr::across(where(is.character), ~stringr::str_squish(.))
+      dplyr::across(tidyselect::where(is.character), ~stringr::str_squish(.))
     ) %>%
     dplyr::select(-`No.`) %>%
     # Split CASRN lists

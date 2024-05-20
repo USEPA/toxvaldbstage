@@ -8,19 +8,19 @@
 #' @title import_opp_source
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{bind_rows}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
 #' @rdname import_opp_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom tidyr pivot_longer separate
 #' @importFrom dplyr filter mutate row_number case_when select bind_rows

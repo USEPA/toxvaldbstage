@@ -12,17 +12,17 @@
 #' @return None. Update SQL statements are executed.
 #' @import RMySQL dplyr readxl magrittr
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{bind}}
 #' @rdname toxval.source_push_mapped_chemicals
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename distinct mutate select left_join filter bind_rows
 #--------------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
 
   # Check De-duping collapse (only expect flags field to collapse)
   dup_collapsed_fields = lapply(names(out), function(f){
-    if(sum(str_detect(out[[f]], '\\|::\\|'), na.rm = TRUE) > 0){
+    if(sum(stringr::str_detect(out[[f]], '\\|::\\|'), na.rm = TRUE) > 0){
       return(f)
     }
   }) %>%
@@ -119,7 +119,7 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
       map = out %>%
         dplyr::filter(chemical_id == c_id) %>%
         # Only push columns that aren't NA
-        dplyr::select(where(~!all(is.na(.))))
+        dplyr::select(tidyselect::where(~!all(is.na(.))))
 
       # NA values present for all columns or all but chemical_id, skip
       if(length(map) <= 1){

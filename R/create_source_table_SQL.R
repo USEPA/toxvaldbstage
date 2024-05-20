@@ -5,12 +5,12 @@
 #' @param source name of the source being processed
 #' @param res input dataframe of source data
 #' @param src_version Version date of the source
-#' @param db PARAM_DESCRIPTION
+#' @param db version of toxval_source to use
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
 #' @export
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title create_source_table_SQL
+#' @return New SQL table as a tibble
 #' @details DETAILS
 #' @examples
 #' \dontrun{

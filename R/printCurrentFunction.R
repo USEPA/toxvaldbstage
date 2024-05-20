@@ -1,8 +1,8 @@
 #--------------------------------------------------------------------------------------
 #' @description Print the name of the current function
 #' @param comment.string An optional string to be printed
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title printCurrentFunction
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{

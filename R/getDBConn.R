@@ -3,7 +3,7 @@
 #--------------------------------------------------------------------------------------
 #' @description Get the names the database server, user, and pass or returns error message
 #' @return print the database connection information
-#' @title FUNCTION_TITLE
+#' @title getDBConn
 #' @details DETAILS
 #' @examples 
 #' \dontrun{

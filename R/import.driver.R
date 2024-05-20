@@ -3,9 +3,9 @@
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.chek.halt If TRUE and there are bad chemical names or casrn, #' stop to look at the results in indir/chemcheck.xlsx
 #' @param do.clean If TRUE, delte data from all tables before reloading
-#' @title FUNCTION_TITLE
 #' @param chem.check.halt PARAM_DESCRIPTION, Default: FALSE
-#' @return OUTPUT_DESCRIPTION
+#' @title import.driver
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -21,6 +21,7 @@ import.driver <- function(db="res_toxval_source_v5",
                           do.clean=FALSE) {
   printCurrentFunction(db)
 
+  # Clear out all tables in toxval_source if specified
   if(do.clean) {
     tlist = runQuery("show tables",db)[,1] #%>%
       # Only delete source tables
@@ -34,6 +35,7 @@ import.driver <- function(db="res_toxval_source_v5",
     }
   }
   drop = FALSE
+  # If specified, drop all source tables in toxval_source
   if(drop){
     tlist = runQuery("show tables",db)[,1] %>%
     # Only drop source tables to be rebuilt entirely

@@ -3,14 +3,14 @@
 #' @return None, file directory structure generated
 #' @title FUNCTION_TITLE
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
 #' @rdname initialize_source_iuclid_directory
-#' @export
+#' @export 
 #
 #--------------------------------------------------------------------------------------
 initialize_source_iuclid_directory <- function() {

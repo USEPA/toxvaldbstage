@@ -9,19 +9,19 @@
 #' @description FUNCTION_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_source_epa_ow_npdwr
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename mutate across
 #' @importFrom tidyr pivot_longer separate

@@ -8,23 +8,24 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[stringr]{str_detect}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_source_epa_ow_nrwqc_hhc
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename mutate across rowwise
 #' @importFrom tidyr pivot_longer matches separate
 #' @importFrom stringr str_detect str_squish
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_source_epa_ow_nrwqc_hhc <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -90,7 +91,7 @@ import_source_epa_ow_nrwqc_hhc <- function(db, chem.check.halt=FALSE, do.reset=F
       # Replace all multiple and/or non-standard dashes with a standard dash
       dplyr::across(.fns = ~gsub("(--)?—", "-", .)),
       # ...and fix unicode symbols
-      dplyr::across(where(is.character), fix.replace.unicode)
+      dplyr::across(tidyselect::where(is.character), fix.replace.unicode)
       ) %>%
     # Make row-by-row adjustments
     dplyr::rowwise() %>%
@@ -108,7 +109,7 @@ import_source_epa_ow_nrwqc_hhc <- function(db, chem.check.halt=FALSE, do.reset=F
   chem_toxval_numeric_range <- unique(res$name[grepl("[0-9]+-[0-9]+", res$toxval_numeric)])
   # Handle splitting of range groups
   res_range <- res %>%
-    filter(name %in% chem_toxval_numeric_range)
+    dplyr::filter(name %in% chem_toxval_numeric_range)
   # Remove range ranges
   res <- res %>%
     dplyr::filter(!name %in% res_range$name) %>%

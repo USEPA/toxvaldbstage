@@ -8,8 +8,8 @@
 #' @param do.insert If TRUE, insert data into the database, default False
 #' @param res The data frame to be processed
 #' @param hashing_cols Optional list of columns to use for generating source_hash
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title toxval_source.hash.and.load
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -24,6 +24,7 @@
 #' @export
 #' @importFrom digest digest
 #' @importFrom dplyr distinct
+#' @importFrom generics is.element
 #--------------------------------------------------------------------------------------
 toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
                                         source,

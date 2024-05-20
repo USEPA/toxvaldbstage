@@ -2,14 +2,14 @@
 % Please edit documentation in R/setPSQLDBConn.R
 \name{setPSQLDBConn}
 \alias{setPSQLDBConn}
-\title{FUNCTION_TITLE}
+\title{setPSQLDBConn}
 \usage{
 setPSQLDBConn(server, port, user, password, api_auth)
 }
 \arguments{
 \item{server}{SQL server on which relevant database lives}
 
-\item{port}{PARAM_DESCRIPTION}
+\item{port}{port to use}
 
 \item{user}{SQL username to access database}
 
@@ -18,7 +18,7 @@ setPSQLDBConn(server, port, user, password, api_auth)
 \item{api_auth}{API Key for CCTE API's}
 }
 \value{
-OUTPUT_DESCRIPTION
+None
 }
 \description{
 set PSQL connection to the database

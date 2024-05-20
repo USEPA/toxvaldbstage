@@ -16,6 +16,10 @@ import_source_caloehha(
 
 \item{chem.check.halt}{If TRUE and there are problems with chemicals CASRN checks, halt the program}
 
+\item{do.reset}{PARAM_DESCRIPTION, Default: FALSE}
+
+\item{do.insert}{PARAM_DESCRIPTION, Default: FALSE}
+
 \item{infile}{The input file ="../caloehha/caloehha_files/OEHHA-chemicals_2018-10-30T08-50-47.xlsx",}
 }
 \value{

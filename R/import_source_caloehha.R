@@ -22,6 +22,15 @@
 #' @rdname import_source_caloehha
 #' @export
 #' @importFrom openxlsx read.xlsx
+#' @param do.reset PARAM_DESCRIPTION, Default: FALSE
+#' @param do.insert PARAM_DESCRIPTION, Default: FALSE
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr rename all_of mutate distinct across na_if filter bind_rows rowwise ungroup select
+#' @importFrom tidyselect where
+#' @importFrom tidyr separate_rows separate
+#' @importFrom stringr str_squish str_to_title str_replace_all
+#' @importFrom janitor excel_numeric_to_date
+#' @importFrom stats complete.cases
 #--------------------------------------------------------------------------------------
 import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -83,9 +92,9 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                     notification_level_units = "ug/L",
                     chrfd_units = ifelse(!is.na(chrfd) & !grepl("E", chrfd), sub("^[0-9.]+\\s+","",chrfd), NA)) %>%
       dplyr::distinct() %>%
-      dplyr::mutate(dplyr::across(where(is.character), ~na_if(., "--")),
-                    dplyr::across(where(is.character), ~na_if(., "n/a")),
-                    dplyr::across(where(is.character), ~na_if(., "N/A"))) %>%
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~dplyr::na_if(., "--")),
+                    dplyr::across(tidyselect::where(is.character), ~dplyr::na_if(., "n/a")),
+                    dplyr::across(tidyselect::where(is.character), ~dplyr::na_if(., "N/A"))) %>%
       # Separate casrn lists
       tidyr::separate_rows(casrn, sep = "; ")
 
@@ -363,7 +372,7 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
 
     # N-Methylpyrrolidone - 17000 (dermal)
     row_to_change <- res %>%
-      filter(madl_oral_reprotox == "17000 (dermal)") %>%
+      dplyr::filter(madl_oral_reprotox == "17000 (dermal)") %>%
       dplyr::mutate(madl_dermal_reprotox = "17000",
                     madl_oral_reprotox=NA,
                     madl_dermal_reprotox_units=madl_oral_reprotox_units)
@@ -544,7 +553,7 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       # Filter out toxval_numeric NA values
       dplyr::filter(!is.na(toxval_numeric)) %>%
       # Clean up excess whitespace for all character fields
-      dplyr::mutate(across(where(is.character), ~stringr::str_squish(.)),
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~stringr::str_squish(.)),
                     severity = severity %>%
                       gsub("*", "", ., fixed=TRUE) %>%
                       tolower(),
@@ -573,7 +582,7 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       )
 
     # Replace NA with -
-    res$critical_effect <- str_replace_all(res$critical_effect, "NA", "-")
+    res$critical_effect <- stringr::str_replace_all(res$critical_effect, "NA", "-")
 
 ##########################################################################################################
 

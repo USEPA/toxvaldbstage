@@ -1,8 +1,8 @@
 #' @title prep.DAT.conversion
 #' @description Select and rename DAT audit columns for toxval_source, calculate new source_hash
-#' @param in_dat PARAM_DESCRIPTION
-#' @param hash_id_list PARAM_DESCRIPTION
-#' @return OUTPUT_DESCRIPTION
+#' @param in_dat Input DAT data
+#' @param hash_id_list List of hash values to keep
+#' @return Updated DAT tibble
 #' @details DETAILS
 #' @examples
 #' \dontrun{

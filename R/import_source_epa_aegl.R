@@ -5,24 +5,26 @@
 #' @param chem.check.halt If TRUE, stop if there are problems with the chemical mapping
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate-joins}}
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}
 #'  \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_remove}}, \code{\link[stringr]{str_split}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_source_epa_aegl
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr filter mutate select distinct right_join
 #' @importFrom tidyr separate_rows pivot_longer separate
 #' @importFrom stringr regex str_remove str_squish
 #' @importFrom lubridate parse_date_time
+#' @param do.reset PARAM_DESCRIPTION, Default: FALSE
+#' @param do.insert PARAM_DESCRIPTION, Default: FALSE
 #--------------------------------------------------------------------------------------
 import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

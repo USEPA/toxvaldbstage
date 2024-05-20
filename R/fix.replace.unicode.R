@@ -3,9 +3,9 @@
 #' @description A function to check all character fields and handle unicode symbols,
 #' either by removing them or replacing them with alphabetic equivalents.
 #' @return Returns a modified version of the input vector with unicode replacements.
-#' @export
+#' @export 
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
@@ -13,6 +13,11 @@
 #' }
 #' @rdname fix.replace.unicode
 #' @param df Character vector to check/replace unicode symbols.
+#' @seealso 
+#'  [stri_escape_unicode][stringi::stri_escape_unicode]
+#'  [str_extract][stringr::str_extract]
+#' @importFrom stringi stri_escape_unicode
+#' @importFrom stringr str_extract
 #--------------------------------------------------------------------------------------
 fix.replace.unicode <- function(df) {
   if(!is.character(df)){
@@ -46,7 +51,7 @@ fix.replace.unicode <- function(df) {
 
   beta = c("<U+03B2>", "<U+03D0>", "<U+1D6C3>", "<U+1D6FD>", "<U+1D737>", "<U+1D771>", "<U+1D7AB>",
            "<U+0392>", "<U+1D6A9>", "<U+1D6E3>", "<U+1D71D>", "<U+1D757>", "<U+1D791>", "<U+1D5D>",
-           "<U+1D66>", "<U+00df?",
+           "<U+1D66>", "<U+00df>",
            "\u03B2", "\u03D0", "\u1D6C3", "\u1D6FD", "\u1D737", "\u1D771", "\u1D7AB",
            "\u0392", "\u1D6A9", "\u1D6E3", "\u1D71D", "\u1D757", "\u1D791", "\u1D5D",
            "\u1D66", "\u00df")
@@ -201,8 +206,8 @@ fix.replace.unicode <- function(df) {
     gsub("\\\\{1,}'", "'", .) %>%
     gsub('\\\\{1,}"', '"', .) %>%
 
-    # Remove double-dagger symbols
-    gsub("\u2021|<U+2021>", "", .) %>%
+    # Remove dagger and double-dagger symbols
+    gsub("\u2021|<U+2021>|\u2020|<U+2020>", "", .) %>%
 
     # Replace prime symbols
     gsub("\u00b4|<U+00B4>|\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>|\u2032", "'", .) %>%
@@ -235,7 +240,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u00b3|<U+00B3>", "3", .) %>%
     gsub("\u00b9|<U+00B9>", "1", .) %>%
     gsub("\u2070|<U+2070>", "0", .) %>%
-    gsub("\u00b2|<U+00B2>", "2", .) %>%
+    gsub("\u00b2|<U+00B2>|\u2082", "2", .) %>%
     gsub("\u2079|<U+2079>", "9", .) %>%
     gsub("\u2078|<U+2078>", "8", .) %>%
     gsub("\u2074|<U+2074>", "4", .) %>%
@@ -293,6 +298,9 @@ fix.replace.unicode <- function(df) {
     # Fix roman numeral 2
     gsub("\u2161", "II", .) %>%
 
+    # Fix numero symbol
+    gsub("\u2116", "No.", .) %>%
+
     # Fix fullwidth digit 1
     gsub("\uff11", "1", .) %>%
 
@@ -307,22 +315,22 @@ fix.replace.unicode <- function(df) {
 
     # Fix miscellaneous letters
     gsub("\u0067", "g", .) %>%
-    gsub("\u00fc", "u", .) %>%
+    gsub("\u00fc|\u00f9|\u00fa", "u", .) %>%
     gsub("\u00a5|\u00fd", "y", .) %>%
     gsub("\u0178|\u00dd", "Y", .) %>%
     gsub("\u00c2|\u00c3|\u00c4|\u0391|\u00c1|\u00c0", "A", .) %>%
-    gsub("\u00ba|\u00f6|\u00f8|\u00f2|\u00f3|\u00f4|\uff4f|\u02da", "o", .) %>%
+    gsub("\u00ba|\u00f6|\u00f8|\u00f2|\u00f3|\u00f4|\uff4f|\u02da|\u0151", "o", .) %>%
     gsub("\u00d6", "O", .) %>%
-    gsub("\u00e9|\u00e8|\u00eb", "e", .) %>%
+    gsub("\u00e9|\u00e8|\u00eb|\u00ea", "e", .) %>%
     gsub("\u00ce|\u00cf|\u00cc", "I", .) %>%
     gsub("\u00e7", "c", .) %>%
     gsub("\u00e2|\u00e4|\u00e1|\u00e5|\u00e0|\u00e3", "a", .) %>%
     gsub("\ufb02", "fl", .) %>%
     gsub("\u0192", "f", .) %>%
-    gsub("\u00c9|\u00ca", "E", .) %>%
-    gsub("\u00ef|\u00ec|\u00ee", "i", .) %>%
+    gsub("\u00c9|\u00ca|\u00c8", "E", .) %>%
+    gsub("\u00ef|\u00ec|\u00ee|\u00ed", "i", .) %>%
     gsub("\u00dc", "U", .) %>%
-    gsub(" \u017e", "z", .) %>%
+    gsub("\u017e", "z", .) %>%
     gsub("\u0165", "t'", .) %>%
     gsub("\u0127", "h", .) %>%
     gsub("\u03a4", "T", .) %>%
@@ -347,7 +355,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u2193", "", .) %>%
 
     # Remove unidentified characters
-    gsub("\ufffd|\uf8e8|\ufeff|\uf6da|\uf06e|\uf020", "", .)
+    gsub("\ufffd|\uf8e8|\ufeff|\uf6da|\uf06e|\uf020|\uf06d|\uf0d4", "", .)
 
   # Identify and print unicode symbols that were not handled
   not_handled = df %>%

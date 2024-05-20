@@ -19,9 +19,12 @@
 #'  \code{\link[stringr]{str_remove}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_chiu_source
 #' @importFrom readr read_csv
-#' @importFrom dplyr select mutate distinct
+#' @importFrom dplyr select mutate distinct any_of
 #' @importFrom tidyr drop_na
 #' @importFrom stringr str_remove fixed str_squish str_trim str_extract str_detect
+#' @param do.reset PARAM_DESCRIPTION, Default: FALSE
+#' @param do.insert PARAM_DESCRIPTION, Default: FALSE
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -62,8 +65,8 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                   "exposure_route"="Route")
 
   res1 <- res0 %>%
-    dplyr::rename(any_of(rename_list)) %>%
-    dplyr::select(any_of(names(rename_list))) %>%
+    dplyr::rename(dplyr::any_of(rename_list)) %>%
+    dplyr::select(dplyr::any_of(names(rename_list))) %>%
     dplyr::distinct() %>%
     # Extract toxval_type and toxval_units
     tidyr::separate(toxval_type, into=c("toxval_type", "toxval_units"), sep="\\(") %>%
@@ -73,11 +76,11 @@ import_chiu_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Mutate columns in combined data as needed
   res <- res1 %>%
     dplyr::mutate(year = ifelse(stringr::str_detect(year, "/"), stringr::str_extract(year, "\\d{4}"), year)) %>%
-    dplyr::mutate(year = ifelse(stringr::str_detect(year, " "), stringr::str_trim(str_extract(year, "(?<=\\s)/S+")), year)) %>%
+    dplyr::mutate(year = ifelse(stringr::str_detect(year, " "), stringr::str_trim(stringr::str_extract(year, "(?<=\\s)/S+")), year)) %>%
     tidyr::unite(critical_effect_1, critical_effect_2, col="critical_effect", sep = ": ", na.rm=TRUE) %>%
     dplyr::mutate(
       # Remove extraneous whitespace
-      dplyr::across(where(is.character), stringr::str_squish),
+      dplyr::across(tidyselect::where(is.character), stringr::str_squish),
       casrn = as.character(casrn),
       year = as.numeric(year),
       # Moved from deprecated load script

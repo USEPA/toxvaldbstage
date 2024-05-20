@@ -10,8 +10,8 @@
 #' @import dplyr DBI magrittr
 #'
 #' @export
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title DAT.pipe.source.audit
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -29,6 +29,8 @@
 #' @importFrom dplyr rename mutate left_join select filter
 #' @importFrom tidyr any_of
 #' @importFrom writexl write_xlsx
+#' @importFrom tidyselect where any_of
+#' @importFrom stringr str_split str_squish
 #--------------------------------------------------------------------------------------
 DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df, hashing_type="vectorized") {
 
@@ -39,7 +41,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df, hashing_t
       # Remove QC fields that will be repopulated in this workflow
       .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))] %>%
       # Fill NA character fields with "-"
-      dplyr::mutate(dplyr::across(where(is.character), ~tidyr::replace_na(., "-"))),
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~tidyr::replace_na(., "-"))),
     audit_dat = audit_df %>%
       readxl::read_xlsx() %>%
       dplyr::rename(src_tbl_name=dataset_name) %>%
@@ -47,7 +49,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df, hashing_t
       # Remove QC fields that will be repopulated in this workflow
       .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))] %>%
       # Fill NA character fields with "-"
-      dplyr::mutate(dplyr::across(where(is.character), ~tidyr::replace_na(., "-")))
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~tidyr::replace_na(., "-")))
   )
 
   # Add back columns removed from QC data
@@ -141,7 +143,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df, hashing_t
                   qc_flags = failure_reason,
                   created_by = create_by,
                   src_version_date = source_version_date) %>%
-    select(any_of(c(audit_fields, "src_version_date")))
+    dplyr::select(tidyselect::any_of(c(audit_fields, "src_version_date")))
 
   # Rename columns as needed
   # Select columns from source_table
@@ -155,7 +157,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df, hashing_t
                   # Rename preemptively
                   old_parent_chemical_id = parent_chemical_id,
                   parent_chemical_id = chemical_id) %>%
-    select(any_of(src_tbl_fields), old_parent_chemical_id)
+    dplyr::select(tidyselect::any_of(src_tbl_fields), old_parent_chemical_id)
 
   # Hash spotcheck - compare should be TRUE for unchanged records
   # live %>% select(parent_hash, source_hash, version) %>% mutate(compare = parent_hash == source_hash)
@@ -180,7 +182,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df, hashing_t
 
   # Map back chemical information to all records
   live <- live %>%
-    left_join(live_chems %>%
+    dplyr::left_join(live_chems %>%
                 dplyr::select(-chemical_index),
               by = c("name", "casrn"))
 
@@ -190,7 +192,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df, hashing_t
   # Replace "-" parent_chemical_id with old_parent_chemical_id since no change was made in chemical_id
   live$parent_chemical_id[live$parent_chemical_id == "-"] = live$old_parent_chemical_id[live$parent_chemical_id == "-"]
   # Ensure fields match source table fields
-  live <- select(live, any_of(src_tbl_fields))
+  live <- dplyr::select(live, tidyselect::any_of(src_tbl_fields))
 
   stop("Compare hash and redo hash as needed for live and rejoin to audit")
   # Check for duplicate hashes
@@ -204,13 +206,13 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df, hashing_t
   }
 
   View(live %>%
-         select(source_hash, parent_hash) %>%
-         mutate(compare = source_hash == parent_hash) %>%
-         distinct())
+         dplyr::select(source_hash, parent_hash) %>%
+         dplyr::mutate(compare = source_hash == parent_hash) %>%
+         dplyr::distinct())
   View(audit %>%
-         select(fk_source_hash, parent_hash) %>%
-         mutate(compare = fk_source_hash == parent_hash) %>%
-         distinct())
+    dplyr::select(fk_source_hash, parent_hash) %>%
+    dplyr::mutate(compare = fk_source_hash == parent_hash) %>%
+    dplyr::distinct())
 
   audit = audit %>%
     # Compare rehashed source_hash to mapped source_hash
@@ -225,7 +227,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df, hashing_t
 
   # Check for needed schema changes
   src_fields_mismatch = set_field_SQL_type(src_f = live) %>%
-    str_split("\n") %>%
+    stringr::str_split("\n") %>%
     unlist() %>%
     data.frame(src_field = .) %>%
     dplyr::mutate(src_field = src_field %>%

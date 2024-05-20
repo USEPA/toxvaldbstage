@@ -19,6 +19,9 @@
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_pfas_150_sem_v2_source
 #' @export
+#' #' @importFrom openxlsx read.xlsx
+#' @importFrom digest digest
+#' @importFrom generics is.element
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr rename distinct mutate left_join case_when select rename_with bind_cols bind_rows across na_if where

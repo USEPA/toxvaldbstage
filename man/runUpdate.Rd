@@ -2,7 +2,7 @@
 % Please edit documentation in R/runUpdate.R
 \name{runUpdate}
 \alias{runUpdate}
-\title{FUNCTION_TITLE}
+\title{runUpdate}
 \usage{
 runUpdate(
   table,
@@ -15,7 +15,7 @@ runUpdate(
 )
 }
 \arguments{
-\item{table}{PARAM_DESCRIPTION}
+\item{table}{table to update}
 
 \item{updateQuery}{a properly formatted SQL query as a string in the form of an UPDATE INNER JOIN}
 
@@ -30,7 +30,7 @@ runUpdate(
 \item{trigger_check}{if FALSE, audit triggers are ignored/bypassed}
 }
 \value{
-OUTPUT_DESCRIPTION
+None
 }
 \description{
 Runs a database query and returns a result set

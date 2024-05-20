@@ -7,17 +7,17 @@
 #' @param filepath The path for all the input xlsx files ./ACToR replacements/ACToR_2021
 #' @param verbose Whether the loaded rows should be printed to the console.
 #' @param do.init if TRUE, read the data in from the res_actor_2021q4 database and set up the matrix
-#' @export
+#' @export 
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[openxlsx]{read.xlsx}}, \code{\link[openxlsx]{write.xlsx}}
 #'  \code{\link[stringr]{str_replace}}
 #'  \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate_all}}

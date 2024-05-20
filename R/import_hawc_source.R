@@ -7,13 +7,13 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[openxlsx]{getSheetNames}}, \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{count}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{context}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{na_if}}
 #'  \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{drop_na}}
@@ -21,7 +21,7 @@
 #'  \code{\link[digest]{digest}}
 #'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_hawc_source
-#' @export
+#' @export 
 #' @importFrom openxlsx getSheetNames read.xlsx
 #' @importFrom dplyr select distinct mutate arrange count left_join bind_rows n everything across na_if where
 #' @importFrom tidyr pivot_wider unite contains drop_na

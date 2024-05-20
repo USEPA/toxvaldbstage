@@ -7,12 +7,12 @@
 prep.DAT.conversion(in_dat, hash_id_list)
 }
 \arguments{
-\item{in_dat}{PARAM_DESCRIPTION}
+\item{in_dat}{Input DAT data}
 
-\item{hash_id_list}{PARAM_DESCRIPTION}
+\item{hash_id_list}{List of hash values to keep}
 }
 \value{
-OUTPUT_DESCRIPTION
+Updated DAT tibble
 }
 \description{
 Select and rename DAT audit columns for toxval_source, calculate new source_hash

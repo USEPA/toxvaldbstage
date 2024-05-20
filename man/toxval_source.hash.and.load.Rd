@@ -36,7 +36,7 @@ toxval_source.hash.and.load(
 \value{
 Input dataframe with new source_hash field
 
-OUTPUT_DESCRIPTION
+None
 }
 \description{
 Generate the hash key for a source table based on hashing columns

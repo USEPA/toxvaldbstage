@@ -2,7 +2,7 @@
 % Please edit documentation in R/qc_prescreening_summary.R
 \name{qc_prescreening_summary}
 \alias{qc_prescreening_summary}
-\title{FUNCTION_TITLE}
+\title{qc_prescreening_summary}
 \usage{
 qc_prescreening_summary(
   src_tbl = NULL,
@@ -21,7 +21,7 @@ qc_prescreening_summary(
 \item{db}{the name of the database.}
 }
 \value{
-OUTPUT_DESCRIPTION
+Result set of QC prescreenig information
 }
 \description{
 Runs a database query and returns a result set

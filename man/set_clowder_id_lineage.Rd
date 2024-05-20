@@ -2,7 +2,7 @@
 % Please edit documentation in R/set_clowder_id_lineage.R
 \name{set_clowder_id_lineage}
 \alias{set_clowder_id_lineage}
-\title{FUNCTION_TITLE}
+\title{set_clowder_id_lineage}
 \usage{
 set_clowder_id_lineage(
   source_table,

@@ -8,23 +8,24 @@
 #' @param do.toxicological_profile If TRUE, add toxicological profile data to table before insertion
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[tidyr]{separate}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_source_atsdr_mrls
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom tidyr separate
 #' @importFrom dplyr mutate case_when
 #' @importFrom stringr str_squish
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.toxicological_profile=FALSE) {
   printCurrentFunction(db)
@@ -133,7 +134,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
                     source_url = document_url,
                     species = species_original) %>%
       # Squish all character fields
-      dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish))
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), stringr::str_squish))
     res <- res %>%
       dplyr::mutate(document_type = "ATSDR MRLs")
   }

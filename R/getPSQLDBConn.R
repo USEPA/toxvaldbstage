@@ -3,16 +3,16 @@
 #--------------------------------------------------------------------------------------
 #' @description Get the names the database server, user, and pass or returns error message
 #' @return print the database connection information
-#' @title FUNCTION_TITLE
+#' @title getPSQLDBConn
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
 #' @rdname getPSQLDBConn
-#' @export 
+#' @export
 #--------------------------------------------------------------------------------------
 getPSQLDBConn <- function() {
   printCurrentFunction()

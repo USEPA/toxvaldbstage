@@ -8,19 +8,20 @@
 #' @title import_who_ipcs
 #' @return None. Data is processed into the toxval_source database
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_generic_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
+#' @importFrom dplyr mutate bind_rows rename filter across case_when
 #--------------------------------------------------------------------------------------
 import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)

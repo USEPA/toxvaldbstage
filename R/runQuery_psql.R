@@ -1,23 +1,20 @@
-#library(RPostgreSQL)
-# library(DBI)
-#--------------------------------------------------------------------------------------
 #' @description Runs a PSQL database query and returns a result set
 #'
 #' @param query a properly formatted SQL query as a string
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
-#' @export 
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @export
+#' @title runQuery_psql
+#' @return Query results
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[RMySQL]{character(0)}}
 #'  \code{\link[RPostgreSQL]{PostgreSQL}}
 #'  \code{\link[DBI]{dbGetQuery}}

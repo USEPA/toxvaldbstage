@@ -2,7 +2,7 @@
 % Please edit documentation in R/runQuery_psql.R
 \name{runQuery_psql}
 \alias{runQuery_psql}
-\title{FUNCTION_TITLE}
+\title{runQuery_psql}
 \usage{
 runQuery_psql(query, db, do.halt = T, verbose = T)
 }
@@ -16,7 +16,7 @@ runQuery_psql(query, db, do.halt = T, verbose = T)
 \item{verbose}{if TRUE, print diagnostic information}
 }
 \value{
-OUTPUT_DESCRIPTION
+Query results
 }
 \description{
 Runs a PSQL database query and returns a result set

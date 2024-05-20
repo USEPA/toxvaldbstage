@@ -7,24 +7,25 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is loaded into toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{select}}
 #'  \code{\link[purrr]{reexports}}
 #'  \code{\link[stringr]{str_split}}, \code{\link[stringr]{str_match}}, \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{drop_na}}
 #' @rdname import_source_cal_dph
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate across case_when select any_of
 #' @importFrom stringr str_match str_squish
 #' @importFrom tidyr pivot_longer drop_na
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -40,16 +41,16 @@ import_source_cal_dph <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   #####################################################################
   res = res0 %>%
     # Replace NAs with actual NA value
-    dplyr::mutate(dplyr::across(where(is.character),
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character),
                                 .fns = ~replace(., . %in% c("--", "n/a", "withdrawn Nov. 2001", "none"),
                                                 NA))) %>%
 
     # Replace "zero" with actual 0
-    dplyr::mutate(dplyr::across(where(is.character),
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character),
                                 .fns = ~replace(., . == "zero", 0))) %>%
 
     # Replace scientific notation with numbers understandable to R
-    dplyr::mutate(dplyr::across(where(is.character),
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character),
                                 .fns = ~gsub("x10\\-", "e-", .))) %>%
 
     dplyr::mutate(

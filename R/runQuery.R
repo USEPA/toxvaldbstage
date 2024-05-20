@@ -1,6 +1,3 @@
-# library(RMySQL)
-# library(DBI)
-#--------------------------------------------------------------------------------------
 #' @description Runs a database query and returns a result set
 #'
 #' @param query a properly formatted SQL query as a string
@@ -8,8 +5,8 @@
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
 #' @export
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title runQuery
+#' @return Query results
 #' @details DETAILS
 #' @examples
 #' \dontrun{

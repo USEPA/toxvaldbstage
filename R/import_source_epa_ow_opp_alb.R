@@ -8,23 +8,24 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}
 #'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_source_epa_ow_opp_alb
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename mutate across
 #' @importFrom tidyr all_of pivot_longer separate
 #' @importFrom stringr str_squish
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_source_epa_ow_opp_alb <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -65,7 +66,7 @@ import_source_epa_ow_opp_alb <- function(db, chem.check.halt=FALSE, do.reset=FAL
       # Replace "NR" in casrn with "-"
       casrn = gsub("^NR$", "-", casrn),
       # Handle unicode symbols
-      dplyr::across(where(is.character), fix.replace.unicode),
+      dplyr::across(tidyselect::where(is.character), fix.replace.unicode),
       # Remove ">" and "<" from toxval columns...
       dplyr::across(tidyr::all_of(toxval_cols), ~gsub(" *[<>] *", "", .)),
       # ...and convert them all to numerics

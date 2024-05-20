@@ -1,23 +1,25 @@
 #' @title convert.fields.to.json
 #' @description Combine non-ID columns from audit table into JSON format for audit storage
-#' @param in_dat PARAM_DESCRIPTION
-#' @return OUTPUT_DESCRIPTION
+#' @param in_dat data to translate to JSON format
+#' @return Values in JSON format
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[dplyr]{summarise}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{bind}}
 #'  \code{\link[jsonlite]{toJSON, fromJSON}}
 #' @rdname convert.fields.to.json
-#' @export 
+#' @export
 #' @importFrom dplyr summarise select bind_rows
 #' @importFrom jsonlite toJSON
 convert.fields.to.json <- function(in_dat){
+  # Iterate through rows of data
   lapply(seq_len(nrow(in_dat)), function(row){
+    # Translate rows to JSON format
     in_dat[row, ] %>%
       dplyr::summarise(record = jsonlite::toJSON(.)) %>%
       dplyr::select(record)

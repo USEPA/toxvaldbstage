@@ -2,7 +2,7 @@
 % Please edit documentation in R/import.driver.R
 \name{import.driver}
 \alias{import.driver}
-\title{FUNCTION_TITLE}
+\title{import.driver}
 \usage{
 import.driver(
   db = "res_toxval_source_v5",
@@ -20,7 +20,7 @@ import.driver(
 \item{chem.chek.halt}{If TRUE and there are bad chemical names or casrn, #' stop to look at the results in indir/chemcheck.xlsx}
 }
 \value{
-OUTPUT_DESCRIPTION
+None
 }
 \description{
 Function to run all import scripts to fill toxval_source

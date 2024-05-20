@@ -3,7 +3,7 @@
 #' @param res The input dataframe
 #' @param source The data source name
 #' @return Returns the input dataframe with defaults set
-#' @title FUNCTION_TITLE
+#' @title source_set_defaults
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -13,12 +13,16 @@
 #' }
 #' @rdname source_set_defaults
 #' @export
+#' @seealso
+#'  [pull][dplyr::pull]
+#' @importFrom dplyr pull
 #--------------------------------------------------------------------------------------
 source_set_defaults <- function(res,source) {
   printCurrentFunction(source)
   for(i in 1:ncol(res)) {
     x = res %>% dplyr::pull(i)
     cc = class(x)
+    # Replace NA characters with "-"
     if(any(cc == "character")) {
       x[x %in% c(NA, "")] = "-"
       res[,i] = x

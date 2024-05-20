@@ -1,9 +1,26 @@
-# Script to export chemical entries that need curation
-# 2023-11-29
-
-# export_chemicals_to_curate
-# Export XLSX files by source for chemical curation
-
+#' @title export_chemicals_to_curate
+#' @description Export XLSX files by source for chemical curation
+#' @param db Version of toxval_source to use
+#' @param export_all Whether to export all chemicals, Default: FALSE
+#' @return None
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso
+#'  [separate][tidyr::separate]
+#'  [bind_rows][dplyr::bind_rows], [filter][dplyr::filter], [select][dplyr::select], [mutate][dplyr::mutate], [rowwise][dplyr::rowwise], [case_when][dplyr::case_when], [ungroup][dplyr::ungroup], [group_split][dplyr::group_split]
+#'  [read_xlsx][readxl::read_xlsx]
+#'  [write_xlsx][writexl::write_xlsx]
+#' @rdname export_chemicals_to_curate
+#' @export
+#' @importFrom tidyr separate
+#' @importFrom dplyr bind_rows filter select mutate rowwise case_when ungroup group_split
+#' @importFrom readxl read_xlsx
+#' @importFrom writexl write_xlsx
 export_chemicals_to_curate <- function(db, export_all=FALSE){
 
   message("Pulling chemicals to curate...")

@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_source_table_SQL.R
 \name{create_source_table_SQL}
 \alias{create_source_table_SQL}
-\title{FUNCTION_TITLE}
+\title{create_source_table_SQL}
 \usage{
 create_source_table_SQL(
   source,
@@ -20,14 +20,14 @@ create_source_table_SQL(
 
 \item{src_version}{Version date of the source}
 
-\item{db}{PARAM_DESCRIPTION}
+\item{db}{version of toxval_source to use}
 
 \item{do.halt}{if TRUE, halt on errors or warnings}
 
 \item{verbose}{if TRUE, print diagnostic information}
 }
 \value{
-OUTPUT_DESCRIPTION
+New SQL table as a tibble
 }
 \description{
 Input source data is used to generate the SQL for the source's toxval_source table.
