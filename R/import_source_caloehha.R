@@ -8,19 +8,19 @@
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ="../caloehha/caloehha_files/OEHHA-chemicals_2018-10-30T08-50-47.xlsx",
 #' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title import_source_caloehha
+#' @return None; data is pushed to ToxVal_Source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
-#' @rdname import_caloehha_source
-#' @export 
+#' @rdname import_source_caloehha
+#' @export
 #' @importFrom openxlsx read.xlsx
 #' @param do.reset PARAM_DESCRIPTION, Default: FALSE
 #' @param do.insert PARAM_DESCRIPTION, Default: FALSE
@@ -32,7 +32,7 @@
 #' @importFrom janitor excel_numeric_to_date
 #' @importFrom stats complete.cases
 #--------------------------------------------------------------------------------------
-import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source="Cal OEHHA"
   source_table = "source_caloehha"
@@ -479,9 +479,9 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                                                          "TBD")
                                            )
                        ),
-                       exposure_route = ifelse(grepl("inhalation", f_name),
+                       exposure_route = ifelse(grepl("inhalation|acute_rel", f_name),
                                                "inhalation",
-                                               ifelse(grepl("oral|acute_rel", f_name),
+                                               ifelse(grepl("oral", f_name),
                                                       "oral",
                                                       ifelse(grepl("dermal", f_name),
                                                             "dermal",
@@ -570,9 +570,16 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       # Fix severity
       dplyr::distinct()
 
-    # Set species to 'human' for Human Data
+    # Set final hardcoded values
     res <- res %>%
-      dplyr::mutate(species = ifelse(res$`Human Data` == "Yes" & res$species == "-", tolower("human"), tolower(species)))
+      dplyr::mutate(
+        species = "human",
+        experimental_record = "No",
+        toxval_type = dplyr::case_when(
+          toxval_type == "REL" ~ "Reference Exposure Level",
+          TRUE ~ toxval_type
+        )
+      )
 
     # Replace NA with -
     res$critical_effect <- stringr::str_replace_all(res$critical_effect, "NA", "-")
@@ -585,6 +592,9 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

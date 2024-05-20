@@ -421,7 +421,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Check if any available
   if(nrow(ranged)){
     ranged = ranged %>%
-      dplyr::mutate(range_relationship_id = 1:n()) %>%
+      dplyr::mutate(range_relationship_id = as.character(1:n())) %>%
       tidyr::separate_rows(toxval_numeric, sep="-") %>%
       dplyr::group_by(range_relationship_id) %>%
       dplyr::mutate(
@@ -432,7 +432,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   } else {
     # Empty dataframe with res cols to bind_rows()
     ranged = res[0,] %>%
-      dplyr::mutate(toxval_numeric = toxval_numeric)
+      dplyr::mutate(toxval_numeric = toxval_numeric,
+                    range_relationship_id = as.character(NA))
   }
 
   # Join back the range split rows and set origin
@@ -487,8 +488,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
     # Filter out entries with differing EC numbers
     dplyr::filter(!grepl("\\|", chemical.ec_number)) %>%
-    # Filter out entries with "other" toxval_type
-    dplyr::filter(!grepl("other", toxval_type)) %>%
     # Drop entries without necessary toxval columns
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type) %>%
     # Drop entries without either name or casrn
@@ -508,7 +507,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   res = res %>%
     # Conduct most cleaning operations after dropping rows to improve runtime
     dplyr::mutate(
-      dplyr::across(c("critical_effect", "organ_system", "target_organ", "hazard_category"),
+      dplyr::across(tidyselect::any_of(c("critical_effect", "organ_system", "target_organ",
+                                         "hazard_category", "critical_effect_other")),
                     ~stringr::str_replace(., stringr::regex("Results:|other:|not specified", ignore_case=TRUE), "") %>%
                       stringr::str_replace("\\|+", "\\|") %>%
                       stringr::str_replace("^\\||\\|$", "") %>%
@@ -913,18 +913,34 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         startsWith(toupper(toxval_type), "LD") ~ "mortality",
         TRUE ~ critical_effect
       )
-    ) %>%
+    )
 
-    # Build critical_effect column
-    tidyr::unite("critical_effect_combined",
-                 organ_system, target_organ, hazard_category, critical_effect,
-                 sep=": ",
-                 remove=FALSE,
-                 na.rm=TRUE) %>%
-    # Separately handle original critical_effect so other columns can be kept in unite() call
-    dplyr::mutate(critical_effect = critical_effect_combined) %>%
-    dplyr::select(-critical_effect_combined) %>%
+  # Handle critical_effect construction differently for RepeatedDoseToxicityOral
+  if("critical_effect_other" %in% names(res)) {
+    res = res %>%
+      dplyr::mutate(
+        critical_effect = dplyr::case_when(
+          is.na(critical_effect) & is.na(hazard_category) ~ critical_effect_other,
+          is.na(critical_effect) ~ hazard_category,
+          TRUE ~ stringr::str_c(hazard_category, ": ", critical_effect)
+        )
+      ) %>%
+      tidyr::unite("critical_effect", target_organ, critical_effect, remove=FALSE, na.rm=TRUE, sep=": ") %>%
+      dplyr::select(-critical_effect_other)
+  } else {
+    res = res %>%
+      # Build critical_effect column
+      tidyr::unite("critical_effect_combined",
+                   organ_system, target_organ, hazard_category, critical_effect,
+                   sep=": ",
+                   remove=FALSE,
+                   na.rm=TRUE) %>%
+      # Separately handle original critical_effect so other columns can be kept in unite() call
+      dplyr::mutate(critical_effect = critical_effect_combined) %>%
+      dplyr::select(-critical_effect_combined)
+  }
 
+  res = res %>%
     # Remove entries that should be dropped due to experimental_flag/data_purpose_category
     dplyr::filter(temp_to_drop == 0) %>%
     dplyr::select(!temp_to_drop) %>%
@@ -938,11 +954,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     # Filter out entries with NA exposure_route
     tidyr::drop_na(exposure_route)
 
-  # Filter out "dose level" and "conc. level" toxval_type if not RepeatedDoseToxicityOral
-  if(subf!="iuclid_repeateddosetoxicityoral") {
-    res = res %>%
-      dplyr::filter(!grepl("(?:conc\\.|dose) level", toxval_type))
-  }
+  # LOGIC COMMENTED OUT; desired behavior is to maintain these entries for all OHTs
+  # # Filter out "dose level" and "conc. level" toxval_type if not RepeatedDoseToxicityOral
+  # if(subf!="iuclid_repeateddosetoxicityoral") {
+  #   res = res %>%
+  #     dplyr::filter(!grepl("(?:conc\\.|dose) level", toxval_type))
+  # }
 
   # Account for exposure_route/method/form edge case
   if("exposure_method_other" %in% names(res)) {
@@ -1032,11 +1049,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       dplyr::select(-dcap_notes)
   }
 
-  # Collapse dose/conc level critical_effect values
-  if("dose level" %in% unique(res$toxval_type) | "conc. level" %in% unique(res$toxval_type)) {
+  # Collapse dose/conc level/other critical_effect values
+  if("dose level" %in% unique(res$toxval_type) | "conc. level" %in% unique(res$toxval_type) | "other" %in% unique(res$toxval_type)) {
+    cat("Source has 'dose/conc. level' or 'other' toxval_type. Converting to LEL...\n")
     # Separate out dose/conc level entries from res
     dose_conc_res = res %>%
-      dplyr::filter(toxval_type %in% c("dose level", "conc. level"))
+      dplyr::filter(toxval_type %in% c("dose level", "conc. level", "other")) %>%
+      # Set toxval_type for dose/conc level to be LEL
+      dplyr::mutate(toxval_type = "LEL")
 
     # Use deduping function to collapse just critical_effect
     dose_conc_hash_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))],
@@ -1052,7 +1072,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
     # Add dose_conc entries back to original data
     res = res %>%
-      dplyr::filter(!(toxval_type %in% c("dose level", "conc. level"))) %>%
+      dplyr::filter(!(toxval_type %in% c("dose level", "conc. level", "other"))) %>%
       dplyr::mutate(range_relationship_id = as.character(range_relationship_id)) %>%
       dplyr::bind_rows(dose_conc_res)
   }

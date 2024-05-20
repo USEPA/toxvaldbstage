@@ -19,19 +19,27 @@
 #' @importFrom dplyr rename select mutate
 #' @importFrom tidyr unite any_of
 #' @importFrom purrr map_chr
-prep.DAT.conversion <- function(in_dat, hash_id_list){
+prep.DAT.conversion <- function(in_dat=NULL, hash_id_list=NULL, hashing_type = "base"){
   in_dat = in_dat %>%
     dplyr::rename(parent_hash = src_record_id) %>%
-    # Remove extraneous DAT fields
-    dplyr::select(-dplyr::any_of(c("uuid", "description", "total_fields_changed", "dataset_description", "DAT_domain_name",
-                  "domain_description", "DAT_source_name", "source_description", "status_description"))) %>%
     # Alphabetize the columns to ensure consistent hashing column order
-    .[, sort(colnames(.))] %>%
-    tidyr::unite("pre_source_hash", tidyr::any_of(names(.)[!names(.) %in% hash_id_list]),
-                 sep="", remove = FALSE) %>%
-    # Set source_hash
-    dplyr::mutate(source_hash = purrr::map_chr(pre_source_hash, digest, serialize=FALSE)) %>%
-    dplyr::select(-pre_source_hash)
+    .[, sort(colnames(.))]
+
+  if(hashing_type == "base"){
+    in_dat.temp = in_dat %>%
+      dplyr::select(-dplyr::any_of(hash_id_list))
+    # Old hashing system
+    for (i in 1:nrow(in_dat)){
+      row <- in_dat.temp[i,]
+      in_dat[i,"source_hash"] <- digest::digest(paste0(row,collapse=""), serialize = FALSE)
+      if(i%%1000==0) cat(i," out of ",nrow(in_dat),"\n")
+    }
+  } else if(hashing_type == "vectorized"){
+    in_dat.temp = source_hash_vectorized(in_dat, hashing_cols=toxval.config()$hashing_cols)
+    in_dat$source_hash = in_dat.temp$source_hash
+  } else {
+    stop("'", hashing_type, "' not a supported hashing_type. Set to 'base' or 'vectorized'.")
+  }
 
   return(in_dat)
 }

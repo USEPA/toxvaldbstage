@@ -366,14 +366,25 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
   res = res %>%
     # Filter out entries without valid toxval columns
     tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
-    # Fix unicode symbols in character fields and ensure numeric fields are of numeric type
-    dplyr::mutate(dplyr::across(dplyr::where(is.character),
-                                ~fix.replace.unicode(.) %>%
-                                  stringr::str_squish() %>%
-                                  # Set empty strings to NA
-                                  dplyr::na_if("") %>%
-                                  tidyr::replace_na("-")),
-                  toxval_numeric = as.numeric(toxval_numeric))%>%
+    dplyr::mutate(
+      # Fix unicode symbols in character fields
+      dplyr::across(dplyr::where(is.character),
+                    ~fix.replace.unicode(.) %>%
+                      stringr::str_squish() %>%
+                      # Set empty strings to NA
+                      dplyr::na_if("") %>%
+                      tidyr::replace_na("-")),
+
+      # Ensure numeric fields are of numeric type
+      toxval_numeric = as.numeric(toxval_numeric),
+
+      # Set toxval_subtype using study_type
+      toxval_subtype = dplyr::case_when(
+        study_type %in% c(as.character(NA), "-", "") | !(toxval_type %in% c("RfD", "RfC")) ~ toxval_subtype,
+        toxval_subtype %in% c(as.character(NA), "-", "") ~ study_type,
+        TRUE ~ stringr::str_c(toxval_subtype, study_type, sep = " ")
+      )
+    ) %>%
     # Drop temp column
     dplyr::select(-toxval_with_units) %>%
     # Drop duplicates
