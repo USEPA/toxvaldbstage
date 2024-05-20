@@ -489,8 +489,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
     # Filter out entries with differing EC numbers
     dplyr::filter(!grepl("\\|", chemical.ec_number)) %>%
-    # Filter out entries with "other" toxval_type
-    dplyr::filter(!grepl("other", toxval_type)) %>%
     # Drop entries without necessary toxval columns
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type) %>%
     # Drop entries without either name or casrn
@@ -1052,12 +1050,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       dplyr::select(-dcap_notes)
   }
 
-  # Collapse dose/conc level critical_effect values
-  if("dose level" %in% unique(res$toxval_type) | "conc. level" %in% unique(res$toxval_type)) {
-    cat("Source has dose/conc. level toxval_type. Converting to LEL...\n")
+  # Collapse dose/conc level/other critical_effect values
+  if("dose level" %in% unique(res$toxval_type) | "conc. level" %in% unique(res$toxval_type) | "other" %in% unique(res$toxval_type)) {
+    cat("Source has 'dose/conc. level' or 'other' toxval_type. Converting to LEL...\n")
     # Separate out dose/conc level entries from res
     dose_conc_res = res %>%
-      dplyr::filter(toxval_type %in% c("dose level", "conc. level")) %>%
+      dplyr::filter(toxval_type %in% c("dose level", "conc. level", "other")) %>%
       # Set toxval_type for dose/conc level to be LEL
       dplyr::mutate(toxval_type = "LEL")
 
@@ -1075,7 +1073,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
     # Add dose_conc entries back to original data
     res = res %>%
-      dplyr::filter(!(toxval_type %in% c("dose level", "conc. level"))) %>%
+      dplyr::filter(!(toxval_type %in% c("dose level", "conc. level", "other"))) %>%
       dplyr::mutate(range_relationship_id = as.character(range_relationship_id)) %>%
       dplyr::bind_rows(dose_conc_res)
   }
