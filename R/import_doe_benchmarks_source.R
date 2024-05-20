@@ -7,22 +7,21 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
-#'  \code{\link[tidyselect]{starts_with}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
 #'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{separate}}
 #' @rdname import_doe_benchmarks_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
-#' @importFrom dplyr mutate row_number select rename bind_rows across case_when distinct
+#' @importFrom dplyr mutate row_number select rename bind_rows across case_when distinct starts_with
 #' @importFrom tidyselect matches contains
 #' @importFrom stringr str_squish str_extract
 #' @importFrom tidyr pivot_longer drop_na separate
@@ -84,11 +83,11 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
   }
 
   res0_endpoint_N = res0_endpoint_N %>%
-    tidyr::unite(col = "toxval_subtype", tidyselect::starts_with("NOAEL"),
+    tidyr::unite(col = "toxval_subtype", dplyr::starts_with("NOAEL"),
                  sep = ", ",
                  na.rm = TRUE)
   res0_endpoint_L = res0_endpoint_L %>%
-    tidyr::unite(col = "toxval_subtype", tidyselect::starts_with("LOAEL"),
+    tidyr::unite(col = "toxval_subtype", dplyr::starts_with("LOAEL"),
                  sep = ", ",
                  na.rm = TRUE)
 
