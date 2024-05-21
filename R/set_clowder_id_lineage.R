@@ -94,7 +94,7 @@ set_clowder_id_lineage <- function(source_table,
                         #                                             collapse = "; "))
                       },
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                      "clowder_v3/source_pprtv_cphea_doument_map_20240221_jnhope.xlsx")),
+                                                                      "clowder_v3/source_pprtv_cphea_doument_map_20240521_jnhope.xlsx")),
                       "source_who_jecfa_adi" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_who_jecfa_adi_document_map_20240227.xlsx")),
                       "source_who_jecfa_tox_studies" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -316,11 +316,26 @@ set_clowder_id_lineage <- function(source_table,
     res <- switch(source_table,
 
                   "source_pprtv_cphea" = {
-                    res <- res %>%
+                    # Match to origin docs
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+                    res1 <- res %>%
                       dplyr::select(source_hash, source_version_date, name) %>%
-                      dplyr::left_join(map_file %>%
+                      dplyr::left_join(origin_docs %>%
                                          dplyr::select(fk_doc_id, clowder_id, Chemical),
                                        by=c("name"="Chemical"))
+
+                    # Match to extraction doc
+                    extraction_doc <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date, name) %>%
+                      merge(extraction_doc %>%
+                              dplyr::select(fk_doc_id, clowder_id))
+
+                    # Combine origin and extraction associations
+                    res = rbind(res1, tmp)
+
                     # Return res
                     res
                   },
