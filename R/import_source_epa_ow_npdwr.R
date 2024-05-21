@@ -9,19 +9,19 @@
 #' @description FUNCTION_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_source_epa_ow_npdwr
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename mutate across
 #' @importFrom tidyr pivot_longer separate
@@ -56,7 +56,8 @@ import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE,
     tidyr::separate(toxval_type, c("toxval_type", "toxval_units"), sep = "\\s\\(",
                     extra = "merge", fill = "right", remove = FALSE) %>%
     # Remove closing parentheses from units
-    dplyr::mutate(toxval_units = gsub("\\)$", "", toxval_units),
+    dplyr::mutate(study_type = "toxicity value",
+                  toxval_units = gsub("\\)$", "", toxval_units),
                   # Clean up some of the low-hanging issues in toxval_numeric
                   toxval_numeric = gsub(" as of \\d\\d/\\d\\d/\\d\\d$|^none -+ ",
                                         "", toxval_numeric),
