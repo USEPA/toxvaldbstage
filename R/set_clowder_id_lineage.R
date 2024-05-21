@@ -47,7 +47,7 @@ set_clowder_id_lineage <- function(source_table,
                           dplyr::filter(!is.na(clowder_id))
                       },
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_iris_2023_document_map_20240319.xlsx"), col_type = "text"),
+                                                               "clowder_v3/source_iris_2023_document_map_20240521.xlsx"), col_type = "text"),
                       # "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                           "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
                       "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -386,38 +386,51 @@ set_clowder_id_lineage <- function(source_table,
                     origin_docs <- map_file %>%
                       dplyr::filter(document_type == "origin")
 
-                    # Perform a left join on chemical names to match chemical names
+                    # Perform a left join on chemical id to match chemical ids
                     res1 <- res %>%
                       dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
                       tidyr::separate_rows(iris_chemical_id, sep="\\|::\\|") %>%
                       dplyr::mutate(iris_chemical_id = iris_chemical_id %>%
                                       stringr::str_squish()) %>%
                       dplyr::left_join(origin_docs %>%
-                                         dplyr::select(iris_chemical_id = chem_id, clowder_id, fk_doc_id, document_type),
+                                         dplyr::select(iris_chemical_id = chem_id, clowder_id, fk_doc_id),
                                        by = "iris_chemical_id")
+
+                    # Perform a left join on chemicals names for those that weren't matched on chemical id
+                    res2 <- res1 %>%
+                      filter(is.na(clowder_id)) %>%
+                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(name, clowder_id, fk_doc_id),
+                                       by = "name")
+
+                    # Remove the records with missing clowder ids from res1 since they are associated with res2
+                    res1 <- res1 %>%
+                      filter(!is.na(clowder_id))
 
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
                       dplyr::filter(!(document_type == "origin"))
 
-                    # Preform a left join to associate extraction doc to records based on document_type
-                    res2 <- res %>%
-                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date, document_type) %>%
-                      dplyr::rowwise() %>%
+                    res3 <- res %>%
+                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+                      #dplyr::rowwise() %>%
                       # Handle case of collapsed document_type
-                      dplyr::mutate(document_type = document_type %>%
-                                      strsplit("|::|", fixed=TRUE) %>%
-                                      unlist() %>%
-                                      stringr::str_squish() %>%
-                                      unique()) %>%
-                      dplyr::ungroup() %>%
-                      dplyr::left_join(extraction_docs %>%
-                                         dplyr::select(clowder_id, fk_doc_id, iris_document_type),
-                                       by = c("document_type" = "iris_document_type"))
+                      #dplyr::mutate(document_type = document_type %>%
+                      #                strsplit("|::|", fixed=TRUE) %>%
+                      #                unlist() %>%
+                      #               stringr::str_squish() %>%
+                      #                unique()) %>%
+                      #dplyr::ungroup() %>%
+                      #dplyr::left_join(extraction_docs %>%
+                      #                   dplyr::select(clowder_id, fk_doc_id, iris_document_type),
+                      #                 by = c("document_type" = "iris_document_type"))
 
 
                     # Combine the two associated data frames back into res
-                    res <- rbind(res1, res2) %>%
+                    res <- rbind(res1, res2, res3) %>%
                       dplyr::arrange(source_hash)
 
                     #Return the mapped res with document names and clowder ids
