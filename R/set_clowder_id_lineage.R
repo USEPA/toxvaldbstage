@@ -96,9 +96,9 @@ set_clowder_id_lineage <- function(source_table,
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                       "clowder_v3/source_pprtv_cphea_doument_map_20240521_jnhope.xlsx")),
                       "source_who_jecfa_adi" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                    "clowder_v3/source_who_jecfa_adi_document_map_20240227.xlsx")),
+                                                                        "clowder_v3/source_who_jecfa_adi_document_map_20240227.xlsx")),
                       "source_who_jecfa_tox_studies" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                        "clowder_v3/source_who_jecfa_tox_studies_document_map_20240227.xlsx")),
+                                                                                "clowder_v3/source_who_jecfa_tox_studies_document_map_20240227.xlsx")),
                       "source_epa_ow_npdwr" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_epa_ow_npdwr_document_map.xlsx")),
                       "source_epa_ow_nrwqc_hhc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -114,7 +114,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20240221_jnhope.xlsx")),
                       "source_health_canada" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                   "clowder_v3/source_health_canada_document_map.xlsx")),
+                                                                        "clowder_v3/source_health_canada_document_map.xlsx")),
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                                        document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -139,9 +139,9 @@ set_clowder_id_lineage <- function(source_table,
                       "source_ow_dwsha" = data.frame(clowder_id = "610036ede4b01a90a3f98ae0",
                                                      document_name = "b5ffe2b7e16578b78213213141cfc3ad-United States Environmental Protection Agency (USEPA)-2018-2018 Drink.pdf"),
                       "source_penn_dep_mcls" = data.frame(clowder_id = "65de5f44e4b063812d6afbb2",
-                                                     document_name = "Pen DEP MCLs_2021-11-20_extraction.zip"),
+                                                          document_name = "Pen DEP MCLs_2021-11-20_extraction.zip"),
                       "source_penn_dep_toxvalues" = data.frame(clowder_id = "65de5e8ae4b063812d6afb91",
-                                                 document_name = "PEN DEP ToxValues20211120.zip"),
+                                                               document_name = "PEN DEP ToxValues20211120.zip"),
                       "source_usgs_hbsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_usgs_hbsl_document_map_20240221_jnhope.xlsx")),
                       "source_who_ipcs" = data.frame(clowder_id = "65de5b96e4b063812d6afb23",
@@ -170,10 +170,10 @@ set_clowder_id_lineage <- function(source_table,
                                                                col_types = "text", guess_max=21474836),
 
                       "source_heast" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                 "clowder_v3/source_heast_document_map.xlsx"), col_types = "text"),
+                                                                "clowder_v3/source_heast_document_map.xlsx"), col_types = "text"),
 
                       "source_doe_pac" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                "clowder_v3/source_doe_pac_document_map.xlsx"), col_types = "text") %>%
+                                                                  "clowder_v3/source_doe_pac_document_map.xlsx"), col_types = "text") %>%
                         tidyr::separate_rows(id, filename, sep="; ") %>%
                         dplyr::select(-contentType) %>%
                         dplyr::distinct(),
@@ -368,7 +368,7 @@ set_clowder_id_lineage <- function(source_table,
                   "source_rsl" = {
                     res <- res %>%
                       dplyr::left_join(map_file,
-                                by=c("raw_input_file"="document_name"))
+                                       by=c("raw_input_file"="document_name"))
                     # Return res
                     res
                   },
@@ -486,8 +486,8 @@ set_clowder_id_lineage <- function(source_table,
                     # Match by chemical name
                     res0 = res %>%
                       dplyr::left_join(map_file %>%
-                                  dplyr::select(Chemical, clowder_id, fk_doc_id),
-                                by=c("name" = "Chemical")) %>%
+                                         dplyr::select(Chemical, clowder_id, fk_doc_id),
+                                       by=c("name" = "Chemical")) %>%
                       dplyr::filter(!is.na(clowder_id))
                     # Filter to non-matches
                     res = res %>%
@@ -495,8 +495,8 @@ set_clowder_id_lineage <- function(source_table,
                     # Match by cas
                     res1 = res %>%
                       dplyr::left_join(map_file %>%
-                                  dplyr::select(CASRN, clowder_id, fk_doc_id),
-                                by= c("casrn"="CASRN")) %>%
+                                         dplyr::select(CASRN, clowder_id, fk_doc_id),
+                                       by= c("casrn"="CASRN")) %>%
                       dplyr::filter(!is.na(clowder_id))
                     # Filter to non-matches
                     res = res %>%
@@ -597,8 +597,8 @@ set_clowder_id_lineage <- function(source_table,
                   "source_hpvis" = {
                     res = res %>%
                       dplyr::left_join(map_file %>%
-                                  dplyr::select(clowder_id, document_name, fk_doc_id),
-                                by = c("raw_input_file"="document_name"))
+                                         dplyr::select(clowder_id, document_name, fk_doc_id),
+                                       by = c("raw_input_file"="document_name"))
                     # Return res
                     res
                   },
@@ -612,8 +612,8 @@ set_clowder_id_lineage <- function(source_table,
                     res1 <- res %>%
                       dplyr::select(source_hash, source_version_date, srcf) %>%
                       dplyr::left_join(origin_docs %>%
-                                  dplyr::select(clowder_id, filename, fk_doc_id),
-                                by = c("srcf"="filename"))
+                                         dplyr::select(clowder_id, filename, fk_doc_id),
+                                       by = c("srcf"="filename"))
 
                     # Associates extraction document to all records
                     extraction_docs <- map_file %>%
@@ -641,9 +641,9 @@ set_clowder_id_lineage <- function(source_table,
                     res1 <- res %>%
                       dplyr::select(source_hash, title, source_version_date) %>%
                       dplyr::left_join(origin_docs %>%
-                                  dplyr::select(clowder_id, title, fk_doc_id) %>%
-                                  dplyr::distinct(),
-                                by = "title")
+                                         dplyr::select(clowder_id, title, fk_doc_id) %>%
+                                         dplyr::distinct(),
+                                       by = "title")
 
                     # Match to extraction doc
                     extraction_doc <- map_file %>%
@@ -665,10 +665,10 @@ set_clowder_id_lineage <- function(source_table,
                     # Focus only on the study id and clowder id fields for matching
                     res <- res %>%
                       dplyr::left_join(map_file %>%
-                                  dplyr::filter(!is.na(clowder_id)) %>%
-                                  dplyr::select(clowder_id, fk_doc_id, animal_group.experiment.study.id) %>%
-                                  dplyr::distinct(),
-                                by=c("study_id" = "animal_group.experiment.study.id")) %>%
+                                         dplyr::filter(!is.na(clowder_id)) %>%
+                                         dplyr::select(clowder_id, fk_doc_id, animal_group.experiment.study.id) %>%
+                                         dplyr::distinct(),
+                                       by=c("study_id" = "animal_group.experiment.study.id")) %>%
                       dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
 
                     # Match to extraction doc
@@ -714,8 +714,8 @@ set_clowder_id_lineage <- function(source_table,
                     #Perform a left join on chemical names to match clowder ids and document names
                     res <- res %>%
                       dplyr::left_join(map_file %>%
-                                  dplyr::select(name = Chemical, clowder_id, filename, fk_doc_id),
-                                by = "name")
+                                         dplyr::select(name = Chemical, clowder_id, filename, fk_doc_id),
+                                       by = "name")
                     #Return the mapped res with document names and clowder ids
                     res
                   },
@@ -732,8 +732,8 @@ set_clowder_id_lineage <- function(source_table,
                     res1 <- res %>%
                       dplyr::select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
                       dplyr::left_join(origin_docs %>%
-                                  dplyr::select(clowder_id, filename, chemical_id, fk_doc_id),
-                                by = "chemical_id")
+                                         dplyr::select(clowder_id, filename, chemical_id, fk_doc_id),
+                                       by = "chemical_id")
 
                     # Associates extraction document to all records
                     extraction_docs <- map_file %>%
@@ -763,8 +763,8 @@ set_clowder_id_lineage <- function(source_table,
                     res1 <- res %>%
                       dplyr::select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
                       dplyr::left_join(origin_docs %>%
-                                  dplyr::select(clowder_id, filename, chemical_id, fk_doc_id),
-                                by = "chemical_id")
+                                         dplyr::select(clowder_id, filename, chemical_id, fk_doc_id),
+                                       by = "chemical_id")
 
                     # Associates extraction document to all records
                     extraction_docs <- map_file %>%
@@ -992,9 +992,9 @@ set_clowder_id_lineage <- function(source_table,
                     res <- res %>%
                       dplyr::select(short_ref, source_hash, source_version_date) %>%
                       dplyr::left_join(map_file %>%
-                                  dplyr::select(short_ref, clowder_id, fk_doc_id) %>%
-                                  dplyr::distinct(),
-                                by = "short_ref")
+                                         dplyr::select(short_ref, clowder_id, fk_doc_id) %>%
+                                         dplyr::distinct(),
+                                       by = "short_ref")
                     # Match to extraction doc
                     tmp = res %>%
                       dplyr::select(short_ref, source_hash, source_version_date) %>%
@@ -1033,46 +1033,46 @@ set_clowder_id_lineage <- function(source_table,
                     # Sync map_file chemical name cleaning
                     map_file = map_file %>%
                       dplyr::mutate(name = name %>%
-                                    # Fix Unicode symbols
-                                    fix.replace.unicode() %>%
+                                      # Fix Unicode symbols
+                                      fix.replace.unicode() %>%
 
-                                    # Remove trademark symbols
-                                    gsub("\u00ae|<U+00ae>", "", .) %>%
+                                      # Remove trademark symbols
+                                      gsub("\u00ae|<U+00ae>", "", .) %>%
 
-                                    # Fix whitespace
-                                    gsub("[\r\n][\r\n]", " ", .) %>%
-                                    gsub("\u00a0|<U+00A0>", " ", .) %>%
+                                      # Fix whitespace
+                                      gsub("[\r\n][\r\n]", " ", .) %>%
+                                      gsub("\u00a0|<U+00A0>", " ", .) %>%
 
-                                    # Fix quotations and apostrophes
-                                    gsub("\u201c|<U+201C>|\u201d|<U+201D>", '"', .) %>%
-                                    gsub("\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>", "'", .) %>%
+                                      # Fix quotations and apostrophes
+                                      gsub("\u201c|<U+201C>|\u201d|<U+201D>", '"', .) %>%
+                                      gsub("\u2018|<U+2018>|\u0092|<U+0092>|\u2019|<U+2019>", "'", .) %>%
 
-                                    # Fix superscript/subscript
-                                    gsub("\u00b3|<U+00B3>", "3", .) %>%
-                                    gsub("\u00b9|<U+00B9>", "1", .) %>%
-                                    gsub("\u2070|<U+2070>", "0", .) %>%
-                                    gsub("\u00b2|<U+00B2>", "2", .) %>%
-                                    gsub("\u2079|<U+2079>", "9", .) %>%
-                                    gsub("\u2078|<U+2078>", "8", .) %>%
-                                    gsub("\u2074|<U+2074>", "4", .) %>%
-                                    gsub("\u2077|<U+2077>", "7", .) %>%
-                                    gsub("\u2076|<U+2076>", "6", .) %>%
+                                      # Fix superscript/subscript
+                                      gsub("\u00b3|<U+00B3>", "3", .) %>%
+                                      gsub("\u00b9|<U+00B9>", "1", .) %>%
+                                      gsub("\u2070|<U+2070>", "0", .) %>%
+                                      gsub("\u00b2|<U+00B2>", "2", .) %>%
+                                      gsub("\u2079|<U+2079>", "9", .) %>%
+                                      gsub("\u2078|<U+2078>", "8", .) %>%
+                                      gsub("\u2074|<U+2074>", "4", .) %>%
+                                      gsub("\u2077|<U+2077>", "7", .) %>%
+                                      gsub("\u2076|<U+2076>", "6", .) %>%
 
-                                    # Fix general punctuation
-                                    gsub("\u00b4|<U+00B4>", "'", .) %>%
-                                    gsub("\u2013|<U+2013>", "-", .) %>%
-                                    gsub("\u00bf|<U+00BF>", "?", .) %>%
+                                      # Fix general punctuation
+                                      gsub("\u00b4|<U+00B4>", "'", .) %>%
+                                      gsub("\u2013|<U+2013>", "-", .) %>%
+                                      gsub("\u00bf|<U+00BF>", "?", .) %>%
 
-                                    # Fix math symbols
-                                    gsub("\u2265|<U+2265>", ">=", .) %>%
-                                    gsub("\u00b1|<U+00B1>", "+/-", .) %>%
-                                    gsub("\u00b0|<U+00B0>", "", .) %>%
-                                    gsub("\u00b0|<U+00B0>", "", .) %>%
-                                    gsub("\u2032|<U+2032>", "", .) %>%
-                                    gsub("\u00b7|<U+00B7>", "*", .) %>%
+                                      # Fix math symbols
+                                      gsub("\u2265|<U+2265>", ">=", .) %>%
+                                      gsub("\u00b1|<U+00B1>", "+/-", .) %>%
+                                      gsub("\u00b0|<U+00B0>", "", .) %>%
+                                      gsub("\u00b0|<U+00B0>", "", .) %>%
+                                      gsub("\u2032|<U+2032>", "", .) %>%
+                                      gsub("\u00b7|<U+00B7>", "*", .) %>%
 
-                                    # Remove excess whitespace
-                                    stringr::str_squish())
+                                      # Remove excess whitespace
+                                      stringr::str_squish())
                     # Join on name
                     res <- res %>%
                       dplyr::select(source_hash, source_version_date, name) %>%
@@ -1100,10 +1100,10 @@ set_clowder_id_lineage <- function(source_table,
                     res <- res %>%
                       dplyr::select(source_hash, source_version_date, trv_source) %>%
                       dplyr::left_join(map_file %>%
-                                  dplyr::filter(!is.na(clowder_id)) %>%
-                                    dplyr::select(clowder_id, fk_doc_id, trv_source) %>%
-                                    dplyr::distinct(), relationship = "many-to-many",
-                                by = "trv_source")
+                                         dplyr::filter(!is.na(clowder_id)) %>%
+                                         dplyr::select(clowder_id, fk_doc_id, trv_source) %>%
+                                         dplyr::distinct(), relationship = "many-to-many",
+                                       by = "trv_source")
 
 
                     # Match to extraction doc
