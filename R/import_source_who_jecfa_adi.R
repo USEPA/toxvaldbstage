@@ -132,14 +132,14 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
   # Check if any available
   if(nrow(ranged)){
     ranged = ranged %>%
-      dplyr::mutate(range_relationship_id = 1:n()) %>%
+      dplyr::mutate(range_relationship_id = 1:dplyr::n()) %>%
       tidyr::separate_rows(toxval_numeric, sep="-") %>%
       dplyr::group_by(range_relationship_id) %>%
       dplyr::mutate(
         toxval_numeric = as.numeric(toxval_numeric),
         relationship = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
       ) %>%
-      ungroup()
+      dplyr::ungroup()
   } else {
     # Empty dataframe with res cols to bind_rows()
     ranged = res[0,]
