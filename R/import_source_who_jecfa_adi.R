@@ -8,17 +8,17 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_generic_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr mutate rename case_when filter select n group_by ungroup bind_rows
@@ -132,14 +132,14 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
   # Check if any available
   if(nrow(ranged)){
     ranged = ranged %>%
-      dplyr::mutate(range_relationship_id = 1:dplyr::n()) %>%
+      dplyr::mutate(range_relationship_id = 1:n()) %>%
       tidyr::separate_rows(toxval_numeric, sep="-") %>%
       dplyr::group_by(range_relationship_id) %>%
       dplyr::mutate(
         toxval_numeric = as.numeric(toxval_numeric),
         relationship = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
       ) %>%
-      dplyr::ungroup()
+      ungroup()
   } else {
     # Empty dataframe with res cols to bind_rows()
     ranged = res[0,]
@@ -149,7 +149,17 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
   res <- res %>%
     dplyr::filter(!grepl("-(?![eE])", toxval_numeric, perl=TRUE)) %>%
     dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
-    dplyr::bind_rows(., ranged)
+    dplyr::bind_rows(., ranged) %>%
+    # Filter out toxval_numeric = 0
+    dplyr::filter(toxval_numeric != 0) %>%
+    # Add correct toxval_numeric_qualifier
+    dplyr::mutate(
+      toxval_numeric_qualifier = dplyr::case_when(
+        relationship == "Lower Range" ~ ">=",
+        relationship == "Upper Range" ~ "<=",
+        TRUE ~ toxval_numeric_qualifier
+      )
+    )
 
   # Standardize the names
   names(res) <- names(res) %>%

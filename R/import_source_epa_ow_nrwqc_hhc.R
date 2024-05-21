@@ -8,19 +8,19 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[stringr]{str_detect}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_source_epa_ow_nrwqc_hhc
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename mutate across rowwise
 #' @importFrom tidyr pivot_longer matches separate
@@ -80,6 +80,7 @@ import_source_epa_ow_nrwqc_hhc <- function(db, chem.check.halt=FALSE, do.reset=F
     # Additional separation and renaming of toxval_type
     # Tidy up variables
     dplyr::mutate(
+      study_type = "toxicity value",
       # Remove trailing paren from toxval_units
       toxval_units = gsub("\\)$", "", toxval_units),
       # Create priority_pollutant column...
