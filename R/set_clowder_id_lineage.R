@@ -40,7 +40,7 @@ set_clowder_id_lineage <- function(source_table,
     # Switch case to load specific source document map files
     map_file = switch(source_table,
                       "source_caloehha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                   "clowder_v3/source_caloehha_document_map_20240130.xlsx")),
+                                                                   "clowder_v3/source_caloehha_document_map_20240521.xlsx")),
                       "source_cosmos" = { readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_cosmos_document_map_20240227.xlsx"),
                                                             guess_max=21474836) %>%
