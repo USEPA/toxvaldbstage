@@ -110,7 +110,7 @@ set_clowder_id_lineage <- function(source_table,
                                                                        "clowder_v3/source_epa_ow_opp_alb_document_map.csv"),
                                                                 col_types = readr::cols()),
                       "source_atsdr_mrls" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                     "clowder_v3/source_atsdr_mrls_sept2023_doc_map_20240319.xlsx")),
+                                                                     "clowder_v3/source_atsdr_mrls_doc_map_20240521.xlsx")),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20240221_jnhope.xlsx")),
                       "source_health_canada" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -880,7 +880,7 @@ set_clowder_id_lineage <- function(source_table,
                     res1 <- res %>%
                       dplyr::select(name, source_hash, source_version_date) %>%
                       dplyr::left_join(origin_docs %>%
-                                         dplyr::select(name = "Chemical Name", clowder_id, fk_doc_id, document_type),
+                                         dplyr::select(name = "Chemical Name", clowder_id, fk_doc_id),
                                        by = "name")
 
                     # Hard code matches with grep for chemical name
@@ -913,18 +913,20 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Perform a left join on chemical names to match chemical names
                     res2 <- res %>%
-                      dplyr::select(name, source_hash, source_version_date, document_type) %>%
-                      dplyr::rowwise() %>%
+                      dplyr::select(name, source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+                      #dplyr::rowwise() %>%
                       # Handle case of collapsed document_type
-                      dplyr::mutate(document_type = document_type %>%
-                                      strsplit("|::|", fixed=TRUE) %>%
-                                      unlist() %>%
-                                      stringr::str_squish() %>%
-                                      unique()) %>%
-                      dplyr::ungroup() %>%
-                      dplyr::left_join(extraction_docs %>%
-                                         dplyr::select(clowder_id, fk_doc_id, atsdr_document_type),
-                                       by = c("document_type"="atsdr_document_type"))
+                      #dplyr::mutate(document_type = document_type %>%
+                      #                strsplit("|::|", fixed=TRUE) %>%
+                      #                unlist() %>%
+                      #                stringr::str_squish() %>%
+                      #                unique()) %>%
+                      #dplyr::ungroup() %>%
+                      #dplyr::left_join(extraction_docs %>%
+                      #                   dplyr::select(clowder_id, fk_doc_id, atsdr_document_type),
+                      #                 by = c("document_type"="atsdr_document_type"))
 
                     # Combine the two associated dataframes back into res
                     res <- rbind(res1, res2) %>%
