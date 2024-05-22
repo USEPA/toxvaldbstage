@@ -51,7 +51,7 @@ set_clowder_id_lineage <- function(source_table,
                       # "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                           "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
                       "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                     "clowder_v3/pprtv_ncea_document_map_01122023.xlsx")),
+                                                                     "clowder_v3/source_pprtv_ncea_document_map_20240522.xlsx")),
                       # "source_efsa2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                    "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx")),
                       "source_hawc_pfas_150" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -496,36 +496,30 @@ set_clowder_id_lineage <- function(source_table,
 
                   "source_pprtv_ncea" = {
                     res$document_name <- NULL
-                    # Match by chemical name
-                    res0 = res %>%
-                      dplyr::left_join(map_file %>%
-                                         dplyr::select(Chemical, clowder_id, fk_doc_id),
-                                       by=c("name" = "Chemical")) %>%
-                      dplyr::filter(!is.na(clowder_id))
-                    # Filter to non-matches
-                    res = res %>%
-                      dplyr::filter(!name %in% res0$name)
-                    # Match by cas
-                    res1 = res %>%
-                      dplyr::left_join(map_file %>%
+
+                    # Associate origin docs
+                    origin_docs <- map_file %>%
+                      dplyr::filter(parent_flag == "primary_source")
+                    # Perform a left join to association origin docs based on casn
+                    res1 <- res %>%
+                      dplyr::select(casrn, name, source_hash, source_version_date) %>%
+                      dplyr::left_join(origin_docs %>%
                                          dplyr::select(CASRN, clowder_id, fk_doc_id),
-                                       by= c("casrn"="CASRN")) %>%
-                      dplyr::filter(!is.na(clowder_id))
-                    # Filter to non-matches
-                    res = res %>%
-                      dplyr::filter(!casrn %in% res1$casrn) %>%
-                      dplyr::mutate(clowder_id = NA)
+                                       by = c("casrn"="CASRN"))
 
-                    # Hardcode matching of "thiocyanate" to "thiocyanates"
-                    res$clowder_id[which(res$name == "Thiocyanate")] <- "639a2fe6e4b04f6bb14a2734"
 
-                    # Match for fk_doc_id field
-                    res <- res %>%
-                      dplyr::left_join(map_file %>%
-                                         dplyr::select(fk_doc_id, clowder_id),
-                                       by="clowder_id")
+                    # Associate all records to extraction doc
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(parent_flag == "has_parent")
+                    res2 <- res %>%
+                      dplyr::select(casrn, name, source_hash, source_version_date) %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id))
 
-                    res = rbind(res, res0, res1)
+                    # Combine the two associated dataframes back into res
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+
                     # Return res
                     res
                   },
