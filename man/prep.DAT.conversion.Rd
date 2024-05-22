@@ -4,7 +4,7 @@
 \alias{prep.DAT.conversion}
 \title{prep.DAT.conversion}
 \usage{
-prep.DAT.conversion(in_dat, hash_id_list)
+prep.DAT.conversion(in_dat = NULL, hash_id_list = NULL, hashing_type = "base")
 }
 \arguments{
 \item{in_dat}{Input DAT data}

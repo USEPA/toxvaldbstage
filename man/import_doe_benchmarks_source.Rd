@@ -39,7 +39,6 @@ if(interactive()){
 \seealso{
 \code{\link[readxl]{read_excel}}
  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
- \code{\link[tidyselect]{starts_with}}
  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{separate}}
 }

@@ -19,7 +19,7 @@
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_pfas_150_sem_v2_source
 #' @export
-#' #' @importFrom openxlsx read.xlsx
+#' @importFrom openxlsx read.xlsx
 #' @importFrom digest digest
 #' @importFrom generics is.element
 #' @importFrom readxl read_xlsx

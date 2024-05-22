@@ -4,7 +4,13 @@
 \alias{DAT.pipe.source.audit}
 \title{DAT.pipe.source.audit}
 \usage{
-DAT.pipe.source.audit(source_table, db, live_df, audit_df)
+DAT.pipe.source.audit(
+  source_table,
+  db,
+  live_df,
+  audit_df,
+  hashing_type = "vectorized"
+)
 }
 \arguments{
 \item{source_table}{name of ToxVal source table audit information is associated with}
@@ -14,6 +20,9 @@ DAT.pipe.source.audit(source_table, db, live_df, audit_df)
 \item{live_df}{a filepath to the DAT live data to push to the 'source' table}
 
 \item{audit_df}{a filepath to the DAT audit data to push to source_audit #'}
+
+\item{hashing_type}{character string of 'vectorized' or 'base' representing which
+source_hash generation approach to use for the data based on how the original source was hashed.}
 }
 \value{
 None

@@ -8,7 +8,8 @@ import_source_caloehha(
   db,
   chem.check.halt = FALSE,
   do.reset = FALSE,
-  do.insert = FALSE
+  do.insert = FALSE,
+  do.summary_data = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ import_source_caloehha(
 \item{do.reset}{PARAM_DESCRIPTION, Default: FALSE}
 
 \item{do.insert}{PARAM_DESCRIPTION, Default: FALSE}
+
+\item{do.summary_data}{If TRUE, add Cal OEHHA Summary data to table before insertion}
 
 \item{infile}{The input file ="../caloehha/caloehha_files/OEHHA-chemicals_2018-10-30T08-50-47.xlsx",}
 }

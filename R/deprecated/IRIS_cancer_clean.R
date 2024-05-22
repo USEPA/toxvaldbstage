@@ -1,15 +1,12 @@
-library("openxlsx")
-library('XML')
-library('stringi')
 #--------------------------------------------------------------------------------------
 #' create IRIS cancer clean source file from https://cfpub.epa.gov/ncea/iris/search/index.cfm
-#' by selecting cancer, oral and inhalation data, and toxicity value checkboxes. 
+#' by selecting cancer, oral and inhalation data, and toxicity value checkboxes.
 #' @param infile The input file ../iris/iris_files/excelView.xls
 
 #--------------------------------------------------------------------------------------
 iris.cancer.clean = function(infile){
   printCurrentFunction()
-  
+
   iris_cancer_raw <- readHTMLTable(infile , stringsAsFactors = FALSE)
   iris_cancer_raw <- iris_cancer_raw[[1]]
   iris_cancer_raw <-  data.frame(iris_cancer_raw, stringsAsFactors = F)

@@ -5,7 +5,6 @@
 #' @param qc_user The name of the user who completed the QC #'
 #' @import dplyr DBI magrittr
 #'
-#' @export
 #' @title DAT.manual.pipe.source.audit
 #' @description Processes manually QC'd (sans-DAT) QC audit information into database
 #' @return None

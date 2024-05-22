@@ -1,6 +1,3 @@
-library(XML)
-library(tidyr)
-library('openxlsx')
 #--------------------------------------------------------------------------------------
 #' Scrape the IRIS website
 #'
