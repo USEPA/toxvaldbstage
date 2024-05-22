@@ -8,7 +8,7 @@
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ="../caloehha/caloehha_files/OEHHA-chemicals_2018-10-30T08-50-47.xlsx",
 #' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
-#' @param do.summary_data If TRUE, add IRIS Summary data to table before insertion
+#' @param do.summary_data If TRUE, add Cal OEHHA Summary data to table before insertion
 #' @title import_source_caloehha
 #' @return None; data is pushed to ToxVal_Source
 #' @details DETAILS
@@ -589,14 +589,13 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
     # Replace NA with -
     res$critical_effect <- stringr::str_replace_all(res$critical_effect, "NA", "-")
 
+    # Standardize the names
+    names(res) <- names(res) %>%
+      stringr::str_squish() %>%
+      # Replace whitespace and periods with underscore
+      gsub("[[:space:]]|[.]", "_", .) %>%
+      tolower()
 ##########################################################################################################
-
-  # Standardize the names
-  names(res) <- names(res) %>%
-    stringr::str_squish() %>%
-    # Replace whitespace and periods with underscore
-    gsub("[[:space:]]|[.]", "_", .) %>%
-    tolower()
 
   # Add summary data to df before prep and load
   if(do.summary_data){
@@ -631,10 +630,10 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       # Rename fields as necessary
       dplyr::rename(
         name = PREFERRED_NAME,
-        critical_effect = `critical effects`,
+        critical_effect = `critical effects`
       )
 
-    # Standardize summary data names
+    # Standardize the names before join for ease of renaming
     names(res_summary) <- names(res_summary) %>%
       stringr::str_squish() %>%
       # Replace whitespace and periods with underscore

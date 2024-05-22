@@ -1,6 +1,5 @@
-library("openxlsx")
 #--------------------------------------------------------------------------------------
-#' create IRIS non cancer clean source file from iris_scrape_rfd_rfc 2020-05-27.xlsx 
+#' create IRIS non cancer clean source file from iris_scrape_rfd_rfc 2020-05-27.xlsx
 #' and iris_scrape_woe 2020-05-27.xlsx (build using iris.scraper.R)
 #' @param infile1 The input file ../iris/iris_files/iris_scrape_rfd_rfc 2020-05-27.xlsx
 #' @param infile2 The input file ../iris/iris_files/iris_scrape_woe 2020-05-27.xlsx
@@ -35,7 +34,7 @@ iris.noncancer.clean = function(infile1, infile2){
 
 
   iris_non_cancer_raw[ , "rfd_numeric"] <- iris_non_cancer_raw$toxval_numeric
-  iris_non_cancer_raw[ , "rfd_numeric"] <- gsub("\\s*x 10", "e", iris_non_cancer_raw$rfd_numeric)  
+  iris_non_cancer_raw[ , "rfd_numeric"] <- gsub("\\s*x 10", "e", iris_non_cancer_raw$rfd_numeric)
   iris_non_cancer_raw[ , "rfd_numeric"] <- gsub("(.*\\d+)(\\(.*)", "\\1", iris_non_cancer_raw$rfd_numeric)
   iris_non_cancer_raw[ , "rfd_numeric"] <- gsub("(.*\\d+)(\\s*\\\n\\\t.*)", "\\1", iris_non_cancer_raw$rfd_numeric)
   iris_non_cancer_raw$rfd_numeric <-  as.numeric(iris_non_cancer_raw$rfd_numeric)
@@ -49,7 +48,7 @@ iris.noncancer.clean = function(infile1, infile2){
   iris_non_cancer_raw$pod_numeric <- gsub("(.*\\d+)(\\s*\\w+\\/\\w+.*)","\\1",iris_non_cancer_raw$pod_numeric)
   iris_non_cancer_raw$pod_numeric <-gsub("\\s*x\\s*10", "e", iris_non_cancer_raw$pod_numeric)
   iris_non_cancer_raw$pod_numeric <- as.numeric(iris_non_cancer_raw$pod_numeric)
-  
+
   iris_non_cancer_raw$casrn[iris_non_cancer_raw$casrn == ""] <- "-"
   # target column values matches record url values
   #iris_non_cancer_raw$target[!is.na(iris_non_cancer_raw$target)] %in% iris_non_cancer_raw$record_url

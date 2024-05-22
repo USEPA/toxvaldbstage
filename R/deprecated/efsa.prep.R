@@ -1,6 +1,3 @@
-library('openxlsx')
-library('stringr')
-library('stringi')
 #-------------------------------------------------------------------------------------
 #' Prepare the new EFSA data
 #' @param dir The directory where the input data sits, ../efsa2/efsa2_files/
