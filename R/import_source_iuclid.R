@@ -1049,6 +1049,27 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       dplyr::select(-dcap_notes)
   }
 
+  # Try to replace "other" toxval_type value for OHTs with toxval_type_other
+  if("toxval_type_other" %in% names(res)) {
+    res = res %>%
+      dplyr::mutate(
+        # Remove invalid toxval_type_other values
+        toxval_type_other = dplyr::case_when(
+          grepl("[A-Z0-9]{2,}", toxval_type_other) ~ toxval_type_other,
+          TRUE ~ as.character(NA)
+        ),
+
+        # Use toxval_type_other as replacement if value exists
+        toxval_type = dplyr::case_when(
+          toxval_type == "other" & !(toxval_type_other %in% c("", "-", as.character(NA))) ~ toxval_type_other,
+          TRUE ~ toxval_type
+        ) %>%
+          gsub(",.+", "", .) %>%
+          stringr::str_squish()
+      ) %>%
+      dplyr::select(-toxval_type_other)
+  }
+
   # Collapse dose/conc level/other critical_effect values
   if("dose level" %in% unique(res$toxval_type) | "conc. level" %in% unique(res$toxval_type) | "other" %in% unique(res$toxval_type)) {
     cat("Source has 'dose/conc. level' or 'other' toxval_type. Converting to LEL...\n")
