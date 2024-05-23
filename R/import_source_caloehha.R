@@ -630,6 +630,7 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       # Rename fields as necessary
       dplyr::rename(
         name = PREFERRED_NAME,
+        casrn = `CAS Number`,
         critical_effect = `critical effects`
       )
 
