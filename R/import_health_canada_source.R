@@ -56,11 +56,13 @@ import_health_canada_source <- function(db, chem.check.halt=FALSE, do.reset=FALS
       # Extract study_duration_value and study_duration_units
       study_duration = dplyr::case_when(
         # Add in hardcoding for certain values to match previous load script
-        duration == "gestational days 0-17" ~ "17 days",
-        duration == "days 1-24 (rabbits) and 1-19 (rats) of gestational period" ~ "19 days",
+        duration == "gestational days 0-17" ~ "17 gestational days",
+        duration == "days 1-24 (rabbits) and 1-19 (rats) of gestational period" ~ "19 gestational days",
+        duration == "1 gestational period, 48 d post-natal exposure" ~ "1 generations",
+        duration == "2 years, 3 generations" ~ "3 generations",
         grepl("for [0-9]+ weeks", duration) ~ stringr::str_extract(duration, "for ([0-9]+ weeks)", group=1),
         grepl("F0", duration) ~ "2 generations",
-        grepl("Duration and Dosing Regime:", duration) ~ "15 days",
+        grepl("Duration and Dosing Regime:", duration) ~ NA,
         TRUE ~ duration
       ) %>%
         gsub("\\bto\\b", "-", ., ignore.case=TRUE) %>%
@@ -87,6 +89,7 @@ import_health_canada_source <- function(db, chem.check.halt=FALSE, do.reset=FALS
       study_duration_value = study_duration %>%
         stringr::str_extract(stringr::regex(paste0("([0-9\\.,]+(?:\\-[0-9\\.,]+)?)\\s?",
                                                    "(?:hour|\\bh\\b|[0-9\\.,]h\\b|",
+                                                   "gestational day|",
                                                    "day|\\bd\\b|[0-9\\.,]d\\b|",
                                                    "week|\\bw\\b|[0-9\\.,]w\\b|wk|weeek|wwek|",
                                                    "month|\\bm\\b|[0-9\\.,]m\\b|",
@@ -97,6 +100,7 @@ import_health_canada_source <- function(db, chem.check.halt=FALSE, do.reset=FALS
       study_duration_units = study_duration %>%
         stringr::str_extract(stringr::regex(paste0("[0-9\\.,]+(?:\\-[0-9\\.,]+)?\\s?",
                                                    "(hour|\\bh\\b|[0-9\\.,]h\\b|",
+                                                   "gestational day|",
                                                    "day|\\bd\\b|[0-9\\.,]d\\b|",
                                                    "week|\\bw\\b|[0-9\\.,]w\\b|wk|weeek|wwek|",
                                                    "month|\\bm\\b|[0-9\\.,]m\\b|",
@@ -112,6 +116,11 @@ import_health_canada_source <- function(db, chem.check.halt=FALSE, do.reset=FALS
         grepl("w", study_duration_units) ~ "weeks",
         grepl("y", study_duration_units) ~ "years",
         TRUE ~ as.character(NA)
+      ),
+
+      study_duration_units = dplyr::case_when(
+        grepl("gestation", duration) & study_duration_units %in% c("days") ~ "gestational days",
+        TRUE ~ study_duration_units
       ),
 
       # Extract study_duration_qualifier
