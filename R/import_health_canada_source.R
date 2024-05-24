@@ -7,18 +7,18 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{na_if}}
 #'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}, \code{\link[stringr]{modifiers}}, \code{\link[stringr]{str_count}}
 #' @rdname import_health_canada_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate across where case_when na_if
 #' @importFrom stringr str_extract str_squish regex str_count
@@ -31,7 +31,11 @@ import_health_canada_source <- function(db, chem.check.halt=FALSE, do.reset=FALS
   src_version_date = as.Date("2010-09-01")
   dir = paste0(toxval.config()$datapath,"health_canada/health_canada_files/")
   file = paste0(dir,"HealthCanada_TRVs_2010_AppendixA v2.xlsx")
-  res0 = readxl::read_xlsx(file)
+  sheets = readxl::excel_sheets(file)
+  res0 = lapply(sheets, function(s) {
+    readxl::read_xlsx(file, sheet=s)
+  }) %>%
+    dplyr::bind_rows()
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -136,7 +140,7 @@ import_health_canada_source <- function(db, chem.check.halt=FALSE, do.reset=FALS
         grepl("\\(", critical_effect) & !grepl("\\)", critical_effect) ~ gsub("\\(", "", critical_effect),
         grepl("\\)", critical_effect) & !grepl("\\(", critical_effect) ~ gsub("\\)", "", critical_effect),
         stringr::str_count(critical_effect, "\\(") == 6 ~ gsub("(.*\\(.*\\)\\;\\s+)(\\()(.*)",
-                                                      "\\1\\3", critical_effect),
+                                                               "\\1\\3", critical_effect),
         TRUE ~ critical_effect
       ),
 
@@ -144,6 +148,17 @@ import_health_canada_source <- function(db, chem.check.halt=FALSE, do.reset=FALS
       sex = stringr::str_extract(species, "(?:fe)?male") %>% c(),
       strain = stringr::str_extract(species, "Wistar|rhesus") %>% c(),
       lifestage = stringr::str_extract(species, "adult|children|infant") %>% c(),
+      # Extract lifestage qualifiers from toxval_type
+      lifestage = dplyr::case_when(
+        grepl("(infants and children)", toxval_type, fixed=TRUE) ~ "infants and children",
+        grepl("(adult)", toxval_type, fixed=TRUE) ~ "adult",
+        TRUE ~ lifestage
+      ),
+      # Remove lifestage qualifiers
+      toxval_type = toxval_type %>%
+        gsub("\\(infants and children\\)", "", .) %>%
+        gsub("\\(adult\\)", "", .) %>%
+        stringr::str_squish(),
 
       # Clean species
       species = species %>%
