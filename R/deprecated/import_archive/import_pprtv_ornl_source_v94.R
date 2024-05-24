@@ -6,16 +6,15 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
 #' @rdname import_pprtv_ornl_source
-#' @export 
 #' @importFrom openxlsx read.xlsx
 #' @importFrom generics is.element
 #--------------------------------------------------------------------------------------
