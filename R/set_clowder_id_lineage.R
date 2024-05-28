@@ -133,7 +133,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_aegl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_epa_aegl_document_map_20240205_jhope.xlsx")),
                       "source_opp" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                              "clowder_v3/epa_opp_doc_lineage_mmille16.xlsx")),
+                                                              "clowder_v3/source_epa_opp_document_map_20240528.xlsx")),
                       "source_niosh" = data.frame(clowder_id = "61fabd3de4b04a563fdc9b99",
                                                   document_name = "ToxValQA33091630_NIOSH_2020_ImmediatelyDangerous-(IDLH)Values.pdf"),
                       "source_ow_dwsha" = data.frame(clowder_id = "610036ede4b01a90a3f98ae0",
@@ -718,11 +718,27 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
                   "source_opp" = {
+                    # Associate the origin docs based on chemical names
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
                     #Perform a left join on chemical names to match clowder ids and document names
                     res <- res %>%
-                      dplyr::left_join(map_file %>%
-                                         dplyr::select(name = Chemical, clowder_id, filename, fk_doc_id),
+                      dplyr::select(name, source_hash, source_version_date) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(name = Chemical, clowder_id, fk_doc_id),
                                        by = "name")
+
+                    # Match to extraction doc
+                    extraction_doc <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+                    tmp = res %>%
+                      dplyr::select(name, source_hash, source_version_date) %>%
+                      merge(extraction_doc %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res, tmp)
+
                     #Return the mapped res with document names and clowder ids
                     res
                   },
