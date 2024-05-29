@@ -431,17 +431,17 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
                       merge(extraction_docs %>%
                               dplyr::select(clowder_id, fk_doc_id))
-                      #dplyr::rowwise() %>%
-                      # Handle case of collapsed document_type
-                      #dplyr::mutate(document_type = document_type %>%
-                      #                strsplit("|::|", fixed=TRUE) %>%
-                      #                unlist() %>%
-                      #               stringr::str_squish() %>%
-                      #                unique()) %>%
-                      #dplyr::ungroup() %>%
-                      #dplyr::left_join(extraction_docs %>%
-                      #                   dplyr::select(clowder_id, fk_doc_id, iris_document_type),
-                      #                 by = c("document_type" = "iris_document_type"))
+                    #dplyr::rowwise() %>%
+                    # Handle case of collapsed document_type
+                    #dplyr::mutate(document_type = document_type %>%
+                    #                strsplit("|::|", fixed=TRUE) %>%
+                    #                unlist() %>%
+                    #               stringr::str_squish() %>%
+                    #                unique()) %>%
+                    #dplyr::ungroup() %>%
+                    #dplyr::left_join(extraction_docs %>%
+                    #                   dplyr::select(clowder_id, fk_doc_id, iris_document_type),
+                    #                 by = c("document_type" = "iris_document_type"))
 
 
                     # Combine the two associated data frames back into res
@@ -558,8 +558,9 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::left_join(summary_docs %>%
                                          dplyr::select(name, clowder_id, fk_doc_id, subsource_url),
                                        by = "subsource_url") %>%
-                      filter(!is.na(clowder_id)) %>%
-                      select(name, source_hash, source_version_date, clowder_id, fk_doc_id)
+
+                      dplyr::filter(!is.na(clowder_id)) %>%
+                      dplyr::select(name, source_hash, source_version_date, clowder_id, fk_doc_id)
 
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
@@ -961,17 +962,17 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(name, source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::select(clowder_id, fk_doc_id))
-                      #dplyr::rowwise() %>%
-                      # Handle case of collapsed document_type
-                      #dplyr::mutate(document_type = document_type %>%
-                      #                strsplit("|::|", fixed=TRUE) %>%
-                      #                unlist() %>%
-                      #                stringr::str_squish() %>%
-                      #                unique()) %>%
-                      #dplyr::ungroup() %>%
-                      #dplyr::left_join(extraction_docs %>%
-                      #                   dplyr::select(clowder_id, fk_doc_id, atsdr_document_type),
-                      #                 by = c("document_type"="atsdr_document_type"))
+                    #dplyr::rowwise() %>%
+                    # Handle case of collapsed document_type
+                    #dplyr::mutate(document_type = document_type %>%
+                    #                strsplit("|::|", fixed=TRUE) %>%
+                    #                unlist() %>%
+                    #                stringr::str_squish() %>%
+                    #                unique()) %>%
+                    #dplyr::ungroup() %>%
+                    #dplyr::left_join(extraction_docs %>%
+                    #                   dplyr::select(clowder_id, fk_doc_id, atsdr_document_type),
+                    #                 by = c("document_type"="atsdr_document_type"))
 
                     # Combine the two associated dataframes back into res
                     res <- rbind(res1, res2) %>%
