@@ -101,11 +101,13 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
   # Add summary data to df before prep and load
   res$document_type = "PPRTV Webpage"
+  res$key_finding = "unspecified"
   if(do.summary_data){
     # Import manually curated PPRTV CPHEA Summary information
     summary_file = "source_pprtv_cphea_summary_curation.xlsx"
     res1 = readxl::read_xlsx(paste0(dir, summary_file), col_types="text") %>%
-      dplyr::mutate(document_type = 'PPRTV Summary') %>%
+      dplyr::mutate(document_type = 'PPRTV Summary',
+                    key_finding = "key") %>%
       .[ , (names(.) %in% names(res))]
     res = res %>%
       dplyr::bind_rows(res1) %>%
@@ -392,6 +394,13 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
   # Perform deduping
   res = toxval.source.import.dedup(res)
+
+  # Follow dedup, if any key_finding was "Yes", set to "Yes"
+  res = res %>%
+    dplyr::mutate(key_finding = dplyr::case_when(
+      grepl("key", key_finding) ~ "key",
+      TRUE ~ key_finding
+    ))
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

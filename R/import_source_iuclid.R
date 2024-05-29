@@ -7,7 +7,7 @@
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @title import_source_iuclid
-#' @return None; data is sent to ToxVal
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -960,6 +960,19 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   #   res = res %>%
   #     dplyr::filter(!grepl("(?:conc\\.|dose) level", toxval_type))
   # }
+
+  # Translate key_finding values
+  if("key_finding" %in% names(res)) {
+    res = res %>%
+      dplyr::mutate(
+        key_finding = dplyr::case_when(
+          grepl("true", key_finding, ignore.case=TRUE) ~ "key",
+          grepl("false", key_finding, ignore.case=TRUE) ~ "no",
+          TRUE ~ key_finding
+
+        )
+      )
+  }
 
   # Account for exposure_route/method/form edge case
   if("exposure_method_other" %in% names(res)) {

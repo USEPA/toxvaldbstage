@@ -7,7 +7,7 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @param do.summary_data If TRUE, add IRIS Summary data to table before insertion
 #' @title import_source_iris
-#' @return OUTPUT_DESCRIPTION
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples 
 #' \dontrun{
@@ -354,7 +354,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   res0$document_type = 'IRIS Export'
   # Set key_findings, to yes if not in subset of toxval_type
   not_key_finding = c("RfD", "RfC", "Cancer Slope", "Unit Risk Factor", "Inhalation Unit Risk", "Oral Slope Factor")
-  res0$key_finding = ifelse(res0$toxval_type %in% not_key_finding, 'No', 'Yes')
+  res0$key_finding = ifelse(res0$toxval_type %in% not_key_finding, 'no', 'key')
 
   # Add summary data to df before prep and load
   if(do.summary_data){
@@ -362,7 +362,7 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     res1 <- iris_data$source_iris_summary_curation.xlsx %>%
       dplyr::mutate(
         document_type = 'IRIS Summary',
-        key_finding = 'No',
+        key_finding = 'key',
         iris_chemical_id = url %>%
           sub('.*=', '', .) %>%
           as.numeric(),
