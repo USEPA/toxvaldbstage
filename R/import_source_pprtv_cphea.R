@@ -395,6 +395,13 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
   # Perform deduping
   res = toxval.source.import.dedup(res)
 
+  # Follow dedup, if any key_finding was "Yes", set to "Yes"
+  res = res %>%
+    dplyr::mutate(key_finding = dplyr::case_when(
+      grepl("Yes", key_finding) ~ "Yes",
+      TRUE ~ key_finding
+    ))
+
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
   #####################################################################

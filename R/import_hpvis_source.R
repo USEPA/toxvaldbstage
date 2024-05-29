@@ -731,9 +731,13 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         stringr::str_squish() %>%
         dplyr::na_if(""),
 
-      # Set NA key_finding to "unspecified"
-      key_finding = key_finding %>%
-        tidyr::replace_na("unspecified")
+      key_finding = dplyr::case_when(
+        key_finding == "Key" ~ "Yes",
+        key_finding == "Not Key" ~ "No",
+        # Set NA key_finding to "unspecified"
+        is.na(key_finding) ~ "unspecified",
+        TRUE ~ key_finding
+      )
     )
 
   # Handle entries with upper ranges
@@ -769,7 +773,7 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
   res$source_version_date <- src_version_date
 
   # Add experimental_record value
-  res$experimental_record = "Yes"
+  res$experimental_record = "experimental"
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
