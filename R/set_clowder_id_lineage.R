@@ -165,7 +165,7 @@ set_clowder_id_lineage <- function(source_table,
                                                                  "clowder_v3/source_copper_document_map.xlsx")),
 
                       "source_gestis_dnel" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                      "clowder_v3/source_gestis_dnel_document_map.xlsx"),
+                                                                      "clowder_v3/source_gestis_dnel_document_map_20240529.xlsx"),
                                                                col_types = "text", guess_max=21474836),
 
                       "source_heast" = readxl::read_xlsx(paste0(toxval.config()$datapath,
