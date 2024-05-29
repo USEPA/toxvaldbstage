@@ -101,7 +101,7 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
   # Add summary data to df before prep and load
   res$document_type = "PPRTV Webpage"
-  res$key_finding = "undetermined"
+  res$key_finding = "unspecified"
   if(do.summary_data){
     # Import manually curated PPRTV CPHEA Summary information
     summary_file = "source_pprtv_cphea_summary_curation.xlsx"

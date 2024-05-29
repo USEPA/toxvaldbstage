@@ -734,8 +734,8 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       key_finding = dplyr::case_when(
         key_finding == "Key" ~ "key",
         key_finding == "Not Key" ~ "no",
-        # Set NA key_finding to "undetermined"
-        is.na(key_finding) ~ "undetermined",
+        # Set NA key_finding to "unspecified"
+        is.na(key_finding) ~ "unspecified",
         TRUE ~ key_finding
       ) %>% tolower()
     )
