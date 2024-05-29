@@ -7,7 +7,7 @@
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @title import_source_iuclid
-#' @return None; data is sent to ToxVal
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -952,8 +952,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res = res %>%
       dplyr::mutate(
         key_finding = dplyr::case_when(
-          grepl("true", key_finding, ignore.case=TRUE) ~ "Yes",
-          grepl("false", key_finding, ignore.case=TRUE) ~ "No",
+          grepl("true", key_finding, ignore.case=TRUE) ~ "key",
+          grepl("false", key_finding, ignore.case=TRUE) ~ "no",
           TRUE ~ key_finding
 
         )
