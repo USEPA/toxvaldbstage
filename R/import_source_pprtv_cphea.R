@@ -8,20 +8,20 @@
 #' @param do.summary_data If TRUE, add PPRTV CPHEA Summary data to table before insertion
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}, \code{\link[tidyr]{drop_na}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
 #'  \code{\link[tidyselect]{all_of}}
 #' @rdname import_source_pprtv_cphea
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom tidyr pivot_longer all_of separate replace_na drop_na
 #' @importFrom dplyr mutate across case_when select where distinct
@@ -263,6 +263,8 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
       # Extract study_duration_value and study_duration_units from duration_clean field
       study_duration_value = dplyr::case_when(
+        # Use manually curated values if available
+        document_type == "PPRTV Summary" & !study_duration_value %in% c(NA, "") ~ study_duration_value,
         grepl("[0-9\\.]+\\s*\\-?\\s*[0-9\\.]*\\s*(?:day|hour|month|week|year|generation)", duration_clean) ~ stringr::str_extract(duration_clean,
                                                                                                                       "([0-9\\.]+\\s*\\-?\\s*[0-9]*)\\s*(?:day|hour|month|week|year|generation)",
                                                                                                                       group=1),
@@ -276,6 +278,8 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
       # Follow same patterns as above for study_duration_units
       study_duration_units = dplyr::case_when(
+        # Use manually curated values if available
+        document_type == "PPRTV Summary" & !study_duration_units %in% c(NA, "") ~ study_duration_units,
         grepl("[0-9\\.]+\\s*\\-?\\s*[0-9\\.]*\\s*(?:day|hour|month|week|year|generation)", duration_clean) ~ stringr::str_extract(duration_clean,
                                                                                                                       "[0-9\\.]+\\s*\\-?\\s*[0-9\\.]*\\s*(day|hour|month|week|year|generation)",
                                                                                                                       group=1),
