@@ -389,6 +389,11 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         study_type %in% c(as.character(NA), "-", "") | !(toxval_type %in% c("RfD", "RfC")) ~ toxval_subtype,
         toxval_subtype %in% c(as.character(NA), "-", "") ~ study_type,
         TRUE ~ stringr::str_c(toxval_subtype, study_type, sep = " ")
+      ),
+      toxval_type = dplyr::case_when(
+        # Set RfD and RfC values as provisional
+        toxval_type %in% c("RfD", "RfC", "cancer slope factor", "cancer unit risk") ~ paste0(toxval_type, " (provisional)"),
+        TRUE ~ toxval_type
       )
     ) %>%
     # Drop temp column
