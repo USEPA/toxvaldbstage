@@ -96,7 +96,6 @@ import.driver <- function(db="res_toxval_source_v5",
   # Moved to end since it takes the longest
   import_echa_echemportal_api_source(db,chem.check.halt=chem.check.halt) # ECHA echemportal API
   # Alaska DEC [v1]
-  # Cal DPH [v1]
   # EPA AEGL [v1]
   # FDA CEDI [v1]
   # Mass. Drinking Water Standards [v1]

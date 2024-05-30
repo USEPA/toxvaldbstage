@@ -183,9 +183,7 @@ set_clowder_id_lineage <- function(source_table,
     )
 
     # Sources with a single document in a combined map
-    if(source_table %in% c("source_mass_mmcl",
-                           "source_cal_dph", "source_dod_ered",
-                           "source_doe_lanl_ecorisk")){
+    if(source_table %in% c("source_mass_mmcl", "source_dod_ered", "source_doe_lanl_ecorisk")){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/source_single_doc_map.xlsx")) %>%
         dplyr::rename(src_tbl = source_table) %>%

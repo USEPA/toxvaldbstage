@@ -34,7 +34,7 @@ import_source_pprtv_cphea(
 \item{do.summary_data}{If TRUE, add PPRTV CPHEA Summary data to table before insertion}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is pushed to toxval_source
 
 None; data is pushed to toxval_source
 }
