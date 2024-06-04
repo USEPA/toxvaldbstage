@@ -912,6 +912,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       critical_effect = dplyr::case_when(
         startsWith(toupper(toxval_type), "LD") ~ "mortality",
         TRUE ~ critical_effect
+      ),
+
+      # Set quality value to quality_other when appropriate
+      quality = dplyr::case_when(
+        quality == "other:" ~ quality_other,
+        TRUE ~ quality
       )
     )
 
