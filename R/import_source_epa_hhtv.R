@@ -42,12 +42,16 @@ import_source_epa_hhtv <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       # Add hardcoded fields
       long_ref = study_reference,
       year = last_updated,
-      subsource = document_name,
       source_url = url,
 
       # Match sex formatting to toxval
       sex = sex %>%
-        gsub(", ", "/", .)
+        gsub(", ", "/", .),
+      # Normalize units
+      toxval_units = dplyr::case_when(
+        toxval_units == "mg/kg-d" ~ "mg/kg-day",
+        TRUE ~ toxval_units
+      )
     )
 
   # Standardize the names
