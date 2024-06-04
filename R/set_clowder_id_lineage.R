@@ -169,7 +169,7 @@ set_clowder_id_lineage <- function(source_table,
                                                                col_types = "text", guess_max=21474836),
 
                       "source_heast" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                "clowder_v3/source_heast_document_map.xlsx"), col_types = "text"),
+                                                                "clowder_v3/source_heast_document_map_20240604.xlsx"), col_types = "text"),
 
                       "source_doe_pac" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                   "clowder_v3/source_doe_pac_document_map.xlsx"), col_types = "text") %>%
