@@ -65,7 +65,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_oppt" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/source_epa_oppt_document_map_20240227.xlsx")),
                       "source_efsa" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_efsa_document_map_20240423.xlsx"), col_types = "text"),
+                                                               "clowder_v3/source_efsa_document_map_20240604.xlsx"), col_types = "text"),
                       "source_hawc" = {
                         file_name = paste0(toxval.config()$datapath,
                                            "clowder_v3/hawc_original_matched_07072022_mmille16.xlsx")
@@ -584,7 +584,7 @@ set_clowder_id_lineage <- function(source_table,
                                          dplyr::mutate(hero_id = as.character(hero_id)) %>%
                                          dplyr::distinct(),
                                        by="hero_id") %>%
-                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id, name, hero_id)
 
                     # Match to extraction doc
                     tmp = res %>%
