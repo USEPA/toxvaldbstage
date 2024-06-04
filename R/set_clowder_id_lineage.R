@@ -113,7 +113,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20240221_jnhope.xlsx")),
                       "source_health_canada" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                        "clowder_v3/source_health_canada_document_map.xlsx")),
+                                                                        "clowder_v3/source_health_canada_document_map_20240604.xlsx")),
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                                        document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -645,7 +645,7 @@ set_clowder_id_lineage <- function(source_table,
                     origin_docs <- map_file %>%
                       dplyr::filter(is.na(parent_flag))
                     res1 <- res %>%
-                      dplyr::select(source_hash, title, source_version_date) %>%
+                      dplyr::select(source_hash, title, source_version_date, doi) %>%
                       dplyr::left_join(origin_docs %>%
                                          dplyr::select(clowder_id, title, fk_doc_id) %>%
                                          dplyr::distinct(),
@@ -1123,7 +1123,7 @@ set_clowder_id_lineage <- function(source_table,
                     # Match origin docs
                     # Match based on trv_source
                     res <- res %>%
-                      dplyr::select(source_hash, source_version_date, trv_source) %>%
+                      dplyr::select(source_hash, source_version_date, trv_source, long_ref) %>%
                       dplyr::left_join(map_file %>%
                                          dplyr::filter(!is.na(clowder_id)) %>%
                                          dplyr::select(clowder_id, fk_doc_id, trv_source) %>%
