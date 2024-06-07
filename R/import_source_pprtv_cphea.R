@@ -8,20 +8,20 @@
 #' @param do.summary_data If TRUE, add PPRTV CPHEA Summary data to table before insertion
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}, \code{\link[tidyr]{drop_na}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
 #'  \code{\link[tidyselect]{all_of}}
 #' @rdname import_source_pprtv_cphea
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom tidyr pivot_longer all_of separate replace_na drop_na
 #' @importFrom dplyr mutate across case_when select where distinct
@@ -101,11 +101,13 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
   # Add summary data to df before prep and load
   res$document_type = "PPRTV Webpage"
+  res$key_finding = "unspecified"
   if(do.summary_data){
     # Import manually curated PPRTV CPHEA Summary information
     summary_file = "source_pprtv_cphea_summary_curation.xlsx"
     res1 = readxl::read_xlsx(paste0(dir, summary_file), col_types="text") %>%
-      dplyr::mutate(document_type = 'PPRTV Summary') %>%
+      dplyr::mutate(document_type = 'PPRTV Summary',
+                    key_finding = "key") %>%
       .[ , (names(.) %in% names(res))]
     res = res %>%
       dplyr::bind_rows(res1) %>%
@@ -261,6 +263,8 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
       # Extract study_duration_value and study_duration_units from duration_clean field
       study_duration_value = dplyr::case_when(
+        # Use manually curated values if available
+        document_type == "PPRTV Summary" & !study_duration_value %in% c(NA, "") ~ study_duration_value,
         grepl("[0-9\\.]+\\s*\\-?\\s*[0-9\\.]*\\s*(?:day|hour|month|week|year|generation)", duration_clean) ~ stringr::str_extract(duration_clean,
                                                                                                                       "([0-9\\.]+\\s*\\-?\\s*[0-9]*)\\s*(?:day|hour|month|week|year|generation)",
                                                                                                                       group=1),
@@ -274,6 +278,8 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
       # Follow same patterns as above for study_duration_units
       study_duration_units = dplyr::case_when(
+        # Use manually curated values if available
+        document_type == "PPRTV Summary" & !study_duration_units %in% c(NA, "") ~ study_duration_units,
         grepl("[0-9\\.]+\\s*\\-?\\s*[0-9\\.]*\\s*(?:day|hour|month|week|year|generation)", duration_clean) ~ stringr::str_extract(duration_clean,
                                                                                                                       "[0-9\\.]+\\s*\\-?\\s*[0-9\\.]*\\s*(day|hour|month|week|year|generation)",
                                                                                                                       group=1),
@@ -383,6 +389,11 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         study_type %in% c(as.character(NA), "-", "") | !(toxval_type %in% c("RfD", "RfC")) ~ toxval_subtype,
         toxval_subtype %in% c(as.character(NA), "-", "") ~ study_type,
         TRUE ~ stringr::str_c(toxval_subtype, study_type, sep = " ")
+      ),
+      toxval_type = dplyr::case_when(
+        # Set RfD and RfC values as provisional
+        toxval_type %in% c("RfD", "RfC", "cancer slope factor", "cancer unit risk") ~ paste0(toxval_type, " (provisional)"),
+        TRUE ~ toxval_type
       )
     ) %>%
     # Drop temp column
@@ -392,6 +403,13 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
 
   # Perform deduping
   res = toxval.source.import.dedup(res)
+
+  # Follow dedup, if any key_finding was "Yes", set to "Yes"
+  res = res %>%
+    dplyr::mutate(key_finding = dplyr::case_when(
+      grepl("key", key_finding) ~ "key",
+      TRUE ~ key_finding
+    ))
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

@@ -24,7 +24,7 @@ import_source_iuclid(
 \item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-None; data is sent to ToxVal
+None; data is pushed to toxval_source
 }
 \description{
 Import IUCLID data to ToxVal Source

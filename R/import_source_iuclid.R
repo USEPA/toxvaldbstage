@@ -7,7 +7,7 @@
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @title import_source_iuclid
-#' @return None; data is sent to ToxVal
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -325,7 +325,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Add specified NA columns if they don't exist
   na_missing_cols = c("toxval_units_other", "strain_other", "exposure_route_other", "organ_system",
                       "target_organ", "hazard_category", "critical_effect", "study_duration_class",
-                      "chemical.ec_number", "toxval_numeric_qualifier")
+                      "chemical.ec_number", "toxval_numeric_qualifier", "quality", "quality_other")
   res[, na_missing_cols[!na_missing_cols %in% names(res)]] = as.character(NA)
 
   # Add special toxval_units "score" case for certain OHTs
@@ -912,6 +912,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       critical_effect = dplyr::case_when(
         startsWith(toupper(toxval_type), "LD") ~ "mortality",
         TRUE ~ critical_effect
+      ),
+
+      # Set quality value to quality_other when appropriate
+      quality = dplyr::case_when(
+        quality == "other:" ~ quality_other,
+        TRUE ~ quality
       )
     )
 
@@ -960,6 +966,19 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   #   res = res %>%
   #     dplyr::filter(!grepl("(?:conc\\.|dose) level", toxval_type))
   # }
+
+  # Translate key_finding values
+  if("key_finding" %in% names(res)) {
+    res = res %>%
+      dplyr::mutate(
+        key_finding = dplyr::case_when(
+          grepl("true", key_finding, ignore.case=TRUE) ~ "key",
+          grepl("false", key_finding, ignore.case=TRUE) ~ "no",
+          TRUE ~ key_finding
+
+        )
+      )
+  }
 
   # Account for exposure_route/method/form edge case
   if("exposure_method_other" %in% names(res)) {

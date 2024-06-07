@@ -88,7 +88,7 @@ toxval_source_status_report <- function(db){
       dplyr::summarise(total_records = n(),
                        total_qc = sum(qc_status != "not determined"),
                        pass = sum(qc_status %in% c("pass", "PASS")),
-                       fail = sum(qc_status %in% c("fail", "FAIL")),
+                       fail = sum(grepl("fail", qc_status, ignore.case=TRUE)),
                        pending = sum(qc_status == "not determined"),
                        qc_perc = round(total_qc / total_records * 100, 3)
       ) %>%

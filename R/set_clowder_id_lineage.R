@@ -143,8 +143,8 @@ set_clowder_id_lineage <- function(source_table,
                                                                document_name = "PEN DEP ToxValues20211120.zip"),
                       "source_usgs_hbsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_usgs_hbsl_document_map_20240221_jnhope.xlsx")),
-                      "source_who_ipcs" = data.frame(clowder_id = "65de5b96e4b063812d6afb23",
-                                                     document_name = "source_who_ipcs_2019-1-1_extraction_documents.zip"),
+                      "source_who_ipcs" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/source_who_ipcs_document_map.xlsx")),
                       "source_osha_air_limits" = data.frame(clowder_id = "65de60e8e4b063812d6afbd7",
                                                             document_name = "OSHA Air_2017-03-21_extraction_doc.zip"),
                       "source_fda_cedi" = data.frame(clowder_id = "65807a74e4b063812d59e209",
@@ -182,9 +182,7 @@ set_clowder_id_lineage <- function(source_table,
     )
 
     # Sources with a single document in a combined map
-    if(source_table %in% c("source_mass_mmcl",
-                           "source_cal_dph", "source_dod_ered",
-                           "source_doe_lanl_ecorisk")){
+    if(source_table %in% c("source_mass_mmcl", "source_dod_ered", "source_doe_lanl_ecorisk")){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/source_single_doc_map.xlsx")) %>%
         dplyr::rename(src_tbl = source_table) %>%
@@ -1008,6 +1006,13 @@ set_clowder_id_lineage <- function(source_table,
                                        by = "ntp_study_identifier") %>%
                       dplyr::select(-ntp_study_identifier)
 
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(!is.na(parent_flag)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
                     # Return res
                     res
                   },
@@ -1219,6 +1224,26 @@ set_clowder_id_lineage <- function(source_table,
                     # Combine origin and extraction document associations
                     res = rbind(res, tmp) %>%
                       dplyr::distinct()
+                    # Return res
+                    res
+                  },
+
+                  "source_who_ipcs" = {
+                    # Associate records based off of ntp_study_identifier
+                    res = res %>%
+                      dplyr::select(name, source_hash, source_version_date) %>%
+                      dplyr::left_join(map_file %>%
+                                         tidyr::separate_rows(`name`, sep="; ") %>%
+                                         dplyr::select(fk_doc_id, clowder_id, name),
+                                       by = "name")
+
+                    # Match to extraction doc
+                    tmp = res %>%
+                      dplyr::select(name, source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(!is.na(parent_flag)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
                     # Return res
                     res
                   },

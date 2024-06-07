@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_hpvis_source.R
 \name{import_hpvis_source}
 \alias{import_hpvis_source}
-\title{FUNCTION_TITLE}
+\title{import_hpvis_source}
 \usage{
 import_hpvis_source(
   db,
@@ -21,7 +21,7 @@ import_hpvis_source(
 \item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is pushed to toxval_source
 }
 \description{
 Load HPVIS data into toxval_source

@@ -5,8 +5,8 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title import_hpvis_source
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples 
 #' \dontrun{
@@ -730,7 +730,15 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         gsub("\\bmouse\\b", "mice", .) %>%
         gsub("\\btomato\\b", "tomatoes", .) %>%
         stringr::str_squish() %>%
-        dplyr::na_if("")
+        dplyr::na_if(""),
+
+      key_finding = dplyr::case_when(
+        key_finding == "Key" ~ "key",
+        key_finding == "Not Key" ~ "no",
+        # Set NA key_finding to "unspecified"
+        is.na(key_finding) ~ "unspecified",
+        TRUE ~ key_finding
+      ) %>% tolower()
     )
 
   # Handle entries with upper ranges
@@ -766,7 +774,7 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
   res$source_version_date <- src_version_date
 
   # Add experimental_record value
-  res$experimental_record = "Yes"
+  res$experimental_record = "experimental"
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################

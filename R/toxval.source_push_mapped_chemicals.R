@@ -12,17 +12,17 @@
 #' @return None. Update SQL statements are executed.
 #' @import RMySQL dplyr readxl magrittr
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{bind}}
 #' @rdname toxval.source_push_mapped_chemicals
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename distinct mutate select left_join filter bind_rows
 #--------------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
     return()
   }
   # Clean curated chemical information (sometimes has utf8 encoding issues)
-  result = chem.check(out,name.col="name",casrn.col="casrn",verbose=FALSE,source="-")
+  result = chem.check.v2(out, source="-", verbose=FALSE)
   out = result$res0
 
   if(bulk.push){
