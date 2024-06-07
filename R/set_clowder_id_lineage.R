@@ -1348,6 +1348,7 @@ set_clowder_id_lineage <- function(source_table,
     # Handle IUCLID case
     if(grepl("iuclid", source_table)){
       res <- res %>%
+        dplyr::mutate(source = tolower(source)) %>%
         dplyr::left_join(map_file %>%
                            dplyr::select(fk_doc_id, clowder_id, source_table),
                          by = c("source"="source_table"))
