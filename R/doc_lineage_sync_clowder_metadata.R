@@ -71,7 +71,7 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     file_info = ds_file_list %>%
       dplyr::filter(clowder_id %in% clowder_id_list[startPosition:incrementPosition])
 
-    message("Pulling metadata...", startPosition, " to ", incrementPosition)
+    message("Pulling metadata...", startPosition, " to ", incrementPosition, " (", round((startPosition / endPosition) * 100, 3),"% complete)")
     # Loop through each Clowder ID value
     metadata_out <- clowder_get_file_metadata(fileID = clowder_id_list[startPosition:incrementPosition], clowder_url, clowder_api_key)
 
