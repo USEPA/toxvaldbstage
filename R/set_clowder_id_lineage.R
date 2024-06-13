@@ -914,8 +914,10 @@ set_clowder_id_lineage <- function(source_table,
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
                       dplyr::select(name, source_hash, source_version_date) %>%
+                      dplyr::distinct() %>%
                       dplyr::left_join(origin_docs %>%
-                                         dplyr::select(name = "Chemical Name", clowder_id, fk_doc_id),
+                                         dplyr::select(name = "Chemical Name", clowder_id, fk_doc_id) %>%
+                                         dplyr::distinct(),
                                        by = "name")
 
                     # Hard code matches with grep for chemical name
@@ -949,19 +951,21 @@ set_clowder_id_lineage <- function(source_table,
                     # Perform a left join on chemical names to match chemical names
                     res2 <- res %>%
                       dplyr::select(name, source_hash, source_version_date) %>%
-                      merge(map_file %>%
-                              dplyr::select(clowder_id, fk_doc_id))
-                      #dplyr::rowwise() %>%
-                      # Handle case of collapsed document_type
-                      #dplyr::mutate(document_type = document_type %>%
-                      #                strsplit("|::|", fixed=TRUE) %>%
-                      #                unlist() %>%
-                      #                stringr::str_squish() %>%
-                      #                unique()) %>%
-                      #dplyr::ungroup() %>%
-                      #dplyr::left_join(extraction_docs %>%
-                      #                   dplyr::select(clowder_id, fk_doc_id, atsdr_document_type),
-                      #                 by = c("document_type"="atsdr_document_type"))
+                      dplyr::distinct() %>%
+                      merge(extraction_docs %>%
+                              dplyr::select(clowder_id, fk_doc_id) %>%
+                              dplyr::distinct())
+                    #dplyr::rowwise() %>%
+                    # Handle case of collapsed document_type
+                    #dplyr::mutate(document_type = document_type %>%
+                    #                strsplit("|::|", fixed=TRUE) %>%
+                    #                unlist() %>%
+                    #                stringr::str_squish() %>%
+                    #                unique()) %>%
+                    #dplyr::ungroup() %>%
+                    #dplyr::left_join(extraction_docs %>%
+                    #                   dplyr::select(clowder_id, fk_doc_id, atsdr_document_type),
+                    #                 by = c("document_type"="atsdr_document_type"))
 
                     # Combine the two associated dataframes back into res
                     res <- rbind(res1, res2) %>%
