@@ -1382,6 +1382,21 @@ set_clowder_id_lineage <- function(source_table,
                   !is.na(fk_doc_id)) %>%
     dplyr::select(source_hash, source_version_date, fk_doc_id)
 
+  # Clear out associations for source_table source_hash entries not in the current document map
+  live_source_hashes = runQuery(paste0("SELECT DISTINCT source_hash FROM ", source_table), source.db) %>%
+    dplyr::pull(source_hash) %>%
+    paste(collapse="', '") %>%
+    paste0("'", ., "'")
+
+  map_file_fk_doc_id_list = map_file %>%
+    pull(fk_doc_id) %>%
+    paste(collapse=", ")
+
+  delete_query = paste0("DELETE FROM documents_records WHERE ",
+                        "source_hash IN (", live_source_hashes, ") AND ",
+                        "fk_doc_id NOT IN (", map_file_fk_doc_id_list, ")")
+  runQuery(delete_query, source.db)
+
   if(nrow(mat)){
     message("...pushing ", nrow(mat), " new documents_records entries...")
     # Push new document records to documents table
