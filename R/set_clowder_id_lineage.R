@@ -33,7 +33,9 @@ set_clowder_id_lineage <- function(source_table,
                                    map_file,
                                    clowder_url,
                                    clowder_api_key,
-                                   sync_clowder_metadata=FALSE) {
+                                   sync_clowder_metadata=FALSE,
+                                   source.db,
+                                   toxval.db) {
   printCurrentFunction(source_table)
 
   if(is.null(map_file)){
@@ -177,6 +179,18 @@ set_clowder_id_lineage <- function(source_table,
                         dplyr::select(-contentType) %>%
                         dplyr::distinct(),
 
+                      "ChemIDPlus" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                              "clowder_v3/source_chemidplus_document_map.xlsx")),
+
+                      "Uterotrophic Hershberger DB" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                               "clowder_v3/source_uterotrophic_hershberger_db_document_map.xlsx")),
+
+                      "ToxRefDB" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                             "clowder_v3/source_toxrefdb_document_map.xlsx")),
+
+                      "ECOTOX" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                          "clowder_v3/source_ecotox_document_map.xlsx")),
+
                       # No source match, return empty
                       data.frame()
     )
@@ -214,7 +228,7 @@ set_clowder_id_lineage <- function(source_table,
   pushed_docs <- runQuery(paste0("SELECT clowder_id FROM documents where clowder_id in ('",
                                  paste0(unique(map_file$clowder_id), collapse="', '"),
                                  "')"),
-                          db)
+                          source.db)
 
   mat <- map_file %>%
     dplyr::filter(!clowder_id %in% pushed_docs$clowder_id,
@@ -228,7 +242,7 @@ set_clowder_id_lineage <- function(source_table,
     # Push new document records to documents table
     runInsertTable(mat=mat,
                    table="documents",
-                   db=db)
+                   db=source.db)
   } else {
     message("...no new document entries to push...moving on...")
   }
@@ -240,7 +254,7 @@ set_clowder_id_lineage <- function(source_table,
     } else {
       # Implement function with this subset of new documents
       doc_lineage_sync_clowder_metadata(source_table=source_table,
-                                        db=db,
+                                        db=source.db,
                                         clowder_url=clowder_url,
                                         clowder_api_key=clowder_api_key)
     }
@@ -250,7 +264,7 @@ set_clowder_id_lineage <- function(source_table,
   pushed_docs <- runQuery(paste0("SELECT id as fk_doc_id, clowder_id FROM documents where clowder_id in ('",
                                  paste0(unique(map_file$clowder_id), collapse="', '"),
                                  "')"),
-                          db)
+                          source.db)
   # Match records to documents ID table records
   map_file <- map_file %>%
     dplyr::left_join(pushed_docs,
@@ -286,12 +300,16 @@ set_clowder_id_lineage <- function(source_table,
     runInsertTable(mat=mat,
                    table = "documents_lineage",
                    get.id = FALSE,
-                   db=db)
+                   db=source.db)
   }
   ################################################################################
   ### PUll source table data
   ################################################################################
-  res <- runQuery(paste0("SELECT * FROM ", source_table), db=db)
+  if(source_table %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
+    res <- runQuery(paste0("SELECT * FROM toxval WHERE source='", source_table, "'"), db=toxval.db)
+  } else {
+    res <- runQuery(paste0("SELECT * FROM ", source_table), db=source.db)
+  }
 
   # Check if source table data has been pushed (could be empty table)
   if(!nrow(res)){
@@ -306,7 +324,8 @@ set_clowder_id_lineage <- function(source_table,
   if(nrow(map_file) == 1){
     # Set the easy mappings (only 1 document)
     res$clowder_id = map_file$clowder_id
-    res$document_name = map_file$document_name
+    if("document_name" %in% names(map_file)) res$document_name = map_file$document_name
+    else res$document_name = map_file$filename
     res$fk_doc_id = map_file$fk_doc_id
     cat("clowder_id and document_name set for ",source_table,"\n")
   } else {
@@ -1371,20 +1390,35 @@ set_clowder_id_lineage <- function(source_table,
 
   # Clear out associations for source_table source_hash entries not in the current document map
   message("...Clearing out old associations not in current map...")
-  delete_query = paste0("DELETE FROM documents_records WHERE ",
-                        "source_hash IN (SELECT source_hash FROM ", source_table, ") ",
-                        "AND ", "fk_doc_id NOT IN ",
-                        "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
+  if(source_table %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
+    direct_load_source_hashes = runQuery(
+      paste0("SELECT DISTINCT source_hash FROM toxval WHERE source='", source_table, "'"),
+      toxval.db
+    ) %>%
+      dplyr::pull(source_hash) %>%
+      paste(collapse="', '") %>%
+      paste0("'", ., "'")
+    delete_query = paste0("DELETE FROM documents_records WHERE ",
+                          "source_hash IN (", direct_load_source_hashes, ") ",
+                          "AND fk_doc_id NOT IN ",
+                          "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
 
-  runQuery(delete_query, db)
+  } else {
+    delete_query = paste0("DELETE FROM documents_records WHERE ",
+                          "source_hash IN (SELECT source_hash FROM ", source_table, ") ",
+                          "AND fk_doc_id NOT IN ",
+                          "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
+  }
+  runQuery(delete_query, source.db)
 
   # Filter documents_records to only new documents_records
   pushed_doc_records <- runQuery(paste0("SELECT source_hash, fk_doc_id FROM documents_records where source_hash in ('",
                                         paste0(unique(res$source_hash), collapse="', '"),
                                         "')"),
-                                 db) %>%
+                                 source.db) %>%
     tidyr::unite(col="pushed_docs", source_hash, fk_doc_id)
 
+  if(!("source_version_date" %in% names(res))) res$source_version_date = as.character(NA)
   mat <- res %>%
     tidyr::unite(col="pushed_docs", source_hash, fk_doc_id, remove=FALSE) %>%
     dplyr::filter(!pushed_docs %in% pushed_doc_records$pushed_docs,
@@ -1397,7 +1431,7 @@ set_clowder_id_lineage <- function(source_table,
     runInsertTable(mat=mat %>%
                      dplyr::mutate(source_table = source_table),
                    table="documents_records",
-                   db=db)
+                   db=source.db)
   } else {
     message("...no new documents_records entries to push...moving on...")
   }
@@ -1406,7 +1440,7 @@ set_clowder_id_lineage <- function(source_table,
   set_clowder_doc_type(source_table=source_table,
                        clowder_url=clowder_url,
                        clowder_api_key=clowder_api_key,
-                       source.db=db,
+                       source.db=source.db,
                        ds_id = "5e31dc1e99323f93a9f5cec0",
                        clowder_id_list=res %>%
                          dplyr::select(clowder_id) %>%
