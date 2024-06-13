@@ -1369,6 +1369,15 @@ set_clowder_id_lineage <- function(source_table,
   total_records <- length(unique(res$source_hash))
   cat("Mapped records: ", total_records-records_missing, "| Missing: ", records_missing, "(", round(records_missing/total_records*100, 3),"%)\n")
 
+  # Clear out associations for source_table source_hash entries not in the current document map
+  message("...Clearing out old associations not in current map...")
+  delete_query = paste0("DELETE FROM documents_records WHERE ",
+                        "source_hash IN (SELECT source_hash FROM ", source_table, ") ",
+                        "AND ", "fk_doc_id NOT IN ",
+                        "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
+
+  runQuery(delete_query, db)
+
   # Filter documents_records to only new documents_records
   pushed_doc_records <- runQuery(paste0("SELECT source_hash, fk_doc_id FROM documents_records where source_hash in ('",
                                         paste0(unique(res$source_hash), collapse="', '"),
@@ -1381,21 +1390,6 @@ set_clowder_id_lineage <- function(source_table,
     dplyr::filter(!pushed_docs %in% pushed_doc_records$pushed_docs,
                   !is.na(fk_doc_id)) %>%
     dplyr::select(source_hash, source_version_date, fk_doc_id)
-
-  # Clear out associations for source_table source_hash entries not in the current document map
-  live_source_hashes = runQuery(paste0("SELECT DISTINCT source_hash FROM ", source_table), source.db) %>%
-    dplyr::pull(source_hash) %>%
-    paste(collapse="', '") %>%
-    paste0("'", ., "'")
-
-  map_file_fk_doc_id_list = map_file %>%
-    pull(fk_doc_id) %>%
-    paste(collapse=", ")
-
-  delete_query = paste0("DELETE FROM documents_records WHERE ",
-                        "source_hash IN (", live_source_hashes, ") AND ",
-                        "fk_doc_id NOT IN (", map_file_fk_doc_id_list, ")")
-  runQuery(delete_query, source.db)
 
   if(nrow(mat)){
     message("...pushing ", nrow(mat), " new documents_records entries...")
