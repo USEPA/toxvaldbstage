@@ -94,7 +94,7 @@ set_clowder_doc_type <- function(source_table=NULL,
                            paste0("a.", names(docs_push)[!names(docs_push) %in% c("clowder_id")],
                                   " = b.", names(docs_push)[!names(docs_push) %in% c("clowder_id")], collapse = ", ")
       )
-      runUpdate(table="documents", updateQuery=updateQuery, updated_df=docs_push, db=db)
+      runUpdate(table="documents", updateQuery=updateQuery, updated_df=docs_push, db=source.db)
 
       # # Push Update by clowder_id
       # runQuery(paste0("UPDATE documents SET document_type = '", doc_type, "' ",

@@ -6,6 +6,8 @@
 #' @param clowder_url URL to Clowder
 #' @param clowder_api_key API key to access Clowder resources
 #' @param sync_clowder_metadata Boolean whether to sync Clowder metadata for new document records. Default is False.
+#' @param source.db The source database name
+#' @param toxval.db The database version to use
 #' @return Returns an updated map with newly associated toxval_source table ID values
 #' @title set_clowder_id_lineage
 #' @details DETAILS
@@ -324,8 +326,11 @@ set_clowder_id_lineage <- function(source_table,
   if(nrow(map_file) == 1){
     # Set the easy mappings (only 1 document)
     res$clowder_id = map_file$clowder_id
-    if("document_name" %in% names(map_file)) res$document_name = map_file$document_name
-    else res$document_name = map_file$filename
+    if("document_name" %in% names(map_file)) {
+      res$document_name = map_file$document_name
+    } else {
+      res$document_name = map_file$filename
+    }
     res$fk_doc_id = map_file$fk_doc_id
     cat("clowder_id and document_name set for ",source_table,"\n")
   } else {
@@ -1391,15 +1396,8 @@ set_clowder_id_lineage <- function(source_table,
   # Clear out associations for source_table source_hash entries not in the current document map
   message("...Clearing out old associations not in current map...")
   if(source_table %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
-    direct_load_source_hashes = runQuery(
-      paste0("SELECT DISTINCT source_hash FROM toxval WHERE source='", source_table, "'"),
-      toxval.db
-    ) %>%
-      dplyr::pull(source_hash) %>%
-      paste(collapse="', '") %>%
-      paste0("'", ., "'")
     delete_query = paste0("DELETE FROM documents_records WHERE ",
-                          "source_hash IN (", direct_load_source_hashes, ") ",
+                          "source_hash IN (SELECT source_hash FROM ", toxval.db, ".toxval WHERE source = '", source_table,"') ",
                           "AND fk_doc_id NOT IN ",
                           "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
 
