@@ -66,6 +66,7 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
   incrementPosition <- batch_size
 
   while(startPosition <= endPosition){
+    if(incrementPosition > endPosition) incrementPosition = endPosition
 
     # Filter/get file names with dataset API
     file_info = ds_file_list %>%
