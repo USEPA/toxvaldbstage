@@ -106,5 +106,5 @@ set_clowder_doc_type <- function(source_table=NULL,
     }
   }
 
-  cat("\nDone...")
+  cat("\nDone...\n")
 }

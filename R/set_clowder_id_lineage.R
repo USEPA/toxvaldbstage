@@ -172,8 +172,8 @@ set_clowder_id_lineage <- function(source_table,
                                                                 "clowder_v3/source_heast_document_map_20240604.xlsx"), col_types = "text"),
 
                       "source_doe_pac" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                  "clowder_v3/source_doe_pac_document_map.xlsx"), col_types = "text") %>%
-                        tidyr::separate_rows(id, filename, sep="; ") %>%
+                                                                  "clowder_v3/source_doe_pac_document_map_20240529.xlsx"), col_types = "text") %>%
+                        tidyr::separate_rows(clowder_id, filename, sep="; ") %>%
                         dplyr::select(-contentType) %>%
                         dplyr::distinct(),
                       "source_epa_hhtv" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -645,7 +645,7 @@ set_clowder_id_lineage <- function(source_table,
                     origin_docs <- map_file %>%
                       dplyr::filter(is.na(parent_flag))
                     res1 <- res %>%
-                      dplyr::select(source_hash, title, source_version_date, doi) %>%
+                      dplyr::select(source_hash, title, source_version_date) %>%
                       dplyr::left_join(origin_docs %>%
                                          dplyr::select(clowder_id, title, fk_doc_id) %>%
                                          dplyr::distinct(),
@@ -670,6 +670,7 @@ set_clowder_id_lineage <- function(source_table,
                     # Match origin docs
                     # Focus only on the study id and clowder id fields for matching
                     res <- res %>%
+                      dplyr::mutate(study_id = as.numeric(study_id)) %>%
                       dplyr::left_join(map_file %>%
                                          dplyr::filter(!is.na(clowder_id)) %>%
                                          dplyr::select(clowder_id, fk_doc_id, animal_group.experiment.study.id) %>%
