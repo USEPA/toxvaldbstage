@@ -325,7 +325,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Add specified NA columns if they don't exist
   na_missing_cols = c("toxval_units_other", "strain_other", "exposure_route_other", "organ_system",
                       "target_organ", "hazard_category", "critical_effect", "study_duration_class",
-                      "chemical.ec_number", "toxval_numeric_qualifier")
+                      "chemical.ec_number", "toxval_numeric_qualifier", "quality", "quality_other")
   res[, na_missing_cols[!na_missing_cols %in% names(res)]] = as.character(NA)
 
   # Add special toxval_units "score" case for certain OHTs
@@ -912,6 +912,12 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       critical_effect = dplyr::case_when(
         startsWith(toupper(toxval_type), "LD") ~ "mortality",
         TRUE ~ critical_effect
+      ),
+
+      # Set quality value to quality_other when appropriate
+      quality = dplyr::case_when(
+        quality == "other:" ~ quality_other,
+        TRUE ~ quality
       )
     )
 
