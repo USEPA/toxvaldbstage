@@ -176,6 +176,8 @@ set_clowder_id_lineage <- function(source_table,
                         tidyr::separate_rows(id, filename, sep="; ") %>%
                         dplyr::select(-contentType) %>%
                         dplyr::distinct(),
+                      "source_epa_hhtv" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                "clowder_v3/source_epa_hhtv_document_map.xlsx"), col_types = "text"),
 
                       # No source match, return empty
                       data.frame()
@@ -1231,7 +1233,40 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
+                  
+                  "source_epa_hhtv" = {
+                    # associates each origin document to specific record
+                    origin_docs <- map_file %>%
+                      dplyr::filter(is.na(parent_flag))
+                    origin_docs$long_ref <- fix.replace.unicode(origin_docs$long_ref)
+                    # Perform a left join to match long_ref
+                    res1 <- res %>%
+                      tidyr::separate_rows(long_ref, sep=" \\| ") %>%
+                      dplyr::select(long_ref, source_hash, source_version_date) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(long_ref, clowder_id, fk_doc_id),
+                                       by = "long_ref") %>%
+                      dplyr::select(-long_ref)
+                    # associates each record to the extraction document
+                    extraction_docs <- map_file %>%
+                      dplyr::filter(!is.na(parent_flag))
+                    extraction_docs$document_name <- gsub('.pdf', '', extraction_docs$document_name)
 
+                    # Perform a left join to match document_name
+                    res2 <- res %>%
+                      dplyr::select(document_name, source_hash, source_version_date) %>%
+                      dplyr::left_join(extraction_docs %>%
+                                         dplyr::select(document_name, clowder_id, fk_doc_id),
+                                       by = "document_name") %>%
+                      dplyr::select(-document_name)
+
+                    # Combine the two associated dataframes back into res
+                    res <- rbind(res1, res2) %>%
+                      dplyr::arrange(source_hash)
+                    #Return the mapped res with document names and clowder ids
+                    res
+                  },
+                  
                   "source_who_ipcs" = {
                     # Associate records based off of ntp_study_identifier
                     res = res %>%
@@ -1247,7 +1282,6 @@ set_clowder_id_lineage <- function(source_table,
                       merge(map_file %>%
                               dplyr::filter(!is.na(parent_flag)) %>%
                               dplyr::select(clowder_id, fk_doc_id))
-
                     # Return res
                     res
                   },
