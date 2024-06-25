@@ -63,7 +63,9 @@ toxval_source_check_extraction_documents <- function(source.db, toxval.db, write
     dplyr::distinct()
 
   # Record list of active sources without extraction document associations, if needed
-  if (write_output) {writexl::write_xlsx(active_no_extraction, "no_extraction_associations.xlsx")}
+  if (write_output) {
+    writexl::write_xlsx(active_no_extraction, "Repo/toxval_source_status_reports/no_extraction_document_associations.xlsx")
+  }
   cat("Done\n")
 
   cat("Getting information for documents that are missing document_type field... ")
@@ -107,7 +109,9 @@ toxval_source_check_extraction_documents <- function(source.db, toxval.db, write
     dplyr::distinct()
 
   # Record list of documents with null document_type, if needed
-  if (write_output) {writexl::write_xlsx(docs_missing_doc_type, "docs_missing_doc_type.xlsx")}
+  if (write_output) {
+    writexl::write_xlsx(docs_missing_doc_type, "Repo/toxval_source_status_reports/docs_missing_doc_type.xlsx")
+  }
   cat("Done")
 
   return (list(active_no_extraction, docs_missing_doc_type))
