@@ -9,19 +9,19 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @return None; data is sent to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{mutate_all}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_rsl_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr bind_rows mutate_all mutate na_if across case_when
 #' @importFrom tidyr unite pivot_longer separate drop_na
@@ -240,12 +240,18 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         TRUE ~ as.character(NA)
       ),
 
-      # Get "toxval_subtype" column
+      # Get toxval_subtype field
       toxval_subtype = dplyr::case_when(
         grepl("Screening Level", toxval_type) & grepl("\\bcancer", study_type) ~ "TR = 1E-06",
         raw_input_file == "rsl_thq10_nov_2023.xlsx" & (!grepl("\\bcancer", study_type)) ~ "Thq = 1",
         raw_input_file == "rsl_thq01_nov_2023.xlsx" & (!grepl("\\bcancer", study_type)) ~ "Thq = 0.1",
         TRUE ~ as.character(NA)
+      ),
+      # Append subchronic data to subtype where appropriate
+      toxval_subtype = dplyr::case_when(
+        is.na(toxval_subtype) & toxval_type %in% c("SRfC", "SRfD") ~ "subchronic",
+        toxval_type %in% c("SRfC", "SRfD") ~ paste0("subchronic; ", toxval_subtype),
+        TRUE ~ toxval_subtype
       ),
 
       # Get exposure_route based on toxval_type
