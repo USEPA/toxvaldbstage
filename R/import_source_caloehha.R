@@ -649,6 +649,17 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       dplyr::distinct()
   }
 
+  # Add subsource URL mappings to full data
+  url_map = readxl::read_xlsx(paste0(dir, "cal_oehha_url_map.xlsx")) %>%
+    dplyr::rename(subsource_url = link, merge_name = name) %>%
+    dplyr::mutate(merge_name = merge_name %>%
+                    fix.replace.unicode() %>%
+                    toupper)
+  res = res %>%
+    dplyr::mutate(merge_name = toupper(name)) %>%
+    dplyr::left_join(url_map, by=c("merge_name")) %>%
+    dplyr::select(-merge_name)
+
   # Perform deduping
   res = toxval.source.import.dedup(res)
 
