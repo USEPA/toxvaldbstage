@@ -9,19 +9,19 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @return None; data is sent to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{mutate_all}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_rsl_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr bind_rows mutate_all mutate na_if across case_when
 #' @importFrom tidyr unite pivot_longer separate drop_na
@@ -154,7 +154,8 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::mutate(
       name = gsub("~", "", Analyte),
       casrn = sapply(`CAS N.`, FUN=fix.casrn) %>% dplyr::na_if("NOCAS"),
-      source_url = "https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables"
+      source_url = "https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables",
+      subsource_url = source_url,
     ) %>%
     # Extract toxval_type and toxval_units
     tidyr::separate(

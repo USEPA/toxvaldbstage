@@ -43,6 +43,7 @@ import_source_epa_hhtv <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       long_ref = study_reference,
       year = last_updated,
       source_url = url,
+      subsource_url = source_url,
 
       # Match sex formatting to toxval
       sex = sex %>%

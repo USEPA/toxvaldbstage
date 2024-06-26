@@ -92,7 +92,10 @@ import_source_epa_ow_nrwqc_hhc <- function(db, chem.check.halt=FALSE, do.reset=F
       # Replace all multiple and/or non-standard dashes with a standard dash
       dplyr::across(.fns = ~gsub("(--)?—", "-", .)),
       # ...and fix unicode symbols
-      dplyr::across(tidyselect::where(is.character), fix.replace.unicode)
+      dplyr::across(tidyselect::where(is.character), fix.replace.unicode),
+
+      source_url = url,
+      subsource_url = source_url,
       ) %>%
     # Make row-by-row adjustments
     dplyr::rowwise() %>%

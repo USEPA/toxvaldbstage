@@ -7,20 +7,20 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{c("rowwise", "rowwise")}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[tidyselect]{all_of}}, \code{\link[tidyselect]{starts_with}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
 #'  \code{\link[tidyr]{drop_na}}
 #' @rdname import_heast_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr filter select rowwise mutate ungroup na_if row_number rename rename_with bind_rows case_when
 #' @importFrom tidyselect all_of starts_with
@@ -215,6 +215,7 @@ import_heast_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       # Add hardcoded columns
       human_eco = "human health",
       source_url = "https://cfpub.epa.gov/ncea/risk/recordisplay.cfm?deid=2877",
+      subsource_url = source_url,
       study_type = study_duration_class,
       long_ref = "U.S. EPA. Health Effects Assessment Summary Tables (Heast). U.S. Environmental Protection Agency, Washington, D.C., 1997. https://cfpub.epa.gov/ncea/risk/recordisplay.cfm?deid=2877.",
 

@@ -8,19 +8,19 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{recode}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}
 #' @rdname import_efsa_source_2022
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr rename mutate recode across select distinct
@@ -93,6 +93,7 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
                             "Human health" = "human health"),
            # Fill in source_url, source_file, and study_duration_units columns
            source_url = "https://zenodo.org/record/5076033#.Y9fEoXbMI2z",
+           subsource_url = source_url,
            source_download = "OpenFoodToxTX22784_2022.xlsx",
            study_duration_units = "days") %>%
     # splitting ROUTE into exposure_route and exposure_method columns
