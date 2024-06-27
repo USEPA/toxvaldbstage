@@ -1089,33 +1089,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       dplyr::select(-toxval_type_other)
   }
 
-  # Collapse dose/conc level/other critical_effect values
-  if("dose level" %in% unique(res$toxval_type) | "conc. level" %in% unique(res$toxval_type) | "other" %in% unique(res$toxval_type)) {
-    cat("Source has 'dose/conc. level' or 'other' toxval_type. Converting to LEL...\n")
-    # Separate out dose/conc level entries from res
-    dose_conc_res = res %>%
-      dplyr::filter(toxval_type %in% c("dose level", "conc. level", "other")) %>%
-      # Set toxval_type for dose/conc level to be LEL
-      dplyr::mutate(toxval_type = "LEL")
-
-    # Use deduping function to collapse just critical_effect
-    dose_conc_hash_cols = c(toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))],
-                            "endpoint_uuid")
-    dose_conc_res = toxval.source.import.dedup(dose_conc_res,
-                                               hashing_cols=dose_conc_hash_cols) %>%
-      dplyr::mutate(
-        critical_effect = gsub(" \\|::\\| ", "|", critical_effect),
-        experimental_flag = as.numeric(experimental_flag),
-        year = as.numeric(year)
-      ) %>%
-      dplyr::distinct()
-
-    # Add dose_conc entries back to original data
-    res = res %>%
-      dplyr::filter(!(toxval_type %in% c("dose level", "conc. level", "other"))) %>%
-      dplyr::mutate(range_relationship_id = as.character(range_relationship_id)) %>%
-      dplyr::bind_rows(dose_conc_res)
-  }
+  # Set dose/conc level/other toxval_type to LEL
+  res = res %>%
+    dplyr::mutate(
+      toxval_type = dplyr::case_when(
+        toxval_type %in% c("dose level", "conc. level", "other") ~ "LEL",
+        TRUE ~ toxval_type
+      )
+    )
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -1174,6 +1155,19 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   # Perform deduping
   res = toxval.source.import.dedup(res, hashing_cols=hashing_cols)
+
+  # Use deduping function to collapse critical_effect
+  critical_effect_hash_cols = c(
+    toxval.config()$hashing_cols[!(toxval.config()$hashing_cols %in% c("critical_effect"))],
+    "endpoint_uuid"
+  )
+  res = toxval.source.import.dedup(res, hashing_cols=critical_effect_hash_cols) %>%
+    dplyr::mutate(
+      critical_effect = gsub(" \\|::\\| ", "|", critical_effect),
+      experimental_flag = as.numeric(experimental_flag),
+      year = as.numeric(year)
+    ) %>%
+    dplyr::distinct()
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
