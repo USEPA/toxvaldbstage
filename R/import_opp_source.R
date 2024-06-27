@@ -8,19 +8,19 @@
 #' @title import_opp_source
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[dplyr]{filter}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{bind_rows}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
 #' @rdname import_opp_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom tidyr pivot_longer separate
 #' @importFrom dplyr filter mutate row_number case_when select bind_rows
@@ -40,6 +40,10 @@ import_opp_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
   #####################################################################
 
   res = res0 %>%
+    dplyr::mutate(
+      # Add ID values before pivot
+      group_id = dplyr::row_number()
+    ) %>%
     # Pivot on columns with toxval_type/numeric/units information
     tidyr::pivot_longer(
       cols=c("Acute or One Day PAD (RfD) (mg/kg/day)",
@@ -84,7 +88,7 @@ import_opp_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
       # Set toxval information based on toxval_type_units
       toxval_type = dplyr::case_when(
-        grepl("RfD", toxval_type_units, ignore.case=TRUE) ~ "RfD",
+        grepl("RfD", toxval_type_units, ignore.case=TRUE) ~ "PAD (RfD)",
         grepl("Carcinogenic HHBP", toxval_type_units) ~ "Carcinogenic HHBP",
         grepl("HHBP", toxval_type_units) ~ "HHBP",
         grepl("CSF", toxval_type_units) ~ "cancer slope factor",
@@ -103,6 +107,7 @@ import_opp_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         TRUE ~ as.character(NA)
       ),
       study_type = risk_assessment_class,
+      toxval_subtype = study_type,
 
       # Set sensitive_lifestage field based on risk_assessment_class
       sensitive_lifestage = dplyr::case_when(
@@ -116,6 +121,16 @@ import_opp_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         tolower(),
       lifestage = stringr::str_extract(sensitive_lifestage, "(Children|[0-9]+\\-[0-9]+ yrs)", group=1),
       population = sensitive_lifestage,
+
+      # Get specialized ID values
+      cancer_id = dplyr::case_when(
+        study_type == "cancer" ~ group_id,
+        TRUE ~ NA
+      ),
+      hhbp_rfd_id = dplyr::case_when(
+        grepl("HHBP|RfD", toxval_type) & is.na(cancer_id) ~ group_id,
+        TRUE ~ NA
+      )
     )
 
   # Handle entries with upper ranges
@@ -123,14 +138,14 @@ import_opp_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::filter(!is.na(toxval_numeric_upper)) %>%
     dplyr::select(-toxval_numeric_upper) %>%
     dplyr::mutate(
-      toxval_relationship = "Lower Range",
+      toxval_subtype = stringr::str_c(toxval_subtype, " lower range (TR = 1E-6)"),
       toxval_numeric_qualifier = ">="
     )
   upper_range_res = res %>%
     dplyr::filter(!is.na(toxval_numeric_upper)) %>%
     dplyr::mutate(
       toxval_numeric = toxval_numeric_upper,
-      toxval_relationship = "Upper Range",
+      toxval_subtype = stringr::str_c(toxval_subtype, " upper range (TR = 1E-4)"),
       toxval_numeric_qualifier = "<="
     ) %>%
     dplyr::select(-toxval_numeric_upper)
