@@ -154,7 +154,8 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::mutate(
       name = gsub("~", "", Analyte),
       casrn = sapply(`CAS N.`, FUN=fix.casrn) %>% dplyr::na_if("NOCAS"),
-      source_url = "https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables"
+      source_url = "https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables",
+      subsource_url = source_url,
     ) %>%
     # Extract toxval_type and toxval_units
     tidyr::separate(

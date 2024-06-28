@@ -7,19 +7,19 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is loaded into toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
 #' @rdname source_penn_dep_toxvalues
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate filter case_when
 #' @importFrom stringr str_squish
@@ -50,7 +50,7 @@ import_source_penn_dep_toxvalues <- function(db,chem.check.halt=FALSE, do.reset=
       # Rename/add columns as needed
       name = stringr::str_squish(`Regulated Subtance`),
       casrn = CAS,
-      source_url = " https://www.dep.pa.gov/Business/Land/LandRecycling/Standards-Guidance-Procedures/Pages/Statewide-Health-Standards.aspx"
+      source_url = "https://files.dep.state.pa.us/EnvironmentalCleanupBrownfields/LandRecyclingProgram/LandRecyclingProgramPortalFiles/GuidanceTechTools/VaporIntrusion/November_2021/Table%205a.pdf"
     )  %>%
 
     # Combine values and categories to enable later transformations

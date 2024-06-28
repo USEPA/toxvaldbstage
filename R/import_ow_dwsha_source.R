@@ -7,19 +7,19 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is added to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{bind_rows}}
 #'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{pivot_longer}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_ow_dwsha_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate case_when filter row_number bind_rows
 #' @importFrom tidyr separate pivot_longer
@@ -41,7 +41,8 @@ import_ow_dwsha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   res = res0 %>%
     dplyr::mutate(
       # Override URL from extraction document (broken link) - use URL from load script
-      source_url = "https://www.epa.gov/ground-water-and-drinking-water",
+      source_url = "https://www.epa.gov/system/files/documents/2022-01/dwtable2018.pdf",
+      subsource_url = source_url,
 
       # Set study_type from RAC
       study_type = risk_assessment_class,

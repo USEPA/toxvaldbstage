@@ -7,13 +7,13 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is pushed to ToxVal
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[janitor]{remove_empty}}
 #'  \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{summarise}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{group_by}}
@@ -22,7 +22,7 @@
 #'  \code{\link[tibble]{enframe}}
 #'  \code{\link[tidyselect]{all_of}}
 #' @rdname import_atsdr_pfas_2021_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom janitor remove_empty
 #' @importFrom dplyr bind_rows summarise mutate arrange distinct case_when select group_by ungroup
@@ -427,7 +427,7 @@ import_atsdr_pfas_2021_source <- function(db, chem.check.halt=FALSE, do.reset=FA
       human_eco = "human_health",
       toxval_numeric_qualifier = "=",
       risk_assessment_class = study_type,
-      source_url = "https://www.atsdr.cdc.gov/toxprofiledocs/index.html"
+      source_url = "https://wwwn.cdc.gov/TSP/ToxProfiles/ToxProfiles.aspx?id=1117&tid=237"
     ) %>%
     # Only have endpoint: effect pairs or just effect, otherwise NA
     dplyr::mutate(critical_effect = dplyr::case_when(

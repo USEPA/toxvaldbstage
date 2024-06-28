@@ -174,6 +174,9 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         TRUE ~ toxval_units
       ),
 
+      # Add subsource_url
+      subsource_url = url,
+
       note = note %>%
         dplyr::na_if(""),
       note_in_body = note_in_body %>%

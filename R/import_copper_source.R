@@ -8,19 +8,19 @@
 #' @title import_copper_source
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_copper_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename mutate row_number case_when filter select bind_rows distinct
 #' @importFrom tidyr drop_na separate
@@ -60,6 +60,7 @@ import_copper_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.in
 
     dplyr::mutate(
       source_url = url,
+      subsource_url = source_url,
 
       # Set relationship ID to handle ranged toxval_numeric entries
       range_relationship_id = dplyr::row_number(),

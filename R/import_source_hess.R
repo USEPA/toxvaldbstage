@@ -7,19 +7,19 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{drop_na}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{tidyeval-compat}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate-joins}}
 #'  \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_trim}}, \code{\link[stringr]{case}}, \code{\link[stringr]{str_extract}}
 #' @rdname import_source_hess
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom tidyr pivot_longer unite drop_na
 #' @importFrom dplyr mutate across where na_if case_when select rename left_join
@@ -50,6 +50,7 @@ import_source_hess <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
     dplyr::mutate(
       name = chemical_name,
       source_url = "https://www.nite.go.jp/en/chem/qsar/hess_update-e.html",
+      subsource_url = source_url,
 
       # Set document name extension to PDF
       src_document_name = gsub("docx", "pdf", src_document_name),

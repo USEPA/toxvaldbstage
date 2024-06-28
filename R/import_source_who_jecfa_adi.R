@@ -45,15 +45,18 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
 
   res = res0 %>%
     # Copy toxval fields from originals
-    dplyr::mutate(name = `Webpage Name` %>%
-                    fix.replace.unicode(),
-                  casrn = `CAS number` %>%
-                    # Remove parenthetics
-                    gsub("\\s*\\([^\\)]+\\)","", .) %>%
-                    # Replace unicode
-                    fix.replace.unicode() %>%
-                    stringr::str_squish(),
-                  year = `Evaluation year`) %>%
+    dplyr::mutate(
+      source_url = "https://apps.who.int/food-additives-contaminants-jecfa-database/",
+      subsource_url = chemical_url,
+      name = `Webpage Name` %>%
+        fix.replace.unicode(),
+      casrn = `CAS number` %>%
+        # Remove parenthetics
+        gsub("\\s*\\([^\\)]+\\)","", .) %>%
+        # Replace unicode
+        fix.replace.unicode() %>%
+        stringr::str_squish(),
+      year = `Evaluation year`) %>%
     # Separate casrn lists
     tidyr::separate_rows(casrn, sep=";") %>%
     tidyr::separate_rows(casrn, sep=",") %>%
@@ -188,7 +191,3 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-

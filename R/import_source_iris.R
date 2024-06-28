@@ -9,19 +9,19 @@
 #' @title import_source_iris
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{replace_na}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_extract}}
 #' @rdname import_source_pprtv_cphea
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate filter select across rename rowwise distinct
 #' @importFrom tidyr pivot_longer all_of separate replace_na
@@ -672,7 +672,10 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       exposure_route = dplyr::case_when(
         exposure_method %in% c("gavage", "feed", "drinking water") ~ "oral",
         TRUE ~ exposure_route
-      )
+      ),
+
+      # Add subsource_url
+      subsource_url = url
     ) %>%
     # Remove intermediate study_duration parsing field
     dplyr::select(-study_duration)
@@ -705,7 +708,8 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       dplyr::across(dplyr::where(is.character), ~ dplyr::na_if(., "") %>%
                       tidyr::replace_na("-") %>%
                       fix.replace.unicode() %>%
-                      stringr::str_squish()))
+                      stringr::str_squish())
+    )
 
   # Perform deduping
   res = toxval.source.import.dedup(res, hashing_cols=toxval.config()$hashing_cols)

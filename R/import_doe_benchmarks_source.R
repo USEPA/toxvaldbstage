@@ -94,9 +94,9 @@ import_doe_benchmarks_source <- function(db, chem.check.halt=FALSE, do.reset=FAL
   res = dplyr::bind_rows(res0_test, res0_endpoint_N, res0_endpoint_L) %>%
     # Add basic columns as necessary
     dplyr::mutate(
-      source_url = URL,
       exposure_route = "oral",
       source_url = "https://rais.ornl.gov/documents/tm86r3.pdf",
+      subsource_url = source_url,
 
       # Clean species column
       species = species %>%

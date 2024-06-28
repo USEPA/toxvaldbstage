@@ -8,17 +8,17 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_generic_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr mutate na_if select everything all_of
@@ -88,6 +88,7 @@ import_source_usgs_hbsl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
                   source = "USGS HBSL",
                   subsource = "Water Quality Data",
                   source_url = "https://water.usgs.gov/water-resources/hbsl",
+                  subsource_url = source_url,
                   risk_assessment_class = "chronic",
                   exposure_route = "oral",
                   # Add version date. Can be converted to a mutate statement as needed

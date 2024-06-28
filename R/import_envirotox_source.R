@@ -7,18 +7,18 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is loaded into toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[stringr]{str_match}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_envirotox_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr left_join mutate na_if case_when
 #' @importFrom stringr str_match str_squish
@@ -60,6 +60,7 @@ import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
       toxval_type = gsub("\\*", "", `Test statistic`),
       # long_ref = "Health and Environmental Sciences Institute (HESI). 2024. EnviroTox Database & Tools. Version 2.0.0 Available: http://www.envirotoxdatabase.org/ (accessed January 02, 2024)",
       source_url = "https://envirotoxdatabase.org/",
+      subsource_url = source_url,
       exposure_route = gsub("Both", "Freshwater/Saltwater", Medium),
 
       # Get study_type by translating "Test type" values

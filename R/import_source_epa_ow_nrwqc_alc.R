@@ -6,19 +6,19 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{c("rowwise", "rowwise", "rowwise")}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate_rows}}
 #' @rdname import_source_epa_ow_nrwqc_alc
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr rename rowwise mutate ungroup across case_when
@@ -78,7 +78,11 @@ import_source_epa_ow_nrwqc_alc <- function(db,chem.check.halt=FALSE, do.reset=FA
       toxval_units = gsub("[()]", "", toxval_units),
       study_type = gsub("[()]", "", study_type),
       # removing numbers from toxval_type
-      toxval_type = gsub("[[:digit:]]+", "", toxval_type)) %>%
+      toxval_type = gsub("[[:digit:]]+", "", toxval_type),
+
+      source_url = url,
+      subsource_url = source_url,
+    ) %>%
     # replacing multiple dashes with single dash for empty columns
     dplyr::mutate(dplyr::across(c("name","casrn","Publication_Year","toxval_numeric"),
                                 ~fix.replace.unicode(.)

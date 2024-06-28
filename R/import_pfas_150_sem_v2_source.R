@@ -157,6 +157,7 @@ import_pfas_150_sem_v2_source <- function(db,chem.check.halt=FALSE, do.reset=FAL
       external_source_id = hero_id,
       external_source_id_desc = "HERO ID",
       source_url = "https://ehp.niehs.nih.gov/doi/full/10.1289/EHP10343",
+      subsource_url = source_url,
       population = animal_group_name,
       toxval_numeric = as.numeric(toxval_numeric)
     ) %>%

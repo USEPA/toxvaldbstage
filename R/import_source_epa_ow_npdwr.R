@@ -66,7 +66,9 @@ import_source_epa_ow_npdwr <- function(db,chem.check.halt=FALSE, do.reset=FALSE,
                   toxval_numeric = gsub(" MFL$", " million fibers per liter", toxval_numeric),
                   name = name %>%
                     gsub("Quick reference guide|Rule information|Consumer fact sheet", "", .) %>%
-                    stringr::str_squish()
+                    stringr::str_squish(),
+                  source_url = url,
+                  subsource_url = source_url,
                     ) %>%
     dplyr::mutate(dplyr::across(c("toxval_type", "toxval_numeric", "toxval_units"),
                          ~stringr::str_squish(.))) %>%

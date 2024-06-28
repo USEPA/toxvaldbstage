@@ -8,19 +8,19 @@
 #' @param do.toxicological_profile If TRUE, add toxicological profile data to table before insertion
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[tidyr]{separate}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_source_atsdr_mrls
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom tidyr separate
 #' @importFrom dplyr mutate case_when
@@ -55,6 +55,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
       doc_cover_date = `Cover Date`,
       toxval_type = "MRL",
       source_url = "https://wwwn.cdc.gov/TSP/MRLS/mrlsListing.aspx",
+      subsource_url = source_url,
 
       # Get year
       year = doc_cover_date %>%

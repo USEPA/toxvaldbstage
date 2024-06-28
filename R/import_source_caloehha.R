@@ -597,6 +597,18 @@ import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       tolower()
 ##########################################################################################################
 
+    # Add subsource URL mappings to full data
+    url_map = readxl::read_xlsx(paste0(dir, "cal_oehha_url_map.xlsx")) %>%
+      dplyr::select(subsource_url = link, merge_name = name) %>%
+      dplyr::mutate(merge_name = merge_name %>%
+                      fix.replace.unicode() %>%
+                      stringr::str_squish() %>%
+                      toupper)
+    res = res %>%
+      dplyr::mutate(merge_name = toupper(name)) %>%
+      dplyr::left_join(url_map, by=c("merge_name")) %>%
+      dplyr::select(-merge_name)
+
   # Add summary data to df before prep and load
   if(do.summary_data){
     # Import manually curated Cal OEHHA Summary information

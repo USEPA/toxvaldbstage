@@ -7,19 +7,19 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
 #'  \code{\link[tidyr]{separate}}, \code{\link[tidyr]{drop_na}} \code{\link[tidyr]{pivot_longer}}
 #' @rdname import_niosh_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate case_when
 #' @importFrom stringr str_squish str_extract
@@ -51,6 +51,7 @@ import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       toxval_type = "NIOSH IDLH Concentration",
       exposure_route = "inhalation",
       source_url = "https://www.cdc.gov/niosh/idlh/intridl4.html",
+      subsource_url = source_url,
 
       # Remove casrn noise
       casrn = `CAS no.` %>%
