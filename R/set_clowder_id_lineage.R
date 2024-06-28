@@ -1044,6 +1044,8 @@ set_clowder_id_lineage <- function(source_table,
                               dplyr::filter(!is.na(parent_flag)) %>%
                               dplyr::select(clowder_id, fk_doc_id))
 
+                    res = res %>%
+                      dplyr::bind_rows(tmp)
                     # Return res
                     res
                   },
@@ -1258,7 +1260,7 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
-                  
+
                   "source_epa_hhtv" = {
                     # associates each origin document to specific record
                     origin_docs <- map_file %>%
@@ -1291,7 +1293,7 @@ set_clowder_id_lineage <- function(source_table,
                     #Return the mapped res with document names and clowder ids
                     res
                   },
-                  
+
                   "source_who_ipcs" = {
                     # Associate records based off of ntp_study_identifier
                     res = res %>%
