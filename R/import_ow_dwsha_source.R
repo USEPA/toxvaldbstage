@@ -41,7 +41,8 @@ import_ow_dwsha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   res = res0 %>%
     dplyr::mutate(
       # Override URL from extraction document (broken link) - use URL from load script
-      source_url = "https://www.epa.gov/system/files/documents/2022-01/dwtable2018.pdf",
+      source_url = "https://www.epa.gov/ground-water-and-drinking-water",
+      subsource_url = "https://www.epa.gov/system/files/documents/2022-01/dwtable2018.pdf",
 
       # Set study_type from RAC
       study_type = risk_assessment_class,

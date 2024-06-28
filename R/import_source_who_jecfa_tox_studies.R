@@ -44,7 +44,7 @@ import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.re
     tidyr::separate_rows(casrn, sep=";") %>%
     # Copy toxval fields from originals
     dplyr::mutate(
-      source_url = chemical_url,
+      source_url = "https://apps.who.int/food-additives-contaminants-jecfa-database/",
       subsource_url = source_url,
       name = fix.replace.unicode(name) %>% toupper(),
       species = tolower(species),
