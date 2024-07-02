@@ -12,8 +12,8 @@
 #' @param source_specific_filter Boolean whether to apply source specific filtering Default is TRUE.
 #' @return sampled toxval_source records
 #-----------------------------------------------------------------------------------
-qc_sampling <- function(toxval.db="res_toxval_v95",
-                        source.db="res_toxval_source_V5",
+qc_sampling <- function(toxval.db,
+                        source.db,
                         fraction=0.1,
                         source=NULL,
                         source_table=NULL,

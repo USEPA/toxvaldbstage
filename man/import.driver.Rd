@@ -4,11 +4,7 @@
 \alias{import.driver}
 \title{import.driver}
 \usage{
-import.driver(
-  db = "res_toxval_source_v5",
-  chem.check.halt = FALSE,
-  do.clean = FALSE
-)
+import.driver(db, chem.check.halt = FALSE, do.clean = FALSE)
 }
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}

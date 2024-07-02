@@ -16,7 +16,7 @@
 #' @rdname import.driver
 #' @export
 #--------------------------------------------------------------------------------------
-import.driver <- function(db="res_toxval_source_v5",
+import.driver <- function(db,
                           chem.check.halt=FALSE,
                           do.clean=FALSE) {
   printCurrentFunction(db)

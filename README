@@ -1,10 +1,10 @@
-THis file contains instructions for managing code (git, documentation, ...)
+This file contains instructions for managing code (git, documentation, ...)
 
 
 ---------------------------------------------------------------------------------------------
 Code Documentation
 ---------------------------------------------------------------------------------------------
-run the following repeatedly until no errors exist ot get the code documentation clean
+Run the following repeatedly until no errors exist to get the code documentation clean
 
 devtools::document()
 
@@ -13,7 +13,7 @@ To create package documentation
 On Linux (sc)
 1. cd to the project directory
 2. run roxygen2::roxygenize(). This will create the Rd files in the man directory of the main package directory
-3. on Linux, cd to the diretory above the package directory
+3. on Linux, cd to the directory above the package directory
 4. run R CMD Rd2pdf <packagename>
 
 On Windows ....
@@ -21,12 +21,12 @@ Pointing to pdflatex ...
 
 Sys.setenv(PATH=paste(Sys.getenv("PATH"),"C:/Program Files/MiKTeX 2.9/miktex/bin/x64/",sep=";"))
 
-Running documentation - this builds the file toxvaldb09_manual.pdf
+Running documentation - this builds the file toxvaldbstage_manual.pdf
 
 
 Sys.setenv(PATH = paste(Sys.getenv("PATH"), "C:/Program Files/MiKTeX 2.9/miktex/bin/x64", sep=.Platform$path.sep))
 Sys.setenv(R_PAPERSIZE="letter")
-system("R CMD Rd2pdf . --title=toxvaldb09 toxvaldb09 --output=../toxvaldb92_manual.pdf --force --no-clean --internals")
+system("R CMD Rd2pdf . --title=toxvaldbstage toxvaldbstage --output=../toxvaldbstage_manual.pdf --force --no-clean --internals")
 
 ---------------------------------------------------------------------------------------------
 Managing git and bitbucket - internal
@@ -39,11 +39,11 @@ To get a GitHub token
 5. Select "Tokens (classic)"
 6. At the top, select "Generate new token", then "Generate new token (classic)"
 7. Give the token an informative name in the "Note" field
-8. Set expiration to 90 days (security requirment for tokens to expire, just like passwords)
+8. Set expiration to 90 days (security requirement for tokens to expire, just like passwords)
 9. Select the "repo" checkbox
-10. Scroll to the bottom of the form and clicl "Generate token"
+10. Scroll to the bottom of the form and click "Generate token"
 11. Save this token string for future reference
-12. Click the "Confirugre SSO" dropdown menu on the token and click "USEPA" to allow SSO authorization
+12. Click the "Configure SSO" dropdown menu on the token and click "USEPA" to allow SSO authorization
 
 To clone the ToxVal_Stage repo
 1. Make a folder on the Linux drive

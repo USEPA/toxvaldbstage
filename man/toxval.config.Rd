@@ -11,8 +11,7 @@ Returns a set of parameters to be used throughout the package
 }
 \description{
 Define a set of global variables. These include the source path (datapath)
-and the source databases (e.g. dev_toxval_{version} and dev_toxval_source_{version})
-and the urls for the ACToR web services.
+and the source databases (e.g. dev_toxval_{version} and dev_toxval_source_{version}).
 }
 \details{
 DETAILS
