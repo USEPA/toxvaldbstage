@@ -4,18 +4,18 @@
 #' The information is in the file ./data_profile/data_profile_files/data_profiling_dups_log3.xlsx
 #' @param db The version of toxval into which the source info is loaded.
 #' @param dups_log_file The name of the duplicates log file to load
-#' @export 
+#' @export
 #' @title FUNCTION_TITLE
 #' @description FUNCTION_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  [read_xlsx][readxl::read_xlsx]
 #'  [separate_rows][tidyr::separate_rows], [unite][tidyr::unite]
 #'  [filter][dplyr::filter], [select][dplyr::select]
@@ -26,7 +26,6 @@
 #--------------------------------------------------------------------------------------
 import.dup.log.info <- function(db, dups_log_file="True_Duplicate_for_DAT.xlsx") {
   printCurrentFunction("data_profile")
-  # runInsert("data_profile",res_toxval_source_v5)
 
   dir = paste0(toxval.config()$datapath,"data_profile/data_profile_files/")
   file = paste0(dir, dups_log_file)

@@ -271,15 +271,3 @@ toxval.source.map.chemicals.combined <- function(source.db, source.index, input.
     #        )
   }
 }
-
-# # First round where chemical_id changed, so match by raw
-# toxval.source.map.chemicals.combined(source.db="res_toxval_source_v5",
-#                                      input.path=paste0(toxval.config()$datapath,"chemical_mapping/renamed_source_chemical_files/"),
-#                                      curated.path=paste0(toxval.config()$datapath,"chemical_mapping/DSSTOX_879/"),
-#                                      match.raw=TRUE)
-# # Second round where chemical_id was hashed, so don't match by raw
-# toxval.source.map.chemicals.combined(source.db="res_toxval_source_v5",
-#                                      input.path=paste0(toxval.config()$datapath,"chemical_mapping/renamed_source_chemical_files/"),
-#                                      curated.path=paste0(toxval.config()$datapath,"chemical_mapping/DSSTOX_934/"),
-#                                      match.raw=FALSE)
-

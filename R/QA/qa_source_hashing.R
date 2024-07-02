@@ -76,12 +76,12 @@ qa_source_hashing <- function(){
   }
 
   # Load cached comparisons
-  out = list.files("/ccte/home1/jwall01/toxvaldb09/Repo/source_hash_check/") %>%
+  out = list.files("Repo/source_hash_check/") %>%
     lapply(., function(table){
-      load(paste0("/ccte/home1/jwall01/toxvaldb09/Repo/source_hash_check/", table))
+      load(paste0("Repo/source_hash_check/", table))
       return(compare)
     }) %T>% {
-      names(.) <- list.files("/ccte/home1/jwall01/toxvaldb09/Repo/source_hash_check/") }
+      names(.) <- list.files("Repo/source_hash_check/") }
 }
 
 
