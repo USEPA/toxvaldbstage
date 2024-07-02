@@ -74,12 +74,13 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
 
     message("Pulling metadata...", startPosition, " to ", incrementPosition, " (", round((startPosition / endPosition) * 100, 3),"% complete)")
     # Loop through each Clowder ID value
-    metadata_out <- clowder_get_file_metadata(fileID = clowder_id_list[startPosition:incrementPosition], clowder_url, clowder_api_key)
+    metadata_out <- clowder_get_file_metadata(fileID = clowder_id_list[startPosition:incrementPosition], baseurl=clowder_url, apiKey=clowder_api_key)
 
     metadata = metadata_out %>%
       dplyr::left_join(file_info, by="clowder_id")
     # Normalize names
-    names(metadata) = tolower(names(metadata))
+    names(metadata) = tolower(names(metadata)) %>%
+      make.unique()
     # Get fields not to convert to JSON in documents clowder_metadata
     non_json_fields <- names(metadata) %>%
       tolower() %>%
@@ -99,10 +100,10 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     metadata[, doc_tbl_names[!doc_tbl_names %in% names(metadata)]] <- NA
 
     # Replace "-" with NA
-    metadata_out[metadata_out == '-'] <- NA
+    metadata[metadata == '-'] <- NA
 
     # Generic fixes to encoding
-    metadata_out = fix.non_ascii.v2(metadata_out,"documents")
+    metadata_out = fix.non_ascii.v2(metadata,"documents")
 
     #
     # make sure all characters are in UTF8 - moved from runInsertTable.R
@@ -193,7 +194,7 @@ clowder_get_file_metadata <- function(fileID, baseurl, apiKey){
       dplyr::bind_cols()
   }) %>%
     dplyr::bind_rows() %>%
-    dplyr::mutate(clowder_id = fileID) %>%
+    dplyr::mutate(clowder_id = names(metadata)) %>%
     return()
 }
 
