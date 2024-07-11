@@ -4,7 +4,6 @@
 #' @param db the name of the database
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
-#' @export
 #' @title runQuery_psql
 #' @return Query results
 #' @details DETAILS
