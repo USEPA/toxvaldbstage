@@ -51,6 +51,7 @@ rsconnect/
 # Ignore test data and dev setup
 Repo/
 dev_setup.R
+README_dev
 
 ######################################################################################################################
 # Python based .gitignore
