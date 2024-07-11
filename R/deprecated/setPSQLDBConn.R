@@ -14,9 +14,8 @@
 #'  }
 #' }
 #' @rdname setPSQLDBConn
-#' @export
 #--------------------------------------------------------------------------------------
-setPSQLDBConn <- function(server,port,user,password,api_auth) {
+setPSQLDBConn <- function(server, port, user, password, api_auth) {
   printCurrentFunction()
   DB.PSQLSERVER <<- server
   DB.PSQLPORT <<- port
