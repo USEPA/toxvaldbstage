@@ -5,8 +5,8 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title import_efsa_source
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -34,17 +34,44 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2022-06-16")
   dir = paste0(toxval.config()$datapath,"efsa/efsa_files/")
-  file = paste0(dir,"efsa_openfoodtox_raw_2022.xlsx")
-  res0 = readxl::read_xlsx(file)
+  file = paste0(dir,"OpenFoodToxTX22784_2022.xlsx")
+
+  # Read in separate data frames for relevant sheets, pulling only specified fields
+  comp_res0 = readxl::read_xlsx(file, sheet="COMPONENT") %>%
+    dplyr::select(tidyselect::all_of(c("SUB_NAME", "SUB_COM_ID", "QUALIFIER", "SUB_CASNUMBER"))) %>%
+    dplyr::filter(QUALIFIER == "as such") %>%
+    dplyr::select(-QUALIFIER) %>%
+    dplyr::distinct()
+
+  study_res0 = readxl::read_xlsx(file, sheet="STUDY") %>%
+    dplyr::select(tidyselect::all_of(c("SUB_COM_ID", "TOX_ID", "OP_ID"))) %>%
+    dplyr::distinct()
+
+  endpoint_res0 = readxl::read_xlsx(file, sheet="ENDPOINTSTUDY_KJ") %>%
+    dplyr::select(tidyselect::all_of(
+      c("ENDPOINTSTUDY_ID", "TESTSUBSTANCE", "STUDY_CATEGORY", "TESTTYPE", "LIMITTEST", "GUIDELINE_QUALIFIER",
+        "GUIDELINEFULLTXT", "DEVIATION", "GLP_COMPL", "SPECIES", "STRAIN", "SEX", "ROUTE", "EXP_DURATION",
+        "DURATIONUNIT", "NUMBER_INDIVIDUALS", "CONTROL", "ENDPOINT", "QUALIFIER", "VALUE", "DOSEUNIT", "BASIS",
+        "TOXICITY", "TARGETTISSUE", "EFFECT_DESC", "REMARKS", "TOX_ID")
+    )) %>%
+    dplyr::distinct()
+
+  opinion_res0 = readxl::read_xlsx(file, sheet="OPINION") %>%
+    dplyr::select(tidyselect::all_of(c("PUBLICATIONYEAR", "DOI", "URL", "OP_ID"))) %>%
+    dplyr::distinct()
+
+  # Join sheets together into res0
+  res0 = comp_res0 %>%
+    dplyr::left_join(study_res0, by=c("SUB_COM_ID")) %>%
+    dplyr::left_join(endpoint_res0, by=c("TOX_ID")) %>%
+    dplyr::left_join(opinion_res0, by=c("OP_ID")) %>%
+    dplyr::select(-c("SUB_COM_ID", "TOX_ID", "OP_ID")) %>%
+    tidyr::drop_na("VALUE") %>%
+    dplyr::distinct()
+
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
 
   # Standardize the names
   names(res0) <- names(res0) %>%
@@ -54,54 +81,61 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     gsub("___", "_", .) %>%
     tolower()
 
-  #res = source.specific.transformations(res0)
+  res = res0 %>%
+    dplyr::mutate(
+      # Renaming columns
+      record_url = url,
+      toxval_type = endpoint,
+      toxval_numeric = value,
+      toxval_numeric_qualifier = qualifier,
+      toxval_units = doseunit,
+      critical_effect = basis,
+      study_type = testtype,
+      study_duration_value = exp_duration,
+      study_duration_units = durationunit,
+      human_eco = study_category,
+      year = publicationyear,
+      casrn = sub_casnumber,
+      name = sub_name,
+      chemical = testsubstance,
 
-  res <- res0 %>%
-    # Renaming columns
-    dplyr::rename(record_url=url,
-                  toxval_type=endpoint,
-                  toxval_numeric=value,
-                  toxval_numeric_qualifier=qualifier_x,
-                  toxval_units=doseunit,
-                  critical_effect=basis,
-                  study_type=testtype,
-                  study_duration_value=exp_duration_days,
-                  species_original=species,
-                  strain=strain,
-                  sex=sex,
-                  human_eco=study_category,
-                  year=publicationyear,
-                  title=title,
-                  record_source_type=doctype,
-                  casrn=com_casnumber,
-                  name = com_name,
-                  chemical=comparamname,
-                  source=owner,
-                  subsource=author) %>%
-    # Recoding/fixing entries in study_type
-    dplyr::mutate(study_type=dplyr::recode(study_type,
-                             "acute toxicity" = "acute",
-                             "chronic/long term toxicity" = "chronic/long-term",
-                             "reproduction toxicity" = "reproductive",
-                             "short-term toxicity" = "short-term",
-                             "study with volunteers" = "human"),
-           human_eco=dplyr::recode(human_eco,
-                            "Animal (non-target species) health" = "human health",
-                            "Animal (target species) health" = "human health",
-                            "Ecotox (soil compartment)" = "eco",
-                            "Ecotox (water compartment)" = "eco",
-                            "Human health" = "human health"),
-           # Fill in source_url, source_file, and study_duration_units columns
-           source_url = "https://zenodo.org/record/5076033#.Y9fEoXbMI2z",
-           subsource_url = source_url,
-           source_download = "OpenFoodToxTX22784_2022.xlsx",
-           study_duration_units = "days") %>%
+      # Recoding/fixing entries in study_type, human_eco, and study_duration_units
+      study_type = study_type %>%
+        dplyr::recode(
+          "acute toxicity" = "acute",
+          "chronic/long term toxicity" = "chronic/long-term",
+          "reproduction toxicity" = "reproductive",
+          "short-term toxicity" = "short-term",
+          "study with volunteers" = "human"
+        ),
+      human_eco = human_eco %>%
+        dplyr::recode(
+          "Animal (non-target species) health" = "human health",
+          "Animal (target species) health" = "human health",
+          "Ecotox (soil compartment)" = "eco",
+          "Ecotox (water compartment)" = "eco",
+          "Human health" = "human health"
+        ),
+      study_duration_units = study_duration_units %>%
+        dplyr::recode(
+          "h" = "hours",
+          "D" = "days",
+          "week" = "weeks",
+          "month" = "months",
+          "year" = "years"
+        ),
+      toxval_numeric_qualifier = toxval_numeric_qualifier %>%
+        dplyr::recode(
+          "ca." = "~"
+        ),
+
+      # Fill in general information
+      source_url = "https://zenodo.org/record/5076033#.Y9fEoXbMI2z",
+      subsource_url = source_url,
+      source_download = "OpenFoodToxTX22784_2022.xlsx",
+    ) %>%
     # splitting ROUTE into exposure_route and exposure_method columns
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
-
-    # Remove unneeded ID fields from original source
-    dplyr::select(-tidyr::matches("_id")) %>%
-
     dplyr::mutate(dplyr::across(tidyselect::where(is.character), fix.replace.unicode)) %>%
     dplyr::distinct()
 
