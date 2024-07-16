@@ -97,7 +97,6 @@ import.driver <- function(db,
   import_echa_echemportal_api_source(db,chem.check.halt=chem.check.halt) # ECHA echemportal API
   # Alaska DEC [v1]
   # EPA AEGL [v1]
-  # FDA CEDI [v1]
   # Mass. Drinking Water Standards [v1]
   # OSHA Air Contaminants [v1]
   # OW Drinking Water Standards [v1]
