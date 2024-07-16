@@ -190,10 +190,10 @@ set_clowder_id_lineage <- function(source_table,
                                                                                "clowder_v3/source_uterotrophic_hershberger_db_document_map.xlsx")),
 
                       "ToxRefDB" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                             "clowder_v3/source_toxrefdb_document_map.xlsx")),
+                                                             "clowder_v3/source_toxrefdb_document_map_20240716.xlsx")),
 
                       "ECOTOX" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                          "clowder_v3/source_ecotox_document_map.xlsx")),
+                                                          "clowder_v3/source_ecotox_document_map_20240716.xlsx")),
 
                       # No source match, return empty
                       data.frame()
