@@ -4,7 +4,7 @@
 \alias{runStatement}
 \title{runStatement}
 \usage{
-runStatement(query, db, do.halt = F, verbose = F)
+runStatement(query, db, do.halt = FALSE, verbose = FALSE)
 }
 \arguments{
 \item{query}{a properly formatted SQL query as a string}
