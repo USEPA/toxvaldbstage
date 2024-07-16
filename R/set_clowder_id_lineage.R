@@ -56,8 +56,6 @@ set_clowder_id_lineage <- function(source_table,
                       #                                           "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
                       "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                      "clowder_v3/source_pprtv_ncea_document_map_20240522.xlsx")),
-                      # "source_efsa2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                      #                                    "clowder_v3/efsa_combined_new_matched_checked_ids_07142022_jwilli29.xlsx")),
                       "source_hawc_pfas_150" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                         "clowder_v3/source_hawc_pfas_150_document_map_20231114.xlsx")),
                       "source_hawc_pfas_430" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -580,25 +578,6 @@ set_clowder_id_lineage <- function(source_table,
                     res
                   },
 
-                  # "source_efsa2" = {
-                  #   # Update map_file so it only contains mapped clowder_id values with long_refs
-                  #   map_file = map_file %>%
-                  #     select(clowder_id, long_ref, fk_doc_id) %>%
-                  #     distinct() %>%
-                  #     filter(!is.na(clowder_id))
-                  #   # clear old names
-                  #   res$document_name <- NULL
-                  #
-                  #   # match by longref
-                  #   res <- res %>%
-                  #     left_join(select(map_file, long_ref, clowder_id, fk_doc_id),
-                  #               by = "long_ref") %>%
-                  #     distinct()
-                  #
-                  #   # Return res
-                  #   res
-                  # },
-
                   "source_pfas_150_sem_v2" = {
                     # Match origin docs
                     res <- res %>%
@@ -669,11 +648,13 @@ set_clowder_id_lineage <- function(source_table,
                     origin_docs <- map_file %>%
                       dplyr::filter(is.na(parent_flag))
                     res1 <- res %>%
-                      dplyr::select(source_hash, title, source_version_date) %>%
+                      tidyr::separate_rows(doi, sep = "\\|::\\|") %>%
+                      dplyr::mutate(doi = stringr::str_squish(doi)) %>%
+                      dplyr::select(source_hash, doi, source_version_date) %>%
                       dplyr::left_join(origin_docs %>%
-                                         dplyr::select(clowder_id, title, fk_doc_id) %>%
+                                         dplyr::select(clowder_id, doi, fk_doc_id) %>%
                                          dplyr::distinct(),
-                                       by = "title")
+                                       by = "doi")
 
                     # Match to extraction doc
                     extraction_doc <- map_file %>%
@@ -681,7 +662,7 @@ set_clowder_id_lineage <- function(source_table,
                     tmp = res %>%
                       dplyr::select(source_hash, source_version_date) %>%
                       merge(extraction_doc %>%
-                              dplyr::select(clowder_id, title, fk_doc_id))
+                              dplyr::select(clowder_id, doi, fk_doc_id))
 
                     # Combine origin and extraction document associations
                     res = rbind(res1, tmp)

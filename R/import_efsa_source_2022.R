@@ -129,9 +129,10 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
           "ca." = "~"
         ),
 
+      species = tolower(species),
+
       # Fill in general information
       source_url = "https://zenodo.org/record/5076033#.Y9fEoXbMI2z",
-      subsource_url = source_url,
       source_download = "OpenFoodToxTX22784_2022.xlsx",
     ) %>%
     # splitting ROUTE into exposure_route and exposure_method columns
