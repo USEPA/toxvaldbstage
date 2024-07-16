@@ -952,7 +952,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       ) %>%
       tidyr::unite("critical_effect", target_organ, critical_effect, remove=FALSE, na.rm=TRUE, sep=": ") %>%
       dplyr::select(-critical_effect_other)
-  } else {
+  } else if(subf != "iuclid_repeateddosetoxicityother") {
     res = res %>%
       # Build critical_effect column
       tidyr::unite("critical_effect_combined",
