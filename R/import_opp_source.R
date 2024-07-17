@@ -77,8 +77,8 @@ import_opp_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
       casrn = `CAS Number` %>%
         gsub("\\s+", "; ", .) %>%
         stringr::str_squish(),
-      source_url = "https://ordspub.epa.gov/ords/pesticides/f?p=HHBP:home",
       subsource_url = "https://www.epa.gov/sdwa/2021-human-health-benchmarks-pesticides",
+      source_url = subsource_url,
 
       # Fix character and whitespace issues with name/casrn
       name = gsub("&amp;", "&", name),
