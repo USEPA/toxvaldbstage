@@ -61,7 +61,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_hawc_pfas_430" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                         "clowder_v3/source_hawc_pfas_430_document_map_20231114.xlsx")),
                       "source_pfas_150_sem_v2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                          "clowder_v3/source_pfas_150_sem_document_map_20240221_jnhope.xlsx")),
+                                                                          "clowder_v3/source_pfas_150_sem_v2_document_map_20240717.xlsx")),
                       "source_hpvis" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                 "clowder_v3/source_hpvis_document_map_jwall01_20221129.xlsx")),
                       "source_oppt" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -228,7 +228,7 @@ set_clowder_id_lineage <- function(source_table,
   pushed_docs <- runQuery(paste0("SELECT clowder_id FROM documents where clowder_id in ('",
                                  paste0(unique(map_file$clowder_id), collapse="', '"),
                                  "')"),
-                          source.db)
+                          Sys.getenv("source.db"))
 
   mat <- map_file %>%
     dplyr::filter(!clowder_id %in% pushed_docs$clowder_id,
@@ -264,7 +264,7 @@ set_clowder_id_lineage <- function(source_table,
   pushed_docs <- runQuery(paste0("SELECT id as fk_doc_id, clowder_id FROM documents where clowder_id in ('",
                                  paste0(unique(map_file$clowder_id), collapse="', '"),
                                  "')"),
-                          source.db)
+                          Sys.getenv("source.db"))
   # Match records to documents ID table records
   map_file <- map_file %>%
     dplyr::left_join(pushed_docs,
@@ -306,9 +306,9 @@ set_clowder_id_lineage <- function(source_table,
   ### PUll source table data
   ################################################################################
   if(source_table %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
-    res <- runQuery(paste0("SELECT * FROM toxval WHERE source='", source_table, "'"), db=toxval.db)
+    res <- runQuery(paste0("SELECT * FROM toxval WHERE source='", source_table, "'"), db=Sys.getenv("toxval.db"))
   } else {
-    res <- runQuery(paste0("SELECT * FROM ", source_table), db=source.db)
+    res <- runQuery(paste0("SELECT * FROM ", source_table), db=Sys.getenv("source.db"))
   }
 
   # Check if source table data has been pushed (could be empty table)
@@ -1407,13 +1407,13 @@ set_clowder_id_lineage <- function(source_table,
                           "AND fk_doc_id NOT IN ",
                           "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
   }
-  runQuery(delete_query, source.db)
+  runQuery(delete_query, Sys.getenv("source.db"))
 
   # Filter documents_records to only new documents_records
   pushed_doc_records <- runQuery(paste0("SELECT source_hash, fk_doc_id FROM documents_records where source_hash in ('",
                                         paste0(unique(res$source_hash), collapse="', '"),
                                         "')"),
-                                 source.db) %>%
+                                 Sys.getenv("source.db")) %>%
     tidyr::unite(col="pushed_docs", source_hash, fk_doc_id)
 
   if(!("source_version_date" %in% names(res))) res$source_version_date = as.character(NA)
