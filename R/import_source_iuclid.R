@@ -481,10 +481,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         grepl("other:", toxval_units) ~ toxval_units_other,
         TRUE ~ toxval_units
       ) %>%
-        gsub("diet", "", .) %>%
-        gsub("air", "", .) %>%
-        gsub("drinking water", "", .) %>%
-        gsub("sediment", "", .) %>%
         gsub("\\(.+\\)", "", .) %>%
         gsub("micro", "u", .) %>%
         gsub(" per ", "/", .) %>%
