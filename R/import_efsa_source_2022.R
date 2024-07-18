@@ -57,7 +57,7 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::distinct()
 
   opinion_res0 = readxl::read_xlsx(file, sheet="OPINION") %>%
-    dplyr::select(tidyselect::all_of(c("PUBLICATIONYEAR", "DOI", "URL", "OP_ID"))) %>%
+    dplyr::select(tidyselect::all_of(c("PUBLICATIONYEAR", "DOI", "URL", "OP_ID", "AUTHOR", "TITLE"))) %>%
     dplyr::distinct()
 
   # Join sheets together into res0
@@ -136,9 +136,15 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
 
       species = tolower(species),
 
+      # Generate long_ref
+      long_ref = stringr::str_c(author, " (", year, "). ", title, ". ", doi, ".") %>%
+        gsub("\\.+", ".", .) %>%
+        gsub("\\s+", " ", .) %>%
+        stringr::str_trim(),
+
       # Fill in general information
       source_url = "https://zenodo.org/record/5076033#.Y9fEoXbMI2z",
-      source_download = "OpenFoodToxTX22784_2022.xlsx",
+      source_download = "OpenFoodToxTX22784_2022.xlsx"
     ) %>%
     # splitting ROUTE into exposure_route and exposure_method columns
     tidyr::separate(., route, c("exposure_route","exposure_method"), sep=": ", fill="right", remove=FALSE) %>%
