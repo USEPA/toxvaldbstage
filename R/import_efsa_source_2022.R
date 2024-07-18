@@ -52,7 +52,7 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       c("ENDPOINTSTUDY_ID", "TESTSUBSTANCE", "STUDY_CATEGORY", "TESTTYPE", "LIMITTEST", "GUIDELINE_QUALIFIER",
         "GUIDELINEFULLTXT", "DEVIATION", "GLP_COMPL", "SPECIES", "STRAIN", "SEX", "ROUTE", "EXP_DURATION",
         "DURATIONUNIT", "NUMBER_INDIVIDUALS", "CONTROL", "ENDPOINT", "QUALIFIER", "VALUE", "DOSEUNIT", "BASIS",
-        "TOXICITY", "TARGETTISSUE", "EFFECT_DESC", "REMARKS", "TOX_ID")
+        "TOXICITY", "TARGETTISSUE", "EFFECT_DESC", "REMARKS", "TOX_ID", "DOSEUNITFULLTEXT")
     )) %>%
     dplyr::distinct()
 
@@ -88,7 +88,6 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       toxval_type = endpoint,
       toxval_numeric = value,
       toxval_numeric_qualifier = qualifier,
-      toxval_units = doseunit,
       critical_effect = basis,
       study_type = testtype,
       study_duration_value = exp_duration,
@@ -98,6 +97,12 @@ import_efsa_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
       casrn = sub_casnumber,
       name = sub_name,
       chemical = testsubstance,
+
+      # Fill toxval_units according to available fields
+      toxval_units = dplyr::case_when(
+        !doseunit %in% c(as.character(NA), "", "-") ~ doseunit,
+        TRUE ~ doseunitfulltext
+      ),
 
       # Recoding/fixing entries in study_type, human_eco, and study_duration_units
       study_type = study_type %>%
