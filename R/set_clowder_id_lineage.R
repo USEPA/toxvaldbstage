@@ -98,9 +98,9 @@ set_clowder_id_lineage <- function(source_table,
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                       "clowder_v3/source_pprtv_cphea_doument_map_20240521_jnhope.xlsx")),
                       "source_who_jecfa_adi" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                        "clowder_v3/source_who_jecfa_adi_document_map_20240227.xlsx")),
+                                                                        "clowder_v3/source_who_jeca_adi_document_map_20240717.xlsx")),
                       "source_who_jecfa_tox_studies" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                                "clowder_v3/source_who_jecfa_tox_studies_document_map_20240227.xlsx")),
+                                                                                "clowder_v3/source_who_jeca_tox_studies_document_map_20240717.xlsx")),
                       "source_epa_ow_npdwr" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                        "clowder_v3/source_epa_ow_npdwr_document_map.xlsx")),
                       "source_epa_ow_nrwqc_hhc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -748,27 +748,33 @@ set_clowder_id_lineage <- function(source_table,
                   "source_who_jecfa_adi" = {
                     # Associates origin documents to records based on filename
                     origin_docs <- map_file %>%
-                      dplyr::filter(is.na(parent_flag))
+                      dplyr::filter(parent_flag == "primary_source")
 
                     # Separates the lists of chemical id
                     origin_docs = origin_docs %>%
-                      tidyr::separate_rows(chemical_id, sep="; ") %>%
-                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+                      tidyr::separate_rows(who_jecfa_chemical_id, sep="; ") %>%
+                      dplyr::mutate(who_jecfa_chemical_id = as.numeric(who_jecfa_chemical_id))
 
                     res1 <- res %>%
-                      dplyr::select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      dplyr::select(source_hash, source_version_date, who_jecfa_chemical_id) %>%
                       dplyr::left_join(origin_docs %>%
-                                         dplyr::select(clowder_id, filename, chemical_id, fk_doc_id),
-                                       by = "chemical_id")
+                                         dplyr::select(clowder_id, who_jecfa_chemical_id, fk_doc_id),
+                                       by = "who_jecfa_chemical_id")
 
                     # Associates extraction document to all records
                     extraction_docs <- map_file %>%
-                      dplyr::filter(!is.na(parent_flag))
+                      dplyr::filter(parent_flag == "has_parent")
+
+                    # Separates the lists of chemical id
+                    extraction_docs = extraction_docs %>%
+                      tidyr::separate_rows(who_jecfa_chemical_id, sep="; ") %>%
+                      dplyr::mutate(who_jecfa_chemical_id = as.numeric(who_jecfa_chemical_id))
 
                     res2 = res %>%
-                      dplyr::select(source_hash, source_version_date) %>%
-                      merge(extraction_docs %>%
-                              dplyr::select(clowder_id, fk_doc_id, filename))
+                      dplyr::select(source_hash, source_version_date, who_jecfa_chemical_id) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(clowder_id, who_jecfa_chemical_id, fk_doc_id),
+                                       by = "who_jecfa_chemical_id")
 
                     # Combines both associations back into one data frame
                     res <- dplyr::bind_rows(res1, res2) %>%
@@ -779,27 +785,33 @@ set_clowder_id_lineage <- function(source_table,
                   "source_who_jecfa_tox_studies" = {
                     # Associates origin documents to records based on filename
                     origin_docs <- map_file %>%
-                      dplyr::filter(is.na(parent_flag))
+                      dplyr::filter(parent_flag == "primary_source")
 
                     # Separates the lists of chemical id
                     origin_docs = origin_docs %>%
-                      tidyr::separate_rows(chemical_id, sep="; ") %>%
-                      dplyr::mutate(chemical_id = as.numeric(chemical_id))
+                      tidyr::separate_rows(who_jecfa_chemical_id, sep="; ") %>%
+                      dplyr::mutate(who_jecfa_chemical_id = as.numeric(who_jecfa_chemical_id))
 
                     res1 <- res %>%
-                      dplyr::select(source_hash, source_version_date, chemical_id = who_jecfa_chemical_id) %>%
+                      dplyr::select(source_hash, source_version_date, who_jecfa_chemical_id) %>%
                       dplyr::left_join(origin_docs %>%
-                                         dplyr::select(clowder_id, filename, chemical_id, fk_doc_id),
-                                       by = "chemical_id")
+                                         dplyr::select(clowder_id, who_jecfa_chemical_id, fk_doc_id),
+                                       by = "who_jecfa_chemical_id")
 
                     # Associates extraction document to all records
                     extraction_docs <- map_file %>%
-                      dplyr::filter(!is.na(parent_flag))
+                      dplyr::filter(parent_flag == "has_parent")
+
+                    # Separates the lists of chemical id
+                    extraction_docs = extraction_docs %>%
+                      tidyr::separate_rows(who_jecfa_chemical_id, sep="; ") %>%
+                      dplyr::mutate(who_jecfa_chemical_id = as.numeric(who_jecfa_chemical_id))
 
                     res2 = res %>%
-                      dplyr::select(source_hash, source_version_date) %>%
-                      merge(extraction_docs %>%
-                              dplyr::select(clowder_id, fk_doc_id, filename))
+                      dplyr::select(source_hash, source_version_date, who_jecfa_chemical_id) %>%
+                      dplyr::left_join(origin_docs %>%
+                                         dplyr::select(clowder_id, who_jecfa_chemical_id, fk_doc_id),
+                                       by = "who_jecfa_chemical_id")
 
                     # Combines both associations back into one data frame
                     res <- dplyr::bind_rows(res1, res2) %>%
