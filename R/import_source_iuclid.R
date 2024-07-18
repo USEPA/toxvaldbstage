@@ -934,7 +934,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ quality
       )
     ) %>%
-    dplyr::select(-sex_secondary)
+    dplyr::select(-sex_secondary) %>%
+    dplyr::filter(!grepl("reaction (?:product|mixture)", name))
 
   # Handle critical_effect construction differently for RepeatedDoseToxicityOral
   if("critical_effect_other" %in% names(res)) {
