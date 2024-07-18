@@ -772,7 +772,7 @@ set_clowder_id_lineage <- function(source_table,
 
                     res2 = res %>%
                       dplyr::select(source_hash, source_version_date, who_jecfa_chemical_id) %>%
-                      dplyr::left_join(origin_docs %>%
+                      dplyr::left_join(extraction_docs %>%
                                          dplyr::select(clowder_id, who_jecfa_chemical_id, fk_doc_id),
                                        by = "who_jecfa_chemical_id")
 
@@ -809,7 +809,7 @@ set_clowder_id_lineage <- function(source_table,
 
                     res2 = res %>%
                       dplyr::select(source_hash, source_version_date, who_jecfa_chemical_id) %>%
-                      dplyr::left_join(origin_docs %>%
+                      dplyr::left_join(extraction_docs %>%
                                          dplyr::select(clowder_id, who_jecfa_chemical_id, fk_doc_id),
                                        by = "who_jecfa_chemical_id")
 
