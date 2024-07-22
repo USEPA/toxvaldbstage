@@ -325,7 +325,8 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
   # Add specified NA columns if they don't exist
   na_missing_cols = c("toxval_units_other", "strain_other", "exposure_route_other", "organ_system",
                       "target_organ", "hazard_category", "critical_effect", "study_duration_class",
-                      "chemical.ec_number", "toxval_numeric_qualifier", "quality", "quality_other")
+                      "chemical.ec_number", "toxval_numeric_qualifier", "quality", "quality_other",
+                      "sex", "sex_secondary", "echa_dossier_uuid")
   res[, na_missing_cols[!na_missing_cols %in% names(res)]] = as.character(NA)
 
   # Add special toxval_units "score" case for certain OHTs
@@ -335,7 +336,11 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
 
   # Handle name assignment (check if secondary name is supplied)
   if (!("name_secondary" %in% names(res))) {
-    res$name = res$name_primary
+    res = res %>%
+      dplyr::mutate(
+        name = name_primary,
+        name_origin = "chemical_name_from_substance_names"
+      )
   } else {
     res = res %>% dplyr::mutate(
       name = dplyr::case_when(
@@ -346,6 +351,15 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         # Primary or secondary name is semicolon separated list
         grepl(";", name_primary) | grepl(";", name_secondary) ~ "DROP THIS NAME",
         # Simply return NA
+        TRUE ~ as.character(NA)
+      ),
+      # Set appropriate origin field for name value
+      name_origin = dplyr::case_when(
+        # Primary name used
+        !is.na(name_primary) & name_primary != "-" & !grepl(";", name_primary) ~ "chemical_name_from_substance_names",
+        # Secondary name used
+        !is.na(name_secondary) & name_secondary != "-" & !grepl(";", name_secondary) ~ "reference_substance",
+        # Neither used (will be dropped)
         TRUE ~ as.character(NA)
       )
     )
@@ -467,10 +481,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         grepl("other:", toxval_units) ~ toxval_units_other,
         TRUE ~ toxval_units
       ) %>%
-        gsub("diet", "", .) %>%
-        gsub("air", "", .) %>%
-        gsub("drinking water", "", .) %>%
-        gsub("sediment", "", .) %>%
         gsub("\\(.+\\)", "", .) %>%
         gsub("micro", "u", .) %>%
         gsub(" per ", "/", .) %>%
@@ -840,11 +850,17 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ exposure_method
       ),
 
-      # Clean sex field
+      # Assign appropriate value to sex field and clean values
       sex = dplyr::case_when(
-        !grepl("male", sex) ~ as.character(NA),
-        TRUE ~ sex
+        !is.na(sex) & grepl("male", sex, ignore.case=TRUE) ~ sex,
+        !is.na(sex_secondary) & grepl("male", sex_secondary, ignore.case=TRUE)~ sex_secondary,
+        TRUE ~ as.character(NA)
       ) %>% gsub("not specified", "", .),
+
+      # Append document UUID to source_url
+      source_url = source_url %>%
+        gsub("\\?documentUUID.+", "", .) %>%
+        stringr::str_c(., "?documentUUID=", echa_dossier_uuid),
 
       # Ensure normal range for year
       year = dplyr::case_when(
@@ -919,7 +935,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         quality == "other:" ~ quality_other,
         TRUE ~ quality
       )
-    )
+    ) %>%
+    dplyr::select(-sex_secondary) %>%
+    dplyr::filter(!grepl("reaction (?:product|mixture|mass)|%", name, ignore.case=TRUE))
 
   # Handle critical_effect construction differently for RepeatedDoseToxicityOral
   if("critical_effect_other" %in% names(res)) {
@@ -933,7 +951,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       ) %>%
       tidyr::unite("critical_effect", target_organ, critical_effect, remove=FALSE, na.rm=TRUE, sep=": ") %>%
       dplyr::select(-critical_effect_other)
-  } else {
+  } else if(subf != "iuclid_repeateddosetoxicityother") {
     res = res %>%
       # Build critical_effect column
       tidyr::unite("critical_effect_combined",
