@@ -556,7 +556,8 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(name, source_hash, source_version_date) %>%
                       dplyr::left_join(origin_docs %>%
                                          dplyr::select(name, clowder_id, fk_doc_id),
-                                       by = "name")
+                                       by = "name") %>%
+                      dplyr::select(-name)
 
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
@@ -570,7 +571,8 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(subsource_url, source_hash, source_version_date) %>%
                       dplyr::left_join(extraction_docs %>%
                                          dplyr::select(subsource_url, clowder_id, fk_doc_id),
-                                       by = "subsource_url")
+                                       by = "subsource_url") %>%
+                      dplyr::select(-subsource_url)
 
                     # Combine the two associated dataframes back into res
                     res <- rbind(res1, res2) %>%
