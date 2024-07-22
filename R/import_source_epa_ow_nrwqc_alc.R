@@ -38,12 +38,7 @@ import_source_epa_ow_nrwqc_alc <- function(db,chem.check.halt=FALSE, do.reset=FA
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
+
   # Standardize the names
   names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
@@ -81,7 +76,7 @@ import_source_epa_ow_nrwqc_alc <- function(db,chem.check.halt=FALSE, do.reset=FA
       toxval_type = gsub("[[:digit:]]+", "", toxval_type),
 
       source_url = url,
-      subsource_url = source_url,
+      species_original = "aquatic life"
     ) %>%
     # replacing multiple dashes with single dash for empty columns
     dplyr::mutate(dplyr::across(c("name","casrn","Publication_Year","toxval_numeric"),
