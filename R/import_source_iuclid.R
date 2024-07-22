@@ -858,7 +858,9 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       ) %>% gsub("not specified", "", .),
 
       # Append document UUID to source_url
-      source_url = stringr::str_c(source_url, "?document_uuid=", echa_dossier_uuid),
+      source_url = source_url %>%
+        gsub("\\?documentUUID.+", "", .) %>%
+        stringr::str_c(., "?documentUUID=", echa_dossier_uuid),
 
       # Ensure normal range for year
       year = dplyr::case_when(
@@ -935,7 +937,7 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
       )
     ) %>%
     dplyr::select(-sex_secondary) %>%
-    dplyr::filter(!grepl("reaction (?:product|mixture)", name))
+    dplyr::filter(!grepl("reaction (?:product|mixture|mass)|%", name, ignore.case=TRUE))
 
   # Handle critical_effect construction differently for RepeatedDoseToxicityOral
   if("critical_effect_other" %in% names(res)) {
