@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------
-#' @description Load Pennsylvania DEP MCLs into toxval_source
+#' @description Load Pennsylvania DEP MSCs into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
@@ -19,21 +19,21 @@
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
-#' @rdname import_source_penn_dep_mcls
+#' @rdname import_source_penn_dep_mscs
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate case_when distinct
 #' @importFrom stringr str_squish
 #' @importFrom tidyr unite pivot_longer separate
 #--------------------------------------------------------------------------------------
-import_source_penn_dep_mcls <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_penn_dep_mscs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "Pennsylvania DEP MCLs"
-  source_table = "source_penn_dep_mcls"
+  source = "Pennsylvania DEP MSCs"
+  source_table = "source_penn_dep_mscs"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2021-11-20")
-  dir = paste0(toxval.config()$datapath,"penn_dep_mcls/penn_dep_mcls_files/")
-  file = paste0(dir,"PENN_DEP_MCLs_Table 1_20211120.xlsx")
+  dir = paste0(toxval.config()$datapath,"penn_dep_mscs/penn_dep_mscs_files/")
+  file = paste0(dir,"PENN_DEP_MSCs_Table 1_20211120.xlsx")
   res0 = readxl::read_xlsx(file, skip = 5, n_max = 369, col_names = FALSE)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -186,7 +186,3 @@ import_source_penn_dep_mcls <- function(db,chem.check.halt=FALSE, do.reset=FALSE
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-

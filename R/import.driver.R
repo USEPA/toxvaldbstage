@@ -77,7 +77,8 @@ import.driver <- function(db,
   import_doe_lanl_ecorisk_source(db,chem.check.halt=chem.check.halt) # DOE
   import_niosh_source(db,chem.check.halt=chem.check.halt) # NIOSH
   import_opp_source(db,chem.check.halt=chem.check.halt) # EPA OPP
-  import_penn_source(db,chem.check.halt=chem.check.halt) # Pennsylvania DEP ToxValues
+  import_source_penn_dep_toxvalues(db,chem.check.halt=chem.check.halt) # Pennsylvania DEP ToxValues
+  import_source_penn_dep_mscs(db,chem.check.halt=chem.check.halt) # Pennsylvania DEP MSCs
   # import_pfas_summary_pods_source(db,chem.check.halt=chem.check.halt) # PFAS Summary PODs
   import_pprtv_ncea_source(db,chem.check.halt=chem.check.halt) # PPRTV (NCEA)
   import_pprtv_ornl_source(db,chem.check.halt=chem.check.halt) # PPRTV (ORNL)
@@ -100,7 +101,6 @@ import.driver <- function(db,
   # Mass. Drinking Water Standards [v1]
   # OSHA Air Contaminants [v1]
   # OW Drinking Water Standards [v1]
-  # Pennsylvania DEP MCLs [v1]
   # USGS HBSL [v1]
   # WHO IPCS [v1]
   # import_flex_source(db,chem.check.halt=chem.check.halt)
