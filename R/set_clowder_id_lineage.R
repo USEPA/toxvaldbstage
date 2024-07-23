@@ -207,7 +207,12 @@ set_clowder_id_lineage <- function(source_table,
     # IUCLID sources in a combined map
     if(grepl("iuclid", source_table)){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/source_iuclid_doc_map_20240424.xlsx"))
+                                          "clowder_v3/source_iuclid_doc_map_20240722.xlsx"))
+
+      # Filter map_file to only include records in the same OHT/source_table
+      oht = unlist(strsplit(source_table, "source_"))[2]
+      map_file = map_file %>%
+        filter(source_table == oht)
     }
   }
 
@@ -1393,11 +1398,30 @@ set_clowder_id_lineage <- function(source_table,
 
     # Handle IUCLID case
     if(grepl("iuclid", source_table)){
-      res <- res %>%
-        dplyr::mutate(source = tolower(source)) %>%
+      res1 <- res %>%
+        dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
         dplyr::left_join(map_file %>%
-                           dplyr::select(fk_doc_id, clowder_id, source_table),
-                         by = c("source"="source_table"))
+                           separate(col = filename, into = c("oht", "middle", "endpoint_uuid"), sep = "_") %>%
+                           filter(!is.na(endpoint_uuid)) %>%
+                           separate(col = endpoint_uuid, into = c("endpoint_uuid", "filetype"), sep = ".pdf") %>%
+                           dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
+                         by = "endpoint_uuid")
+
+
+      # for records without a matching endpoint_uuid associate with excel file
+      res2 <- res1 %>%
+        filter(is.na(clowder_id)) %>%
+        dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
+        merge(map_file %>%
+                filter(file_type == "spreadsheet") %>%
+                dplyr::select(clowder_id, fk_doc_id))
+
+      res1 <- res1 %>%
+        filter(!is.na(clowder_id))
+
+      # combine associations
+      res <- rbind(res1, res2) %>%
+        dplyr::arrange(source_hash)
     }
   }
 
