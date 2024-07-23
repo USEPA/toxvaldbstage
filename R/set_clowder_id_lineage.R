@@ -210,9 +210,8 @@ set_clowder_id_lineage <- function(source_table,
                                           "clowder_v3/source_iuclid_doc_map_20240722.xlsx"))
 
       # Filter map_file to only include records in the same OHT/source_table
-      oht = unlist(strsplit(source_table, "source_"))[2]
       map_file = map_file %>%
-        filter(source_table == oht)
+        dplyr::filter(source_table == gsub("source_", "", !!source_table))
     }
   }
 
@@ -1401,16 +1400,23 @@ set_clowder_id_lineage <- function(source_table,
       res1 <- res %>%
         dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
         dplyr::left_join(map_file %>%
-                           separate(col = filename, into = c("oht", "middle", "endpoint_uuid"), sep = "_") %>%
-                           filter(!is.na(endpoint_uuid)) %>%
-                           separate(col = endpoint_uuid, into = c("endpoint_uuid", "filetype"), sep = ".pdf") %>%
+                           dplyr::mutate(filename = filename %>%
+                                           gsub("NOCAS_", "", .)) %>%
+                           tidyr::separate(col = filename,
+                                           into = c("oht", "middle", "endpoint_uuid"),
+                                           sep = "_",
+                                           fill = "right",
+                                           extra = "merge") %>%
+                           dplyr::filter(!is.na(endpoint_uuid)) %>%
+                           dplyr::mutate(endpoint_uuid = endpoint_uuid %>%
+                                           gsub("\\.pdf", "", .)) %>%
                            dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
                          by = "endpoint_uuid")
 
 
       # for records without a matching endpoint_uuid associate with excel file
       res2 <- res1 %>%
-        filter(is.na(clowder_id)) %>%
+        dplyr::filter(is.na(clowder_id)) %>%
         dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
         merge(map_file %>%
                 filter(file_type == "spreadsheet") %>%
