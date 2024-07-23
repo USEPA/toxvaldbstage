@@ -2,7 +2,7 @@
 % Please edit documentation in R/set_clowder_id_lineage.R
 \name{set_clowder_id_lineage}
 \alias{set_clowder_id_lineage}
-\title{FUNCTION_TITLE}
+\title{set_clowder_id_lineage}
 \usage{
 set_clowder_id_lineage(
   source_table,
@@ -10,7 +10,9 @@ set_clowder_id_lineage(
   map_file,
   clowder_url,
   clowder_api_key,
-  sync_clowder_metadata = FALSE
+  sync_clowder_metadata = FALSE,
+  source.db,
+  toxval.db
 )
 }
 \arguments{
@@ -25,6 +27,10 @@ set_clowder_id_lineage(
 \item{clowder_api_key}{API key to access Clowder resources}
 
 \item{sync_clowder_metadata}{Boolean whether to sync Clowder metadata for new document records. Default is False.}
+
+\item{source.db}{The source database name}
+
+\item{toxval.db}{The database version to use}
 }
 \value{
 Returns an updated map with newly associated toxval_source table ID values

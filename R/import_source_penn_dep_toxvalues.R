@@ -50,7 +50,7 @@ import_source_penn_dep_toxvalues <- function(db,chem.check.halt=FALSE, do.reset=
       # Rename/add columns as needed
       name = stringr::str_squish(`Regulated Subtance`),
       casrn = CAS,
-      source_url = " https://www.dep.pa.gov/Business/Land/LandRecycling/Standards-Guidance-Procedures/Pages/Statewide-Health-Standards.aspx"
+      source_url = "https://files.dep.state.pa.us/EnvironmentalCleanupBrownfields/LandRecyclingProgram/LandRecyclingProgramPortalFiles/GuidanceTechTools/VaporIntrusion/November_2021/Table%205a.pdf"
     )  %>%
 
     # Combine values and categories to enable later transformations

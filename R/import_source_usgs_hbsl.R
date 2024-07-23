@@ -21,6 +21,8 @@
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
+#' @importFrom dplyr mutate na_if select everything all_of
+#' @importFrom tidyr pivot_longer separate
 #--------------------------------------------------------------------------------------
 import_source_usgs_hbsl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -70,7 +72,9 @@ import_source_usgs_hbsl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
                         ) %>%
     tidyr::separate(col="toxval_type",
                     into = c("toxval_type", "toxval_units"), sep = "\\(") %>%
-    dplyr::mutate(toxval_subtype = toxval_type %>%
+    dplyr::mutate(
+                  # Uncomment if splitting toxval_type into toxval_subtype
+                  toxval_subtype = toxval_type %>%
                     gsub("HBSL|HHBP|MCL", "", .) %>%
                     gsub("Carcinogenic", "Cancer", .) %>%
                     stringr::str_squish() %>%
@@ -84,6 +88,7 @@ import_source_usgs_hbsl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
                   source = "USGS HBSL",
                   subsource = "Water Quality Data",
                   source_url = "https://water.usgs.gov/water-resources/hbsl",
+                  subsource_url = source_url,
                   risk_assessment_class = "chronic",
                   exposure_route = "oral",
                   # Add version date. Can be converted to a mutate statement as needed

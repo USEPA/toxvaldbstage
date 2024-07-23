@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_source_iuclid.R
 \name{import_source_iuclid}
 \alias{import_source_iuclid}
-\title{FUNCTION_TITLE}
+\title{import_source_iuclid}
 \usage{
 import_source_iuclid(
   db,
@@ -24,10 +24,10 @@ import_source_iuclid(
 \item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is pushed to toxval_source
 }
 \description{
-A generic template for adding data to toxval_source for a new source
+Import IUCLID data to ToxVal Source
 }
 \details{
 DETAILS
@@ -41,9 +41,8 @@ if(interactive()){
 }
 \seealso{
 \code{\link[readxl]{read_excel}}
- \code{\link[dplyr]{filter}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{select}}
- \code{\link[writexl]{write_xlsx}}
- \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
- \code{\link[stringr]{str_trim}}
+ \code{\link[dplyr]{filter}}, \code{\link[dplyr]{group_by}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{context}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{pull}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{select}}
+ \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{separate}}, \code{\link[tidyr]{unite}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{pivot_wider}}, \code{\link[tidyr]{drop_na}}
+ \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}, \code{\link[stringr]{modifiers}} \code{\link[stringr]{str_detect}} \code{\link[stringr]{str_split}} \code{\link[stringr]{str_unique}}
  \code{\link[textclean]{mgsub}}
 }

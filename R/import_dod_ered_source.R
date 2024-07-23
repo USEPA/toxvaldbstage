@@ -24,6 +24,7 @@
 #' @importFrom dplyr mutate across case_when rename distinct
 #' @importFrom stringr str_extract str_squish
 #' @importFrom tidyr replace_na drop_na
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_dod_ered_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -40,7 +41,7 @@ import_dod_ered_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
 
   res0 = res0 %>%
     # Handle unicode symbols
-    dplyr::mutate(dplyr::across(where(is.character), fix.replace.unicode),
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character), fix.replace.unicode),
                   # Remove any instances of N/A, N/I, N/R, and N/S
                   dplyr::across(.fns = ~replace(., . %in% c("N/A", "N/I", "N/R", "N/S", "(N/I)"),
                                                 NA))
@@ -51,6 +52,7 @@ import_dod_ered_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
     dplyr::mutate(
       lifestage = LifeStage,
       source_url = "https://ered.el.erdc.dren.mil/",
+      subsource_url = source_url,
       subsource = "USACE_ERDC_ERED_database_10_25_2019",
       name = ChemName,
       casrn = CAS %>%
@@ -217,6 +219,11 @@ import_dod_ered_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Perform deduping
+  hashing_cols = toxval.config()$hashing_cols# [!toxval.config()$hashing_cols %in% c("long_ref")]
+  res = toxval.source.import.dedup(res,
+                                   hashing_cols = hashing_cols)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

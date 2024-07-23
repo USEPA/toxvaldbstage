@@ -2,22 +2,29 @@
 % Please edit documentation in R/import_hpvis_source.R
 \name{import_hpvis_source}
 \alias{import_hpvis_source}
-\title{FUNCTION_TITLE}
+\title{import_hpvis_source}
 \usage{
-import_hpvis_source(db, filepath = "hpvis/hpvis_files", chem.check.halt = T)
+import_hpvis_source(
+  db,
+  chem.check.halt = FALSE,
+  do.reset = FALSE,
+  do.insert = FALSE
+)
 }
 \arguments{
-\item{db}{The version of toxval_source into which the source info is loaded.}
+\item{db}{The version of toxval_source into which the source is loaded.}
 
-\item{filepath}{The path for all the input xlsx files ./hpvis/hpvis_files}
+\item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
 
-\item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+\item{do.reset}{If TRUE, delete data from the database for this source before}
+
+\item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is pushed to toxval_source
 }
 \description{
-Load HPVIS Source Info into toxval_source
+Load HPVIS data into toxval_source
 }
 \details{
 DETAILS
@@ -32,6 +39,7 @@ if(interactive()){
 \seealso{
 \code{\link[openxlsx]{read.xlsx}}
  \code{\link[stats]{setNames}}
- \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{reexports}}
+ \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{setops}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{reexports}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{bind_rows}}
  \code{\link[utils]{type.convert}}
+ \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_replace}}, \code{\link[stringr]{str_extract}}
 }

@@ -15,6 +15,10 @@ import_source_epa_ow_nrwqc_alc(
 \item{db}{The version of toxval_source into which the source is loaded.}
 
 \item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
+
+\item{do.reset}{PARAM_DESCRIPTION, Default: FALSE}
+
+\item{do.insert}{PARAM_DESCRIPTION, Default: FALSE}
 }
 \value{
 OUTPUT_DESCRIPTION

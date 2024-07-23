@@ -5,6 +5,7 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
+#' @param do.toxicological_profile If TRUE, add toxicological profile data to table before insertion
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
@@ -24,8 +25,9 @@
 #' @importFrom tidyr separate
 #' @importFrom dplyr mutate case_when
 #' @importFrom stringr str_squish
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
-import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.toxicological_profile=FALSE) {
   printCurrentFunction(db)
   source = "ATSDR MRLs"
   source_table = "source_atsdr_mrls"
@@ -43,9 +45,9 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
       col = "MRL",
       into = c("toxval_numeric", "toxval_units"),
       sep = " ",
-      remove = FALSE
+      remove = TRUE
     ) %>%
-
+    dplyr::rename(name = `Name`) %>%
     dplyr::mutate(
       # Basic renaming/add general information
       casrn = `CAS Number`,
@@ -53,6 +55,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
       doc_cover_date = `Cover Date`,
       toxval_type = "MRL",
       source_url = "https://wwwn.cdc.gov/TSP/MRLS/mrlsListing.aspx",
+      subsource_url = source_url,
 
       # Get year
       year = doc_cover_date %>%
@@ -61,7 +64,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
         format(., "%Y"),
 
       # Remove symbols from name and units
-      Name = fix.replace.unicode(Name),
+      name = fix.replace.unicode(name),
       toxval_units = fix.replace.unicode(toxval_units),
 
       # Ensure toxval_numeric is of numeric type
@@ -121,8 +124,40 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
+  # Add summary data to df before prep and load
+  if(do.toxicological_profile){
+    # Import manually curated IRIS Summary information
+    summary_file = paste0(dir,"source_atsdr_mrls_manual_pod.xlsx")
+    res1 <- readxl::read_xlsx(summary_file) %>%
+      dplyr::filter(toxval_type != "MRL") %>%
+      dplyr::mutate(document_type = "ATSDR MRLs Toxicological Profile") %>%
+      dplyr::rename(long_ref = full_study_reference,
+                    source_url = document_url,
+                    species = species_original) %>%
+      # Squish all character fields
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), stringr::str_squish))
+    res <- res %>%
+      dplyr::mutate(document_type = "ATSDR MRLs")
+  }
+  # else {
+  #   # If no manual curation of PODs, provisionally calculate NOAEL with UF
+  #   res1 <- res %>%
+  #     dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric) * as.numeric(`Total Factors`),
+  #                   toxval_type = "NOAEL",
+  #                   toxval_subtype = 'Provisional: MRL multiplied by UF')
+  # }
+  # Combine with manual or provisional
+  res = res %>%
+    dplyr::bind_rows(res1) %>%
+    dplyr::distinct() %>%
+    dplyr::mutate(study_type = tolower(study_type),
+                  toxval_subtype = study_type)
+
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
@@ -136,7 +171,7 @@ import_source_atsdr_mrls <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
                        do.reset=do.reset,
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
-                       hashing_cols=c(toxval.config()$hashing_cols, "total_factors"))
+                       hashing_cols=toxval.config()$hashing_cols)
 }
 
 

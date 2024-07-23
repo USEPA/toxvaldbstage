@@ -7,7 +7,7 @@
 #' @param dsID Clowder Dataset ID
 #' @import httr jsonlite
 #' @param batch_size PARAM_DESCRIPTION, Default: 250
-#' @return OUTPUT_DESCRIPTION
+#' @return Clowder metadata
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -30,6 +30,8 @@
 #' @importFrom dplyr filter mutate select bind_rows
 #' @importFrom purrr compact
 #' @importFrom stringr str_replace_all str_squish
+#' @param baseurl PARAM_DESCRIPTION
+#' @param apiKey PARAM_DESCRIPTION
 doc_lineage_sync_clowder_metadata <- function(source_table,
                                               db,
                                               clowder_url,
@@ -64,19 +66,21 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
   incrementPosition <- batch_size
 
   while(startPosition <= endPosition){
+    if(incrementPosition > endPosition) incrementPosition = endPosition
 
     # Filter/get file names with dataset API
     file_info = ds_file_list %>%
       dplyr::filter(clowder_id %in% clowder_id_list[startPosition:incrementPosition])
 
-    message("Pulling metadata...", startPosition, " to ", incrementPosition)
+    message("Pulling metadata...", startPosition, " to ", incrementPosition, " (", round((startPosition / endPosition) * 100, 3),"% complete)")
     # Loop through each Clowder ID value
-    metadata_out <- clowder_get_file_metadata(fileID = clowder_id_list[startPosition:incrementPosition], clowder_url, clowder_api_key)
+    metadata_out <- clowder_get_file_metadata(fileID = clowder_id_list[startPosition:incrementPosition], baseurl=clowder_url, apiKey=clowder_api_key)
 
     metadata = metadata_out %>%
       dplyr::left_join(file_info, by="clowder_id")
     # Normalize names
-    names(metadata) = tolower(names(metadata))
+    names(metadata) = tolower(names(metadata)) %>%
+      make.unique()
     # Get fields not to convert to JSON in documents clowder_metadata
     non_json_fields <- names(metadata) %>%
       tolower() %>%
@@ -96,10 +100,10 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
     metadata[, doc_tbl_names[!doc_tbl_names %in% names(metadata)]] <- NA
 
     # Replace "-" with NA
-    metadata_out[metadata_out == '-'] <- NA
+    metadata[metadata == '-'] <- NA
 
     # Generic fixes to encoding
-    metadata_out = fix.non_ascii.v2(metadata_out,"documents")
+    metadata_out = fix.non_ascii.v2(metadata,"documents")
 
     #
     # make sure all characters are in UTF8 - moved from runInsertTable.R
@@ -190,7 +194,7 @@ clowder_get_file_metadata <- function(fileID, baseurl, apiKey){
       dplyr::bind_cols()
   }) %>%
     dplyr::bind_rows() %>%
-    dplyr::mutate(clowder_id = fileID) %>%
+    dplyr::mutate(clowder_id = names(metadata)) %>%
     return()
 }
 

@@ -21,6 +21,8 @@
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
+#' @importFrom dplyr mutate rename case_when filter select n group_by ungroup bind_rows
+#' @importFrom tidyr separate_rows
 #--------------------------------------------------------------------------------------
 import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -43,11 +45,18 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
 
   res = res0 %>%
     # Copy toxval fields from originals
-    dplyr::mutate(name = `Webpage Name` %>% fix.replace.unicode(),
-                  casrn = `CAS number` %>%
-                    # Remove parenthetics
-                    gsub("\\s*\\([^\\)]+\\)","", .),
-                  year = `Evaluation year`) %>%
+    dplyr::mutate(
+      source_url = "https://apps.who.int/food-additives-contaminants-jecfa-database/",
+      subsource_url = chemical_url,
+      name = `Webpage Name` %>%
+        fix.replace.unicode(),
+      casrn = `CAS number` %>%
+        # Remove parenthetics
+        gsub("\\s*\\([^\\)]+\\)","", .) %>%
+        # Replace unicode
+        fix.replace.unicode() %>%
+        stringr::str_squish(),
+      year = `Evaluation year`) %>%
     # Separate casrn lists
     tidyr::separate_rows(casrn, sep=";") %>%
     tidyr::separate_rows(casrn, sep=",") %>%
@@ -104,7 +113,8 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
       toxval_type = "ADI",
       species = "human",
       exposure_route = "oral",
-      exposure_method = "diet"
+      exposure_method = "diet",
+      source_url = "https://apps.who.int/food-additives-contaminants-jecfa-database/"
     ) %>%
     # Remove NA toxval_numeric values (we don't use them)
     dplyr::filter(!is.na(toxval_numeric))
@@ -119,6 +129,41 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
   res = res %>%
     dplyr::select(-cleaned_adi, toxval_units_comments)
 
+  # Separate toxval_numeric ranges, range_relationship_id created for Load toxval_relationship purposes
+  ranged <- res %>%
+    dplyr::filter(grepl("-(?![eE])", toxval_numeric, perl=TRUE))
+  # Check if any available
+  if(nrow(ranged)){
+    ranged = ranged %>%
+      dplyr::mutate(range_relationship_id = 1:dplyr::n()) %>%
+      tidyr::separate_rows(toxval_numeric, sep="-") %>%
+      dplyr::group_by(range_relationship_id) %>%
+      dplyr::mutate(
+        toxval_numeric = as.numeric(toxval_numeric),
+        relationship = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
+      ) %>%
+      dplyr::ungroup()
+  } else {
+    # Empty dataframe with res cols to bind_rows()
+    ranged = res[0,]
+  }
+
+  # Join back the range split rows
+  res <- res %>%
+    dplyr::filter(!grepl("-(?![eE])", toxval_numeric, perl=TRUE)) %>%
+    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
+    dplyr::bind_rows(., ranged) %>%
+    # Filter out toxval_numeric = 0
+    dplyr::filter(toxval_numeric != 0) %>%
+    # Add correct toxval_numeric_qualifier
+    dplyr::mutate(
+      toxval_numeric_qualifier = dplyr::case_when(
+        relationship == "Lower Range" ~ ">=",
+        relationship == "Upper Range" ~ "<=",
+        TRUE ~ toxval_numeric_qualifier
+      )
+    )
+
   # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
@@ -128,6 +173,9 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
@@ -143,7 +191,3 @@ import_source_who_jecfa_adi <- function(db,chem.check.halt=FALSE, do.reset=FALSE
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-

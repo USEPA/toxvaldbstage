@@ -2,13 +2,30 @@
 % Please edit documentation in R/update_chemical_preferred_info_by_dtxsid.R
 \name{update_chemical_preferred_info_by_dtxsid}
 \alias{update_chemical_preferred_info_by_dtxsid}
-\title{Set the name and casrn in the source_chemical table based on CCTE API}
+\title{update_chemical_preferred_info_by_dtxsid}
 \usage{
 update_chemical_preferred_info_by_dtxsid(source.db)
 }
 \arguments{
 \item{source.db}{The database version to use}
 }
+\value{
+None
+}
 \description{
 Set the name and casrn in the source_chemical table based on CCTE API
+}
+\details{
+DETAILS
+}
+\examples{
+\dontrun{
+if(interactive()){
+ #EXAMPLE1
+ }
+}
+}
+\seealso{
+[GET][httr::GET], [content][httr::content], [POST][httr::POST], [accept_json][httr::accept_json], [content_type_json][httr::content_type_json], [add_headers][httr::add_headers]
+ [bind_rows][dplyr::bind_rows], [select][dplyr::select], [mutate][dplyr::mutate], [n][dplyr::n]
 }

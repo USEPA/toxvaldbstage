@@ -8,8 +8,8 @@
 #' @param do.insert If TRUE, insert data into the database, default False
 #' @param res The data frame to be processed
 #' @param hashing_cols Optional list of columns to use for generating source_hash
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title toxval_source.hash.and.load
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -24,6 +24,7 @@
 #' @export
 #' @importFrom digest digest
 #' @importFrom dplyr distinct
+#' @importFrom generics is.element
 #--------------------------------------------------------------------------------------
 toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
                                         source,
@@ -106,15 +107,7 @@ toxval_source.hash.and.load <- function(db="dev_toxval_source_v5",
       if(i%%1000==0) cat(i," out of ",nrow(res),"\n")
     }
   } else {
-    # New hashing system (2023/10/26)
-    # Vectorized hash instead of for-loop
-    # Different from previous in that Date columns aren't converted to numerics
-    cat("Using vectorized hashing! \n")
-    res.temp = res %>%
-      tidyr::unite(hash_col, all_of(sort(names(.)[names(.) %in% hashing_cols])), sep="") %>%
-      dplyr::rowwise() %>%
-      dplyr::mutate(source_hash = paste0("ToxValhc_", digest(hash_col, serialize = FALSE))) %>%
-      dplyr::ungroup()
+    res.temp = source_hash_vectorized(res, hashing_cols=hashing_cols)
     res$source_hash = res.temp$source_hash
 
     # Check for immediate duplicate hashes

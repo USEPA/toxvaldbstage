@@ -7,17 +7,17 @@
 #' @title FUNCTION_TITLE
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[openxlsx]{read.xlsx}}
 #'  \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{filter-joins}}
 #' @rdname import_doe_source
-#' @export
+#' @export 
 #' @importFrom openxlsx read.xlsx
 #' @importFrom dplyr distinct semi_join anti_join
 

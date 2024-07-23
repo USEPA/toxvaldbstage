@@ -23,6 +23,8 @@
 #' @importFrom tidyr separate_rows pivot_longer separate
 #' @importFrom stringr regex str_remove str_squish
 #' @importFrom lubridate parse_date_time
+#' @param do.reset PARAM_DESCRIPTION, Default: FALSE
+#' @param do.insert PARAM_DESCRIPTION, Default: FALSE
 #--------------------------------------------------------------------------------------
 import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -107,6 +109,7 @@ import_source_epa_aegl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
       source = "EPA AEGL",
       subsource = "EPA OW",
       source_url = "https://www.epa.gov/aegl/access-acute-exposure-guideline-levels-aegls-values#chemicals",
+      subsource_url = source_url,
       risk_assessment_class = "acute",
       exposure_route = "inhalation",
 

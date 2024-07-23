@@ -2,11 +2,10 @@
 % Please edit documentation in R/import_doe_benchmarks_source.R
 \name{import_doe_benchmarks_source}
 \alias{import_doe_benchmarks_source}
-\title{FUNCTION_TITLE}
+\title{import_doe_benchmarks_source}
 \usage{
 import_doe_benchmarks_source(
   db,
-  infile = "DOE_Wildlife_Benchmarks_1996.xlsx",
   chem.check.halt = FALSE,
   do.reset = FALSE,
   do.insert = FALSE
@@ -15,8 +14,6 @@ import_doe_benchmarks_source(
 \arguments{
 \item{db}{The version of toxval_source into which the source is loaded.}
 
-\item{infile}{The input file ./doe_benchmarks/doe_benchmarks_files/DOE_Wildlife_Benchmarks_1996.xlsx}
-
 \item{chem.check.halt}{If TRUE and there are bad chemical names or casrn,}
 
 \item{do.reset}{If TRUE, delete data from the database for this source before}
@@ -24,10 +21,10 @@ import_doe_benchmarks_source(
 \item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is pushed to toxval_source
 }
 \description{
-Load doe_benchmarks Source into toxval_source
+Load DOE Wildlife Benchmarks data into toxval_source
 }
 \details{
 DETAILS
@@ -40,5 +37,8 @@ if(interactive()){
 }
 }
 \seealso{
-\code{\link[openxlsx]{read.xlsx}}
+\code{\link[readxl]{read_excel}}
+ \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{row_number}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{bind_rows}}, \code{\link[dplyr]{across}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
+ \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_extract}}
+ \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{drop_na}}, \code{\link[tidyr]{separate}}
 }

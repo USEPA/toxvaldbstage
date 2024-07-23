@@ -12,10 +12,11 @@
 #' @param source_specific_filter Boolean whether to apply source specific filtering Default is TRUE.
 #' @return sampled toxval_source records
 #-----------------------------------------------------------------------------------
-qc_sampling <- function(toxval.db="res_toxval_v95",
-                        source.db="res_toxval_source_V5",
+qc_sampling <- function(toxval.db,
+                        source.db,
                         fraction=0.1,
                         source=NULL,
+                        source_table=NULL,
                         curation_method=NULL,
                         data_profiling_file=NULL,
                         refresh_qc_pull=TRUE,
@@ -86,7 +87,12 @@ qc_sampling <- function(toxval.db="res_toxval_v95",
 
   # Pull source specific data
   sub_res <- TOXVAL_ALL %>%
-    dplyr::filter(source == !!source)
+    dplyr::filter(source == !!source | source_table == !!source_table)
+
+  if(grepl("IUCLID", source)){
+    sub_res <- TOXVAL_ALL %>%
+      dplyr::filter(source == "ECHA IUCLID", source_table == !!source_table)
+  }
 
   # Sample by record type
   if(!nrow(sub_res)){

@@ -6,8 +6,8 @@
 #' @param outputDir optional directory path to save output file in.
 #' @param db the name of the database.
 #' @export
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title qc_prescreening_summary
+#' @return Result set of QC prescreenig information
 #' @details DETAILS
 #' @examples
 #' \dontrun{

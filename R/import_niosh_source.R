@@ -51,6 +51,7 @@ import_niosh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       toxval_type = "NIOSH IDLH Concentration",
       exposure_route = "inhalation",
       source_url = "https://www.cdc.gov/niosh/idlh/intridl4.html",
+      subsource_url = source_url,
 
       # Remove casrn noise
       casrn = `CAS no.` %>%

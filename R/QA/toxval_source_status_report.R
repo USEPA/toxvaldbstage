@@ -2,20 +2,29 @@
 #' @title toxval_source_status_report
 #' @description Generate a report of sources in toxval_source. Includes general stats,
 #' chemical curation stats, document catloging, and QC stats.
-#' @param db The version of toxval source database to use.
+#' @param source.db The source database name
+#' @param toxval.db The database version to use
 #' @return List of report dataframes. Export XLSX file is also produced.
 #' @import RMySQL dplyr readxl magrittr
 #--------------------------------------------------------------------------------------
-toxval_source_status_report <- function(db){
+toxval_source_status_report <- function(source.db, toxval.db){
 
   # Pull chemical index table
   chem_index = runQuery("SELECT * FROM chemical_source_index",
-                        db) %>%
-    select(chemprefix, everything())
+                        db=source.db) %>%
+    select(chemprefix, everything()) %>%
+
+    # Alter chem_index to allow for direct load joins
+    dplyr::mutate(
+      source_table = dplyr::case_when(
+        source_table %in% c("direct load", "direct_load") ~ source,
+        TRUE ~ source_table
+      )
+    )
 
   # List of all source tables
-  tblList = runQuery(query = paste0("SHOW TABLES FROM ", db),
-                     db=db) %>% unlist() %>% unname() %>%
+  tblList = runQuery(query = paste0("SHOW TABLES FROM ", db=source.db),
+                     db=source.db) %>% unlist() %>% unname() %>%
     # Filter to those named "source_*"
     .[grepl("source_", .)] %>%
     # Ignore those like source_audit or source_chemical
@@ -27,20 +36,30 @@ toxval_source_status_report <- function(db){
   cat("\n...Generating general stats")
   gen_stats = lapply(chem_index$source_table[!is.na(chem_index$source_table)], function(s_tbl){
     # Check if table exists
-    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
+    direct_load = FALSE
+    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db=source.db)
+    if(!nrow(s_check)) {
+      s_check = runQuery(paste0("SELECT DISTINCT source FROM toxval WHERE source='", s_tbl, "'"), toxval.db)
+      direct_load = TRUE
+    }
     if(!nrow(s_check)) return(NULL)
     # Pull data for existing table
-    s_dat = runQuery(paste0("SELECT chemical_id, create_time, qc_status FROM ", s_tbl), db=db)
-    s_audit = runQuery(paste0("SELECT MIN(create_time) as initial_import FROM source_audit where src_tbl_name = '", s_tbl,"'"), db=db)
-
-    if(is.na(s_audit$initial_import)) {
-      s_audit$initial_import = min(s_dat$create_time)
+    if(direct_load) {
+      direct_query = paste0("SELECT chemical_id, datestamp AS create_time, qc_status FROM toxval WHERE source='", s_tbl, "'")
+      s_dat = runQuery(direct_query, toxval.db)
+      min_create = min_create = min(s_dat$create_time)
+    } else {
+      s_dat = runQuery(paste0("SELECT chemical_id, create_time, qc_status FROM ", s_tbl), db=source.db)
+      s_audit = runQuery(paste0("SELECT MIN(create_time) as initial_import FROM source_audit where src_tbl_name = '", s_tbl,"'"), db=source.db)
+      min_create = s_audit$initial_import
+      if(is.na(min_create)) min_create = min(s_dat$create_time)
     }
+
     tmp = s_dat %>%
       dplyr::summarise(n_records = n(),
-                       n_chems = length(unique(chemical_id)),
-                       first_uploaded = s_audit$initial_import) %>%
-      dplyr::mutate(source_table = s_tbl)
+                       n_chems = length(unique(chemical_id[!is.na(chemical_id)]))) %>%
+      dplyr::mutate(source_table = !!s_tbl,
+                    first_uploaded = !!min_create)
 
     tmp$last_updated = s_dat$create_time[s_dat$qc_status == "not determined"] %>%
       max(na.rm=TRUE)
@@ -57,18 +76,30 @@ toxval_source_status_report <- function(db){
   cat("\n...Generating chemical curation stats")
   chem_stats = lapply(chem_index$source_table[!is.na(chem_index$source_table)], function(s_tbl){
     # Check if table exists
-    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
+    direct_load = FALSE
+    query = paste0("SELECT source, dtxsid, dtxrid FROM source_chemical ",
+                   "WHERE chemical_id ",
+                   "IN (SELECT chemical_id FROM ", s_tbl, ")")
+    db = source.db
+    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db=source.db)
+    if(!nrow(s_check)) {
+      s_check = runQuery(paste0("SELECT DISTINCT source FROM toxval WHERE source='", s_tbl, "'"), toxval.db)
+      query = paste0("SELECT source, dtxsid, dtxrid FROM source_chemical ",
+                     "WHERE chemical_id ",
+                     "IN (SELECT chemical_id FROM toxval WHERE source='", s_tbl,
+                     "' OR source_table='", s_tbl, "')")
+      db = toxval.db
+    }
     if(!nrow(s_check)) return(NULL)
     # Pull source_chemical data for existing table by chemical_id
-    runQuery(paste0("SELECT source, dtxsid, dtxrid FROM source_chemical ",
-                             "WHERE chemical_id in (SELECT chemical_id FROM ", s_tbl, ")"), db) %>%
+    runQuery(query, db=db) %>%
       return()
   }) %>%
     dplyr::bind_rows() %>%
     dplyr::group_by(source) %>%
     dplyr::summarise(total_chems = n(),
-                     dtxrid = length(unique(dtxrid)),
-                     dtxsid = length(unique(dtxsid))) %>%
+                     dtxrid = length(unique(dtxrid[!is.na(dtxrid)])),
+                     dtxsid = length(dtxsid[!is.na(dtxsid)])) %>%
     get_percent_summary("perc_dtxsid", "dtxsid", "total_chems") %>%
     get_percent_summary("perc_dtxrid", "dtxrid", "total_chems") %>%
     left_join(x=chem_index, y=., by="source") %>%
@@ -81,14 +112,22 @@ toxval_source_status_report <- function(db){
   cat("\n...Generating QC stats")
   qc_stats = lapply(chem_index$source_table[!is.na(chem_index$source_table)], function(s_tbl){
     # Check if table exists
-    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
+    direct_load = FALSE
+    query = paste0("SELECT qc_status FROM ", s_tbl)
+    db = source.db
+    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db=source.db)
+    if(!nrow(s_check)) {
+      s_check = runQuery(paste0("SELECT DISTINCT source FROM toxval WHERE source='", s_tbl, "'"), toxval.db)
+      query = paste0("SELECT qc_status FROM toxval WHERE source='", s_tbl, "' OR source_table='", s_tbl, "'")
+      db = toxval.db
+    }
     if(!nrow(s_check)) return(NULL)
-    # Pull data for existing table
-    runQuery(paste0("SELECT qc_status FROM ", s_tbl), db=db) %>%
+    # Pull QC data for current source
+    runQuery(query, db=db) %>%
       dplyr::summarise(total_records = n(),
                        total_qc = sum(qc_status != "not determined"),
                        pass = sum(qc_status %in% c("pass", "PASS")),
-                       fail = sum(qc_status %in% c("fail", "FAIL")),
+                       fail = sum(grepl("fail", qc_status, ignore.case=TRUE)),
                        pending = sum(qc_status == "not determined"),
                        qc_perc = round(total_qc / total_records * 100, 3)
       ) %>%
@@ -106,8 +145,8 @@ toxval_source_status_report <- function(db){
   ################################################################################
   cat("\n...Generating document cataloging stats")
   # Check all required document lineage tables are present
-  doc_lineage_check <- runQuery(query = paste0("SHOW TABLES FROM ", db),
-                                db=db) %>%
+  doc_lineage_check <- runQuery(query = paste0("SHOW TABLES FROM ", db=source.db),
+                                db=source.db) %>%
     .[[1]] %>%
     .[grepl("documents", .)]
 
@@ -122,16 +161,21 @@ toxval_source_status_report <- function(db){
     # Generate stats once the document lineage schema is established
     doc_cat_stats <- runQuery(paste0("SELECT distinct a.source_hash, a.source_table, b.document_type ",
                                      "FROM documents_records a ",
-                                     "LEFT JOIN documents b on a.fk_doc_id = b.id"), db)
+                                     "LEFT JOIN documents b on a.fk_doc_id = b.id"), db=source.db)
 
     # Filter to only source_hash values in the source tables (can be orphan linkages due to archived tables not
     # updated in the document_records table...)
     doc_cat_stats = lapply(unique(doc_cat_stats$source_table), function(s_tbl){
       # Check if table exists
-      s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
-      if(!nrow(s_check)) return(NULL)
-      # Pull data for existing table
-      hashes = runQuery(paste0("SELECT DISTINCT source_hash FROM ", s_tbl), db)
+      if(s_tbl %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")){
+        hashes = runQuery(paste0("SELECT source_hash FROM toxval WHERE source = '", s_tbl, "'"), db=toxval.db)
+      } else {
+        s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db=source.db)
+        if(!nrow(s_check)) return(NULL)
+        # Pull data for existing table
+        hashes = runQuery(paste0("SELECT DISTINCT source_hash FROM ", s_tbl), db=source.db)
+      }
+
       doc_cat_stats %>%
         dplyr::filter(source_table == s_tbl,
                       source_hash %in% hashes$source_hash) %>%
@@ -159,11 +203,11 @@ toxval_source_status_report <- function(db){
   # Pull Chemical indexes in use in source tables
   src_table = lapply(tblList, function(s_tbl){
     # Check if table exists
-    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db)
+    s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db=source.db)
     if(!nrow(s_check)) return(NULL)
     # Pull data for existing table
     row = runQuery(paste0("SELECT * FROM ", s_tbl, " LIMIT 1"),
-                   db)
+                   db=source.db)
     if("chemical_id" %in% names(row)){
       row = row %>%
         select(chemical_id) %>%
@@ -189,7 +233,7 @@ toxval_source_status_report <- function(db){
   ################################################################################
   # Pull chemical indexes in use in chemical table
   curated_chems = runQuery(paste0("SELECT chemical_id, source FROM source_chemical"),
-                           db) %>%
+                           db=source.db) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(chemical_id = strsplit(chemical_id, split="_") %>%
                     unlist() %>%

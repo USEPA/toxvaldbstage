@@ -8,25 +8,26 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is loaded into toxval_source
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[utils]{read.table}}
 #'  \code{\link[dplyr]{select}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{join_by}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{drop_na}}
 #' @rdname import_test_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom utils read.csv
 #' @importFrom dplyr select left_join join_by mutate case_when
 #' @importFrom stringr str_squish
 #' @importFrom tidyr pivot_longer drop_na
+#' @importFrom readr read_csv cols
 import_test_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "TEST"

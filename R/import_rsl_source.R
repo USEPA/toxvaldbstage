@@ -26,6 +26,9 @@
 #' @importFrom dplyr bind_rows mutate_all mutate na_if across case_when
 #' @importFrom tidyr unite pivot_longer separate drop_na
 #' @importFrom stringr str_squish
+#' @param do.reset PARAM_DESCRIPTION, Default: FALSE
+#' @param do.insert PARAM_DESCRIPTION, Default: FALSE
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -151,7 +154,8 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::mutate(
       name = gsub("~", "", Analyte),
       casrn = sapply(`CAS N.`, FUN=fix.casrn) %>% dplyr::na_if("NOCAS"),
-      source_url = "https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables"
+      source_url = "https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables",
+      subsource_url = source_url,
     ) %>%
     # Extract toxval_type and toxval_units
     tidyr::separate(
@@ -172,7 +176,7 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
     ) %>%
 
     # Replace NAs with actual NA value
-    dplyr::mutate(dplyr::across(where(is.character),
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character),
                                 .fns = ~replace(., . == "NA", NA))) %>%
 
     # Clean values as needed
@@ -237,12 +241,18 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
         TRUE ~ as.character(NA)
       ),
 
-      # Get "toxval_subtype" column
+      # Get toxval_subtype field
       toxval_subtype = dplyr::case_when(
         grepl("Screening Level", toxval_type) & grepl("\\bcancer", study_type) ~ "TR = 1E-06",
         raw_input_file == "rsl_thq10_nov_2023.xlsx" & (!grepl("\\bcancer", study_type)) ~ "Thq = 1",
         raw_input_file == "rsl_thq01_nov_2023.xlsx" & (!grepl("\\bcancer", study_type)) ~ "Thq = 0.1",
         TRUE ~ as.character(NA)
+      ),
+      # Append subchronic data to subtype where appropriate
+      toxval_subtype = dplyr::case_when(
+        is.na(toxval_subtype) & toxval_type %in% c("SRfC", "SRfD") ~ "subchronic",
+        toxval_type %in% c("SRfC", "SRfD") ~ paste0("subchronic; ", toxval_subtype),
+        TRUE ~ toxval_subtype
       ),
 
       # Get exposure_route based on toxval_type
@@ -311,6 +321,9 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
+
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
   #####################################################################
@@ -324,9 +337,5 @@ import_rsl_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        do.insert=do.insert,
                        chem.check.halt=chem.check.halt,
                        # Special hashing case for RSL
-                       hashing_cols=c(toxval.config()$hashing_cols, "raw_input_file"))
+                       hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-

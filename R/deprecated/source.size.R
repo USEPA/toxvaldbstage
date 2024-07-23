@@ -3,7 +3,7 @@
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #--------------------------------------------------------------------------------------
-source.size <- function(db="res_toxval_source_v5") {
+source.size <- function(db) {
   printCurrentFunction(db)
 
   tlist = runQuery("show tables",sdb)[,1]

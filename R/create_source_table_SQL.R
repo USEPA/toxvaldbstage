@@ -5,12 +5,12 @@
 #' @param source name of the source being processed
 #' @param res input dataframe of source data
 #' @param src_version Version date of the source
-#' @param db PARAM_DESCRIPTION
+#' @param db version of toxval_source to use
 #' @param do.halt if TRUE, halt on errors or warnings
 #' @param verbose if TRUE, print diagnostic information
 #' @export
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title create_source_table_SQL
+#' @return New SQL table as a tibble
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -60,19 +60,24 @@ create_source_table_SQL <- function(source, res, src_version, db, do.halt=TRUE, 
     gsub("snew_source", source, .) %>%
     # Insert custom fields
     gsub("source_custom_fields", src_fields, .)
-    #IUCLID is special because it's a nested subfolder structure
+
+    # IUCLID is special because it's a nested subfolder structure
     if(grepl("iuclid", source)){
       writeLines(src_sql$snew_source,
                  paste0(toxval.config()$datapath,
                         "iuclid/",
-                        gsub("source_iuclid_", "", source),
+                        gsub("source_", "", source),
                         "/",
-                        gsub("source_iuclid_", "", source),
+                        gsub("source_", "", source),
                         "_MySQL/",
                         source, "_",
                         src_version,
                         ".sql"))
     } else {
+      # Special case of ATSDR PFAS 2021
+      if(source == "source_atsdr_pfas_2021"){
+        source = "source_atsdr_pfas"
+      }
       writeLines(src_sql$snew_source,
                  paste0(toxval.config()$datapath,
                         gsub("source_", "", source),
@@ -85,6 +90,29 @@ create_source_table_SQL <- function(source, res, src_version, db, do.halt=TRUE, 
     }
     # Export a copy
 
+  # Parse filepath to save copy
+  sql_file = paste0(toxval.config()$datapath,
+                    gsub("source_", "", source),
+                    "/",
+                    gsub("source_", "", source),
+                    "_MySQL/",
+                    source, "_",
+                    src_version,
+                    ".sql")
+  # IUCLID is special because it's a nested subfolder structure
+  if(grepl("iuclid", source)){
+    sql_file = paste0(toxval.config()$datapath,
+                      "iuclid/",
+                      gsub("source_", "", source),
+                      "/",
+                      gsub("source_", "", source),
+                      "_MySQL/",
+                      source, "_",
+                    src_version,
+                    ".sql")
+  }
+  # Export a copy
+  writeLines(src_sql$snew_source, sql_file)
 
   # Push the new table to database
   runQuery(query = src_sql$snew_source, db=db)

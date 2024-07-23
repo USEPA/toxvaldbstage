@@ -14,7 +14,7 @@ qa_chemical_id_hashing <- function(){
     res$chemical_index = paste(res[,casrn.col],res[,name.col])
     result = chem.check(res,name.col=name.col,casrn.col=casrn.col,verbose=verbose,source)
     if(chem.check.halt) if(!result$name.OK || !result$casrn.OK || !result$checksum.OK) browser()
-    
+
     #####################################################################
     cat("Build the chemical table\n")
     #####################################################################
@@ -74,7 +74,7 @@ qa_chemical_id_hashing <- function(){
     return(res %>% left_join(chems %>% select(chemical_id, cleaned_name, cleaned_casrn),
                              by="chemical_id"))
   }
-  
+
   # Old approach to chemical hashing
   old_chemical_hash <- function(chems){
     for(i in 1:nrow(chems)) {
@@ -86,7 +86,7 @@ qa_chemical_id_hashing <- function(){
     }
     return(chems)
   }
-  
+
   src_chem = runQuery("SELECT chemical_id, source, raw_name, raw_casrn, cleaned_name, cleaned_casrn FROM source_chemical", db)
   # Pull comparison from candidate source tables (previously ran wihtout a filter and identified by prefix)
   compare = src_chem %>%
@@ -96,7 +96,7 @@ qa_chemical_id_hashing <- function(){
       'DOE Protective Action Criteria',
       'EFSA',
       'EPA OPP',
-      'Pennsylvania DEP MCLs',
+      'Pennsylvania DEP MSCs',
       'Pennsylvania DEP ToxValues',
       'BCF BAF',
       'ChemIDPlus',
@@ -115,37 +115,37 @@ qa_chemical_id_hashing <- function(){
     filter(prefix == "ToxVal00048") %>%
     select(old_chemical_id, chemical_id, raw_name, raw_casrn, cleaned_name, cleaned_casrn)
   # Pull source's RData import processed file
-  load("/ccte/ACToR1/ToxValDB9/Repo/z_source_import_processed/source_opp_import_processed.RData")
+  load("Repo/z_source_import_processed/source_opp_import_processed.RData")
   source = "EPA OPP"
   # Clean chemical information again for comparison
   res = res %>%
     mutate(old_chemical_id = chemical_id) %>%
     qa_clean_chems_compare(db,res=.,source,chem.check.halt=FALSE,casrn.col="casrn",name.col="name") %>%
     filter(old_chemical_id %in% res_compare$old_chemical_id)  %>%
-    dplyr::rename(raw_name= name, 
+    dplyr::rename(raw_name= name,
                   raw_casrn = casrn)  %>%
     # old_chemical_hash() %>%
     # mutate(compare = old_chemical_id == chemical_id)
     select(old_chemical_id, chemical_id, raw_name, raw_casrn, cleaned_name, cleaned_casrn) %>%
     distinct()
-  
+
   # Compare RData to Database data for inconsistencies
   all(arrange(res, old_chemical_id) %>% select(raw_name) %>% unique() == arrange(res_compare, old_chemical_id) %>% select(raw_name) %>% unique())
   all(arrange(res, old_chemical_id) %>% select(cleaned_name) %>% unique() == arrange(res_compare, old_chemical_id) %>% select(cleaned_name) %>% unique())
   all(arrange(res, old_chemical_id) %>% select(raw_casrn) %>% unique() == arrange(res_compare, old_chemical_id) %>% select(raw_casrn) %>% unique())
   all(arrange(res, old_chemical_id) %>% select(cleaned_casrn) %>% unique() == arrange(res_compare, old_chemical_id) %>% select(cleaned_casrn) %>% unique())
-  
-  
+
+
   ##############################
   # tbl_list = runQuery("show tables",db)[,1] %>%
   #   .[grepl("source_", .)] %>%
   #   .[!grepl("audit",. )] %>%
   #   .[!grepl("chemical_|source_chemical", .)]
-  # 
+  #
   # prefix_list = lapply(tbl_list, function(tbl){
   #   runQuery(paste0("SELECT chemical_id FROM ", tbl, " LIMIT 1"), db) %>%
   #     mutate(source_table = tbl)
   # }) %>%
   #   bind_rows()
-  
+
 }

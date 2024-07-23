@@ -8,8 +8,9 @@
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param infile The input file ="../caloehha/caloehha_files/OEHHA-chemicals_2018-10-30T08-50-47.xlsx",
 #' @param chem.check.halt If TRUE and there are problems with chemicals CASRN checks, halt the program
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @param do.summary_data If TRUE, add Cal OEHHA Summary data to table before insertion
+#' @title import_source_caloehha
+#' @return None; data is pushed to ToxVal_Source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -19,11 +20,20 @@
 #' }
 #' @seealso
 #'  \code{\link[openxlsx]{read.xlsx}}
-#' @rdname import_caloehha_source
+#' @rdname import_source_caloehha
 #' @export
 #' @importFrom openxlsx read.xlsx
+#' @param do.reset PARAM_DESCRIPTION, Default: FALSE
+#' @param do.insert PARAM_DESCRIPTION, Default: FALSE
+#' @importFrom readxl read_xlsx
+#' @importFrom dplyr rename all_of mutate distinct across na_if filter bind_rows rowwise ungroup select
+#' @importFrom tidyselect where
+#' @importFrom tidyr separate_rows separate
+#' @importFrom stringr str_squish str_to_title str_replace_all
+#' @importFrom janitor excel_numeric_to_date
+#' @importFrom stats complete.cases
 #--------------------------------------------------------------------------------------
-import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_caloehha <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
   printCurrentFunction(db)
   source="Cal OEHHA"
   source_table = "source_caloehha"
@@ -83,9 +93,9 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                     notification_level_units = "ug/L",
                     chrfd_units = ifelse(!is.na(chrfd) & !grepl("E", chrfd), sub("^[0-9.]+\\s+","",chrfd), NA)) %>%
       dplyr::distinct() %>%
-      dplyr::mutate(dplyr::across(where(is.character), ~na_if(., "--")),
-                    dplyr::across(where(is.character), ~na_if(., "n/a")),
-                    dplyr::across(where(is.character), ~na_if(., "N/A"))) %>%
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~dplyr::na_if(., "--")),
+                    dplyr::across(tidyselect::where(is.character), ~dplyr::na_if(., "n/a")),
+                    dplyr::across(tidyselect::where(is.character), ~dplyr::na_if(., "N/A"))) %>%
       # Separate casrn lists
       tidyr::separate_rows(casrn, sep = "; ")
 
@@ -363,7 +373,7 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
 
     # N-Methylpyrrolidone - 17000 (dermal)
     row_to_change <- res %>%
-      filter(madl_oral_reprotox == "17000 (dermal)") %>%
+      dplyr::filter(madl_oral_reprotox == "17000 (dermal)") %>%
       dplyr::mutate(madl_dermal_reprotox = "17000",
                     madl_oral_reprotox=NA,
                     madl_dermal_reprotox_units=madl_oral_reprotox_units)
@@ -470,9 +480,9 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
                                                          "TBD")
                                            )
                        ),
-                       exposure_route = ifelse(grepl("inhalation", f_name),
+                       exposure_route = ifelse(grepl("inhalation|acute_rel", f_name),
                                                "inhalation",
-                                               ifelse(grepl("oral|acute_rel", f_name),
+                                               ifelse(grepl("oral", f_name),
                                                       "oral",
                                                       ifelse(grepl("dermal", f_name),
                                                             "dermal",
@@ -544,7 +554,7 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       # Filter out toxval_numeric NA values
       dplyr::filter(!is.na(toxval_numeric)) %>%
       # Clean up excess whitespace for all character fields
-      dplyr::mutate(across(where(is.character), ~stringr::str_squish(.)),
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~stringr::str_squish(.)),
                     severity = severity %>%
                       gsub("*", "", ., fixed=TRUE) %>%
                       tolower(),
@@ -561,21 +571,98 @@ import_caloehha_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       # Fix severity
       dplyr::distinct()
 
-    # Set species to 'human' for Human Data
+    # Set final hardcoded values
     res <- res %>%
-      dplyr::mutate(species = ifelse(res$`Human Data` == "Yes" & res$species == "-", tolower("human"), tolower(species)))
+      dplyr::mutate(
+        species = "human",
+        experimental_record = "No",
+        document_type = "Cal OEHHA Export",
+        source_url = "https://oehha.ca.gov/chemicals",
+        human_eco = "human health",
+        subsource = document_type,
+        toxval_type = dplyr::case_when(
+          toxval_type == "REL" ~ "Reference Exposure Level",
+          TRUE ~ toxval_type
+        )
+      )
 
     # Replace NA with -
-    res$critical_effect <- str_replace_all(res$critical_effect, "NA", "-")
+    res$critical_effect <- stringr::str_replace_all(res$critical_effect, "NA", "-")
 
+    # Standardize the names
+    names(res) <- names(res) %>%
+      stringr::str_squish() %>%
+      # Replace whitespace and periods with underscore
+      gsub("[[:space:]]|[.]", "_", .) %>%
+      tolower()
 ##########################################################################################################
 
-  # Standardize the names
-  names(res) <- names(res) %>%
-    stringr::str_squish() %>%
-    # Replace whitespace and periods with underscore
-    gsub("[[:space:]]|[.]", "_", .) %>%
-    tolower()
+    # Add subsource URL mappings to full data
+    url_map = readxl::read_xlsx(paste0(dir, "cal_oehha_url_map.xlsx")) %>%
+      dplyr::select(subsource_url = link, merge_name = name) %>%
+      dplyr::mutate(merge_name = merge_name %>%
+                      fix.replace.unicode() %>%
+                      stringr::str_squish() %>%
+                      toupper)
+    res = res %>%
+      dplyr::mutate(merge_name = toupper(name)) %>%
+      dplyr::left_join(url_map, by=c("merge_name")) %>%
+      dplyr::select(-merge_name)
+
+  # Add summary data to df before prep and load
+  if(do.summary_data){
+    # Import manually curated Cal OEHHA Summary information
+    res_summary = readxl::read_xlsx(paste0(dir, "cal_oehha_summary.xlsx")) %>%
+      dplyr::mutate(
+        document_type = "Cal OEHHA Summary",
+        subsource = document_type,
+        source_url = search_url,
+        long_ref = `reference (study field)`,
+        study_reference = long_ref,
+
+        # Extract study_duration_value/units
+        study_duration_units = stringr::str_extract(`exposure duration`,
+                                                    "(days|years|months|lifetime|weeks|generation|GD)",
+                                                    group=1),
+        study_duration_value = dplyr::case_when(
+          study_duration_units == "lifetime" ~ "1",
+          study_duration_units == "GD" ~ gsub("GD([0-9]+)\\-GD([0-9]+)", "\\1\\-\\2", `exposure duration`),
+          TRUE ~ stringr::str_extract(`exposure duration`, "([0-9]+)", group=1)
+        ),
+
+        # Standardize sex values with other sources
+        sex = dplyr::case_when(
+          grepl("M", sex) & grepl("F", sex) ~ "male/female",
+          grepl("M", sex) ~ "male",
+          grepl("F", sex) ~ "female",
+          TRUE ~ as.character(NA)
+        )
+      ) %>%
+
+      # Rename fields as necessary
+      dplyr::rename(
+        name = PREFERRED_NAME,
+        critical_effect = `critical effects`
+      )
+
+    # Standardize the names before join for ease of renaming
+    names(res_summary) <- names(res_summary) %>%
+      stringr::str_squish() %>%
+      # Replace whitespace and periods with underscore
+      gsub("[[:space:]]|[.]", "_", .) %>%
+      tolower()
+
+    # Combine summary and export data
+    res = res %>%
+      dplyr::bind_rows(res_summary) %>%
+      dplyr::distinct()
+  } else {
+    res = res %>%
+      dplyr::distinct()
+  }
+
+  # Perform deduping
+  res = toxval.source.import.dedup(res)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

@@ -2,14 +2,14 @@
 % Please edit documentation in R/fix.non_ascii.v2.R
 \name{fix.non_ascii.v2}
 \alias{fix.non_ascii.v2}
-\title{FUNCTION_TITLE}
+\title{fix.non_ascii.v2}
 \usage{
 fix.non_ascii.v2(df, source)
 }
 \arguments{
 \item{df}{The dataframe to be processed}
 
-\item{source}{PARAM_DESCRIPTION}
+\item{source}{Current ToxVal source}
 
 \item{The}{source to be fixed}
 }

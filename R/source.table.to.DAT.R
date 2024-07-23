@@ -16,15 +16,15 @@
 #' @param sample_p Percentage of records to sample down to
 #' @return Processed source table to DAT format cached and returned.
 #' @import dplyr RMySQL DBI readxl magrittr tidyr writexl
-#' @export
+#' @export 
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[dplyr]{rename}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{slice}}, \code{\link[dplyr]{select}}
 #'  \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{reexports}}
 #'  \code{\link[writexl]{write_xlsx}}
@@ -51,8 +51,7 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
       dplyr::rename(record_id = source_hash) %T>% {
         # Get sample count based on sample_p
         sample_nrec <<- ceiling(nrow(.) * sample_p)
-      } %>%
-      dplyr::filter(clowder_id != "-")
+      }
 
     # Sample down if sample_p parameter used
     if(!is.na(sample_nrec)){
@@ -62,8 +61,7 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
     }
   } else {
     src_data = source_table %>%
-      dplyr::rename(record_id = source_hash) %>%
-      dplyr::filter(clowder_id != "-")
+      dplyr::rename(record_id = source_hash)
   }
 
   # Remove columns
@@ -77,12 +75,12 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
                     "document_name", "document_path")
 
   # Get Clowder document fields
-  rec_docs <- runQuery(paste0("SELECT a.clowder_id as source_name, b.source_hash as record_id FROM documents a ",
+  rec_docs <- runQuery(paste0("SELECT a.clowder_id, b.source_hash as record_id FROM documents a ",
                               "LEFT JOIN documents_records b ",
                               "ON b.fk_doc_id = a.id ",
                               "WHERE source_hash in ('",
                               paste0(src_data$record_id, collapse="', '")
-                              ,"')"),
+                              ,"') and document_type = 'extraction'"),
                        source.db)
 
 
@@ -90,6 +88,7 @@ source.table.to.DAT <- function(source.db, source_table, limit = 1000000, sample
   in_dat = src_data %>%
     dplyr::left_join(rec_docs,
                      by="record_id") %>%
+    dplyr::rename(source_name = name) %>%
     tidyr::pivot_longer(cols=-c(record_id, tidyr::all_of(id_cols)),
                         names_to="field_name",
                         values_to="value",

@@ -60,6 +60,7 @@ import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
       toxval_type = gsub("\\*", "", `Test statistic`),
       # long_ref = "Health and Environmental Sciences Institute (HESI). 2024. EnviroTox Database & Tools. Version 2.0.0 Available: http://www.envirotoxdatabase.org/ (accessed January 02, 2024)",
       source_url = "https://envirotoxdatabase.org/",
+      subsource_url = source_url,
       exposure_route = gsub("Both", "Freshwater/Saltwater", Medium),
 
       # Get study_type by translating "Test type" values
@@ -101,6 +102,11 @@ import_envirotox_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Perform deduping
+  hashing_cols = toxval.config()$hashing_cols# [!toxval.config()$hashing_cols %in% c("long_ref", "study_duration_qualifier")]
+  res = toxval.source.import.dedup(res,
+                                   hashing_cols = hashing_cols)
 
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date

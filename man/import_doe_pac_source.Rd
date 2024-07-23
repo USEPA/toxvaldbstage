@@ -15,6 +15,10 @@ import_doe_pac_source(
 \item{db}{The version of toxval_source into which the source is loaded.}
 
 \item{chem.check.halt}{If TRUE, stop if there are problems with the chemical mapping}
+
+\item{do.reset}{PARAM_DESCRIPTION, Default: FALSE}
+
+\item{do.insert}{PARAM_DESCRIPTION, Default: FALSE}
 }
 \value{
 OUTPUT_DESCRIPTION

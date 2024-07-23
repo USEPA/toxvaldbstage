@@ -9,10 +9,9 @@
 #' @param verbose if TRUE, print diagnostic information
 #' @export
 #' @param s_tbl Source table name to apply changes to
-#' @param field_lsit List of current field names in source table
-#' @title FUNCTION_TITLE
-#' @param field_list PARAM_DESCRIPTION
-#' @return OUTPUT_DESCRIPTION
+#' @param field_list List of current field names in source table
+#' @title init.audit.table
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{

@@ -2,7 +2,7 @@
 % Please edit documentation in R/import_efsa_source_2022.R
 \name{import_efsa_source}
 \alias{import_efsa_source}
-\title{FUNCTION_TITLE}
+\title{import_efsa_source}
 \usage{
 import_efsa_source(
   db,
@@ -21,7 +21,7 @@ import_efsa_source(
 \item{do.insert}{If TRUE, insert data into the database, default FALSE}
 }
 \value{
-OUTPUT_DESCRIPTION
+None; data is pushed to toxval_source
 }
 \description{
 Import of EFSA OpenFoodTox 2022 source into toxval_source

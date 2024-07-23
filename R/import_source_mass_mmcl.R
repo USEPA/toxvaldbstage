@@ -26,6 +26,7 @@
 #' @importFrom purrr is_character
 #' @importFrom tidyr pivot_longer drop_na separate
 #' @importFrom stringr str_match str_squish
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_source_mass_mmcl <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -41,7 +42,7 @@ import_source_mass_mmcl <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
   #####################################################################
   res = res0 %>%
     # Remove any instances of N/A
-    dplyr::mutate(dplyr::across(where(purrr::is_character),
+    dplyr::mutate(dplyr::across(tidyselect::where(purrr::is_character),
                                 .fns = ~replace(., . %in% c("N/A", "N/A10"), NA))) %>%
 
     # Rename columns as needed to avoid duplicates
@@ -57,6 +58,7 @@ import_source_mass_mmcl <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
       year = "2020",
       subsource = "Massachusetts DEP",
       source_url = "https://www.mass.gov/guides/drinking-water-standards-and-guidelines",
+      subsource_url = source_url,
       risk_assessment_class = "chronic"
     ) %>%
 

@@ -3,21 +3,22 @@
 #' @param x String to be cleaned
 #' @return The cleaned string
 #'
-#' @title FUNCTION_TITLE
+#' @title clean.last.character
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname clean.last.character
-#' @export 
+#' @export
 #' @importFrom stringr str_trim
 #--------------------------------------------------------------------------------------
 clean.last.character <- function(x) {
+  # Remove any of ; / . _ at the end of strings
   ylist = c(";","/",".", "_")
   x = stringr::str_trim(x)
   for(i in 1:3) {

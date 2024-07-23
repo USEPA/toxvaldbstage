@@ -3,9 +3,9 @@
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.chek.halt If TRUE and there are bad chemical names or casrn, #' stop to look at the results in indir/chemcheck.xlsx
 #' @param do.clean If TRUE, delte data from all tables before reloading
-#' @title FUNCTION_TITLE
 #' @param chem.check.halt PARAM_DESCRIPTION, Default: FALSE
-#' @return OUTPUT_DESCRIPTION
+#' @title import.driver
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -16,11 +16,12 @@
 #' @rdname import.driver
 #' @export
 #--------------------------------------------------------------------------------------
-import.driver <- function(db="res_toxval_source_v5",
+import.driver <- function(db,
                           chem.check.halt=FALSE,
                           do.clean=FALSE) {
   printCurrentFunction(db)
 
+  # Clear out all tables in toxval_source if specified
   if(do.clean) {
     tlist = runQuery("show tables",db)[,1] #%>%
       # Only delete source tables
@@ -34,6 +35,7 @@ import.driver <- function(db="res_toxval_source_v5",
     }
   }
   drop = FALSE
+  # If specified, drop all source tables in toxval_source
   if(drop){
     tlist = runQuery("show tables",db)[,1] %>%
     # Only drop source tables to be rebuilt entirely
@@ -59,7 +61,6 @@ import.driver <- function(db="res_toxval_source_v5",
   import_atsdr_pfas_2021_source(db,chem.check.halt=chem.check.halt) # ATSDR PFAS 2021 [v1]
   # import_source_atsdr_mrls(db,chem.check.halt=chem.check.halt) # ATSDR MRLs 2023 (TBD)
   import_caloehha_source(db,chem.check.halt=chem.check.halt) # Cal OEHHA [v1]
-  import_chiu_source(db,chem.check.halt=chem.check.halt) # Chiu [v1]
   import_copper_source(db,chem.check.halt=chem.check.halt) # Copper Manufacturers [v1]
   import_cosmos_source(db,chem.check.halt=chem.check.halt) # COSMOS [v1]
   import_dod_ered_source(db,chem.check.halt=chem.check.halt) # DOD ERED [v1]
@@ -76,7 +77,8 @@ import.driver <- function(db="res_toxval_source_v5",
   import_doe_lanl_ecorisk_source(db,chem.check.halt=chem.check.halt) # DOE
   import_niosh_source(db,chem.check.halt=chem.check.halt) # NIOSH
   import_opp_source(db,chem.check.halt=chem.check.halt) # EPA OPP
-  import_penn_source(db,chem.check.halt=chem.check.halt) # Pennsylvania DEP ToxValues
+  import_source_penn_dep_toxvalues(db,chem.check.halt=chem.check.halt) # Pennsylvania DEP ToxValues
+  import_source_penn_dep_mscs(db,chem.check.halt=chem.check.halt) # Pennsylvania DEP MSCs
   # import_pfas_summary_pods_source(db,chem.check.halt=chem.check.halt) # PFAS Summary PODs
   import_pprtv_ncea_source(db,chem.check.halt=chem.check.halt) # PPRTV (NCEA)
   import_pprtv_ornl_source(db,chem.check.halt=chem.check.halt) # PPRTV (ORNL)
@@ -95,13 +97,10 @@ import.driver <- function(db="res_toxval_source_v5",
   # Moved to end since it takes the longest
   import_echa_echemportal_api_source(db,chem.check.halt=chem.check.halt) # ECHA echemportal API
   # Alaska DEC [v1]
-  # Cal DPH [v1]
   # EPA AEGL [v1]
-  # FDA CEDI [v1]
   # Mass. Drinking Water Standards [v1]
   # OSHA Air Contaminants [v1]
   # OW Drinking Water Standards [v1]
-  # Pennsylvania DEP MCLs [v1]
   # USGS HBSL [v1]
   # WHO IPCS [v1]
   # import_flex_source(db,chem.check.halt=chem.check.halt)

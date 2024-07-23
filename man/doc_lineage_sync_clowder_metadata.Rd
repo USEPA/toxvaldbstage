@@ -25,9 +25,13 @@ doc_lineage_sync_clowder_metadata(
 \item{batch_size}{PARAM_DESCRIPTION, Default: 250}
 
 \item{dsID}{Clowder Dataset ID}
+
+\item{baseurl}{PARAM_DESCRIPTION}
+
+\item{apiKey}{PARAM_DESCRIPTION}
 }
 \value{
-OUTPUT_DESCRIPTION
+Clowder metadata
 }
 \description{
 Utility script to sync the Clowder metadata to the database based on Clowder ID

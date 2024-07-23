@@ -2,7 +2,7 @@
 % Please edit documentation in R/init.audit.table.R
 \name{init.audit.table}
 \alias{init.audit.table}
-\title{FUNCTION_TITLE}
+\title{init.audit.table}
 \usage{
 init.audit.table(db, do.halt = FALSE, verbose = FALSE)
 }
@@ -15,12 +15,10 @@ init.audit.table(db, do.halt = FALSE, verbose = FALSE)
 
 \item{s_tbl}{Source table name to apply changes to}
 
-\item{field_lsit}{List of current field names in source table}
-
-\item{field_list}{PARAM_DESCRIPTION}
+\item{field_list}{List of current field names in source table}
 }
 \value{
-OUTPUT_DESCRIPTION
+None
 }
 \description{
 Create audit table and add BEFORE UPDATE audit triggers to source_* tables

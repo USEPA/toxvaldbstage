@@ -7,10 +7,10 @@
 convert.fields.to.json(in_dat)
 }
 \arguments{
-\item{in_dat}{PARAM_DESCRIPTION}
+\item{in_dat}{data to translate to JSON format}
 }
 \value{
-OUTPUT_DESCRIPTION
+Values in JSON format
 }
 \description{
 Combine non-ID columns from audit table into JSON format for audit storage

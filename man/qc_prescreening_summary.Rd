@@ -2,19 +2,26 @@
 % Please edit documentation in R/qc_prescreening_summary.R
 \name{qc_prescreening_summary}
 \alias{qc_prescreening_summary}
-\title{FUNCTION_TITLE}
+\title{qc_prescreening_summary}
 \usage{
-qc_prescreening_summary(src_tbl = NULL, outputDir = NULL, db = NULL)
+qc_prescreening_summary(
+  src_tbl = NULL,
+  source_name = NULL,
+  outputDir = NULL,
+  db = NULL
+)
 }
 \arguments{
-\item{src_tbl}{a toxval source table name}
+\item{src_tbl}{a toxval source table name.}
 
-\item{outputDir}{optional directory path to save output file in}
+\item{source_name}{a toxval source name (used for direct load types).}
 
-\item{db}{the name of the database}
+\item{outputDir}{optional directory path to save output file in.}
+
+\item{db}{the name of the database.}
 }
 \value{
-OUTPUT_DESCRIPTION
+Result set of QC prescreenig information
 }
 \description{
 Runs a database query and returns a result set

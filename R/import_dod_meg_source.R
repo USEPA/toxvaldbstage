@@ -8,23 +8,24 @@
 #' @title import_dod_meg_source
 #' @return None. Data is processed into the database
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{case_when}}, \code{\link[dplyr]{distinct}}
 #'  \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{unite}}
 #' @rdname import_dod_meg_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xls
 #' @importFrom dplyr mutate case_when distinct
 #' @importFrom stringr str_squish
 #' @importFrom tidyr unite
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -41,7 +42,7 @@ import_dod_meg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.i
   res <- res0 %>%
     dplyr::mutate(
       # Get rid of excess whitespace
-      dplyr::mutate(dplyr::across(where(is.character), stringr::str_squish)),
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), stringr::str_squish)),
       # Assign appropriate names
       name = TG230_CHEMICAL_NAME,
       casrn = TG230_CASRN,

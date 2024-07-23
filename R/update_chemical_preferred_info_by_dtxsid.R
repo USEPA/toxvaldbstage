@@ -1,6 +1,22 @@
 #--------------------------------------------------------------------------------------
-#' Set the name and casrn in the source_chemical table based on CCTE API
 #' @param source.db The database version to use
+#' @title update_chemical_preferred_info_by_dtxsid
+#' @description Set the name and casrn in the source_chemical table based on CCTE API
+#' @return None
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @seealso
+#'  [GET][httr::GET], [content][httr::content], [POST][httr::POST], [accept_json][httr::accept_json], [content_type_json][httr::content_type_json], [add_headers][httr::add_headers]
+#'  [bind_rows][dplyr::bind_rows], [select][dplyr::select], [mutate][dplyr::mutate], [n][dplyr::n]
+#' @rdname update_chemical_preferred_info_by_dtxsid
+#' @export
+#' @importFrom httr GET content POST accept_json content_type_json add_headers
+#' @importFrom dplyr bind_rows select mutate n
 #--------------------------------------------------------------------------------------
 update_chemical_preferred_info_by_dtxsid <- function(source.db){
   printCurrentFunction(source.db)
@@ -55,7 +71,7 @@ update_chemical_preferred_info_by_dtxsid <- function(source.db){
     fix.non_ascii.v2(source=NULL) %>%
     # Add placeholder chemical_id for runUpdate query "LIKE source_chemical" which
     # adds unique chemical_id table constraint
-    dplyr::mutate(chemical_id = 1:n())
+    dplyr::mutate(chemical_id = 1:dplyr::n())
 
   if(nrow(updated_chem_details)){
     # Query to inner join and make updates with updated_chem_details dataframe (temp table added/dropped)

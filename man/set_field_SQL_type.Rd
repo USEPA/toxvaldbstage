@@ -2,7 +2,7 @@
 % Please edit documentation in R/set_field_SQL_type.R
 \name{set_field_SQL_type}
 \alias{set_field_SQL_type}
-\title{FUNCTION_TITLE}
+\title{set_field_SQL_type}
 \usage{
 set_field_SQL_type(src_f = NULL, default_fields = NULL)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/runInsert.R
 \name{runInsert}
 \alias{runInsert}
-\title{FUNCTION_TITLE}
+\title{runInsert}
 \usage{
 runInsert(query, db, do.halt = F, verbose = F, auto.increment.id = F)
 }

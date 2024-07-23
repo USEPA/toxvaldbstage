@@ -5,11 +5,13 @@
 #' @param db the name of the database
 #' @param live_df a filepath to the DAT live data to push to the 'source' table
 #' @param audit_df a filepath to the DAT audit data to push to source_audit #'
+#' @param hashing_type character string of 'vectorized' or 'base' representing which
+#' source_hash generation approach to use for the data based on how the original source was hashed.
 #' @import dplyr DBI magrittr
 #'
 #' @export
-#' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @title DAT.pipe.source.audit
+#' @return None
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -27,21 +29,27 @@
 #' @importFrom dplyr rename mutate left_join select filter
 #' @importFrom tidyr any_of
 #' @importFrom writexl write_xlsx
+#' @importFrom tidyselect where any_of
+#' @importFrom stringr str_split str_squish
 #--------------------------------------------------------------------------------------
-DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
+DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df, hashing_type="vectorized") {
 
   # Pull associated DAT files for an input source table
   DAT_data = list(
     live_dat = live_df %>%
       readxl::read_xlsx() %>%
       # Remove QC fields that will be repopulated in this workflow
-      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))],
+      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))] %>%
+      # Fill NA character fields with "-"
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~tidyr::replace_na(., "-"))),
     audit_dat = audit_df %>%
       readxl::read_xlsx() %>%
       dplyr::rename(src_tbl_name=dataset_name) %>%
       dplyr::mutate(src_tbl_name = gsub("toxval_", "", src_tbl_name)) %>%
       # Remove QC fields that will be repopulated in this workflow
-      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))]
+      .[ , !(names(.) %in% c("parent_hash", "qc_notes", "qc_flags", "created_by"))] %>%
+      # Fill NA character fields with "-"
+      dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~tidyr::replace_na(., "-")))
   )
 
   # Add back columns removed from QC data
@@ -71,18 +79,19 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # Identifiers excluded from source_hash generation
   hash_id_list = append(id_list, toxval.config()$non_hash_cols) %>%
     unique()
+  stop("Ensure hashing ID list matches this source's specific hashing column needs from import!")
 
   # Removing version which is part of source_hash generation
   # hash_id_list = hash_id_list[!hash_id_list %in% c("version")]
 
   # Prepare live values
   live = DAT_data$live_dat %>%
-    prep.DAT.conversion(., hash_id_list=hash_id_list)
+    prep.DAT.conversion(., hash_id_list=hash_id_list, hashing_type = hashing_type)
 
   # Prepare audit values
   audit = DAT_data$audit_dat %>%
     # Select and rename DAT audit columns for toxval_source, calculate new source_hash
-    prep.DAT.conversion(., hash_id_list=hash_id_list) %>%
+    prep.DAT.conversion(., hash_id_list=hash_id_list, hashing_type = hashing_type) %>%
     # Transform record columns into JSON
     dplyr::mutate(record = convert.fields.to.json(dplyr::select(., -tidyr::any_of(hash_id_list)))) %>%
     # Select only audit/ID columns and JSON record
@@ -90,16 +99,22 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
 
   # Correct version numbers based on parent hash version in toxval_source
   v_list = runQuery(paste0("SELECT source_hash, version as parent_version FROM ",
-                           audit$src_tbl_name %>% unique()), db)
+                           source_table), db)
   # Based on toxval_source parent_hash, increment up
   audit = audit %>%
     dplyr::left_join(v_list, by=c("parent_hash" = "source_hash")) %>%
-    dplyr::mutate(audit_version = version + parent_version) %>%
+    dplyr::mutate(audit_version = version + parent_version,
+                  # Audit always set to fail since it's been changed
+                  qc_status = "fail") %>%
     dplyr::select(-parent_version, -version)
   # Based on toxval_source parent_hash, increment up
   live = live %>%
     dplyr::left_join(v_list, by=c("parent_hash" = "source_hash")) %>%
-    dplyr::mutate(audit_version = version + parent_version) %>%
+    dplyr::mutate(audit_version = version + parent_version,
+                  qc_status = dplyr::case_when(
+                    tolower(status_name) %in% c("fail") ~ "fail",
+                    TRUE ~ "pass"
+                  )) %>%
     dplyr::select(-parent_version, -version)
 
   if(any(is.na(live$audit_version)) | any(is.na(audit$audit_version))){
@@ -114,16 +129,9 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
 
   # Determine qc_status
   stop("Check with already present DAT status and failture_reason to ensure correct status set for live...")
-  live$qc_status = "pass"
-  # Audit always set to fail since it's been changed
-  audit$qc_status = "fail"
-  # Unchanged records = PASS outright
-  # live$qc_status[live$source_hash %in% v_list$source_hash] = "pass"
-  # If record changed and has a failure reason
-  live$qc_status[!is.na(live$failure_reason)] = "fail"
 
   # qc_status spot check
-  # live %>% select(data_record_annotation, failure_reason, qc_status)
+  # live %>% select(data_record_annotation, failure_reason, qc_status) %>% View()
 
   # Prep audit table push
   # Get audit table names
@@ -133,8 +141,9 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
                   version = audit_version,
                   qc_notes = data_record_annotation,
                   qc_flags = failure_reason,
-                  created_by = create_by) %>%
-    select(any_of(audit_fields))
+                  created_by = create_by,
+                  src_version_date = source_version_date) %>%
+    dplyr::select(tidyselect::any_of(c(audit_fields, "src_version_date")))
 
   # Rename columns as needed
   # Select columns from source_table
@@ -148,7 +157,7 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
                   # Rename preemptively
                   old_parent_chemical_id = parent_chemical_id,
                   parent_chemical_id = chemical_id) %>%
-    select(any_of(src_tbl_fields), old_parent_chemical_id)
+    dplyr::select(tidyselect::any_of(src_tbl_fields), old_parent_chemical_id)
 
   # Hash spotcheck - compare should be TRUE for unchanged records
   # live %>% select(parent_hash, source_hash, version) %>% mutate(compare = parent_hash == source_hash)
@@ -157,18 +166,25 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # General Check
   # live %>% select(source_hash, parent_hash, qc_status, qc_flags, qc_notes, version) %>% mutate(compare = parent_hash == source_hash) %>% View()
 
-  stop("Rehashing of chemicals to parent untested...")
   # Get source name from chemical index
   source_name <- runQuery(paste0("SELECT source FROM chemical_source_index WHERE source_table = '", source_table,"'"),
                           db=db)[[1]]
   # Re-hash chemical information
-  live = source_chemical.process(db = db,
-                                 res = live,
-                                 source = source_name,
-                                 table = source_table,
-                                 chem.check.halt = FALSE,
-                                 casrn.col = "casrn",
-                                 name.col = "name")
+  live_chems = source_chemical.process(db = db,
+                                       res = live %>%
+                                         dplyr::select(casrn, name) %>%
+                                         dplyr::distinct(),
+                                       source = source_name,
+                                       table = source_table,
+                                       chem.check.halt = FALSE,
+                                       casrn.col = "casrn",
+                                       name.col = "name")
+
+  # Map back chemical information to all records
+  live <- live %>%
+    dplyr::left_join(live_chems %>%
+                dplyr::select(-chemical_index),
+              by = c("name", "casrn"))
 
   # Check combinations between chemical_id, parent_chemical_id, and old_parent_chemical_id
   # live %>% select(chemical_id, parent_chemical_id, old_parent_chemical_id) %>% distinct()
@@ -176,7 +192,105 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
   # Replace "-" parent_chemical_id with old_parent_chemical_id since no change was made in chemical_id
   live$parent_chemical_id[live$parent_chemical_id == "-"] = live$old_parent_chemical_id[live$parent_chemical_id == "-"]
   # Ensure fields match source table fields
-  live <- select(live, any_of(src_tbl_fields))
+  live <- dplyr::select(live, tidyselect::any_of(src_tbl_fields))
+
+  stop("Compare hash and redo hash as needed for live and rejoin to audit")
+  # Check for duplicate hashes
+  dup_hashes = live %>%
+    dplyr::group_by(source_hash) %>%
+    dplyr::summarise(n = n()) %>%
+    dplyr::filter(n > 1)
+
+  if(nrow(dup_hashes)){
+    stop("Duplicate hashes found!")
+  }
+
+  View(live %>%
+         dplyr::select(source_hash, parent_hash) %>%
+         dplyr::mutate(compare = source_hash == parent_hash) %>%
+         dplyr::distinct())
+  View(audit %>%
+    dplyr::select(fk_source_hash, parent_hash) %>%
+    dplyr::mutate(compare = fk_source_hash == parent_hash) %>%
+    dplyr::distinct())
+
+  audit = audit %>%
+    # Compare rehashed source_hash to mapped source_hash
+    dplyr::rename(fk_source_hash_rehash = fk_source_hash) %>%
+    dplyr::left_join(live %>%
+                       dplyr::select(parent_hash, fk_source_hash=source_hash),
+                     by="parent_hash")
+
+  # Cross check foreign source_hash links
+  audit$fk_source_hash[!audit$fk_source_hash %in% live$source_hash]
+  live$source_hash[!live$source_hash %in% audit$fk_source_hash]
+
+  # Check for needed schema changes
+  src_fields_mismatch = set_field_SQL_type(src_f = live) %>%
+    stringr::str_split("\n") %>%
+    unlist() %>%
+    data.frame(src_field = .) %>%
+    dplyr::mutate(src_field = src_field %>%
+                    gsub("`", "",.) %>%
+                    sub('COLLATE.*', '', .) %>%
+                    sub('DEFAULT.*', '', .) %>%
+                    sub(", ", ",", .) %>%
+                    stringr::str_squish() %>%
+                    tolower()) %>%
+    tidyr::separate(src_field, into = c("field_name", "field_type"),
+                    sep=" ",
+                    fill="left",
+                    extra="merge") %>%
+    dplyr::filter(!field_name %in% toxval.config()$non_hash_cols) %>%
+    dplyr::left_join(
+      runQuery(paste0("SELECT COLUMN_NAME as field_name, COLUMN_TYPE as db_field_type ",
+                      "FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '", source_table, "' ",
+                      "AND TABLE_SCHEMA = '", db,"'"), db),
+      by = "field_name"
+    ) %>%
+    dplyr::mutate(mismatch = field_type != db_field_type) %>%
+    dplyr::filter(mismatch == TRUE,
+                  !db_field_type %in% c('text'))
+
+  if(nrow(src_fields_mismatch)){
+    stop("Need to address field type mismatch to avoid truncation of fields...")
+  }
+
+  # Check if triggers are active
+  trigger_check = runQuery(paste0("SHOW TRIGGERS"), db) %>%
+    dplyr::filter(grepl("audit_bu|update_bu", Trigger),
+                  Table %in% c(source_table))
+
+  # Expecting 2 triggers for audit to be active
+  if(nrow(trigger_check) != 2){
+    stop("Ensure audit triggers are active!")
+  }
+
+  # Check missing audit fields
+  if(length(audit_fields[!audit_fields %in% names(audit)])){
+    cat(paste0("- ", audit_fields[!audit_fields %in% names(audit)], "\n", collapse="\n"))
+    stop("Audit potentially missing needed fields")
+  }
+
+  # Select source_audit fields
+  audit = audit %>%
+    dplyr::select(
+      dplyr::any_of(
+        runQuery(paste0("SELECT COLUMN_NAME as field_name, COLUMN_TYPE as db_field_type ",
+                        "FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = 'source_audit' ",
+                        "AND TABLE_SCHEMA = '", db,"'"), db) %>% dplyr::pull(field_name)
+      )
+    )
+
+  # Select source table fields
+  live = live %>%
+    dplyr::select(
+      dplyr::any_of(
+        runQuery(paste0("SELECT COLUMN_NAME as field_name, COLUMN_TYPE as db_field_type ",
+                        "FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '", source_table, "' ",
+                        "AND TABLE_SCHEMA = '", db,"'"), db) %>% dplyr::pull(field_name)
+      )
+    )
 
   # Export intermediate before push
   writexl::write_xlsx(list(live=live, audit=audit),
@@ -196,7 +310,8 @@ DAT.pipe.source.audit <- function(source_table, db, live_df, audit_df) {
 ################################################################################
   updateQuery = paste0("UPDATE ", source_table," a INNER JOIN z_updated_df b ",
                        "ON (a.source_hash = b.source_hash) SET ",
-                       paste0("a.", names(live),  " = b.", names(live), collapse = ", ")
+                       paste0("a.", names(live)[!names(live) %in% c("source_id")],  " = b.",
+                              names(live)[!names(live) %in% c("source_id")], collapse = ", ")
   )
   # Update again (source_hash = source_hash) WITHOUT TRIGGERS to get true version in source_table
   # runUpdate(table=source_table, updateQuery=updateQuery, updated_df=live, db, trigger_check=FALSE)

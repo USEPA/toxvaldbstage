@@ -5,23 +5,26 @@
 #' @title import_doe_pac_source
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
+#' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso
+#' @seealso 
 #'  [read_xlsx][readxl::read_xlsx]
 #'  [str_squish][stringr::str_squish], [str_extract_all][stringr::str_extract_all]
 #'  [mutate][dplyr::mutate], [across][dplyr::across], [rename][dplyr::rename], [select][dplyr::select], [rowwise][dplyr::rowwise], [ungroup][dplyr::ungroup]
 #'  [pivot_longer][tidyr::pivot_longer]
 #' @rdname import_doe_pac_source
-#' @export
+#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_extract_all
 #' @importFrom dplyr mutate across rename select rowwise ungroup
 #' @importFrom tidyr pivot_longer
+#' @param do.reset PARAM_DESCRIPTION, Default: FALSE
+#' @param do.insert PARAM_DESCRIPTION, Default: FALSE
+#' @importFrom tidyselect where
 import_doe_pac_source <- function(db,
                                   chem.check.halt=FALSE,
                                   do.reset=FALSE,
@@ -84,6 +87,12 @@ import_doe_pac_source <- function(db,
     dplyr::rename("BP (°C)"="BP (°C) @ 760 mm Hg unless indicated",
                   "SG"="SG @ 25°C unless indicated") %>%
     dplyr::mutate(
+      # Reference Jira Ticket: TOXVAL-681
+      # Determined species and experimental_record from reading Temporary Emergency
+      # Exposure Limits for Chemicals: Method and Practice (doe.gov)
+      # and the content of the column "PACs based on AEGLs, ERPGs, or TEELs" in the source document.
+      species = 'human',
+      experimental_record = "No",
       # Add toxval columns, not replacing original
       name = `Chemical Compound`,
       casrn = `CAS Number (CASRN)`,
@@ -94,7 +103,7 @@ import_doe_pac_source <- function(db,
       toxval_type = toxval_type %>%
         gsub("\\(ppm\\)", "", .),
       # Remove excess whitespace for all character columns
-      dplyr::across(where(is.character), ~stringr::str_squish(.))
+      dplyr::across(tidyselect::where(is.character), ~stringr::str_squish(.))
     ) %>%
     dplyr::select(-`No.`) %>%
     # Split CASRN lists
@@ -107,39 +116,13 @@ import_doe_pac_source <- function(db,
   # Fix SP column
   res$`SG`[is.na(res$`SG`)] <- 25
 
-  # Species list to attempt string matches
-  species_list <- list(dog=list("dog", "dogs"),
-                       human=list("human", "humans", "occupational", "epidemiology", "epidemiological", "epidemiologic"),
-                       mouse=list("mouse", "mice", "mouses"),
-                       `monkey`=list("nonhuman primate", "monkey", "primate", "monkies", "monkeys",
-                                     "rhesus monkeys (macaca mulatta)", "rhesus monkeys",
-                                     "cynomolgus monkeys (macaca fascicularis)"),
-                       rat=list("rat", "rats"),
-                       rabbit = list("rabbit", "rabbits"),
-                       `guinea pig` = list("guinea pig", "guinea pigs"),
-                       frog = list("frog", "frogs"),
-                       hen = list("hen"),
-                       hamster = list("hamster", "hamsters")
-  ) %>% unlist() %>%
-    paste0(collapse="|")
-
   res <- res %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(species = `Source of PACs PAC-1, PAC-2, PAC-3` %>%
-                    tolower() %>%
-                    # Extract species from `Source of PACsPAC-1, PAC-2, PAC-3`
-                    stringr::str_extract_all(., species_list) %>%
-                    unlist() %>%
-                    unique() %>%
-                    paste0(collapse="; "),
-                  # Fill in year Revised > Reviewed > Derived
+    dplyr::mutate(# Fill in year Revised > Reviewed > Derived
                   year = ifelse(!is.na(`Last Revised`), format(as.Date(`Last Revised`, format="%m/%d/%y"),"%Y"),
                                 ifelse(!is.na(`Last Reviewed`), format(as.Date(`Last Reviewed`, format="%m/%d/%y"),"%Y"),
                                        format(as.Date(`Originally Derived`, format="%m/%d/%y"),"%Y")))) %>%
     dplyr::ungroup()
-
-  # Fill in missing with "-"
-  res$species[res$species %in% c("", "NA")] <- "-"
 
   # Chemical name cleaning
   res <- res %>% dplyr::mutate(

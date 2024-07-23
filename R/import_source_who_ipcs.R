@@ -21,6 +21,7 @@
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
+#' @importFrom dplyr mutate bind_rows rename filter across case_when
 #--------------------------------------------------------------------------------------
 import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
@@ -67,6 +68,7 @@ import_who_ipcs <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=
     dplyr::filter(!grepl("see ", name)) %>%
     dplyr::mutate(subsource = "Pesticide Classification 2019",
                   source_url = "https://www.who.int/publications/i/item/9789240005662",
+                  subsource_url = source_url,
                   toxval_type = "LD50",
                   toxval_units = "mg/kg",
                   risk_assessment_class = "acute",

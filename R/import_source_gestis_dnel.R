@@ -92,6 +92,9 @@ import_source_gestis_dnel <- function(db,chem.check.halt=FALSE, do.reset=FALSE, 
       species = "human",
       exposure_route = "inhalation",
 
+      source_url = "https://www.dguv.de/ifa/gestis/gestis-dnel-liste/index-2.jsp",
+      subsource_url = source_url,
+
       # Add version date
       source_version_date = src_version_date,
 

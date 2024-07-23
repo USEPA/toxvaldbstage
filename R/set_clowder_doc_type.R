@@ -22,6 +22,11 @@
 #'  \code{\link[tidyr]{separate_rows}}, \code{\link[tidyr]{unite}}
 #' @rdname set_clowder_doc_type
 #' @export
+#' @importFrom httr GET add_headers content
+#' @importFrom jsonlite fromJSON
+#' @importFrom tidyr unnest
+#' @importFrom dplyr filter select mutate distinct across
+#' @importFrom tidyselect where
 #--------------------------------------------------------------------------------------
 set_clowder_doc_type <- function(source_table=NULL,
                                  source_version_date=NULL,
@@ -75,20 +80,31 @@ set_clowder_doc_type <- function(source_table=NULL,
     cat("\nNo Clowder information pulled...returning...")
   } else {
     # Update document type in source.db documents table
-    cat("\nPushing documents table docuemnt_type updates...")
+    cat("\nPushing documents table document_type updates...")
     for(doc_type in c("extraction", "origin")){
       docs_push = file_info %>%
         dplyr::filter(grepl(paste0("^",doc_type), foldersname, ignore.case = TRUE)) %>%
-        dplyr::select(id) %>%
-        dplyr::distinct()
+        dplyr::select(clowder_id = id, document_name = filename) %>%
+        dplyr::mutate(document_type = !!doc_type) %>%
+        dplyr::distinct() %>%
+        dplyr::mutate(dplyr::across(tidyselect::where(is.character), ~fix.replace.unicode(.)))
 
-      # Push Update by clowder_id
-      runQuery(paste0("UPDATE documents SET document_type = '", doc_type, "' ",
-                      "WHERE clowder_id in ('",
-                      paste0(docs_push$id, collapse = "', '"),"')"),
-               source.db)
+      updateQuery = paste0("UPDATE documents a INNER JOIN z_updated_df b ",
+                           "ON (a.clowder_id = b.clowder_id) SET ",
+                           paste0("a.", names(docs_push)[!names(docs_push) %in% c("clowder_id")],
+                                  " = b.", names(docs_push)[!names(docs_push) %in% c("clowder_id")], collapse = ", ")
+      )
+      runUpdate(table="documents", updateQuery=updateQuery, updated_df=docs_push, db=source.db)
+
+      # # Push Update by clowder_id
+      # runQuery(paste0("UPDATE documents SET document_type = '", doc_type, "' ",
+      #                 "WHERE clowder_id in ('",
+      #                 paste0(docs_push$id, collapse = "', '"),"')"),
+      #          source.db)
+
+      # TODO INSERT UPDATE QUERY and runUpdate
     }
   }
 
-  cat("\nDone...")
+  cat("\nDone...\n")
 }
