@@ -481,7 +481,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         grepl("other:", toxval_units) ~ toxval_units_other,
         TRUE ~ toxval_units
       ) %>%
-        gsub("\\(.+\\)", "", .) %>%
         gsub("micro", "u", .) %>%
         gsub(" per ", "/", .) %>%
         stringr::str_squish(),
@@ -795,10 +794,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         toxval_units %in% c("other:") ~ toxval_units_other,
         TRUE ~ toxval_units
       ) %>%
-        gsub("\\(.+\\)", "", .) %>%
-        gsub("diet", "", .) %>%
-        gsub("\\bin\\b", "", .) %>%
-        gsub("drinking water", "", .) %>%
         stringr::str_squish(),
 
       # Clean exposure_method
