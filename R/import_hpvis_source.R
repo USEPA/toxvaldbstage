@@ -611,16 +611,16 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
   x3a[x3a$study_duration_value<14,"study_type"] = "subchronic"
   x3a[x3a$study_duration_value<4,"study_type"] = "subacute"
 
-  res = rbind(x1a,x1b,x2a,x2b,x3a,x3b,x4,x5,y)
+  res0 = rbind(x1a,x1b,x2a,x2b,x3a,x3b,x4,x5,y)
 
   # Standardize the names
-  names(res) <- names(res) %>%
+  names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  res = res %>%
+  res = res0 %>%
     # Filter out null species and non-"Measured" sponsored_chemical_result_type
     dplyr::filter(!(species %in% c(as.character(NA), NULL, "")),
                   sponsored_chemical_result_type %in% c("Measured")) %>%
@@ -702,9 +702,6 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       subsource = raw_input_file %>%
         gsub("[0-9].+", "", .) %>%
         stringr::str_squish(),
-
-      # Add range_relationship_id
-      range_relationship_id = dplyr::row_number()
     ) %>%
     # Rename ID and key finding fields
     dplyr::rename(external_source_id = hpvis_id,
@@ -715,62 +712,12 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     # Remove entries without exposure_route
     dplyr::filter(!is.na(exposure_route)) %>%
 
-    # Create properly formatted population field
-    tidyr::unite("population",
-                 sex, strain, species, generation,
-                 sep=" ",
-                 remove=FALSE,
-                 na.rm=TRUE) %>%
-    dplyr::mutate(
-      population = population %>%
-        gsub("\\b([FP][0-2])$", "\\(\\1\\)", .) %>%
-        gsub("Other|Unknown|no data|unknown|other|not specified", "", .) %>%
-        gsub(paste0("\\b(rat|dog|hamster|rabbit|pig|hen|cat|minnow|soybean|crab|cucumber|",
-                    "shell|earthworm|human|mammal|onion|arthropod|mollusc|plant|moorfrog|duck)\\b"),
-             "\\1s", .) %>%
-        gsub("\\bmouse\\b", "mice", .) %>%
-        gsub("\\btomato\\b", "tomatoes", .) %>%
-        stringr::str_squish() %>%
-        dplyr::na_if(""),
-
-      key_finding = dplyr::case_when(
-        key_finding == "Key" ~ "key",
-        key_finding == "Not Key" ~ "no",
-        # Set NA key_finding to "unspecified"
-        is.na(key_finding) ~ "unspecified",
-        TRUE ~ key_finding
-      ) %>% tolower()
-    )
-
-  # Handle entries with upper ranges
-  lower_range_res = res %>%
-    dplyr::filter(!is.na(toxval_upper_range)) %>%
-    dplyr::select(-toxval_upper_range) %>%
-    dplyr::mutate(
-      toxval_subtype = "Lower Range",
-      toxval_numeric_qualifier = ">="
-    )
-  upper_range_res = res %>%
-    dplyr::filter(!is.na(toxval_upper_range)) %>%
-    dplyr::mutate(
-      toxval_numeric = toxval_upper_range,
-      toxval_subtype = "Upper Range",
-      toxval_numeric_qualifier = "<="
-    ) %>%
-    dplyr::select(-toxval_upper_range)
-  res = res %>%
-    dplyr::filter(is.na(toxval_upper_range)) %>%
-    dplyr::select(-toxval_upper_range) %>%
-    dplyr::bind_rows(lower_range_res, upper_range_res) %>%
-    # Filter out entries without required toxval fields
-    dplyr::filter(!is.na(toxval_type), !is.na(toxval_units), !is.na(toxval_numeric), toxval_numeric >= 0)
-
-  # Handle species/strain splitting
-  res = res %>%
+    # Separate entries with multiple species and select appropriate strain
     dplyr::mutate(
       initial_row = dplyr::row_number(),
       species = gsub("rats\\/mice", "rats and mice", species)
     ) %>%
+    # Split species rows
     tidyr::separate_rows(species, sep=",|\\band\\b|\\bor\\b") %>%
     dplyr::group_by(initial_row) %>%
     dplyr::mutate(n = dplyr::n()) %>%
@@ -858,7 +805,59 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         TRUE ~ as.character(NA)
       )
     ) %>%
-    dplyr::select(-c("initial_row", "n", "species_plural"))
+    dplyr::select(-c("initial_row", "n", "species_plural")) %>%
+
+    # Create properly formatted population field
+    tidyr::unite("population",
+                 sex, strain, species, generation,
+                 sep=" ",
+                 remove=FALSE,
+                 na.rm=TRUE) %>%
+    dplyr::mutate(
+      population = population %>%
+        gsub("\\b([FP][0-2])$", "\\(\\1\\)", .) %>%
+        gsub("Other|Unknown|no data|unknown|other|not specified", "", .) %>%
+        gsub(paste0("\\b(rat|dog|hamster|rabbit|pig|hen|cat|minnow|soybean|crab|cucumber|",
+                    "shell|earthworm|human|mammal|onion|arthropod|mollusc|plant|moorfrog|duck)\\b"),
+             "\\1s", .) %>%
+        gsub("\\bmouse\\b", "mice", .) %>%
+        gsub("\\btomato\\b", "tomatoes", .) %>%
+        stringr::str_squish() %>%
+        dplyr::na_if(""),
+
+      key_finding = dplyr::case_when(
+        key_finding == "Key" ~ "key",
+        key_finding == "Not Key" ~ "no",
+        # Set NA key_finding to "unspecified"
+        is.na(key_finding) ~ "unspecified",
+        TRUE ~ key_finding
+      ) %>% tolower()
+    ) %>%
+    # Add range_relationship_id after separating species
+    dplyr::mutate(range_relationship_id = dplyr::row_number())
+
+  # Handle entries with upper ranges
+  lower_range_res = res %>%
+    dplyr::filter(!is.na(toxval_upper_range)) %>%
+    dplyr::select(-toxval_upper_range) %>%
+    dplyr::mutate(
+      toxval_subtype = "Lower Range",
+      toxval_numeric_qualifier = ">="
+    )
+  upper_range_res = res %>%
+    dplyr::filter(!is.na(toxval_upper_range)) %>%
+    dplyr::mutate(
+      toxval_numeric = toxval_upper_range,
+      toxval_subtype = "Upper Range",
+      toxval_numeric_qualifier = "<="
+    ) %>%
+    dplyr::select(-toxval_upper_range)
+  res = res %>%
+    dplyr::filter(is.na(toxval_upper_range)) %>%
+    dplyr::select(-toxval_upper_range) %>%
+    dplyr::bind_rows(lower_range_res, upper_range_res) %>%
+    # Filter out entries without required toxval fields
+    dplyr::filter(!is.na(toxval_type), !is.na(toxval_units), !is.na(toxval_numeric), toxval_numeric >= 0)
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
