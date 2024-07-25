@@ -1445,15 +1445,11 @@ set_clowder_id_lineage <- function(source_table,
   message("...Clearing out old associations not in current map...")
   if(source_table %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
     delete_query = paste0("DELETE FROM documents_records WHERE ",
-                          "source_hash IN (SELECT source_hash FROM ", toxval.db, ".toxval WHERE source = '", source_table,"') ",
-                          "AND fk_doc_id NOT IN ",
-                          "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
+                          "source_hash IN (SELECT source_hash FROM ", toxval.db, ".toxval WHERE source = '", source_table,"')")
 
   } else {
     delete_query = paste0("DELETE FROM documents_records WHERE ",
-                          "source_hash IN (SELECT source_hash FROM ", source_table, ") ",
-                          "AND fk_doc_id NOT IN ",
-                          "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
+                          "source_hash IN (SELECT source_hash FROM ", source_table, ")")
   }
   runQuery(delete_query, source.db)
 
