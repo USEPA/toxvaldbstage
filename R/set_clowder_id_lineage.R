@@ -207,7 +207,11 @@ set_clowder_id_lineage <- function(source_table,
     # IUCLID sources in a combined map
     if(grepl("iuclid", source_table)){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/source_iuclid_doc_map_20240424.xlsx"))
+                                          "clowder_v3/source_iuclid_doc_map_20240722.xlsx"))
+
+      # Filter map_file to only include records in the same OHT/source_table
+      map_file = map_file %>%
+        dplyr::filter(source_table == gsub("source_", "", !!source_table))
     }
   }
 
@@ -1393,11 +1397,37 @@ set_clowder_id_lineage <- function(source_table,
 
     # Handle IUCLID case
     if(grepl("iuclid", source_table)){
-      res <- res %>%
-        dplyr::mutate(source = tolower(source)) %>%
+      res1 <- res %>%
+        dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
         dplyr::left_join(map_file %>%
-                           dplyr::select(fk_doc_id, clowder_id, source_table),
-                         by = c("source"="source_table"))
+                           dplyr::mutate(filename = filename %>%
+                                           gsub("NOCAS_", "", .)) %>%
+                           tidyr::separate(col = filename,
+                                           into = c("oht", "middle", "endpoint_uuid"),
+                                           sep = "_",
+                                           fill = "right",
+                                           extra = "merge") %>%
+                           dplyr::filter(!is.na(endpoint_uuid)) %>%
+                           dplyr::mutate(endpoint_uuid = endpoint_uuid %>%
+                                           gsub("\\.pdf", "", .)) %>%
+                           dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
+                         by = "endpoint_uuid")
+
+
+      # for records without a matching endpoint_uuid associate with excel file
+      res2 <- res1 %>%
+        dplyr::filter(is.na(clowder_id)) %>%
+        dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
+        merge(map_file %>%
+                filter(file_type == "spreadsheet") %>%
+                dplyr::select(clowder_id, fk_doc_id))
+
+      res1 <- res1 %>%
+        filter(!is.na(clowder_id))
+
+      # combine associations
+      res <- rbind(res1, res2) %>%
+        dplyr::arrange(source_hash)
     }
   }
 
@@ -1415,15 +1445,11 @@ set_clowder_id_lineage <- function(source_table,
   message("...Clearing out old associations not in current map...")
   if(source_table %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
     delete_query = paste0("DELETE FROM documents_records WHERE ",
-                          "source_hash IN (SELECT source_hash FROM ", toxval.db, ".toxval WHERE source = '", source_table,"') ",
-                          "AND fk_doc_id NOT IN ",
-                          "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
+                          "source_hash IN (SELECT source_hash FROM ", toxval.db, ".toxval WHERE source = '", source_table,"')")
 
   } else {
     delete_query = paste0("DELETE FROM documents_records WHERE ",
-                          "source_hash IN (SELECT source_hash FROM ", source_table, ") ",
-                          "AND fk_doc_id NOT IN ",
-                          "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
+                          "source_hash IN (SELECT source_hash FROM ", source_table, ")")
   }
   runQuery(delete_query, source.db)
 
