@@ -96,7 +96,7 @@ set_clowder_id_lineage <- function(source_table,
                         #                                             collapse = "; "))
                       },
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                      "clowder_v3/source_pprtv_cphea_doument_map_20240725.xlsxx")),
+                                                                      "clowder_v3/source_pprtv_cphea_document_map_20240725.xlsx")),
                       "source_who_jecfa_adi" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                         "clowder_v3/source_who_jeca_adi_document_map_20240717.xlsx")),
                       "source_who_jecfa_tox_studies" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -341,7 +341,7 @@ set_clowder_id_lineage <- function(source_table,
                   "source_pprtv_cphea" = {
                     # Match to origin docs
                     origin_docs <- map_file %>%
-                      dplyr::filter(is.na(parent_flag))
+                      dplyr::filter(parent_flag != "has_parent")
                     res1 <- res %>%
                       dplyr::select(source_hash, source_version_date, name) %>%
                       dplyr::left_join(origin_docs %>%
