@@ -767,7 +767,10 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
 
   # Handle species/strain splitting
   res = res %>%
-    dplyr::mutate(initial_row = dplyr::row_number()) %>%
+    dplyr::mutate(
+      initial_row = dplyr::row_number(),
+      species = gsub("rats\\/mice", "rats and mice", species)
+    ) %>%
     tidyr::separate_rows(species, sep=",|\\band\\b|\\bor\\b") %>%
     dplyr::group_by(initial_row) %>%
     dplyr::mutate(n = dplyr::n()) %>%
@@ -775,16 +778,18 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
     dplyr::mutate(
       species = species %>%
         stringr::str_squish() %>%
-        toupper(),
+        tolower(),
 
       species_plural = dplyr::case_when(
-        species == "MOUSE" ~ "(?:MICE|MOUSE)",
+        species %in% c("mouse", "mice") ~ "(?:mice|mouse)",
+        species %in% c("rat", "rats") ~ "(?:rat|rats)",
         TRUE ~ stringr::str_c("(?:", species, ")")
       ),
 
       # Alter strain to handle edge cases during extraction
       strain = dplyr::case_when(
-        grepl("MOUSE|MICE", species) ~ gsub("Sprague\\-Dawley; ", "", strain),
+        grepl("mouse|mice", species) & !grepl("rat", strain, ignore.case=TRUE) ~
+          gsub("Sprague\\-Dawley; ", "", strain),
         TRUE ~ strain
       ) %>%
         gsub("Sprague\\-Dawley and Fisher B6C3F1", "Sprague-Dawley rat and Fisher B6C3F1 mice", .),
@@ -799,6 +804,16 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
 
         # Case of "for both"
         stringr::str_detect(strain, "(.+) for both") ~ stringr::str_extract(strain, "(.+) for both", group=1),
+
+        # Case of Species: Strain; Species: Strain
+        stringr::str_detect(
+          strain,
+          stringr::regex(stringr::str_c(species_plural, ": (.+);?"), ignore_case=TRUE)
+        ) ~
+          stringr::str_extract(
+            strain,
+            stringr::regex(stringr::str_c(species_plural, ": (.+);?"), ignore_case=TRUE), group=1
+          ),
 
         # Case where strain occurs at end of list of strains
         stringr::str_detect(
@@ -843,7 +858,7 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         TRUE ~ as.character(NA)
       )
     ) %>%
-    dplyr::select(-c("initial_row", "n"))
+    dplyr::select(-c("initial_row", "n", "species_plural"))
 
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
