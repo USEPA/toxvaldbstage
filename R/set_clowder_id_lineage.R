@@ -1335,7 +1335,7 @@ set_clowder_id_lineage <- function(source_table,
                               dplyr::select(clowder_id, fk_doc_id))
 
                     # Combine origin and extraction document associations
-                    res = rbind(res, tmp)
+                    res = rbind(res1, res2)
 
                     # Return res
                     res
