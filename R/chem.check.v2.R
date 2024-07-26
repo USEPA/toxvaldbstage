@@ -62,7 +62,7 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
                      "Mass. Drinking Water Standards",
                      "OSHA Air contaminants",
                      "OW Drinking Water Standards",
-                     "Pennsylvania DEP MCLs",
+                     "Pennsylvania DEP MSCs",
                      "USGS HBSL",
                      "WHO IPCS",
                      "ATSDR MRLs",

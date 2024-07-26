@@ -96,7 +96,7 @@ qa_chemical_id_hashing <- function(){
       'DOE Protective Action Criteria',
       'EFSA',
       'EPA OPP',
-      'Pennsylvania DEP MCLs',
+      'Pennsylvania DEP MSCs',
       'Pennsylvania DEP ToxValues',
       'BCF BAF',
       'ChemIDPlus',

@@ -4,7 +4,7 @@
 \alias{runInsertTable}
 \title{runInsertTable}
 \usage{
-runInsertTable(mat, table, db, do.halt = T, verbose = F, get.id = T)
+runInsertTable(mat, table, db, do.halt = TRUE, verbose = FALSE, get.id = TRUE)
 }
 \arguments{
 \item{mat}{data frame containing the data, with the column names corresponding}

@@ -12,7 +12,6 @@
 #'  }
 #' }
 #' @rdname getPSQLDBConn
-#' @export
 #--------------------------------------------------------------------------------------
 getPSQLDBConn <- function() {
   printCurrentFunction()

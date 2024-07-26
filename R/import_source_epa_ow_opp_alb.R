@@ -39,13 +39,7 @@ import_source_epa_ow_opp_alb <- function(db, chem.check.halt=FALSE, do.reset=FAL
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
-  # Load and clean source
+
   # Collect vector of toxval columns to pivot out later
   toxval_cols <- c("Freshwater Vertebrate_Acute", "Freshwater Vertebrate_Chronic",
                    "Freshwater Invertebrates_Acute", "Freshwater Invertebrates_Chronic",
@@ -53,13 +47,16 @@ import_source_epa_ow_opp_alb <- function(db, chem.check.halt=FALSE, do.reset=FAL
                    "Office of Water  Aquatic Life Criteria_Acute",
                    "Office of Water  Aquatic Life Criteria_Chronic")
   res <- res0 %>%
-    # Rename colums
-    dplyr::rename(
-      name = Pesticide,
-      casrn = "CAS number"
+    # Pivot out toxval_numeric
+    dplyr::mutate(dplyr::across(tidyselect::all_of(toxval_cols), as.character)) %>%
+    tidyr::pivot_longer(tidyr::all_of(toxval_cols), names_to = "species",
+                        values_to = "toxval_numeric"
     ) %>%
     # Clean up variables
     dplyr::mutate(
+      # Rename columns
+      name = Pesticide,
+      casrn = `CAS number`,
       # add toxval_units and media column
       toxval_units = "ug/L",
       media = "freshwater",
@@ -67,18 +64,15 @@ import_source_epa_ow_opp_alb <- function(db, chem.check.halt=FALSE, do.reset=FAL
       casrn = gsub("^NR$", "-", casrn),
       # Handle unicode symbols
       dplyr::across(tidyselect::where(is.character), fix.replace.unicode),
-      # Remove ">" and "<" from toxval columns...
-      dplyr::across(tidyr::all_of(toxval_cols), ~gsub(" *[<>] *", "", .)),
-      # ...and convert them all to numerics
-      dplyr::across(tidyr::all_of(toxval_cols), ~as.numeric(.)),
+      # Extract toxval_numeric_qualifier
+      toxval_numeric_qualifer = stringr::str_extract(toxval_numeric, "([<>=~]+)", group=1),
+      # Convert toxval_numeric to numeric type
+      toxval_numeric = toxval_numeric %>%
+        gsub("[<>=~]+", "", .) %>%
+        as.numeric(),
 
-      source_url = url,
-      subsource_url = source_url
+      source_url = url
       ) %>%
-    # Pivot out toxvals
-    tidyr::pivot_longer(tidyr::all_of(toxval_cols), names_to = "species",
-                        values_to = "toxval_numeric"
-    ) %>%
     # Separate "species" into "species" and "study_type" by "_"
     tidyr::separate(species, c("species", "study_type"),
                     sep = "_", extra = "merge", fill = "right", remove = FALSE
