@@ -189,14 +189,16 @@ set_clowder_id_lineage <- function(source_table,
                                                              "clowder_v3/source_toxrefdb_document_map_20240716.xlsx")),
 
                       "ECOTOX" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                          "clowder_v3/source_ecotox_document_map_20240716.xlsx")),
+                                                          "clowder_v3/source_ecotox_document_map.xlsx")),
+                      "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                    "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
 
                       # No source match, return empty
                       data.frame()
     )
 
     # Sources with a single document in a combined map
-    if(source_table %in% c("source_mass_mmcl", "source_dod_ered", "source_doe_lanl_ecorisk")){
+    if(source_table %in% c("source_dod_ered", "source_doe_lanl_ecorisk")){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/source_single_doc_map.xlsx")) %>%
         dplyr::rename(src_tbl = source_table) %>%
@@ -1309,6 +1311,16 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(name, source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(!is.na(parent_flag)) %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+                    # Return res
+                    res
+                  },
+
+                  "source_mass_mmcl" = {
+                    # Merging to associate each origin doc (3 docs) and extraction to a record
+                    res = res %>%
+                      dplyr::select(source_hash, source_version_date) %>%
+                      merge(map_file %>%
                               dplyr::select(clowder_id, fk_doc_id))
                     # Return res
                     res
