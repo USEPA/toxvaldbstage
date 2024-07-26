@@ -193,12 +193,15 @@ set_clowder_id_lineage <- function(source_table,
                       "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
 
+                      "source_dod_ered" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                          "clowder_v3/source_dod_ered_document_map.xlsx")),
+
                       # No source match, return empty
                       data.frame()
     )
 
     # Sources with a single document in a combined map
-    if(source_table %in% c("source_dod_ered", "source_doe_lanl_ecorisk")){
+    if(source_table %in% c("source_doe_lanl_ecorisk")){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                           "clowder_v3/source_single_doc_map.xlsx")) %>%
         dplyr::rename(src_tbl = source_table) %>%
@@ -1315,6 +1318,28 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
+                  "source_dod_ered" = {
+                    # Match to origin doc
+                    res1 <- res %>%
+                      dplyr::select(long_ref, source_hash, source_version_date) %>%
+                      dplyr::left_join(map_file %>%
+                                         tidyr::separate_rows(`long_ref`, sep="; ") %>%
+                                         dplyr::select(long_ref, clowder_id, fk_doc_id),
+                                       by = "long_ref")
+
+                    # Match to extraction doc
+                    res2 = res %>%
+                      dplyr::select(long_ref, source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(parent_flag == "has_parent") %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res1, res2)
+
+                    # Return res
+                    res
+                  },
 
                   "source_mass_mmcl" = {
                     # Merging to associate each origin doc (3 docs) and extraction to a record
@@ -1322,6 +1347,7 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::select(clowder_id, fk_doc_id))
+
                     # Return res
                     res
                   },
