@@ -611,16 +611,16 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
   x3a[x3a$study_duration_value<14,"study_type"] = "subchronic"
   x3a[x3a$study_duration_value<4,"study_type"] = "subacute"
 
-  res = rbind(x1a,x1b,x2a,x2b,x3a,x3b,x4,x5,y)
+  res0 = rbind(x1a,x1b,x2a,x2b,x3a,x3b,x4,x5,y)
 
   # Standardize the names
-  names(res) <- names(res) %>%
+  names(res0) <- names(res0) %>%
     stringr::str_squish() %>%
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  res = res %>%
+  res = res0 %>%
     # Filter out null species and non-"Measured" sponsored_chemical_result_type
     dplyr::filter(!(species %in% c(as.character(NA), NULL, "")),
                   sponsored_chemical_result_type %in% c("Measured")) %>%
@@ -702,9 +702,6 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       subsource = raw_input_file %>%
         gsub("[0-9].+", "", .) %>%
         stringr::str_squish(),
-
-      # Add range_relationship_id
-      range_relationship_id = dplyr::row_number()
     ) %>%
     # Rename ID and key finding fields
     dplyr::rename(external_source_id = hpvis_id,
@@ -714,6 +711,101 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
                                    as.character(NA), NULL, ""))) %>%
     # Remove entries without exposure_route
     dplyr::filter(!is.na(exposure_route)) %>%
+
+    # Separate entries with multiple species and select appropriate strain
+    dplyr::mutate(
+      initial_row = dplyr::row_number(),
+      species = gsub("rats\\/mice", "rats and mice", species)
+    ) %>%
+    # Split species rows
+    tidyr::separate_rows(species, sep=",|\\band\\b|\\bor\\b") %>%
+    dplyr::group_by(initial_row) %>%
+    dplyr::mutate(n = dplyr::n()) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      species = species %>%
+        stringr::str_squish() %>%
+        tolower(),
+
+      species_plural = dplyr::case_when(
+        species %in% c("mouse", "mice") ~ "(?:mice|mouse)",
+        species %in% c("rat", "rats") ~ "(?:rat|rats)",
+        TRUE ~ stringr::str_c("(?:", species, ")")
+      ),
+
+      # Alter strain to handle edge cases during extraction
+      strain = dplyr::case_when(
+        grepl("mouse|mice", species) & !grepl("rat", strain, ignore.case=TRUE) ~
+          gsub("Sprague\\-Dawley; ", "", strain),
+        TRUE ~ strain
+      ) %>%
+        gsub("Sprague\\-Dawley and Fisher B6C3F1", "Sprague-Dawley rat and Fisher B6C3F1 mice", .),
+
+      # Extract strain
+      strain = dplyr::case_when(
+        # Case where entry contained only one species/strain
+        n == 1 ~ strain,
+
+        # Case of "Unknown"
+        strain %in% c("Unknown", "unknown") ~ strain,
+
+        # Case of "for both"
+        stringr::str_detect(strain, "(.+) for both") ~ stringr::str_extract(strain, "(.+) for both", group=1),
+
+        # Case of Species: Strain; Species: Strain
+        stringr::str_detect(
+          strain,
+          stringr::regex(stringr::str_c(species_plural, ": (.+);?"), ignore_case=TRUE)
+        ) ~
+          stringr::str_extract(
+            strain,
+            stringr::regex(stringr::str_c(species_plural, ": (.+);?"), ignore_case=TRUE), group=1
+          ),
+
+        # Case where strain occurs at end of list of strains
+        stringr::str_detect(
+          strain,
+          stringr::regex(stringr::str_c("(?:,? and |, )(?!.*,|.*and)(.+) ", species_plural), ignore_case=TRUE)
+        ) ~
+          stringr::str_extract(
+            strain,
+            stringr::regex(stringr::str_c("(?:,? and |, )(?!.*,|.*and)(.+) ", species_plural), ignore_case=TRUE), group=1
+          ),
+
+        # Case where strain occurs in middle of list of strains
+        stringr::str_detect(
+          strain,
+          stringr::regex(stringr::str_c(", ([^,]+) ", species_plural, "(?:,| and)"), ignore_case=TRUE)
+        ) ~
+          stringr::str_extract(
+            strain,
+            stringr::regex(stringr::str_c(", ([^,]+) ", species_plural, "(?:,| and)"), ignore_case=TRUE), group=1
+          ),
+
+        # Case where strain occurs at beginning of list of strains
+        stringr::str_detect(
+          strain,
+          stringr::regex(stringr::str_c("^([^,]+) ", species_plural), ignore_case=TRUE)
+        ) ~
+          stringr::str_extract(
+            strain,
+            stringr::regex(stringr::str_c("^([^,]+) ", species_plural), ignore_case=TRUE), group=1
+          ),
+
+        # Case of strain (species)
+        stringr::str_detect(
+          strain,
+          stringr::regex(stringr::str_c("(\\S+) \\(", species_plural, "\\)"), ignore_case=TRUE)
+        ) ~
+          stringr::str_extract(
+            strain,
+            stringr::regex(stringr::str_c("(\\S+) \\(", species_plural, "\\)"), ignore_case=TRUE), group=1
+          ),
+
+        TRUE ~ as.character(NA)
+      )
+    ) %>%
+    dplyr::select(-c("initial_row", "n", "species_plural")) %>%
 
     # Create properly formatted population field
     tidyr::unite("population",
@@ -740,7 +832,9 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
         is.na(key_finding) ~ "unspecified",
         TRUE ~ key_finding
       ) %>% tolower()
-    )
+    ) %>%
+    # Add range_relationship_id after separating species
+    dplyr::mutate(range_relationship_id = dplyr::row_number())
 
   # Handle entries with upper ranges
   lower_range_res = res %>%

@@ -44,14 +44,14 @@ set_clowder_id_lineage <- function(source_table,
     # Switch case to load specific source document map files
     map_file = switch(source_table,
                       "source_caloehha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                   "clowder_v3/source_caloehha_document_map_20240722.xlsx")),
+                                                                   "clowder_v3/source_caloehha_document_map_20240725.xlsx")),
                       "source_cosmos" = { readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_cosmos_document_map_20240227.xlsx"),
                                                             guess_max=21474836) %>%
                           dplyr::filter(!is.na(clowder_id))
                       },
                       "source_iris" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_iris_2023_document_map_20240521.xlsx"), col_type = "text"),
+                                                               "clowder_v3/source_iris_2023_document_map_20240725.xlsx"), col_type = "text"),
                       # "source_pprtv_ornl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                       #                                           "clowder_v3/pprtv_ornl_docment_map_08172022_mmille16.xlsx")),
                       "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -96,7 +96,7 @@ set_clowder_id_lineage <- function(source_table,
                         #                                             collapse = "; "))
                       },
                       "source_pprtv_cphea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                      "clowder_v3/source_pprtv_cphea_doument_map_20240521_jnhope.xlsx")),
+                                                                      "clowder_v3/source_pprtv_cphea_document_map_20240725.xlsx")),
                       "source_who_jecfa_adi" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                         "clowder_v3/source_who_jeca_adi_document_map_20240717.xlsx")),
                       "source_who_jecfa_tox_studies" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -115,7 +115,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20240221_jnhope.xlsx")),
                       "source_health_canada" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                        "clowder_v3/source_health_canada_document_map_20240604.xlsx")),
+                                                                        "clowder_v3/source_health_canada_document_map_20240725.xlsx")),
                       ### Hard coded document maps
                       "source_alaska_dec" = data.frame(clowder_id = "610038e1e4b01a90a3f9ae63",
                                                        document_name = "53dec438dd4a7efab7ca19ffd32e9e45-Alaska Department of Environmental Conservation-2008-Clean-up L.pdf"),
@@ -177,7 +177,7 @@ set_clowder_id_lineage <- function(source_table,
                         dplyr::select(-contentType) %>%
                         dplyr::distinct(),
                       "source_epa_hhtv" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                "clowder_v3/source_epa_hhtv_document_map.xlsx"), col_types = "text"),
+                                                                "clowder_v3/source_epa_hhtv_document_map_20240725.xlsx"), col_types = "text"),
 
                       "ChemIDPlus" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/source_chemidplus_document_map.xlsx")),
@@ -210,7 +210,11 @@ set_clowder_id_lineage <- function(source_table,
     # IUCLID sources in a combined map
     if(grepl("iuclid", source_table)){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/source_iuclid_doc_map_20240424.xlsx"))
+                                          "clowder_v3/source_iuclid_doc_map_20240722.xlsx"))
+
+      # Filter map_file to only include records in the same OHT/source_table
+      map_file = map_file %>%
+        dplyr::filter(source_table == gsub("source_", "", !!source_table))
     }
   }
 
@@ -340,7 +344,7 @@ set_clowder_id_lineage <- function(source_table,
                   "source_pprtv_cphea" = {
                     # Match to origin docs
                     origin_docs <- map_file %>%
-                      dplyr::filter(is.na(parent_flag))
+                      dplyr::filter(parent_flag != "has_parent")
                     res1 <- res %>%
                       dplyr::select(source_hash, source_version_date, name) %>%
                       dplyr::left_join(origin_docs %>%
@@ -1419,11 +1423,37 @@ set_clowder_id_lineage <- function(source_table,
 
     # Handle IUCLID case
     if(grepl("iuclid", source_table)){
-      res <- res %>%
-        dplyr::mutate(source = tolower(source)) %>%
+      res1 <- res %>%
+        dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
         dplyr::left_join(map_file %>%
-                           dplyr::select(fk_doc_id, clowder_id, source_table),
-                         by = c("source"="source_table"))
+                           dplyr::mutate(filename = filename %>%
+                                           gsub("NOCAS_", "", .)) %>%
+                           tidyr::separate(col = filename,
+                                           into = c("oht", "middle", "endpoint_uuid"),
+                                           sep = "_",
+                                           fill = "right",
+                                           extra = "merge") %>%
+                           dplyr::filter(!is.na(endpoint_uuid)) %>%
+                           dplyr::mutate(endpoint_uuid = endpoint_uuid %>%
+                                           gsub("\\.pdf", "", .)) %>%
+                           dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
+                         by = "endpoint_uuid")
+
+
+      # for records without a matching endpoint_uuid associate with excel file
+      res2 <- res1 %>%
+        dplyr::filter(is.na(clowder_id)) %>%
+        dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
+        merge(map_file %>%
+                filter(file_type == "spreadsheet") %>%
+                dplyr::select(clowder_id, fk_doc_id))
+
+      res1 <- res1 %>%
+        filter(!is.na(clowder_id))
+
+      # combine associations
+      res <- rbind(res1, res2) %>%
+        dplyr::arrange(source_hash)
     }
   }
 
@@ -1441,15 +1471,11 @@ set_clowder_id_lineage <- function(source_table,
   message("...Clearing out old associations not in current map...")
   if(source_table %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
     delete_query = paste0("DELETE FROM documents_records WHERE ",
-                          "source_hash IN (SELECT source_hash FROM ", toxval.db, ".toxval WHERE source = '", source_table,"') ",
-                          "AND fk_doc_id NOT IN ",
-                          "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
+                          "source_hash IN (SELECT source_hash FROM ", toxval.db, ".toxval WHERE source = '", source_table,"')")
 
   } else {
     delete_query = paste0("DELETE FROM documents_records WHERE ",
-                          "source_hash IN (SELECT source_hash FROM ", source_table, ") ",
-                          "AND fk_doc_id NOT IN ",
-                          "(", toString(unique(map_file$fk_doc_id[!is.na(map_file$fk_doc_id)])), ")")
+                          "source_hash IN (SELECT source_hash FROM ", source_table, ")")
   }
   runQuery(delete_query, source.db)
 
