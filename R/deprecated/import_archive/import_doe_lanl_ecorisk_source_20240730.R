@@ -8,13 +8,13 @@
 #' @title import_doe_lanl_ecorisk_source
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}, \code{\link[stringr]{str_remove}}
 #'  \code{\link[stringr]{fixed}}, \code{\link[stringr]{str_squish}}
@@ -22,7 +22,6 @@
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{rename}}
 #'  \code{\link[tidyselect]{all_of}}
 #' @rdname import_doe_lanl_ecorisk_source
-#' @export 
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_trim str_remove fixed
 #' @importFrom tidyr pivot_longer

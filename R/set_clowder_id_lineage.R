@@ -105,11 +105,6 @@ set_clowder_id_lineage <- function(source_table,
                                                                        "clowder_v3/source_epa_ow_npdwr_document_map.xlsx")),
                       "source_epa_ow_nrwqc_hhc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                            "clowder_v3/source_epa_ow-nrwqc-hhc_document_map_20231108.xlsx")),
-                      "source_epa_ow_nrwqc_alc" = readr::read_csv(paste0(toxval.config()$datapath,
-                                                                         "clowder_v3/source_epa_ow_nrwqc_alc_document_map_20231004.csv"),
-                                                                  col_types = readr::cols()),
-                      "source_epa_ow_opp_alb" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                         "clowder_v3/source_epa_ow_opp_alb_document_map_20240529.xlsx")),
                       "source_atsdr_mrls" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                      "clowder_v3/source_atsdr_mrls_doc_map_20240521.xlsx")),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -129,8 +124,6 @@ set_clowder_id_lineage <- function(source_table,
                                                     document_name = "TG230MilitaryExposureGuidelines.xls"),
                       "source_doe_benchmarks" = data.frame(clowder_id = "65de658de4b063812d6afc53",
                                                            document_name = "DOE Benchmarks_1996-06-01.zip"),
-                      "source_envirotox" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                    "clowder_v3/source_envirotox_doc_map_20231010.xlsx")),
                       "source_epa_aegl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_epa_aegl_document_map_20240529.xlsx")),
                       "source_opp" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -193,21 +186,9 @@ set_clowder_id_lineage <- function(source_table,
                       "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
 
-                      "source_dod_ered" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                          "clowder_v3/source_dod_ered_document_map.xlsx")),
-
                       # No source match, return empty
                       data.frame()
     )
-
-    # Sources with a single document in a combined map
-    if(source_table %in% c("source_doe_lanl_ecorisk")){
-      map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/source_single_doc_map.xlsx")) %>%
-        dplyr::rename(src_tbl = source_table) %>%
-        dplyr::filter(src_tbl %in% source_table) %>%
-        dplyr::select(clowder_id, document_name)
-    }
 
     # IUCLID sources in a combined map
     if(grepl("iuclid", source_table)){

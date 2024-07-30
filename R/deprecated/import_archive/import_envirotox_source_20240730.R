@@ -18,7 +18,6 @@
 #'  \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{na_if}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[stringr]{str_match}}, \code{\link[stringr]{str_trim}}
 #' @rdname import_envirotox_source
-#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr left_join mutate na_if case_when
 #' @importFrom stringr str_match str_squish

@@ -20,7 +20,6 @@
 #'  \code{\link[tidyr]{reexports}}, \code{\link[tidyr]{pivot_longer}}, \code{\link[tidyr]{separate}}
 #'  \code{\link[stringr]{str_trim}}
 #' @rdname import_source_epa_ow_opp_alb
-#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr rename mutate across
 #' @importFrom tidyr all_of pivot_longer separate
