@@ -5,19 +5,19 @@
 #' @title import_doe_pac_source
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  [read_xlsx][readxl::read_xlsx]
 #'  [str_squish][stringr::str_squish], [str_extract_all][stringr::str_extract_all]
 #'  [mutate][dplyr::mutate], [across][dplyr::across], [rename][dplyr::rename], [select][dplyr::select], [rowwise][dplyr::rowwise], [ungroup][dplyr::ungroup]
 #'  [pivot_longer][tidyr::pivot_longer]
 #' @rdname import_doe_pac_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish str_extract_all
 #' @importFrom dplyr mutate across rename select rowwise ungroup
@@ -92,6 +92,7 @@ import_doe_pac_source <- function(db,
       # Exposure Limits for Chemicals: Method and Practice (doe.gov)
       # and the content of the column "PACs based on AEGLs, ERPGs, or TEELs" in the source document.
       species = 'human',
+      human_eco = "human health",
       experimental_record = "No",
       # Add toxval columns, not replacing original
       name = `Chemical Compound`,
