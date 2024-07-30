@@ -641,7 +641,7 @@ import_hpvis_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.in
       # Add assignments from previous load script
       long_ref = study_reference,
       quality = reliability,
-      source_url = "https://chemview.epa.gov/chemview/",
+      source_url = "-",
       subsource_url = source_url,
 
       # Perform cleaning operations
