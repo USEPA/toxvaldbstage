@@ -401,6 +401,8 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
     ) %>%
     # Drop temp column
     dplyr::select(-toxval_with_units) %>%
+    # Drop guideline
+    dplyr::select(-guideline) %>%
     # Drop duplicates
     dplyr::distinct()
 
