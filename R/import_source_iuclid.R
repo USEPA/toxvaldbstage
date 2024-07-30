@@ -943,7 +943,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res = res %>%
       dplyr::mutate(
         critical_effect = dplyr::case_when(
-          is.na(critical_effect) & is.na(hazard_category) ~ critical_effect_other,
           is.na(critical_effect) ~ hazard_category,
           TRUE ~ stringr::str_c(hazard_category, ": ", critical_effect)
         )
