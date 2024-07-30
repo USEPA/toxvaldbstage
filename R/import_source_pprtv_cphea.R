@@ -124,7 +124,8 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
       source_url = "https://www.epa.gov/pprtv/basic-information-about-provisional-peer-reviewed-toxicity-values-pprtvs",
       long_ref = study_reference %>%
         gsub(",$", "", .),
-      guideline = confidence,
+      # Drop guideline assignment for now
+      # guideline = confidence,
 
       # Set appropriate study_type
       study_type = dplyr::case_when(
