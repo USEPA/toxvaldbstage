@@ -98,8 +98,7 @@ qa_chemical_id_hashing <- function(){
       'EPA OPP',
       'Pennsylvania DEP MSCs',
       'Pennsylvania DEP ToxValues',
-      'BCF BAF',
-      'ChemIDPlus',
+      'ChemIDplus',
       'ECOTOX',
       'GeneTox Details',
       'Genetox Summary'

@@ -172,7 +172,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_hhtv" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                 "clowder_v3/source_epa_hhtv_document_map_20240725.xlsx"), col_types = "text"),
 
-                      "ChemIDPlus" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                      "ChemIDplus" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/source_chemidplus_document_map.xlsx")),
 
                       "Uterotrophic Hershberger DB" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -295,7 +295,7 @@ set_clowder_id_lineage <- function(source_table,
   ################################################################################
   ### PUll source table data
   ################################################################################
-  if(source_table %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
+  if(source_table %in% c("ChemIDplus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
     res <- runQuery(paste0("SELECT * FROM toxval WHERE source='", source_table, "'"), db=toxval.db)
   } else {
     res <- runQuery(paste0("SELECT * FROM ", source_table), db=source.db)
@@ -1462,7 +1462,7 @@ set_clowder_id_lineage <- function(source_table,
 
   # Clear out associations for source_table source_hash entries not in the current document map
   message("...Clearing out old associations not in current map...")
-  if(source_table %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
+  if(source_table %in% c("ChemIDplus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
     delete_query = paste0("DELETE FROM documents_records WHERE ",
                           "source_hash IN (SELECT source_hash FROM ", toxval.db, ".toxval WHERE source = '", source_table,"')")
 
