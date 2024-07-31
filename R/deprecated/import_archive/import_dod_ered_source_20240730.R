@@ -19,7 +19,6 @@
 #'  \code{\link[stringr]{str_extract}}, \code{\link[stringr]{str_trim}}
 #'  \code{\link[tidyr]{replace_na}}, \code{\link[tidyr]{drop_na}}
 #' @rdname import_dod_ered_source
-#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate across case_when rename distinct
 #' @importFrom stringr str_extract str_squish

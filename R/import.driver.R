@@ -63,7 +63,6 @@ import.driver <- function(db,
   import_caloehha_source(db,chem.check.halt=chem.check.halt) # Cal OEHHA [v1]
   import_copper_source(db,chem.check.halt=chem.check.halt) # Copper Manufacturers [v1]
   import_cosmos_source(db,chem.check.halt=chem.check.halt) # COSMOS [v1]
-  import_dod_ered_source(db,chem.check.halt=chem.check.halt) # DOD ERED [v1]
   import_doe_benchmarks_source(db,chem.check.halt=chem.check.halt) # DOE Wildlife Benchmarks [v1]
   # import_efsa2_source(db,chem.check.halt=chem.check.halt)  # EFSA2
   import_efsa_source(db,chem.check.halt=chem.check.halt) # EFSA
@@ -74,7 +73,6 @@ import.driver <- function(db,
   import_hess_source(db,chem.check.halt=chem.check.halt) # HESS
   import_hpvis_source(db,chem.check.halt=chem.check.halt) # HPVIS
   import_iris_source(db,chem.check.halt=chem.check.halt) # IRIS
-  import_doe_lanl_ecorisk_source(db,chem.check.halt=chem.check.halt) # DOE
   import_niosh_source(db,chem.check.halt=chem.check.halt) # NIOSH
   import_opp_source(db,chem.check.halt=chem.check.halt) # EPA OPP
   import_source_penn_dep_toxvalues(db,chem.check.halt=chem.check.halt) # Pennsylvania DEP ToxValues
@@ -89,7 +87,6 @@ import.driver <- function(db,
 
   import_dod_meg_source(db,chem.check.halt=chem.check.halt) # DOD MEG
   import_doe_pac_source(db,chem.check.halt=chem.check.halt) # DOE PAC
-  import_envirotox_source(db,chem.check.halt=chem.check.halt) # envirotox
   # import_pfas_150_sem_v2_source(db,chem.check.halt=chem.check.halt) # PFAS 150 SEM v2
   import_heast_source(db,chem.check.halt=chem.check.halt) # HEAST
   import_oppt_source(db,chem.check.halt=chem.check.halt) # OPPT
