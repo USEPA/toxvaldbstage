@@ -852,14 +852,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ as.character(NA)
       ) %>% gsub("not specified", "", .),
 
-      # # Append document UUID to source_url
-      # source_url = source_url %>%
-      #   gsub("\\?documentUUID.+", "", .) %>%
-      #   stringr::str_c(., "?documentUUID=", echa_dossier_uuid),
+      # Append document UUID to source_url
+      source_url = source_url %>%
+        gsub("\\?documentUUID.+", "", .) %>%
+        stringr::str_c(., "?documentUUID=", echa_dossier_uuid),
 
-      # Ensure source_url and subsource_url are set to '-'
-      source_url = "-",
-      subsource_url = "-",
+      # # Ensure source_url and subsource_url are set to '-'
+      # source_url = "-",
+      # subsource_url = "-",
 
       # Ensure normal range for year
       year = dplyr::case_when(
