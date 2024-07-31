@@ -852,10 +852,14 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ as.character(NA)
       ) %>% gsub("not specified", "", .),
 
-      # Append document UUID to source_url
-      source_url = source_url %>%
-        gsub("\\?documentUUID.+", "", .) %>%
-        stringr::str_c(., "?documentUUID=", echa_dossier_uuid),
+      # # Append document UUID to source_url
+      # source_url = source_url %>%
+      #   gsub("\\?documentUUID.+", "", .) %>%
+      #   stringr::str_c(., "?documentUUID=", echa_dossier_uuid),
+
+      # Ensure source_url and subsource_url are set to '-'
+      source_url = "-",
+      subsource_url = "-",
 
       # Ensure normal range for year
       year = dplyr::case_when(
@@ -939,7 +943,6 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     res = res %>%
       dplyr::mutate(
         critical_effect = dplyr::case_when(
-          is.na(critical_effect) & is.na(hazard_category) ~ critical_effect_other,
           is.na(critical_effect) ~ hazard_category,
           TRUE ~ stringr::str_c(hazard_category, ": ", critical_effect)
         )
