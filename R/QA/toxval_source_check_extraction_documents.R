@@ -30,7 +30,7 @@ toxval_source_check_extraction_documents <- function(source.db, toxval.db, write
                      "WHERE (a.source_table IN ",
                      "(SELECT source_table FROM chemical_source_index WHERE source_status='active') ",
                      "OR a.source_table IN ",
-                     "('ECOTOX', 'ToxRefDB', 'Uterotrophic Hershberger DB', 'ChemIDPlus')) ",
+                     "('ECOTOX', 'ToxRefDB', 'Uterotrophic Hershberger DB', 'ChemIDplus')) ",
                      "GROUP BY a.source_table, b.document_type")
 
   # Get list of all active tables with extraction document associations
@@ -50,7 +50,7 @@ toxval_source_check_extraction_documents <- function(source.db, toxval.db, write
 
   # Check direct load sources as well
   missing_direct_load_sources = tibble::as_tibble(
-    c('ECOTOX', 'ToxRefDB', 'Uterotrophic Hershberger DB', 'ChemIDPlus')
+    c('ECOTOX', 'ToxRefDB', 'Uterotrophic Hershberger DB', 'ChemIDplus')
   ) %>%
     dplyr::rename(source_table = value) %>%
     dplyr::left_join(active_extraction_df, by=c("source_table")) %>%
@@ -76,7 +76,7 @@ toxval_source_check_extraction_documents <- function(source.db, toxval.db, write
                                   "WHERE (a.source_table IN ",
                                   "(SELECT source_table FROM chemical_source_index WHERE source_status='active') ",
                                   "OR a.source_table IN ",
-                                  "('ECOTOX', 'ToxRefDB', 'Uterotrophic Hershberger DB', 'ChemIDPlus'))"),
+                                  "('ECOTOX', 'ToxRefDB', 'Uterotrophic Hershberger DB', 'ChemIDplus'))"),
                            source.db)
 
   # Get documents with null document_type

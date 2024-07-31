@@ -167,7 +167,7 @@ toxval_source_status_report <- function(source.db, toxval.db){
     # updated in the document_records table...)
     doc_cat_stats = lapply(unique(doc_cat_stats$source_table), function(s_tbl){
       # Check if table exists
-      if(s_tbl %in% c("ChemIDPlus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")){
+      if(s_tbl %in% c("ChemIDplus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")){
         hashes = runQuery(paste0("SELECT source_hash FROM toxval WHERE source = '", s_tbl, "'"), db=toxval.db)
       } else {
         s_check = runQuery(paste0("SHOW TABLES LIKE '", s_tbl, "'"), db=source.db)
