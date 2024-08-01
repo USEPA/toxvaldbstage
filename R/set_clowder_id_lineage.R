@@ -193,7 +193,7 @@ set_clowder_id_lineage <- function(source_table,
     # IUCLID sources in a combined map
     if(grepl("iuclid", source_table)){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/source_iuclid_doc_map_20240722.xlsx"))
+                                          "clowder_v3/source_iuclid_doc_map_20240731.xlsx"))
 
       # Filter map_file to only include records in the same OHT/source_table
       map_file = map_file %>%
