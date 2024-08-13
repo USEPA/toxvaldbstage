@@ -67,7 +67,6 @@ chem.check.v2 <- function(res0,source=NULL,verbose=FALSE) {
                      "WHO IPCS",
                      "ATSDR MRLs",
                      "Cal OEHHA",
-                     "COSMOS",
                      "DOD ERED",
                      "DOE Wildlife Benchmarks",
                      "DOE Protective Action Criteria",

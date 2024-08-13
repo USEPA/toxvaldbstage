@@ -62,7 +62,6 @@ import.driver <- function(db,
   # import_source_atsdr_mrls(db,chem.check.halt=chem.check.halt) # ATSDR MRLs 2023 (TBD)
   import_caloehha_source(db,chem.check.halt=chem.check.halt) # Cal OEHHA [v1]
   import_copper_source(db,chem.check.halt=chem.check.halt) # Copper Manufacturers [v1]
-  import_cosmos_source(db,chem.check.halt=chem.check.halt) # COSMOS [v1]
   import_doe_benchmarks_source(db,chem.check.halt=chem.check.halt) # DOE Wildlife Benchmarks [v1]
   # import_efsa2_source(db,chem.check.halt=chem.check.halt)  # EFSA2
   import_efsa_source(db,chem.check.halt=chem.check.halt) # EFSA
