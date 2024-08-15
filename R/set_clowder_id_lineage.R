@@ -177,7 +177,7 @@ set_clowder_id_lineage <- function(source_table,
                                                              "clowder_v3/source_toxrefdb_document_map_20240814.xlsx")),
 
                       "ECOTOX" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                          "clowder_v3/source_ecotox_document_map.xlsx")),
+                                                          "clowder_v3/source_ECOTOX_document_map_20240815.xlsx")),
                       "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
 
@@ -1302,6 +1302,36 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
+
+                  "ECOTOX" = {
+                    # Join record source table and toxval table
+                    record_source <- runQuery(paste0("SELECT * FROM ", "toxval"), db=toxval.db)
+                    res <- res %>%
+                      dplyr::left_join(record_source %>%
+                                         filter(source == "ECOTOX"), by = "source_hash")
+
+                    # Match to origin doc
+                    res1 <- res %>%
+                      dplyr::select(long_ref, source_hash, source_version_date) %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::filter(parent_flag == "primary_source") %>%
+                                         dplyr::select(long_ref, clowder_id, fk_doc_id),
+                                       by = "long_ref")
+
+                    # Match to extraction doc
+                    res2 = res %>%
+                      dplyr::select(long_ref, source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(parent_flag == "has_parent") %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res1, res2)
+
+                    # Return res
+                    res
+                  },
+
 
                   # Default case, return without mapping
                   res
