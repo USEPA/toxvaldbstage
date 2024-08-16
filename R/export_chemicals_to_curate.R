@@ -45,7 +45,7 @@ export_chemicals_to_curate <- function(db, export_all=FALSE){
       tbl_check <- runQuery(paste0("SHOW TABLES LIKE '", src, "'"),
                             db=db)
       if(nrow(tbl_check)){
-        paste0("SELECT chemical_id FROM ", src) %>%
+        paste0("SELECT chemical_id FROM ", src, " WHERE qc_status not like '%fail%'") %>%
           runQuery(., db=db) %>%
           return()
       }
