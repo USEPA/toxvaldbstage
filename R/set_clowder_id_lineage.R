@@ -1305,7 +1305,7 @@ set_clowder_id_lineage <- function(source_table,
 
                   "ECOTOX" = {
                     # Join record source table and toxval table
-                    record_source <- runQuery(paste0("SELECT * FROM record_source WHERE source='", source_table, "'"), db=toxval.db)
+                    record_source <- runQuery(paste0("SELECT toxval_id, long_ref FROM record_source WHERE source='", source_table, "'"), db=toxval.db)
                     res <- res %>%
                       dplyr::left_join(record_source, by = "toxval_id")
 
@@ -1330,7 +1330,6 @@ set_clowder_id_lineage <- function(source_table,
                     # Return res
                     res
                   },
-
 
                   # Default case, return without mapping
                   res
