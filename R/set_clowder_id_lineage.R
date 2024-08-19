@@ -1305,14 +1305,13 @@ set_clowder_id_lineage <- function(source_table,
 
                   "ECOTOX" = {
                     # Join record source table and toxval table
-                    record_source <- runQuery(paste0("SELECT * FROM ", "toxval"), db=toxval.db)
+                    record_source <- runQuery(paste0("SELECT * FROM record_source WHERE source='", source_table, "'"), db=toxval.db)
                     res <- res %>%
-                      dplyr::left_join(record_source %>%
-                                         filter(source == "ECOTOX"), by = "source_hash")
+                      dplyr::left_join(record_source, by = "toxval_id")
 
                     # Match to origin doc
                     res1 <- res %>%
-                      dplyr::select(long_ref, source_hash, source_version_date) %>%
+                      dplyr::select(long_ref, source_hash) %>%
                       dplyr::left_join(map_file %>%
                                          dplyr::filter(parent_flag == "primary_source") %>%
                                          dplyr::select(long_ref, clowder_id, fk_doc_id),
@@ -1320,7 +1319,7 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Match to extraction doc
                     res2 = res %>%
-                      dplyr::select(long_ref, source_hash, source_version_date) %>%
+                      dplyr::select(long_ref, source_hash) %>%
                       merge(map_file %>%
                               dplyr::filter(parent_flag == "has_parent") %>%
                               dplyr::select(clowder_id, fk_doc_id))
