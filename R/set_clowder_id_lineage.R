@@ -125,8 +125,8 @@ set_clowder_id_lineage <- function(source_table,
                                                               "clowder_v3/source_epa_opp_document_map_20240528.xlsx")),
                       "source_niosh" = data.frame(clowder_id = "61fabd3de4b04a563fdc9b99",
                                                   document_name = "ToxValQA33091630_NIOSH_2020_ImmediatelyDangerous-(IDLH)Values.pdf"),
-                      "source_ow_dwsha" = data.frame(clowder_id = "610036ede4b01a90a3f98ae0",
-                                                     document_name = "b5ffe2b7e16578b78213213141cfc3ad-United States Environmental Protection Agency (USEPA)-2018-2018 Drink.pdf"),
+                      "source_ow_dwsha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/source_ow_dws_document_map.xlsx")),
                       "source_penn_dep_mscs" = data.frame(clowder_id = "669eb766e4b0a7c65d1d62c8",
                                                           document_name = "Penn DEP MSCs_2021-11-20_extraction.zip"),
                       "source_penn_dep_toxvalues" = data.frame(clowder_id = "65de5e8ae4b063812d6afb91",
@@ -1320,6 +1320,29 @@ set_clowder_id_lineage <- function(source_table,
                     # Match to extraction doc
                     res2 = res %>%
                       dplyr::select(long_ref, source_hash) %>%
+                      merge(map_file %>%
+                              dplyr::filter(parent_flag == "has_parent") %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res1, res2)
+
+                    # Return res
+                    res
+                  },
+
+                  "source_ow_dwsha" = {
+                    # Match to origin doc
+                    res1 <- res %>%
+                      dplyr::select(casrn, source_hash, source_version_date) %>%
+                      dplyr::left_join(map_file %>%
+                                         tidyr::separate_rows(`casrn`, sep="; ") %>%
+                                         dplyr::select(casrn, clowder_id, fk_doc_id),
+                                       by = "casrn")
+
+                    # Match to extraction doc
+                    res2 = res %>%
+                      dplyr::select(casrn, source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(parent_flag == "has_parent") %>%
                               dplyr::select(clowder_id, fk_doc_id))
