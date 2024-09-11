@@ -19,14 +19,15 @@
 #--------------------------------------------------------------------------------------
 source_set_defaults <- function(res,source) {
   printCurrentFunction(source)
-  for(i in 1:ncol(res)) {
-    x = res %>% dplyr::pull(i)
-    cc = class(x)
-    # Replace NA characters with "-"
-    if(any(cc == "character")) {
-      x[x %in% c(NA, "")] = "-"
-      res[,i] = x
-    }
-  }
-  return(res)
+  res %>%
+    dplyr::mutate(
+      dplyr::across(
+        dplyr::where(is.character),
+        ~dplyr::case_match(
+          .,
+          c(NA, as.character(NA), "") ~ "-",
+          .default = .)
+      )
+    ) %>%
+    return()
 }
