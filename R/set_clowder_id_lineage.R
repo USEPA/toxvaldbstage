@@ -321,24 +321,22 @@ set_clowder_id_lineage <- function(source_table,
 
                   "source_pprtv_cphea" = {
                     # Match to origin docs
-                    origin_docs <- map_file %>%
-                      dplyr::filter(parent_flag != "has_parent")
                     res1 <- res %>%
                       dplyr::select(source_hash, source_version_date, name) %>%
-                      dplyr::left_join(origin_docs %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::filter(parent_flag == "primary_source") %>%
                                          dplyr::select(fk_doc_id, clowder_id, Chemical),
                                        by=c("name"="Chemical"))
 
                     # Match to extraction doc
-                    extraction_doc <- map_file %>%
-                      dplyr::filter(!is.na(parent_flag))
-                    tmp = res %>%
+                    res2 = res %>%
                       dplyr::select(source_hash, source_version_date, name) %>%
-                      merge(extraction_doc %>%
+                      merge(map_file %>%
+                              dplyr::filter(parent_flag == "has_parent") %>%
                               dplyr::select(fk_doc_id, clowder_id))
 
                     # Combine origin and extraction associations
-                    res = rbind(res1, tmp)
+                    res = rbind(res1, res2)
 
                     # Return res
                     res
