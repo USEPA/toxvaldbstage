@@ -27,7 +27,7 @@
 #' @importFrom tidyr pivot_longer all_of separate replace_na
 #' @importFrom stringr str_squish str_replace_all str_extract
 #--------------------------------------------------------------------------------------
-import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
+import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
   printCurrentFunction(db)
   source = "IRIS"
   source_table = "source_iris"
@@ -362,7 +362,6 @@ import_source_iris <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.inse
     res1 <- iris_data$source_iris_summary_curation.xlsx %>%
       dplyr::mutate(
         document_type = 'IRIS Summary',
-        key_finding = 'key',
         iris_chemical_id = url %>%
           sub('.*=', '', .) %>%
           as.numeric(),
