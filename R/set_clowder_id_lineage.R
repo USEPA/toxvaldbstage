@@ -146,7 +146,7 @@ set_clowder_id_lineage <- function(source_table,
                       # "source_atsdr_mrls_2022" = data.frame(clowder_id="63b58958e4b04f6bb1507bf2",
                       #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
                       "source_rsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                              "clowder_v3/source_rsl_document_map_20240227.xlsx")),
+                                                              "clowder_v3/source_rsl_doc_map.xlsx"), col_types = "text",),
                       "source_hess" =  readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                 "clowder_v3/source_hess_2021_doc_map_20240429.xlsx")),
                       "source_copper" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -368,9 +368,23 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_rsl" = {
-                    res <- res %>%
-                      dplyr::left_join(map_file,
-                                       by=c("raw_input_file"="document_name"))
+                    # Match to origin docs based on document names
+                    res1 <- res %>%
+                      dplyr::select(source_hash, casrn, source_version_date) %>%
+                      left_join(map_file %>%
+                                  filter(parent_flag == "primary_source") %>%
+                                  select(casrn, clowder_id, fk_doc_id),
+                                by = "casrn")
+
+                    # Match to extraction doc
+                    res2 = res %>%
+                      dplyr::select(source_hash, casrn, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(parent_flag == "has_parent") %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res1, res2)
                     # Return res
                     res
                   },
