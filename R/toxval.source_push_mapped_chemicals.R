@@ -171,6 +171,7 @@ map_curated_chemicals <- function(source.index, curated.path, ignore.curation.du
     # Get specific sub source.index (e.g., _a, _b, _c)
     curated_source.index = c_list %>%
       gsub("DSSTox_ToxVal", "", .) %>%
+      gsub(".xlsx", "", ., fixed = TRUE) %>%
       strsplit("_") %>% unlist()
     curated_source.index = paste0(curated_source.index[1], "_", curated_source.index[2])
     # Load required files from curation
