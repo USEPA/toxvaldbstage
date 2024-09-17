@@ -117,8 +117,8 @@ set_clowder_id_lineage <- function(source_table,
                                                                           "clowder_v3/source_atsdr_pfas_2021_document_map_20240529.xlsx")),
                       "source_dod_meg" = data.frame(clowder_id = "651c7a8fe4b0d99f5a8c9983",
                                                     document_name = "TG230MilitaryExposureGuidelines.xls"),
-                      "source_doe_benchmarks" = data.frame(clowder_id = "65de658de4b063812d6afc53",
-                                                           document_name = "DOE Benchmarks_1996-06-01.zip"),
+                      "source_doe_benchmarks" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                         "clowder_v3/source_doe_wildlife_benchmarks_doc_map.xlsx")),
                       "source_epa_aegl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_epa_aegl_document_map_20240529.xlsx")),
                       "source_opp" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -1330,6 +1330,29 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_ow_dwsha" = {
+                    # Match to origin doc
+                    res1 <- res %>%
+                      dplyr::select(casrn, source_hash, source_version_date) %>%
+                      dplyr::left_join(map_file %>%
+                                         tidyr::separate_rows(`casrn`, sep="; ") %>%
+                                         dplyr::select(casrn, clowder_id, fk_doc_id),
+                                       by = "casrn")
+
+                    # Match to extraction doc
+                    res2 = res %>%
+                      dplyr::select(casrn, source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(parent_flag == "has_parent") %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res1, res2)
+
+                    # Return res
+                    res
+                  },
+
+                  "source_doe_benchmarks" = {
                     # Match to origin doc
                     res1 <- res %>%
                       dplyr::select(casrn, source_hash, source_version_date) %>%
