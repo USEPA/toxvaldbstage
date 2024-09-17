@@ -58,7 +58,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_pfas_150_sem_v2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                           "clowder_v3/source_pfas_150_sem_v2_document_map_20240717.xlsx")),
                       "source_hpvis" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                "clowder_v3/source_hpvis_document_map_20240903.xlsx")),
+                                                                "clowder_v3/source_hpvis_document_map_20240903.xlsx"), col_types = "text"),
                       "source_oppt" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/source_epa_oppt_document_map_20240227.xlsx")),
                       "source_efsa" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -597,16 +597,17 @@ set_clowder_id_lineage <- function(source_table,
                     res1 <- res %>%
                       dplyr::select(source_hash, source_version_date, study_reference) %>%
                       dplyr::left_join(map_file %>%
-                                         filter(parent_flag == "primary_source") %>%
+                                         dplyr::filter(parent_flag == "primary_source") %>%
                                          tidyr::separate_rows(study_reference, sep=" /// ") %>%
                                          dplyr::select(clowder_id, study_reference, fk_doc_id),
-                                       by = "study_reference")
+                                       by = "study_reference") %>%
+                      dplyr::distinct()
 
                     # Associates extraction document to all records
                     res2 <- res %>%
                       dplyr::select(source_hash, source_version_date) %>%
                       merge(map_file %>%
-                              filter(parent_flag == "has_parent"),
+                              dplyr::filter(parent_flag == "has_parent") %>%
                             dplyr::select(clowder_id, fk_doc_id, study_reference))
 
                     # Combines both associations back into one data frame
