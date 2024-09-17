@@ -372,9 +372,10 @@ set_clowder_id_lineage <- function(source_table,
                     res1 <- res %>%
                       dplyr::select(source_hash, casrn, source_version_date) %>%
                       left_join(map_file %>%
-                                  filter(parent_flag == "primary_source") %>%
-                                  select(casrn, clowder_id, fk_doc_id),
-                                by = "casrn")
+                                  dplyr::filter(parent_flag == "primary_source") %>%
+                                  dplyr::select(casrn, clowder_id, fk_doc_id),
+                                by = "casrn") %>%
+                      dplyr::distinct()
 
                     # Match to extraction doc
                     res2 = res %>%
