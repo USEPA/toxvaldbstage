@@ -132,7 +132,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_penn_dep_toxvalues" = data.frame(clowder_id = "65de5e8ae4b063812d6afb91",
                                                                document_name = "PEN DEP ToxValues20211120.zip"),
                       "source_usgs_hbsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                    "clowder_v3/source_usgs_hbsl_document_map_20240221_jnhope.xlsx")),
+                                                                    "clowder_v3/source_usgs_hbsl_document_map_20240918.xlsx")),
                       "source_who_ipcs" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_who_ipcs_document_map.xlsx")),
                       "source_osha_air_limits" = data.frame(clowder_id = "65de60e8e4b063812d6afbd7",
@@ -1403,6 +1403,43 @@ set_clowder_id_lineage <- function(source_table,
                     # Combine origin and extraction document associations
                     res = rbind(res1, res2)
 
+                    # Return res
+                    res
+                  },
+
+                  "source_usgs_hbsl" = {
+                    # Match to origin docs based on casrn
+                    res1 <- res %>%
+                      dplyr::select(source_hash, casrn, source_version_date) %>%
+                      left_join(map_file %>%
+                                  dplyr::filter(parent_flag == "primary_source") %>%
+                                  dplyr::select(casrn, clowder_id, fk_doc_id),
+                                by = "casrn") %>%
+                      dplyr::distinct()
+
+                    # There are still records that the aren't matched due to casrn/chemical name not
+                    # appearing in the document that the references came from; hardcode these to the
+                    # no reference placeholder doc
+                    res2 <- res1 %>%
+                      filter(is.na(clowder_id)) %>%
+                      dplyr::select(source_hash, casrn, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(filename == "No Reference.txt") %>%
+                              dplyr::select(clowder_id, fk_doc_id) %>%
+                              dplyr::distinct())
+
+                    res1 <- res1 %>%
+                      filter(!is.na(clowder_id))
+
+                    # Match to extraction doc
+                    res3 = res %>%
+                      dplyr::select(source_hash, casrn, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::filter(parent_flag == "has_parent") %>%
+                              dplyr::select(clowder_id, fk_doc_id))
+
+                    # Combine origin and extraction document associations
+                    res = rbind(res1, res2, res3)
                     # Return res
                     res
                   },
