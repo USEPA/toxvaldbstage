@@ -30,7 +30,7 @@ update_chemical_preferred_info_by_dtxsid <- function(source.db){
     httr::content()
 
   # Use bulk DTXSID CCTE Chemicals API pull (limit 200 per call)
-  if(!is.null(API_AUTH) & !grepl("404 Not Found", api_test)){
+  if(!is.null(Sys.getenv("api_auth")) & !grepl("404 Not Found", api_test)){
     cat("...Pulling DSSTox preferred_name and casrn using CCTE API...\n")
     # Split list into subsets of 200
     updated_chem_details <- dlist %>%
@@ -45,7 +45,7 @@ update_chemical_preferred_info_by_dtxsid <- function(source.db){
         httr::accept_json(),
         httr::content_type_json(),
         # Use API Key for authorization
-        httr::add_headers(`x-api-key` = API_AUTH),
+        httr::add_headers(`x-api-key` = Sys.getenv("api_auth")),
         encode = "json",
         body=as.list(updated_chem_details[[i]])
       ) %>%
