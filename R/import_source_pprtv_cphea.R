@@ -108,7 +108,9 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
     res1 = readxl::read_xlsx(paste0(dir, summary_file), col_types="text") %>%
       dplyr::mutate(document_type = 'PPRTV Summary',
                     key_finding = "key") %>%
-      .[ , (names(.) %in% names(res))]
+      dplyr::rename(experimental_record = experimental)
+    # %>%
+    #   .[ , (names(.) %in% names(res))]
     res = res %>%
       dplyr::bind_rows(res1) %>%
       dplyr::distinct()
@@ -299,7 +301,7 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
       # Set experimental_record and human_ra
       experimental_record = dplyr::case_when(
         toxval_type %in% c("RfD", "RfC", "cancer slope factor", "cancer unit risk") ~ "No",
-        TRUE ~ "Yes"
+        TRUE ~ experimental_record
       ),
 
       # Set values to NA to prepare for tidyr::unite
