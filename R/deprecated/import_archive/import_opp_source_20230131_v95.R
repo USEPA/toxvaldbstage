@@ -5,7 +5,6 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @param do.summary_data If TRUE, add OPP Summary data to table before insertion
 #' @title import_opp_source
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
@@ -27,7 +26,7 @@
 #' @importFrom dplyr filter mutate row_number case_when select bind_rows
 #' @importFrom stringr str_squish str_extract
 #--------------------------------------------------------------------------------------
-import_opp_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE, do.summary_data=FALSE) {
+import_opp_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "EPA OPP"
   source_table = "source_opp"
@@ -158,63 +157,6 @@ import_opp_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
     dplyr::bind_rows(lower_range_res, upper_range_res) %>%
     dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric))
 
-  # Set default document_type
-  res$document_type = "OPP Export"
-
-  # Add summary data to df before prep and load
-  if(do.summary_data){
-    res1 = readxl::read_xlsx(paste0(dir,"source_opp_summary.xlsx")) %>%
-      # Remove entries with missing toxval_numeric
-      dplyr::filter(!(toxval_numeric %in% c("-", "--", NA, as.character(NA)))) %>%
-      dplyr::rename(curator_comments=comments) %>%
-      dplyr::mutate(
-        document_type = "OPP Summary",
-        toxval_units = toxval_units %>%
-          gsub("mg/kg/day", "mg/kg-day", .),
-        study_duration_class = tolower(study_duration_class),
-        study_duration_units = dplyr::case_when(
-          study_duration_units %in% c("day") ~ "days",
-          study_duration_units %in% c("week") ~ "weeks",
-          study_duration_units %in% c("moths") ~ "months",
-          study_duration_units %in% c("year") ~ "years",
-          TRUE ~ study_duration_units
-        ),
-        critical_effect = critical_effect %>%
-          gsub(" | ", "|", ., fixed = TRUE),
-        species = species %>%
-          gsub("rats", "rat", ., ignore.case = TRUE) %>%
-          tolower(),
-        sex = dplyr::case_when(
-          sex %in% c("Male") ~ "M",
-          sex %in% c("Female") ~ "F",
-          sex %in% c("M; F") ~ "M/F",
-          # Fix curator error
-          age %in% c("M; F") ~ "M/F",
-          TRUE ~ sex
-        ),
-        age = dplyr::case_when(
-          age %in% c("M; F") ~ "-",
-          TRUE ~ age
-        ),
-        key_finding = dplyr::case_when(
-          key_finding == "-" ~ "-",
-          toxval_type == key_finding ~ "yes",
-          TRUE ~ "no"
-        ),
-        experimental_record = dplyr::case_when(
-          experimental_record %in% c(1) ~ "experimental",
-          experimental_record %in% c("-") ~ "undetermined",
-          TRUE ~ experimental_record
-        ),
-        dplyr::across(dplyr::any_of(c("toxval_numeric")), as.numeric),
-
-        dplyr::across(where(is.character), ~tidyr::replace_na(., "-"))
-      )
-
-    res = res %>%
-      dplyr::bind_rows(res1)
-  }
-
   # Standardize the names
   names(res) <- names(res) %>%
     stringr::str_squish() %>%
@@ -242,3 +184,7 @@ import_opp_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.inse
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
+
+
+
+
