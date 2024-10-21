@@ -505,6 +505,7 @@ import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
 
         # Directly assign study_duration_class from summary principal_study
         study_duration_class = dplyr::case_when(
+          !is.na(study_duration_class) ~ study_duration_class,
           !(principal_study_summary %in% c(as.character(NA), "-", "")) ~ principal_study_summary,
           TRUE ~ study_duration_class
         )
@@ -620,6 +621,7 @@ import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
         gsub("\\s*to\\s*|\\s*\\-\\s*", "-", .) %>%
         gsub("GD ([0-9]+) GD ([0-9]+)", "GD \\1-\\2", .),
       study_duration_value = dplyr::case_when(
+        !is.na(study_duration_value) ~ as.character(study_duration_value),
         grepl("GD [0-9]+\\-[0-9+] weeks", study_duration) ~ stringr::str_extract(study_duration,
                                                                                  "(GD [0-9]+\\-[0-9+] weeks)",
                                                                                  group=1),
@@ -634,6 +636,7 @@ import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
         TRUE ~ as.character(NA)
       ),
       study_duration_units = dplyr::case_when(
+        !is.na(study_duration_units) ~ as.character(study_duration_units),
         is.na(study_duration_value) ~ as.character(NA),
         grepl("GD [0-9]+\\-[0-9+] weeks", study_duration) ~ "GD,weeks",
         grepl("[0-9\\.]+(?:\\-[0-9\\.]+)?\\s*(?:day|generation|year|month|\\bd\\b|week|hr)",
