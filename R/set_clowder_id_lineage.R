@@ -177,7 +177,7 @@ set_clowder_id_lineage <- function(source_table,
                                                              "clowder_v3/source_toxrefdb_document_map_20240814.xlsx")),
 
                       "ECOTOX" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                          "clowder_v3/source_ECOTOX_document_map_20240918.xlsx")),
+                                                          "clowder_v3/source_ECOTOX_document_map_20241021.xlsx")),
                       "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
 
@@ -1344,12 +1344,12 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(long_ref, source_hash) %>%
                       dplyr::left_join(map_file %>%
                                          dplyr::filter(parent_flag == "primary_source") %>%
-                                         dplyr::select(long_ref, clowder_id, fk_doc_id),
-                                       by = "long_ref")
+                                         dplyr::select(external_source_id, clowder_id, fk_doc_id),
+                                       by = "external_source_id")
 
                     # Match to extraction doc
                     res2 = res %>%
-                      dplyr::select(long_ref, source_hash) %>%
+                      dplyr::select(external_source_id, source_hash) %>%
                       merge(map_file %>%
                               dplyr::filter(parent_flag == "has_parent") %>%
                               dplyr::select(clowder_id, fk_doc_id))
