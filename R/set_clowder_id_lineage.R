@@ -177,7 +177,8 @@ set_clowder_id_lineage <- function(source_table,
                                                              "clowder_v3/source_toxrefdb_document_map_20240814.xlsx")),
 
                       "ECOTOX" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                          "clowder_v3/source_ECOTOX_document_map_20241021.xlsx")),
+                                                          "clowder_v3/source_ECOTOX_document_map_20241021.xlsx"),
+                                                   guess_max = 21474836),
                       "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
 
@@ -1335,13 +1336,13 @@ set_clowder_id_lineage <- function(source_table,
 
                   "ECOTOX" = {
                     # Join record source table and toxval table
-                    record_source <- runQuery(paste0("SELECT toxval_id, long_ref FROM record_source WHERE source='", source_table, "'"), db=toxval.db)
+                    record_source <- runQuery(paste0("SELECT toxval_id, external_source_id FROM record_source WHERE source='", source_table, "'"), db=toxval.db)
                     res <- res %>%
                       dplyr::left_join(record_source, by = "toxval_id")
 
                     # Match to origin doc
                     res1 <- res %>%
-                      dplyr::select(long_ref, source_hash) %>%
+                      dplyr::select(external_source_id, source_hash) %>%
                       dplyr::left_join(map_file %>%
                                          dplyr::filter(parent_flag == "primary_source") %>%
                                          dplyr::select(external_source_id, clowder_id, fk_doc_id),
