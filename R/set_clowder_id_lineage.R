@@ -177,7 +177,7 @@ set_clowder_id_lineage <- function(source_table,
                                                              "clowder_v3/source_toxrefdb_document_map_20240814.xlsx")),
 
                       "ECOTOX" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                          "clowder_v3/source_ECOTOX_document_map_20241021.xlsx"),
+                                                          "clowder_v3/source_ECOTOX_document_map_20241031.xlsx"), col_types = "text",
                                                    guess_max = 21474836),
                       "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
