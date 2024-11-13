@@ -315,6 +315,8 @@ import_source_pprtv_cphea <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
     tidyr::unite(col="critical_effect_cancer", tumor_site, cancer_type, sep = ": ", na.rm = TRUE, remove=FALSE) %>%
     dplyr::mutate(
       critical_effect = dplyr::case_when(
+        # Keep manually curated critical_effect values
+        document_type == 'PPRTV Summary' ~ critical_effect,
         assessment_type == "Cancer Assessment" ~ critical_effect_cancer,
         TRUE ~ critical_effect_noncancer
       )

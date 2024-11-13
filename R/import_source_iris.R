@@ -51,7 +51,7 @@ import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
 
   # Pull list of iris files to load
   iris_files <- paste0(toxval.config()$datapath,"iris/iris_files/") %>%
-    list.files(full.names = TRUE) %>%
+    list.files(full.names = TRUE, pattern = "xlsx$") %>%
     # No longer using WOE files
     .[!grepl("woe|draft", ., ignore.case = TRUE)]
 
@@ -371,9 +371,9 @@ import_source_iris <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.ins
       # dplyr::select(-principal_study, -document_type, -endpoint) %>%
       dplyr::rename(
         exposure_route = route,
-        species = species_original,
-        sex = sex_original,
-        age = age_original
+        # species = species_original,
+        # sex = sex_original,
+        # age = age_original
       )
     # Set non-manually curated fields to blank
     res1[, c(#"principal_study", "exposure_route", "critical_effect", "assessment_type",
