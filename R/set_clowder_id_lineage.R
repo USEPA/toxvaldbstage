@@ -475,12 +475,14 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::mutate(relationship_type = dplyr::case_when(
                         document_type == "IRIS Summary" ~ NA,
                         TRUE ~ "extraction"
-                      ))
+                      )) %>%
+                      # Remove document_type records that are not supposed to be
+                      # associated to this extraction document
+                      dplyr::filter(!is.na(relationship_type))
 
                     # Combine the two associated data frames back into res
                     res <- dplyr::bind_rows(res1, res2, res3) %>%
-                      dplyr::arrange(source_hash) %>%
-                      dplyr::filter(!is.na(relationship_type))
+                      dplyr::arrange(source_hash)
 
                     #Return the mapped res with document names and clowder ids
                     res
