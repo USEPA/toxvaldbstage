@@ -322,21 +322,34 @@ set_clowder_id_lineage <- function(source_table,
                   "source_pprtv_cphea" = {
                     # Match to origin docs
                     res1 <- res %>%
-                      dplyr::select(source_hash, source_version_date, name) %>%
+                      dplyr::select(source_hash, source_version_date, name, document_type) %>%
                       dplyr::left_join(map_file %>%
                                          dplyr::filter(parent_flag == "primary_source") %>%
                                          dplyr::select(fk_doc_id, clowder_id, Chemical),
-                                       by=c("name"="Chemical"))
+                                       by=c("name"="Chemical")) %>%
+                      # Add document relationship type
+                      dplyr::mutate(relationship_type = dplyr::case_when(
+                        document_type == "PPRTV Summary" ~ "extraction",
+                        TRUE ~ "origin"
+                      ))
 
                     # Match to extraction doc
                     res2 = res %>%
-                      dplyr::select(source_hash, source_version_date, name) %>%
+                      dplyr::select(source_hash, source_version_date, name, document_type) %>%
                       merge(map_file %>%
                               dplyr::filter(parent_flag == "has_parent") %>%
-                              dplyr::select(fk_doc_id, clowder_id))
+                              dplyr::select(fk_doc_id, clowder_id)) %>%
+                      # Add document relationship type
+                      dplyr::mutate(relationship_type = dplyr::case_when(
+                        document_type == "PPRTV Summary" ~ NA,
+                        TRUE ~ "extraction"
+                      )) %>%
+                      # Remove document_type records that are not supposed to be
+                      # associated to this extraction document
+                      dplyr::filter(!is.na(relationship_type))
 
                     # Combine origin and extraction associations
-                    res = rbind(res1, res2)
+                    res = dplyr::bind_rows(res1, res2)
 
                     # Return res
                     res
@@ -420,49 +433,55 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Perform a left join on chemical id to match chemical ids
                     res1 <- res %>%
-                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
+                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date, document_type) %>%
                       tidyr::separate_rows(iris_chemical_id, sep="\\|::\\|") %>%
                       dplyr::mutate(iris_chemical_id = iris_chemical_id %>%
                                       stringr::str_squish()) %>%
                       dplyr::left_join(origin_docs %>%
                                          dplyr::select(iris_chemical_id = chem_id, clowder_id, fk_doc_id),
-                                       by = "iris_chemical_id")
+                                       by = "iris_chemical_id") %>%
+                      # Add document relationship type
+                      dplyr::mutate(relationship_type = dplyr::case_when(
+                        document_type == "IRIS Summary" ~ "extraction",
+                        TRUE ~ "origin"
+                      ))
 
                     # Perform a left join on chemicals names for those that weren't matched on chemical id
                     res2 <- res1 %>%
-                      filter(is.na(clowder_id)) %>%
-                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
+                      dplyr::filter(is.na(clowder_id)) %>%
+                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date, document_type) %>%
                       dplyr::left_join(origin_docs %>%
                                          dplyr::select(name, clowder_id, fk_doc_id),
-                                       by = "name")
+                                       by = "name") %>%
+                      # Add document relationship type
+                      dplyr::mutate(relationship_type = dplyr::case_when(
+                        document_type == "IRIS Summary" ~ "extraction",
+                        TRUE ~ "origin"
+                      ))
 
                     # Remove the records with missing clowder ids from res1 since they are associated with res2
                     res1 <- res1 %>%
-                      filter(!is.na(clowder_id))
+                      dplyr::filter(!is.na(clowder_id))
 
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
                       dplyr::filter(!(document_type == "origin"))
 
                     res3 <- res %>%
-                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date) %>%
+                      dplyr::select(name, iris_chemical_id, source_hash, source_version_date, document_type) %>%
                       merge(extraction_docs %>%
-                              dplyr::select(clowder_id, fk_doc_id))
-                      #dplyr::rowwise() %>%
-                      # Handle case of collapsed document_type
-                      #dplyr::mutate(document_type = document_type %>%
-                      #                strsplit("|::|", fixed=TRUE) %>%
-                      #                unlist() %>%
-                      #               stringr::str_squish() %>%
-                      #                unique()) %>%
-                      #dplyr::ungroup() %>%
-                      #dplyr::left_join(extraction_docs %>%
-                      #                   dplyr::select(clowder_id, fk_doc_id, iris_document_type),
-                      #                 by = c("document_type" = "iris_document_type"))
-
+                              dplyr::select(clowder_id, fk_doc_id)) %>%
+                      # Add document relationship type
+                      dplyr::mutate(relationship_type = dplyr::case_when(
+                        document_type == "IRIS Summary" ~ NA,
+                        TRUE ~ "extraction"
+                      )) %>%
+                      # Remove document_type records that are not supposed to be
+                      # associated to this extraction document
+                      dplyr::filter(!is.na(relationship_type))
 
                     # Combine the two associated data frames back into res
-                    res <- rbind(res1, res2, res3) %>%
+                    res <- dplyr::bind_rows(res1, res2, res3) %>%
                       dplyr::arrange(source_hash)
 
                     #Return the mapped res with document names and clowder ids
@@ -1564,12 +1583,31 @@ set_clowder_id_lineage <- function(source_table,
   # Check for missing fk_doc_id matches
   # res %>% filter(is.na(fk_doc_id)) %>% View()
 
-  #Checking and outing cat statement
-  res2 <- res %>%
-    dplyr::filter(is.na(clowder_id))
-  records_missing <- length(unique(res2$source_hash))
-  total_records <- length(unique(res$source_hash))
-  cat("Mapped records: ", total_records-records_missing, "| Missing: ", records_missing, "(", round(records_missing/total_records*100, 3),"%)\n")
+  # Log message on doc cataloging progress
+  if("relationship_type" %in% names(res)){
+    total_records = length(unique(res$source_hash))
+    mapped_records = length(unique(res$source_hash[!is.na(res$relationship_type)]))
+    missing_extract_rec = length(unique(res$source_hash[is.na(res$clowder_id)]))
+    rec_summ = res %>%
+      dplyr::group_by(relationship_type) %>%
+      dplyr::summarise(n = dplyr::n()) %>%
+      tidyr::unite(col = "summary", sep = ": ") %>%
+      dplyr::pull(summary) %>%
+      paste0(collapse = " | ")
+    # Report mapping status
+    cat("Mapped records: ", mapped_records,
+        " (", round(mapped_records / total_records * 100, 3), "%) - ",
+        rec_summ,
+        " - Missing extraction doc: ", missing_extract_rec,
+        " (", round(missing_extract_rec / total_records * 100, 3), "%)\n",
+        sep = "")
+  } else {
+    res2 <- res %>%
+      dplyr::filter(is.na(clowder_id))
+    records_missing <- length(unique(res2$source_hash))
+    total_records <- length(unique(res$source_hash))
+    cat("Mapped records: ", total_records-records_missing, "| Missing: ", records_missing, "(", round(records_missing/total_records*100, 3),"%)\n")
+  }
 
   # Clear out associations for source_table source_hash entries not in the current document map
   message("...Clearing out old associations not in current map...")
@@ -1591,17 +1629,18 @@ set_clowder_id_lineage <- function(source_table,
     tidyr::unite(col="pushed_docs", source_hash, fk_doc_id)
 
   if(!("source_version_date" %in% names(res))) res$source_version_date = as.character(NA)
+
   mat <- res %>%
     tidyr::unite(col="pushed_docs", source_hash, fk_doc_id, remove=FALSE) %>%
     dplyr::filter(!pushed_docs %in% pushed_doc_records$pushed_docs,
                   !is.na(fk_doc_id)) %>%
-    dplyr::select(source_hash, source_version_date, fk_doc_id)
+    dplyr::select(source_hash, fk_doc_id, relationship_type, source_version_date)
 
   if(nrow(mat)){
     message("...pushing ", nrow(mat), " new documents_records entries...")
     # Push new document records to documents table
     runInsertTable(mat=mat %>%
-                     dplyr::mutate(source_table = source_table),
+                     dplyr::mutate(source_table = !!source_table),
                    table="documents_records",
                    db=source.db)
   } else {
