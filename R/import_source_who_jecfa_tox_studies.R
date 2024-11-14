@@ -115,7 +115,8 @@ import_source_who_jecfa_tox_studies <- function(db, chem.check.halt=FALSE, do.re
       dplyr::group_by(range_relationship_id) %>%
       dplyr::mutate(
         toxval_numeric = as.numeric(toxval_numeric),
-        relationship = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range")
+        relationship = ifelse(toxval_numeric == min(toxval_numeric), "Lower Range", "Upper Range"),
+        toxval_subtype = tolower(relationship)
       ) %>%
       dplyr::ungroup()
   } else {
