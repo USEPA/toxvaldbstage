@@ -1058,23 +1058,25 @@ set_clowder_id_lineage <- function(source_table,
 
                   "source_atsdr_pfas_2021" = {
                     # Match to origin doc
-                    res <- res %>%
+                    res1 <- res %>%
                       dplyr::select(long_ref, source_hash, source_version_date) %>%
                       tidyr::separate_rows("long_ref", sep = " \\+") %>%
                       dplyr::left_join(map_file %>%
                                          dplyr::select(long_ref, clowder_id, fk_doc_id) %>%
                                          dplyr::distinct(),
-                                       by = "long_ref")
+                                       by = "long_ref") %>%
+                      dplyr::mutate(relationship_type = "origin")
 
                     # Match to extraction doc
-                    tmp = res %>%
+                    res2 = res %>%
                       dplyr::select(long_ref, source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(parent_flag == "has_parent") %>%
-                              dplyr::select(clowder_id, fk_doc_id))
+                              dplyr::select(clowder_id, fk_doc_id)) %>%
+                      dplyr::mutate(relationship_type = "extraction")
 
                     # Combine origin and extraction document associations
-                    res = rbind(res, tmp)
+                    res = rbind(res1, res2)
 
                     # Return res
                     res
