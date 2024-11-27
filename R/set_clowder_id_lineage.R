@@ -58,7 +58,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_pfas_150_sem_v2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                           "clowder_v3/source_pfas_150_sem_v2_document_map_20240717.xlsx")),
                       "source_hpvis" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                "clowder_v3/source_hpvis_document_map_20240903.xlsx"), col_types = "text"),
+                                                                "clowder_v3/source_hpvis_document_map_20241126.xlsx"), col_types = "text"),
                       "source_oppt" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                "clowder_v3/source_epa_oppt_document_map_20240227.xlsx")),
                       "source_efsa" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -633,14 +633,21 @@ set_clowder_id_lineage <- function(source_table,
                                          tidyr::separate_rows(study_reference, sep=" /// ") %>%
                                          dplyr::select(clowder_id, study_reference, fk_doc_id),
                                        by = "study_reference") %>%
-                      dplyr::distinct()
+                      dplyr::distinct() %>%
+                      # Add document relationship type
+                      dplyr::mutate(relationship_type = "origin")
 
                     # Associates extraction document to all records
                     res2 <- res %>%
-                      dplyr::select(source_hash, source_version_date) %>%
-                      merge(map_file %>%
-                              dplyr::filter(parent_flag == "has_parent") %>%
-                            dplyr::select(clowder_id, fk_doc_id, study_reference))
+                      dplyr::select(source_hash, source_version_date, study_reference, raw_input_file) %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::filter(parent_flag == "has_parent") %>%
+                                         dplyr::select(clowder_id, fk_doc_id, filename),
+                                       by = c("raw_input_file"="filename")) %>%
+                      select(-raw_input_file) %>%
+                      dplyr::distinct() %>%
+                      # Add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
 
                     # Combines both associations back into one data frame
                     res <- rbind(res1, res2) %>%
