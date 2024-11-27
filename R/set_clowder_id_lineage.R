@@ -633,7 +633,9 @@ set_clowder_id_lineage <- function(source_table,
                                          tidyr::separate_rows(study_reference, sep=" /// ") %>%
                                          dplyr::select(clowder_id, study_reference, fk_doc_id),
                                        by = "study_reference") %>%
-                      dplyr::distinct()
+                      dplyr::distinct() %>%
+                      # Add document relationship type
+                      dplyr::mutate(relationship_type = "origin")
 
                     # Associates extraction document to all records
                     res2 <- res %>%
@@ -643,7 +645,9 @@ set_clowder_id_lineage <- function(source_table,
                                          dplyr::select(clowder_id, fk_doc_id, filename),
                                        by = c("raw_input_file"="filename")) %>%
                       select(-raw_input_file) %>%
-                      dplyr::distinct()
+                      dplyr::distinct() %>%
+                      # Add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
 
                     # Combines both associations back into one data frame
                     res <- rbind(res1, res2) %>%
