@@ -1336,24 +1336,33 @@ set_clowder_id_lineage <- function(source_table,
 
                   "ECOTOX" = {
                     # Join record source table and toxval table
-                    record_source <- runQuery(paste0("SELECT toxval_id, external_source_id FROM record_source WHERE source='", source_table, "'"), db=toxval.db)
+                    record_source <- runQuery(paste0("SELECT toxval_id, external_source_id ",
+                                                     "FROM record_source WHERE source='",
+                                                     source_table, "' and ",
+                                                     "external_source_id IS NOT NULL"), db=toxval.db)
                     res <- res %>%
                       dplyr::left_join(record_source, by = "toxval_id")
 
                     # Match to origin doc
                     res1 <- res %>%
                       dplyr::select(external_source_id, source_hash) %>%
+                      dplyr::filter(!external_source_id %in% c("-")) %>%
+                      dplyr::distinct() %>%
                       dplyr::left_join(map_file %>%
-                                         dplyr::filter(parent_flag == "primary_source") %>%
+                                         dplyr::filter(parent_flag == "primary_source",
+                                                       !external_source_id %in% c("-")) %>%
                                          dplyr::select(external_source_id, clowder_id, fk_doc_id),
-                                       by = "external_source_id")
+                                       by = "external_source_id") %>%
+                      dplyr::distinct() %>%
+                      dplyr::mutate(relationship_type = "origin")
 
                     # Match to extraction doc
                     res2 = res %>%
                       dplyr::select(external_source_id, source_hash) %>%
                       merge(map_file %>%
                               dplyr::filter(parent_flag == "has_parent") %>%
-                              dplyr::select(clowder_id, fk_doc_id))
+                              dplyr::select(clowder_id, fk_doc_id)) %>%
+                      dplyr::mutate(relationship_type = "extraction")
 
                     # Combine origin and extraction document associations
                     res = rbind(res1, res2)
