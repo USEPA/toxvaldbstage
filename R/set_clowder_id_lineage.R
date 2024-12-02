@@ -165,7 +165,7 @@ set_clowder_id_lineage <- function(source_table,
                         dplyr::select(-contentType) %>%
                         dplyr::distinct(),
                       "source_epa_hhtv" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                "clowder_v3/source_epa_hhtv_document_map_20240725.xlsx"), col_types = "text"),
+                                                                   "clowder_v3/source_epa_hhtv_document_map_20240725.xlsx"), col_types = "text"),
 
                       "ChemIDplus" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/source_chemidplus_document_map.xlsx")),
@@ -174,7 +174,7 @@ set_clowder_id_lineage <- function(source_table,
                                                                                "clowder_v3/source_uterotrophic_hershberger_db_document_map.xlsx")),
 
                       "ToxRefDB" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                             "clowder_v3/source_toxrefdb_document_map_20240814.xlsx")),
+                                                            "clowder_v3/source_toxrefdb_document_map_20240814.xlsx")),
 
                       "ECOTOX" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                           "clowder_v3/source_ECOTOX_document_map_20241031.xlsx"), col_types = "text",
@@ -365,18 +365,20 @@ set_clowder_id_lineage <- function(source_table,
                       left_join(origin_docs %>%
                                   select(clowder_id, filename, fk_doc_id) %>%
                                   distinct(),
-                                by = c("src_document_name" = "filename"))
+                                by = c("src_document_name" = "filename")) %>%
+                      dplyr::mutate(relationship_type = "origin")
 
                     # Match to extraction doc
                     extraction_doc <- map_file %>%
                       dplyr::filter(!is.na(parent_flag))
-                    tmp = res %>%
+                    res2 = res %>%
                       dplyr::select(source_hash, src_document_name, source_version_date) %>%
                       merge(extraction_doc %>%
-                              dplyr::select(clowder_id, fk_doc_id))
+                              dplyr::select(clowder_id, fk_doc_id)) %>%
+                      dplyr::mutate(relationship_type = "extraction")
 
                     # Combine origin and extraction document associations
-                    res = rbind(res1, tmp)
+                    res = rbind(res1, res2)
                     # Return res
                     res
                   },
@@ -720,24 +722,26 @@ set_clowder_id_lineage <- function(source_table,
                   "source_hawc" = {
                     # Match origin docs
                     # Focus only on the study id and clowder id fields for matching
-                    res <- res %>%
+                    res1 <- res %>%
                       dplyr::mutate(study_id = as.numeric(study_id)) %>%
                       dplyr::left_join(map_file %>%
                                          dplyr::filter(!is.na(clowder_id)) %>%
                                          dplyr::select(clowder_id, fk_doc_id, animal_group.experiment.study.id) %>%
                                          dplyr::distinct(),
                                        by=c("study_id" = "animal_group.experiment.study.id")) %>%
-                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+                      dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id) %>%
+                      dplyr::mutate(relationship_type = "origin")
 
                     # Match to extraction doc
-                    tmp = res %>%
+                    res2 = res %>%
                       dplyr::select(source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(is.na(animal_group.experiment.study.id)) %>%
-                              dplyr::select(clowder_id, fk_doc_id))
+                              dplyr::select(clowder_id, fk_doc_id)) %>%
+                      dplyr::mutate(relationship_type = "extraction")
 
                     # Combine origin and extraction document associations
-                    res = dplyr::bind_rows(res, tmp)
+                    res = dplyr::bind_rows(res1, res2)
 
                     # Return res
                     res
@@ -819,7 +823,8 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(source_hash, source_version_date, who_jecfa_chemical_id) %>%
                       dplyr::left_join(origin_docs %>%
                                          dplyr::select(clowder_id, who_jecfa_chemical_id, fk_doc_id),
-                                       by = "who_jecfa_chemical_id")
+                                       by = "who_jecfa_chemical_id") %>%
+                      dplyr::mutate(relationship_type = "origin")
 
                     # Associates extraction document to all records
                     extraction_docs <- map_file %>%
@@ -834,7 +839,8 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(source_hash, source_version_date, who_jecfa_chemical_id) %>%
                       dplyr::left_join(extraction_docs %>%
                                          dplyr::select(clowder_id, who_jecfa_chemical_id, fk_doc_id),
-                                       by = "who_jecfa_chemical_id")
+                                       by = "who_jecfa_chemical_id") %>%
+                      dplyr::mutate(relationship_type = "extraction")
 
                     # Combines both associations back into one data frame
                     res <- dplyr::bind_rows(res1, res2) %>%
@@ -954,7 +960,7 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Perform a left join on chemical names to match chemical names
                     res1 <- res %>%
-                      dplyr::select(name, source_hash, source_version_date) %>%
+                      dplyr::select(name, source_hash, source_version_date, document_type) %>%
                       dplyr::distinct() %>%
                       dplyr::left_join(origin_docs %>%
                                          dplyr::select(name = "Chemical Name", clowder_id, fk_doc_id) %>%
@@ -983,7 +989,11 @@ set_clowder_id_lineage <- function(source_table,
                     }
 
                     res1 = res1 %>%
-                      tidyr::separate_rows(clowder_id, fk_doc_id, sep = ", ")
+                      tidyr::separate_rows(clowder_id, fk_doc_id, sep = ", ") %>%
+                      dplyr::mutate(relationship_type = dplyr::case_when(
+                        document_type == "ATSDR MRLs Toxicological Profile" ~ "extraction",
+                        TRUE ~ "origin"
+                      ))
 
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
@@ -991,11 +1001,13 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Perform a left join on chemical names to match chemical names
                     res2 <- res %>%
-                      dplyr::select(name, source_hash, source_version_date) %>%
+                      dplyr::select(name, source_hash, source_version_date, document_type) %>%
                       dplyr::distinct() %>%
+                      dplyr::filter(document_type != "ATSDR MRLs Toxicological Profile") %>%
                       merge(extraction_docs %>%
                               dplyr::select(clowder_id, fk_doc_id) %>%
-                              dplyr::distinct())
+                              dplyr::distinct()) %>%
+                      dplyr::mutate(relationship_type = "extraction")
                     #dplyr::rowwise() %>%
                     # Handle case of collapsed document_type
                     #dplyr::mutate(document_type = document_type %>%
@@ -1042,24 +1054,15 @@ set_clowder_id_lineage <- function(source_table,
                     res = res %>%
                       dplyr::select(ntp_study_identifier, source_hash, source_version_date) %>%
                       dplyr::left_join(map_file %>%
-                                         # Create map_file column with NTP Study Identifier from file name
-                                         # Based on what's in the NTP PFAS source data
-                                         dplyr::mutate(ntp_study_identifier = stringr::str_extract(subDir3,
-                                                                                                   paste0(unique(res$ntp_study_identifier),
-                                                                                                          collapse="|"))) %>%
-                                         dplyr::select(fk_doc_id, clowder_id, ntp_study_identifier),
+                                         dplyr::select(fk_doc_id, clowder_id, ntp_study_identifier, parent_flag),
                                        by = "ntp_study_identifier") %>%
-                      dplyr::select(-ntp_study_identifier)
+                      dplyr::mutate(relationship_type = dplyr::case_when(
+                        parent_flag == "has_parent" ~ "extraction",
+                        parent_flag == "primary_source" ~ "origin",
+                        TRUE ~ NA
+                      )) %>%
+                      dplyr::select(-ntp_study_identifier, -parent_flag)
 
-                    # Match to extraction doc
-                    tmp = res %>%
-                      dplyr::select(source_hash, source_version_date) %>%
-                      merge(map_file %>%
-                              dplyr::filter(!is.na(parent_flag)) %>%
-                              dplyr::select(clowder_id, fk_doc_id))
-
-                    res = res %>%
-                      dplyr::bind_rows(tmp)
                     # Return res
                     res
                   },
@@ -1179,24 +1182,26 @@ set_clowder_id_lineage <- function(source_table,
                   "source_health_canada" = {
                     # Match origin docs
                     # Match based on trv_source
-                    res <- res %>%
+                    res1 <- res %>%
                       dplyr::select(source_hash, source_version_date, trv_source, long_ref) %>%
                       dplyr::left_join(map_file %>%
                                          dplyr::filter(!is.na(clowder_id)) %>%
                                          dplyr::select(clowder_id, fk_doc_id, trv_source) %>%
                                          dplyr::distinct(), relationship = "many-to-many",
-                                       by = "trv_source")
+                                       by = "trv_source") %>%
+                      dplyr::mutate(relationship_type = "origin")
 
 
                     # Match to extraction doc
-                    tmp = res %>%
+                    res2 = res %>%
                       dplyr::select(source_hash, source_version_date, trv_source) %>%
                       merge(map_file %>%
                               dplyr::filter(is.na(trv_source)) %>%
-                              dplyr::select(clowder_id, fk_doc_id))
+                              dplyr::select(clowder_id, fk_doc_id)) %>%
+                      dplyr::mutate(relationship_type = "extraction")
 
                     # Combine origin and extraction document associations
-                    res = dplyr::bind_rows(res, tmp)
+                    res = dplyr::bind_rows(res1, res2)
 
                     # Return res
                     res
@@ -1240,6 +1245,9 @@ set_clowder_id_lineage <- function(source_table,
                       res1$fk_doc_id[grep(u_name, res1$name)] = unique(origin_docs$fk_doc_id[origin_docs$clowder_id %in% origin_replace])
                     }
 
+                    res1 = res1 %>%
+                      dplyr::mutate(relationship_type = "origin")
+
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
                       dplyr::filter(!is.na(parent_flag))
@@ -1248,7 +1256,8 @@ set_clowder_id_lineage <- function(source_table,
                     res2 <- res %>%
                       dplyr::select(source_hash, source_version_date) %>%
                       merge(extraction_docs %>%
-                              dplyr::select(clowder_id, fk_doc_id, name = "Chemical"))
+                              dplyr::select(clowder_id, fk_doc_id, name = "Chemical")) %>%
+                      dplyr::mutate(relationship_type = "extraction")
 
                     # Combine the two associated dataframes back into res
                     res <- rbind(res1, res2) %>%
@@ -1292,7 +1301,9 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::left_join(origin_docs %>%
                                          dplyr::select(long_ref, clowder_id, fk_doc_id),
                                        by = "long_ref") %>%
-                      dplyr::select(-long_ref)
+                      dplyr::select(-long_ref) %>%
+                      dplyr::mutate(relationship_type = "origin")
+
                     # associates each record to the extraction document
                     extraction_docs <- map_file %>%
                       dplyr::filter(!is.na(parent_flag))
@@ -1304,7 +1315,8 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::left_join(extraction_docs %>%
                                          dplyr::select(document_name, clowder_id, fk_doc_id),
                                        by = "document_name") %>%
-                      dplyr::select(-document_name)
+                      dplyr::select(-document_name) %>%
+                      dplyr::mutate(relationship_type = "extraction")
 
                     # Combine the two associated dataframes back into res
                     res <- rbind(res1, res2) %>%
@@ -1594,7 +1606,8 @@ set_clowder_id_lineage <- function(source_table,
                 dplyr::select(clowder_id, fk_doc_id))
 
       res1 <- res1 %>%
-        filter(!is.na(clowder_id))
+        dplyr::filter(!is.na(clowder_id)) %>%
+        dplyr::mutate(relationship_type = "extraction")
 
       # combine associations
       res <- rbind(res1, res2) %>%
@@ -1620,7 +1633,7 @@ set_clowder_id_lineage <- function(source_table,
     cat("Mapped records: ", mapped_records,
         " (", round(mapped_records / total_records * 100, 3), "%) - ",
         rec_summ,
-        " - Missing extraction doc: ", missing_extract_rec,
+        " - Missing origin doc: ", missing_extract_rec,
         " (", round(missing_extract_rec / total_records * 100, 3), "%)\n",
         sep = "")
   } else {
