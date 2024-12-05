@@ -124,7 +124,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_aegl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_epa_aegl_document_map_20240529.xlsx")),
                       "source_opp" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                              "clowder_v3/source_epa_opp_document_map_20240528.xlsx")),
+                                                              "clowder_v3/source_epa_opp_document_map_20241204.xlsx")),
                       "source_niosh" = data.frame(clowder_id = "61fabd3de4b04a563fdc9b99",
                                                   document_name = "ToxValQA33091630_NIOSH_2020_ImmediatelyDangerous-(IDLH)Values.pdf",
                                                   relationship_type = "extraction"),
@@ -187,6 +187,8 @@ set_clowder_id_lineage <- function(source_table,
                                                    guess_max = 21474836),
                       "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
+                      "source_epa_fera" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                    "clowder_v3/source_epa_fera_document_map.xlsx"), col_types = "text"),
 
                       # No source match, return empty
                       data.frame()
@@ -1632,6 +1634,19 @@ set_clowder_id_lineage <- function(source_table,
                     # Combine origin and extraction document associations
                     res = rbind(res1, res2, res3)
                     # Return res
+                    res
+                  },
+
+                  "source_epa_fera" = {
+                    # Match to extraction doc
+                    res = res %>%
+                      dplyr::select(name, source_hash, source_version_date) %>%
+                      merge(map_file %>%
+                              dplyr::select(clowder_id, fk_doc_id)) %>%
+                      # add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
+
+                    #Return the mapped res with document names and clowder ids
                     res
                   },
 
