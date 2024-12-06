@@ -97,14 +97,33 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
 
   # Function that removes names that are only chemical formulas
   correct_formula <- function(df, col = 'name', comment = 'name_comment'){
-    df_copy <- df
-    df_copy$name_is_formula <- sapply(df_copy[[col]], find_formula)
-    idx <- df_copy$name_is_formula
-    df_copy[idx, comment] <- apply(df_copy[idx, c(comment, col)], 1, function(x){
-      append_col(x = x[comment], s = x[col], comment = "Name only formula")
-    })
-    df_copy[idx, col] <- NA
-    df_copy <- df_copy[, !(names(df_copy) %in% 'name_is_formula')]
+    # df_copy <- df
+    # df_copy$name_is_formula <- sapply(df_copy[[col]], find_formula)
+    # idx <- df_copy$name_is_formula
+    # df_copy[idx, comment] <- apply(df_copy[idx, c(comment, col)], 1, function(x){
+    #   append_col(x = x[comment], s = x[col], comment = "Name only formula")
+    # })
+    # df_copy[idx, col] <- NA
+    # df_copy <- df_copy[, !(names(df_copy) %in% 'name_is_formula')]
+
+    df_copy = df %>%
+      # Rowwise to vectorize the use of the function
+      dplyr::rowwise() %>%
+      dplyr::mutate(name_is_formula = find_formula(!!as.name(col))) %>%
+      dplyr::ungroup() %>%
+      # Assign the comment column based on the flag
+      dplyr::mutate("{comment}" := dplyr::case_when(
+        name_is_formula == TRUE ~ "Name only formula",
+        TRUE ~ comment
+      ),
+      # Set input check column to NA so it's no longer checked
+      "{col}" := dplyr::case_when(
+        name_is_formula == TRUE ~ NA,
+        TRUE ~ !!as.name(col)
+      )
+      ) %>%
+      dplyr::select(-name_is_formula)
+
     return(df_copy)
   }
 
@@ -155,7 +174,7 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
   }
 
   # Function that creates the list of food names to drop
-  foods <- function() {
+  foods_list <- function() {
     food <- c('yeast culture', 'food starch', 'sweet whey',
               'salted fish', 'beverage')
     return(paste(food, collapse = "|"))
@@ -191,32 +210,56 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
 
   # Function that drops chemical names that are foods
   drop_foods <- function(df, col = 'name', comment = 'name_comment'){
-    df_copy <- df
-    foods <- foods()
-    idx <- grepl(paste(foods, collapse = "|"), tolower(df_copy[[col]]))
-    if(any(idx)){
-      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = df_copy[[col]][idx], comment = "Name is food")
-      df_copy[[col]][idx] <- NA
-    }
+    # df_copy <- df
+    foods <- foods_list()
+    # idx <- grepl(paste(foods, collapse = "|"), tolower(df_copy[[col]]))
+    # if(any(idx)){
+    #   df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = df_copy[[col]][idx], comment = "Name is food")
+    #   df_copy[[col]][idx] <- NA
+    # }
+
+    df_copy <- df %>%
+      dplyr::mutate(
+        "{comment}" := dplyr::case_when(
+          grepl(foods, !!as.name(col)) ~ "Name is food",
+          TRUE ~ !!as.name(comment)
+        ),
+        # Set input check column to NA so it's no longer checked
+        "{col}" := dplyr::case_when(
+          !!as.name(comment) == "Name is food" ~ NA,
+          TRUE ~ !!as.name(col)
+        )
+      )
     return(df_copy)
   }
 
   # Function that drops chemical names that are in the block list
   drop_blocks <- function(df, col = 'name', comment = 'name_comment'){
     blocks <- block_list()
-    df_copy <- df
-    idx <- df_copy[[col]] %in% blocks
-    if(any(idx)){
-      df_copy[[comment]][idx] <- sapply(1:nrow(df_copy[idx,]), function(i){
-        append_col(df_copy[idx,][i,][[comment]], df_copy[idx,][i,][[col]], comment = "Name is on block list")
-      })
-      df_copy[[col]][idx] <- NA
-    }
+    df_copy <- df %>%
+      dplyr::mutate(
+        "{comment}" := dplyr::case_when(
+          !!as.name(col) %in% blocks ~ "Name is on block list",
+          TRUE ~ !!as.name(comment)
+        ),
+        # Set input check column to NA so it's no longer checked
+        "{col}" := dplyr::case_when(
+          !!as.name(comment) == "Name is on block list" ~ NA,
+          TRUE ~ !!as.name(col)
+        )
+      )
+    # idx <- df_copy[[col]] %in% blocks
+    # if(any(idx)){
+    #   df_copy[[comment]][idx] <- sapply(1:nrow(df_copy[idx,]), function(i){
+    #     append_col(df_copy[idx,][i,][[comment]], df_copy[idx,][i,][[col]], comment = "Name is on block list")
+    #   })
+    #   df_copy[[col]][idx] <- NA
+    # }
     return(df_copy)
   }
 
   # Function that creates the list of stopper words for ambiguous names
-  stops <- function(){
+  stops_list <- function(){
     stop_words <- c('proprietary', 'ingredient', 'hazard', 'blend', 'inert', 'stain',
                     'other', 'withheld', 'cas |cas-|casrn',
                     'secret', "herbal",
@@ -228,20 +271,39 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
 
   # Function that drops ambiguous names based on stopper words
   drop_stoppers <- function(df, col = 'name', comment = 'name_comment'){
-    df_copy <- df
-    idx <- grepl(paste(stops(), collapse = "|"), tolower(df_copy[[col]])) &
-      !grepl("yl", tolower(df_copy[[col]]))
-    if(any(idx)){
-      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], df_copy[[col]][idx], "Ambiguous name")
-      df_copy[[col]][idx] <- NA
-    }
+    # df_copy <- df
+    # idx <- grepl(paste(stops_list(), collapse = "|"), tolower(df_copy[[col]])) &
+    #   !grepl("yl", tolower(df_copy[[col]]))
+    # if(any(idx)){
+    #   df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], df_copy[[col]][idx], "Ambiguous name")
+    #   df_copy[[col]][idx] <- NA
+    # }
+    #
+    # specific_terms <- c('polymer', 'polymers', 'wax', 'mixture', 'citron', 'compound')
+    # idx <- tolower(df[[col]]) %in% specific_terms
+    # if(any(idx)){
+    #   df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = df_copy[[col]][idx], "Ambiguous name")
+    #   df_copy[[col]][idx] <- NA
+    # }
 
-    specific_terms <- c('polymer', 'polymers', 'wax', 'mixture', 'citron', 'compound')
-    idx <- tolower(df[[col]]) %in% specific_terms
-    if(any(idx)){
-      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = df_copy[[col]][idx], "Ambiguous name")
-      df_copy[[col]][idx] <- NA
-    }
+    df_copy <- df %>%
+      dplyr::mutate(
+        "{comment}" := dplyr::case_when(
+          grepl(paste(stops_list(), collapse = "|"),
+                tolower(!!as.name(col))) &
+            !grepl("yl",
+                   tolower(!!as.name(col))) ~
+            "Ambiguous name",
+          tolower(!!as.name(col)) %in% c('polymer', 'polymers', 'wax', 'mixture', 'citron', 'compound') ~
+            "Ambiguous name",
+          TRUE ~ !!as.name(comment)
+        ),
+        # Set input check column to NA so it's no longer checked
+        "{col}" := dplyr::case_when(
+          !!as.name(comment) == "Ambiguous name" ~ NA,
+          TRUE ~ !!as.name(col)
+        )
+      )
 
     return(df_copy)
   }
@@ -306,7 +368,7 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
   res0 <- res0 %>%
     dplyr::rowwise() %>%
     dplyr::mutate(name_check = chem.check.name(in_name = name,
-                                               source = source,
+                                               source = !!source,
                                                verbose = verbose)) %>%
     dplyr::ungroup() %>%
     tidyr::separate(name_check,
@@ -321,7 +383,7 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
     drop_stoppers(df = ., col = 'n2', comment = 'name_comment') %>%
     drop_text(df = ., col='n2', comment = 'name_comment') %>%
     drop_salts(df = ., col = 'n2', comment = 'name_comment') %>%
-    mutate(n2 = str_remove(n2, ",$"),
+    dplyr::mutate(n2 = str_remove(n2, ",$"),
            n2 = str_replace_all(n2, "\\( ?\\)|\\[ ?\\]", ""),
            n2 = gsub(";\\s*$", "", n2),
            n2 = gsub("\\[\\s*$", "", n2),
