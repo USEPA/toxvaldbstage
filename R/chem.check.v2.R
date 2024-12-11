@@ -34,11 +34,15 @@
 #--------------------------------------------------------------------------------------
 chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
   printCurrentFunction(source)
+
+  # Set default flags
   name.OK <- TRUE
   casrn.OK <- TRUE
   checksum.OK <- TRUE
 
-  cat(">>> Deal with name\n")
+  ##############################################################################
+  ## Helper functions
+  ##############################################################################
   chem.check.name <- function(in_name, source, verbose){
     n0 <- in_name %>%
       # Replace zero width space unicode
@@ -114,7 +118,7 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
       # Assign the comment column based on the flag
       dplyr::mutate("{comment}" := dplyr::case_when(
         name_is_formula == TRUE ~ "Name only formula",
-        TRUE ~ comment
+        TRUE ~ NA
       ),
       # Set input check column to NA so it's no longer checked
       "{col}" := dplyr::case_when(
@@ -122,7 +126,13 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
         TRUE ~ !!as.name(col)
       )
       ) %>%
-      dplyr::select(-name_is_formula)
+      dplyr::select(-name_is_formula) %>%
+      # Append new name_comment to previous name_comment
+      tidyr::unite(col = "name_comment",
+                   c("name_comment", !!comment),
+                   sep = ", ",
+                   na.rm = TRUE) %>%
+      dplyr::mutate(name_comment = dplyr::na_if(name_comment, ""))
 
     return(df_copy)
   }
@@ -222,14 +232,21 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
       dplyr::mutate(
         "{comment}" := dplyr::case_when(
           grepl(foods, !!as.name(col)) ~ "Name is food",
-          TRUE ~ !!as.name(comment)
+          TRUE ~ NA
         ),
         # Set input check column to NA so it's no longer checked
         "{col}" := dplyr::case_when(
           !!as.name(comment) == "Name is food" ~ NA,
           TRUE ~ !!as.name(col)
         )
-      )
+      ) %>%
+      # Append new name_comment to previous name_comment
+      tidyr::unite(col = "name_comment",
+                   c("name_comment", !!comment),
+                   sep = ", ",
+                   na.rm = TRUE) %>%
+      dplyr::mutate(name_comment = dplyr::na_if(name_comment, ""))
+
     return(df_copy)
   }
 
@@ -240,14 +257,20 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
       dplyr::mutate(
         "{comment}" := dplyr::case_when(
           !!as.name(col) %in% blocks ~ "Name is on block list",
-          TRUE ~ !!as.name(comment)
+          TRUE ~ NA
         ),
         # Set input check column to NA so it's no longer checked
         "{col}" := dplyr::case_when(
           !!as.name(comment) == "Name is on block list" ~ NA,
           TRUE ~ !!as.name(col)
         )
-      )
+      ) %>%
+      # Append new name_comment to previous name_comment
+      tidyr::unite(col = "name_comment",
+                   c("name_comment", !!comment),
+                   sep = ", ",
+                   na.rm = TRUE) %>%
+      dplyr::mutate(name_comment = dplyr::na_if(name_comment, ""))
     # idx <- df_copy[[col]] %in% blocks
     # if(any(idx)){
     #   df_copy[[comment]][idx] <- sapply(1:nrow(df_copy[idx,]), function(i){
@@ -296,14 +319,20 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
             "Ambiguous name",
           tolower(!!as.name(col)) %in% c('polymer', 'polymers', 'wax', 'mixture', 'citron', 'compound') ~
             "Ambiguous name",
-          TRUE ~ !!as.name(comment)
+          TRUE ~ NA
         ),
         # Set input check column to NA so it's no longer checked
         "{col}" := dplyr::case_when(
           !!as.name(comment) == "Ambiguous name" ~ NA,
           TRUE ~ !!as.name(col)
         )
-      )
+      ) %>%
+      # Append new name_comment to previous name_comment
+      tidyr::unite(col = "name_comment",
+                   c("name_comment", !!comment),
+                   sep = ", ",
+                   na.rm = TRUE) %>%
+      dplyr::mutate(name_comment = dplyr::na_if(name_comment, ""))
 
     return(df_copy)
   }
@@ -352,20 +381,29 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
             "Unneeded adjective",
           grepl("\\d+\\%$", tolower(!!as.name(col))) ~
             "Removed percentage",
-          TRUE ~ !!as.name(comment)
+          TRUE ~ NA
         ),
         # Set input check column to NA so it's no longer checked
         "{col}" := dplyr::case_when(
-          !!as.name(comment) == "Removed text" ~ gsub(':', "", !!as.name(col), ignore.case = TRUE),
+          # Remove text before ":"
+          !!as.name(comment) == "Removed text" ~ sub('.*:', '', !!as.name(col)),
           !!as.name(comment) == "Unknown modification" ~ NA,
           !!as.name(comment) == "Unneeded adjective" ~ gsub(pat, "", !!as.name(col), ignore.case = TRUE),
+          # Remove %
           !!as.name(comment) == "Removed percentage" ~ gsub('\\d+\\%$', "", !!as.name(col), ignore.case = TRUE),
           TRUE ~ !!as.name(col)
         ),
         "{col}" := stringr::str_squish(!!as.name(col)),
         #df_copy[[col]] <- gsub("^,|-|,$", "", df_copy[[col]])
         "{comment}" := stringr::str_squish(!!as.name(comment))
-      )
+      ) %>%
+      # Append new name_comment to previous name_comment
+      tidyr::unite(col = "name_comment",
+                   c("name_comment", !!comment),
+                   sep = ", ",
+                   na.rm = TRUE) %>%
+      dplyr::mutate(name_comment = dplyr::na_if(name_comment, ""))
+
     return(df_copy)
   }
 
@@ -384,14 +422,20 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
         "{comment}" := dplyr::case_when(
           grepl('and its .* salts|and its salts', tolower(!!as.name(col)), ignore.case = TRUE) ~
             "Ambiguous salt reference",
-          TRUE ~ !!as.name(comment)
+          TRUE ~ NA
         ),
         # Set input check column to remove and its salts
         "{col}" := dplyr::case_when(
           !!as.name(comment) == "Ambiguous salt reference" ~ gsub('and its .* salts|and its salts', "", !!as.name(col), ignore.case = TRUE),
           TRUE ~ !!as.name(col)
         )
-      )
+      ) %>%
+      # Append new name_comment to previous name_comment
+      tidyr::unite(col = "name_comment",
+                   c("name_comment", !!comment),
+                   sep = ", ",
+                   na.rm = TRUE) %>%
+      dplyr::mutate(name_comment = dplyr::na_if(name_comment, ""))
 
     #df_copy[[col]][idx] <- mapply(function(col_val){
     #  strsplit(col_val, pat)[[1]][1]
@@ -400,7 +444,11 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
     return(df_copy)
   }
 
+  ##############################################################################
+  ## Apply cleaning logic
+  ##############################################################################
 
+  cat(">>> Deal with name\n")
   res0 <- res0 %>%
     dplyr::rowwise() %>%
     dplyr::mutate(name_check = chem.check.name(in_name = name,
@@ -412,13 +460,14 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
                     sep = "\\|\\|")
 
   res0$name_comment <- NA
+
   res0 <- res0 %>%
-    correct_formula(df = ., col = 'n2', comment = 'name_comment') %>%
-    drop_blocks(df = ., col = 'n2', comment = 'name_comment') %>%
-    drop_foods(df = ., col = 'n2', comment = 'name_comment') %>%
-    drop_stoppers(df = ., col = 'n2', comment = 'name_comment') %>%
-    drop_text(df = ., col='n2', comment = 'name_comment') %>%
-    drop_salts(df = ., col = 'n2', comment = 'name_comment') %>%
+    correct_formula(df = ., col = 'n2', comment = 'name_comment_new') %>%
+    drop_blocks(df = ., col = 'n2', comment = 'name_comment_new') %>%
+    drop_foods(df = ., col = 'n2', comment = 'name_comment_new') %>%
+    drop_stoppers(df = ., col = 'n2', comment = 'name_comment_new') %>%
+    drop_text(df = ., col='n2', comment = 'name_comment_new') %>%
+    drop_salts(df = ., col = 'n2', comment = 'name_comment_new') %>%
     dplyr::mutate(n2 = str_remove(n2, ",$"),
            n2 = str_replace_all(n2, "\\( ?\\)|\\[ ?\\]", ""),
            n2 = gsub(";\\s*$", "", n2),
