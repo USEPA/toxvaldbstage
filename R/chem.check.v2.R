@@ -310,56 +310,92 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
 
   # Function that drops unneeded text based on frequently seen phrases
   drop_text <- function(df, col = 'name', comment = 'name_comment') {
-    df_copy <- df
-    idx <- grepl("^part [a-z]:", tolower(df_copy[[col]]))
-    if(any(idx)){
-      df_copy[[col]][idx] <- sapply(strsplit(as.character(df_copy[[col]][idx]), ":"), function(x) x[2])
-      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = sapply(strsplit(as.character(df_copy[[col]][idx]), ":"), function(x) x[1]), comment = "Removed text")
-    }
+    #df_copy <- df
+    #idx <- grepl("^part [a-z]:", tolower(df_copy[[col]]))
+    #if(any(idx)){
+    #  df_copy[[col]][idx] <- sapply(strsplit(as.character(df_copy[[col]][idx]), ":"), function(x) x[2])
+    #  df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = sapply(strsplit(as.character(df_copy[[col]][idx]), ":"), function(x) x[1]), comment = "Removed text")
+    #}
 
-    idx <- grepl('modif', tolower(df_copy[[col]])) & !grepl('bromodif', tolower(df_copy[[col]]))
-    if(any(idx)){
-      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = df_copy[[col]][idx], comment = "Unknown modification")
-      df_copy[idx, col] <- NA
-    }
+    #idx <- grepl('modif', tolower(df_copy[[col]])) & !grepl('bromodif', tolower(df_copy[[col]]))
+    #if(any(idx)){
+    #  df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = df_copy[[col]][idx], comment = "Unknown modification")
+    #  df_copy[idx, col] <- NA
+    #}
 
     quality <- c('pure', 'purif', 'techni', 'grade', 'chemical')
     pat <- paste0("(-?)\\b(\\w*", quality, "\\w*)\\b(-?)", collapse = "|")
-    idx <- grepl(pat, tolower(df_copy[[col]]))
-    if(any(idx)){
-      df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = gsub(pat, "", df_copy[[col]][idx], ignore.case = TRUE), comment = "Unneeded adjective")
-      df_copy[[col]][idx] <- gsub(pat, "", df_copy[[col]][idx], ignore.case = TRUE)
-    }
+    #idx <- grepl(pat, tolower(df_copy[[col]]))
+    #if(any(idx)){
+    #  df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = gsub(pat, "", df_copy[[col]][idx], ignore.case = TRUE), comment = "Unneeded adjective")
+    #  df_copy[[col]][idx] <- gsub(pat, "", df_copy[[col]][idx], ignore.case = TRUE)
+    #}
 
-    idx <- grepl("\\d+\\%$", tolower(df_copy[[col]]))
-    if (any(idx)){
-      matches <- regmatches(df_copy[[col]][idx], regexec("\\d+\\%$", df_copy[[col]][idx]))
-      matches <- matches[lengths(matches) > 0]
-      if(length(matches) > 0){
-        df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = matches[[1]], comment = "Removed text")
-        df_copy[[col]][idx] <- gsub("\\d+\\%$", "", df_copy[[col]][idx])
-      }
-    }
-
-    df_copy[[col]] <- stringr::str_squish(df_copy[[col]])
-    #df_copy[[col]] <- gsub("^,|-|,$", "", df_copy[[col]])
-    df_copy[[comment]] <- stringr::str_squish(df_copy[[comment]])
+    #idx <- grepl("\\d+\\%$", tolower(df_copy[[col]]))
+    #if (any(idx)){
+    #  matches <- regmatches(df_copy[[col]][idx], regexec("\\d+\\%$", df_copy[[col]][idx]))
+    #  matches <- matches[lengths(matches) > 0]
+    #  if(length(matches) > 0){
+    #    df_copy[[comment]][idx] <- mapply(append_col, df_copy[[comment]][idx], s = matches[[1]], comment = "Removed text")
+    #    df_copy[[col]][idx] <- gsub("\\d+\\%$", "", df_copy[[col]][idx])
+    #  }
+    #}
+    df_copy <- df %>%
+      dplyr::mutate(
+        "{comment}" := dplyr::case_when(
+          grepl("^part [a-z]:", tolower(!!as.name(col))) ~
+            "Removed text",
+          grepl('modif', tolower(!!as.name(col))) &
+            !grepl('bromodif', tolower(!!as.name(col))) ~
+            "Unknown modification",
+          grepl(pat, tolower(!!as.name(col))) ~
+            "Unneeded adjective",
+          grepl("\\d+\\%$", tolower(!!as.name(col))) ~
+            "Removed percentage",
+          TRUE ~ !!as.name(comment)
+        ),
+        # Set input check column to NA so it's no longer checked
+        "{col}" := dplyr::case_when(
+          !!as.name(comment) == "Removed text" ~ gsub(':', "", !!as.name(col), ignore.case = TRUE),
+          !!as.name(comment) == "Unknown modification" ~ NA,
+          !!as.name(comment) == "Unneeded adjective" ~ gsub(pat, "", !!as.name(col), ignore.case = TRUE),
+          !!as.name(comment) == "Removed percentage" ~ gsub('\\d+\\%$', "", !!as.name(col), ignore.case = TRUE),
+          TRUE ~ !!as.name(col)
+        ),
+        "{col}" := stringr::str_squish(!!as.name(col)),
+        #df_copy[[col]] <- gsub("^,|-|,$", "", df_copy[[col]])
+        "{comment}" := stringr::str_squish(!!as.name(comment))
+      )
     return(df_copy)
   }
 
   # Function that drops ambiguous salts
   drop_salts <- function(df, col = 'name', comment = 'name_comment') {
-    df_copy <- df
-    pat <- 'and its .* salts|and its salts'
-    idx <- grepl(pat, tolower(df_copy[[col]]), ignore.case = TRUE)
-    df_copy[[comment]][idx] <- mapply(function(x, col_val){
-      s <- regmatches(col_val, regexec(pat, col_val, ignore.case = TRUE))[[1]][1]
-      append_col(x, s, comment = "Ambiguous salt reference")
-    }, df_copy[[comment]][idx], df_copy[[col]][idx])
+    #df_copy <- df
+    #pat <- 'and its .* salts|and its salts'
+    #idx <- grepl(pat, tolower(df_copy[[col]]), ignore.case = TRUE)
+    #df_copy[[comment]][idx] <- mapply(function(x, col_val){
+    #  s <- regmatches(col_val, regexec(pat, col_val, ignore.case = TRUE))[[1]][1]
+    #  append_col(x, s, comment = "Ambiguous salt reference")
+    #}, df_copy[[comment]][idx], df_copy[[col]][idx])
 
-    df_copy[[col]][idx] <- mapply(function(col_val){
-      strsplit(col_val, pat)[[1]][1]
-    }, df_copy[[col]][idx])
+    df_copy <- df %>%
+      dplyr::mutate(
+        "{comment}" := dplyr::case_when(
+          grepl('and its .* salts|and its salts', tolower(!!as.name(col)), ignore.case = TRUE) ~
+            "Ambiguous salt reference",
+          TRUE ~ !!as.name(comment)
+        ),
+        # Set input check column to remove and its salts
+        "{col}" := dplyr::case_when(
+          !!as.name(comment) == "Ambiguous salt reference" ~ gsub('and its .* salts|and its salts', "", !!as.name(col), ignore.case = TRUE),
+          TRUE ~ !!as.name(col)
+        )
+      )
+
+    #df_copy[[col]][idx] <- mapply(function(col_val){
+    #  strsplit(col_val, pat)[[1]][1]
+    #}, df_copy[[col]][idx])
 
     return(df_copy)
   }
