@@ -468,8 +468,8 @@ chem.check.v2 <- function(res0, source = NULL, verbose = FALSE) {
     drop_stoppers(df = ., col = 'n2', comment = 'name_comment_new') %>%
     drop_text(df = ., col='n2', comment = 'name_comment_new') %>%
     drop_salts(df = ., col = 'n2', comment = 'name_comment_new') %>%
-    dplyr::mutate(n2 = str_remove(n2, ",$"),
-           n2 = str_replace_all(n2, "\\( ?\\)|\\[ ?\\]", ""),
+    dplyr::mutate(n2 = stringr::str_remove(n2, ",$"),
+           n2 = stringr::str_replace_all(n2, "\\( ?\\)|\\[ ?\\]", ""),
            n2 = gsub(";\\s*$", "", n2),
            n2 = gsub("\\[\\s*$", "", n2),
            n2 = gsub(",\\s*;(?!\\S)",";", n2, perl = TRUE))
