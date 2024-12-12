@@ -407,10 +407,13 @@ set_clowder_id_lineage <- function(source_table,
                     # Match to extraction doc
                     res2 = res %>%
                       dplyr::select(raw_input_file, source_hash, casrn, source_version_date) %>%
-                      tidyr::separate_rows(raw_input_file, sep=" \\|::\\| ") %>%
-                      left_join(map_file %>%
+                      # For now, Only select first extraction file listed for cases of dedup collapsed records
+                      dplyr::mutate(raw_input_file = gsub('\\|::.*', '', raw_input_file) %>%
+                                      stringr::str_squish()) %>%
+                      # tidyr::separate_rows(raw_input_file, sep=" \\|::\\| ") %>%
+                      dplyr::left_join(map_file %>%
                                   dplyr::filter(parent_flag == "has_parent") %>%
-                                  dplyr::select(filename, casrn, clowder_id, fk_doc_id),
+                                  dplyr::select(filename, clowder_id, fk_doc_id),
                                 by = c("raw_input_file" = "filename")) %>%
                       dplyr::distinct() %>%
                       dplyr::select(-raw_input_file) %>%
@@ -418,7 +421,7 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::mutate(relationship_type = "extraction")
 
                     # Combine origin and extraction document associations
-                    res = rbind(res1, res2)
+                    res = dplyr::bind_rows(res1, res2)
                     # Return res
                     res
                   },
@@ -1581,18 +1584,18 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::mutate(relationship_type = "origin")
 
                     # Match to extraction doc
-                    res3 = res %>%
+                    res2 = res %>%
                       dplyr::select(casrn, source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(parent_flag == "has_parent") %>%
-                              dplyr::select(clowder_id, fk_doc_id, filename)) %>%
+                              dplyr::select(clowder_id, fk_doc_id, doc_name)) %>%
                       # add document relationship type
                       dplyr::mutate(relationship_type = dplyr::case_when(
-                        filename == "DOE_Wildlife_Benchmarks_1996.xlsx" ~ "extraction",
-                        filename == "doe_wildlife_benchmarks_1996_tm86r3.pdf" ~ "origin",
+                        doc_name == "DOE_Wildlife_Benchmarks_1996.xlsx" ~ "extraction",
+                        doc_name == "doe_wildlife_benchmarks_1996_tm86r3.pdf" ~ "origin",
                         TRUE ~ NA
                       )) %>%
-                      dplyr::select(-filename)
+                      dplyr::select(-doc_name)
 
                     # Combine origin and extraction document associations
                     res = rbind(res1, res2)
