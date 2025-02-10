@@ -25,7 +25,7 @@
 #' @importFrom tidyr pivot_longer separate unite drop_na
 #' @importFrom stringr str_squish str_extract
 #--------------------------------------------------------------------------------------
-import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_ntp_pfas <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "NTP PFAS"
   source_table = "source_ntp_pfas"
@@ -189,7 +189,7 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
 
   # Dedup and collapse critical_effect field
-  res_dedup = toxval.source.import.dedup(res,
+  res = toxval.source.import.dedup(res,
                                    hashing_cols=toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in%
                                                                                c("critical_effect")]) %>%
     # Replace "|::|" in critical_effect with "|" delimiter

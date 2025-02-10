@@ -29,7 +29,7 @@ qc_sampling <- function(toxval.db,
   if(!curation_method %in% c("automated", "manual")) stop("Input param 'curation_method' must be 'automated' or 'manual'")
 
   # Directory paths for QC sampling assets
-  dir_input = "Repo/qc_sampling/sampling_input"
+  dir_input = paste0(toxval.config()$datapath, "qc_sampling/sampling_input")
 
   # Get source table by input source name
   source_table = runQuery(query=paste0("SELECT source_table FROM chemical_source_index WHERE source = '", source,"'"),
