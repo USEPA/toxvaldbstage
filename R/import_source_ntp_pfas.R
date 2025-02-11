@@ -117,7 +117,8 @@ import_source_ntp_pfas <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   res = dplyr::bind_rows(res0_ok, res0_updated) %>%
     dplyr::rename(toxval_numeric = dose_value,
                   toxval_units = dose_units,
-                  exposure_route = administration_route) %>%
+                  exposure_route = 'oral',
+                  exposure_method = administration_route) %>%
     # Filter out critical_effect_direction without an effect
     dplyr::filter(!critical_effect_direction %in% c("No effect", "Not tested", "No call", "Equivocal"),
                   !grepl("^not applicable|\bequivocal\b|\bnegative\b|\bpositive\b",
