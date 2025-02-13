@@ -8,7 +8,7 @@
 #-----------------------------------------------------------------------------------
 prioritize.toxval.records <- function(toxval.db="res_toxval_v95",res, fraction=0.1) {
   printCurrentFunction(toxval.db)
-  dir = "Repo/qc_sampling/sampling_input"
+  dir = paste0(toxval.config()$datapath, "qc_sampling/sampling_input")
   tv = res
   tv = tv[tv$source_hash!="-",]
 

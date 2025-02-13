@@ -9,7 +9,7 @@ library(digest)
 #-----------------------------------------------------------------------------------
 export.for.toxvaldb.qc_prioritization <- function(toxval.db) {
   printCurrentFunction(toxval.db)
-  dir = "Repo/qc_sampling/sampling_input"
+  dir = paste0(toxval.config()$datapath, "qc_sampling/sampling_input")
   slist = runQuery("select distinct source from toxval",toxval.db)[,1]
   #slist = slist[!is.element(slist,c("ECOTOX"))]
   res = NULL

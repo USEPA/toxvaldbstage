@@ -25,7 +25,7 @@
 #' @importFrom tidyr pivot_longer separate unite drop_na
 #' @importFrom stringr str_squish str_extract
 #--------------------------------------------------------------------------------------
-import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_source_ntp_pfas <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "NTP PFAS"
   source_table = "source_ntp_pfas"
@@ -66,7 +66,7 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                                   "dose_value", "notes"), ~stringr::str_squish(.)),
                   dose_value = as.numeric(dose_value),
                   toxval_type = NA) %>%
-  dplyr::distinct()
+    dplyr::distinct()
 
   # Set toxval_type
   res0$toxval_type[grepl("increase|decrease", res0$critical_effect_direction, ignore.case = TRUE)] <- "LOEL"
@@ -98,7 +98,7 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
 
   # Remove whitespace
   res1 = res1 %>% dplyr::mutate(dplyr::across(c("critical_effect", "critical_effect_class",
-                                "dose_value", "dose_notes"), ~stringr::str_squish(.)),
+                                                "dose_value", "dose_notes"), ~stringr::str_squish(.)),
                                 dose_value = as.numeric(dose_value))
 
   # Separate rows to be updated from rows that are ok
@@ -117,7 +117,27 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   res = dplyr::bind_rows(res0_ok, res0_updated) %>%
     dplyr::rename(toxval_numeric = dose_value,
                   toxval_units = dose_units,
-                  exposure_route = administration_route)
+                  exposure_method = administration_route,
+                  exposure_form = dose_vehicle) %>%
+    # Filter out critical_effect_direction without an effect
+    dplyr::filter(!critical_effect_direction %in% c("No effect", "Not tested", "No call", "Equivocal", "Yes"),
+                  !grepl("^not applicable|\bequivocal\b|\bnegative\b|\bpositive\b",
+                         critical_effect_direction,
+                         ignore.case = TRUE),
+                  !critical_effect_direction %in% c(NA, "", "-", "NA")) %>%
+    dplyr::mutate(
+      exposure_route = 'oral',
+      critical_effect_direction = critical_effect_direction %>%
+        stringr::str_squish() %>%
+        gsub(" - Treatment-related effect not considered toxicologically relevant.", "",
+             ., fixed=TRUE) %>%
+        stringr::str_squish(),
+      critical_effect_direction = dplyr::case_when(
+        # If only one word, capitalize the word
+        !grepl("\\s", critical_effect_direction) ~ stringr::str_to_sentence(critical_effect_direction),
+        TRUE ~ critical_effect_direction
+      )
+    )
 
   # Post manual curation edits to whole (did not want to affect joining)
   res = res %>%
@@ -152,8 +172,14 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
     tidyr::unite(
       col="critical_effect",
       critical_effect_class, critical_effect,
+      sep=": ",
       na.rm = TRUE
     ) %>%
+    tidyr::unite(
+      col = "critical_effect",
+      critical_effect, critical_effect_direction,
+      sep = " ",
+      na.rm = TRUE) %>%
 
     # Remove entries that do not have required ToxVal values
     tidyr::drop_na(toxval_numeric, toxval_units, toxval_type) %>%
@@ -165,6 +191,17 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   res$source_version_date <- src_version_date
   # Fill blank hashing cols
   res[, toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in% names(res)]] <- "-"
+
+  # Dedup and collapse critical_effect field
+  res = toxval.source.import.dedup(res,
+                                   hashing_cols=toxval.config()$hashing_cols[!toxval.config()$hashing_cols %in%
+                                                                               c("critical_effect")]) %>%
+    # Replace "|::|" in critical_effect with "|" delimiter
+    dplyr::mutate(
+      critical_effect = critical_effect %>%
+        gsub(" \\|::\\| ", "|", .)
+    )
+
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
@@ -177,7 +214,3 @@ import_source_ntp_pfas <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
                        chem.check.halt=chem.check.halt,
                        hashing_cols=toxval.config()$hashing_cols)
 }
-
-
-
-
