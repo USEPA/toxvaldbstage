@@ -57,7 +57,7 @@ export_chemicals_to_curate <- function(db, export_all=FALSE){
       dplyr::filter(external_id %in% active_chem_ids$chemical_id)
 
     # Pull list of curated DSSTOX files
-    dsstox_files = list.files("Repo/chemical_mapping/",
+    dsstox_files = list.files(paste0(toxval.config()$datapath, "chemical_mapping/"),
                               full.names = TRUE,
                               recursive = TRUE,
                               pattern = "DSSTox_") %>%
@@ -93,18 +93,20 @@ export_chemicals_to_curate <- function(db, export_all=FALSE){
     dplyr::group_split(chemical_index)
 
   # Prepare output directory
-  if(!dir.exists("Repo/chemical_mapping/to_ticket_dsstox")){
-    dir.create("Repo/chemical_mapping/to_ticket_dsstox", recursive = TRUE)
+  if(!dir.exists(paste0(toxval.config()$datapath, "chemical_mapping/to_ticket_dsstox"))){
+    dir.create(paste0(toxval.config()$datapath, "chemical_mapping/to_ticket_dsstox"), recursive = TRUE)
   }
 
   message("Exporting chemicals to curate...")
   for(f in out){
     writexl::write_xlsx(f %>%
                           dplyr::select(-chemical_index, -chemical_hash),
-                        paste0("Repo/chemical_mapping/to_ticket_dsstox/",
+                        paste0(toxval.config()$datapath, "chemical_mapping/to_ticket_dsstox/",
                                f$chemical_index %>% unique(),
                                # "_", digest::digest(Sys.Date()) %>% stringr::str_sub(1, 4),
-                               "_a",
+                               "_a_",
+                               Sys.Date() %>%
+                                 gsub("-", "", .),
                                ".xlsx"))
   }
 }
