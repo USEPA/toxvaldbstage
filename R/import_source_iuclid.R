@@ -1169,6 +1169,13 @@ import_source_iuclid <- function(db, subf, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::distinct() %>%
     tidyr::drop_na(species)
 
+  # Flag quality = "3 (not reliable)" records
+  res = res %>%
+    dplyr::mutate(qc_status = dplyr::case_when(
+      quality = "3 (not reliable)" ~ "fail: record removed due to quality score from source",
+      TRUE ~ "not determined"
+    ))
+
   # Perform deduping
   res = toxval.source.import.dedup(res, hashing_cols=hashing_cols)
 
