@@ -364,30 +364,23 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_hess" = {
-                    # Match to origin docs based on document names
-                    origin_docs <- map_file %>%
-                      dplyr::filter(is.na(parent_flag))
+                    # Match to extraction docs based on document names
+                    extraction_doc <- map_file %>%
+                      dplyr::filter(document_type == "extraction")
+
                     res1 <- res %>%
                       dplyr::select(source_hash, src_document_name, source_version_date) %>%
-                      left_join(origin_docs %>%
+                      left_join(extraction_doc %>%
                                   select(clowder_id, filename, fk_doc_id) %>%
                                   distinct(),
                                 by = c("src_document_name" = "filename")) %>%
                       # add document relationship type
-                      dplyr::mutate(relationship_type = "origin")
-
-                    # Match to extraction doc
-                    extraction_doc <- map_file %>%
-                      dplyr::filter(!is.na(parent_flag))
-                    res2 = res %>%
-                      dplyr::select(source_hash, src_document_name, source_version_date) %>%
-                      merge(extraction_doc %>%
-                              dplyr::select(clowder_id, fk_doc_id)) %>%
-                      # add document relationship type
                       dplyr::mutate(relationship_type = "extraction")
 
+                    # No origin documents at this time
+
                     # Combine origin and extraction document associations
-                    res = rbind(res1, res2)
+                    res = res1
                     # Return res
                     res
                   },
