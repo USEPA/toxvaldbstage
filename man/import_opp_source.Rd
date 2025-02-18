@@ -8,7 +8,8 @@ import_opp_source(
   db,
   chem.check.halt = FALSE,
   do.reset = FALSE,
-  do.insert = FALSE
+  do.insert = FALSE,
+  do.summary_data = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ import_opp_source(
 \item{do.reset}{If TRUE, delete data from the database for this source before}
 
 \item{do.insert}{If TRUE, insert data into the database, default FALSE}
+
+\item{do.summary_data}{If TRUE, add OPP Summary data to table before insertion}
 }
 \value{
 None; data is pushed to toxval_source

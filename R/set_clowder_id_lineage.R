@@ -52,11 +52,11 @@ set_clowder_id_lineage <- function(source_table,
                       "source_pprtv_ncea" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                      "clowder_v3/source_pprtv_ncea_document_map_20240522.xlsx")),
                       "source_hawc_pfas_150" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                        "clowder_v3/source_hawc_pfas_150_document_map_20231114.xlsx")),
+                                                                        "clowder_v3/source_hawc_pfas_150_document_map_20241210.xlsx")),
                       "source_hawc_pfas_430" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                        "clowder_v3/source_hawc_pfas_430_document_map_20231114.xlsx")),
+                                                                        "clowder_v3/source_hawc_pfas_430_document_map_20241210.xlsx")),
                       "source_pfas_150_sem_v2" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                          "clowder_v3/source_pfas_150_sem_v2_document_map_20240717.xlsx")),
+                                                                          "clowder_v3/source_pfas_150_sem_v2_document_map_20241211.xlsx")),
                       "source_hpvis" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                 "clowder_v3/source_hpvis_document_map_20241126.xlsx"), col_types = "text"),
                       "source_oppt" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -115,14 +115,14 @@ set_clowder_id_lineage <- function(source_table,
                       # "source_atsdr_pfas" = data.frame(clowder_id = "6238e943e4b0b18cb57ced5a",
                       #                     document_name = "tp200-c2.pdf"),
                       "source_atsdr_pfas_2021" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                          "clowder_v3/source_atsdr_pfas_2021_document_map_20241126.xlsx")),
+                                                                          "clowder_v3/source_atsdr_pfas_2021_document_map_20241211.xlsx")),
                       "source_dod_meg" = data.frame(clowder_id = "651c7a8fe4b0d99f5a8c9983",
                                                     document_name = "TG230MilitaryExposureGuidelines.xls",
                                                     relationship_type = "extraction"),
                       "source_doe_benchmarks" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                         "clowder_v3/source_doe_wildlife_benchmarks_doc_map.xlsx")),
+                                                                         "clowder_v3/source_doe_wildlife_benchmarks_doc_map_20250121.xlsx")),
                       "source_epa_aegl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                   "clowder_v3/source_epa_aegl_document_map_20240529.xlsx")),
+                                                                   "clowder_v3/source_epa_aegl_document_map_20241211.xlsx")),
                       "source_opp" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                               "clowder_v3/source_epa_opp_document_map_20240528.xlsx")),
                       "source_niosh" = data.frame(clowder_id = "61fabd3de4b04a563fdc9b99",
@@ -130,29 +130,29 @@ set_clowder_id_lineage <- function(source_table,
                                                   relationship_type = "extraction"),
                       "source_ow_dwsha" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ow_dws_document_map.xlsx")),
-                      "source_penn_dep_mscs" = data.frame(clowder_id = "669eb766e4b0a7c65d1d62c8",
-                                                          document_name = "Penn DEP MSCs_2021-11-20_extraction.zip",
+                      "source_penn_dep_mscs" = data.frame(clowder_id = "67599dcae4b0a7c65d37b2b6",
+                                                          document_name = "Penn DEP MSCs_2021-11-20_extraction_docs.zip",
                                                           relationship_type = "extraction"),
-                      "source_penn_dep_toxvalues" = data.frame(clowder_id = "65de5e8ae4b063812d6afb91",
-                                                               document_name = "PEN DEP ToxValues20211120.zip",
+                      "source_penn_dep_toxvalues" = data.frame(clowder_id = "67599fbae4b0a7c65d37b2e3",
+                                                               document_name = "PEN DEP ToxValues20211120_documents.zip",
                                                                relationship_type = "extraction"),
                       "source_usgs_hbsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                    "clowder_v3/source_usgs_hbsl_document_map_20240918.xlsx")),
+                                                                    "clowder_v3/source_usgs_hbsl_document_map_20241211.xlsx")),
                       "source_who_ipcs" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_who_ipcs_document_map.xlsx")),
-                      "source_osha_air_limits" = data.frame(clowder_id = "65de60e8e4b063812d6afbd7",
-                                                            document_name = "OSHA Air_2017-03-21_extraction_doc.zip",
+                      "source_osha_air_limits" = data.frame(clowder_id = "6544f462e4b045b9ff7d0bd9",
+                                                            document_name = "CFR-2022-title29-vol6-sec1910-1000.pdf",
                                                             relationship_type = "extraction"),
                       # "source_wignall" = data.frame(clowder_id = "62b30a1ee4b07abf29f56811",
                       #                  document_name = "ToxValDBQA Wignall EHP 2014.pdf"),
                       "source_test" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                               "clowder_v3/source_test_document_map_20240109.xlsx")),
+                                                               "clowder_v3/source_test_document_map_20241211.xlsx")),
                       #"source_atsdr_mrls" = data.frame(clowder_id="649c5e23e4b00be57315594c",
                       #                                 document_name="ATSDR MRLs - April 2023 - H.pdf"),
                       # "source_atsdr_mrls_2022" = data.frame(clowder_id="63b58958e4b04f6bb1507bf2",
                       #                          document_name="ATSDR MRLs - August 2022 - H.pdf"),
                       "source_rsl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                              "clowder_v3/source_rsl_doc_map.xlsx"), col_types = "text",),
+                                                              "clowder_v3/source_rsl_doc_map_20241211.xlsx"), col_types = "text",),
                       "source_hess" =  readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                 "clowder_v3/source_hess_2021_doc_map_20240429.xlsx")),
                       "source_copper" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -177,13 +177,13 @@ set_clowder_id_lineage <- function(source_table,
                                                               "clowder_v3/source_chemidplus_document_map.xlsx")),
 
                       "Uterotrophic Hershberger DB" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                               "clowder_v3/source_uterotrophic_hershberger_db_document_map.xlsx")),
+                                                                               "clowder_v3/source_uterotrophic_hershberger_document_map_20241211.xlsx")),
 
                       "ToxRefDB" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                             "clowder_v3/source_toxrefdb_document_map_20240814.xlsx")),
 
                       "ECOTOX" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                          "clowder_v3/source_ECOTOX_document_map_20241031.xlsx"), col_types = "text",
+                                                          "clowder_v3/source_ECOTOX_document_map_20241211.xlsx"), col_types = "text",
                                                    guess_max = 21474836),
                       "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
@@ -399,15 +399,22 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Match to extraction doc
                     res2 = res %>%
-                      dplyr::select(source_hash, casrn, source_version_date) %>%
-                      merge(map_file %>%
-                              dplyr::filter(parent_flag == "has_parent") %>%
-                              dplyr::select(clowder_id, fk_doc_id)) %>%
+                      dplyr::select(raw_input_file, source_hash, casrn, source_version_date) %>%
+                      # For now, Only select first extraction file listed for cases of dedup collapsed records
+                      dplyr::mutate(raw_input_file = gsub('\\|::.*', '', raw_input_file) %>%
+                                      stringr::str_squish()) %>%
+                      # tidyr::separate_rows(raw_input_file, sep=" \\|::\\| ") %>%
+                      dplyr::left_join(map_file %>%
+                                  dplyr::filter(parent_flag == "has_parent") %>%
+                                  dplyr::select(filename, clowder_id, fk_doc_id),
+                                by = c("raw_input_file" = "filename")) %>%
+                      dplyr::distinct() %>%
+                      dplyr::select(-raw_input_file) %>%
                       # add document relationship type
                       dplyr::mutate(relationship_type = "extraction")
 
                     # Combine origin and extraction document associations
-                    res = rbind(res1, res2)
+                    res = dplyr::bind_rows(res1, res2)
                     # Return res
                     res
                   },
@@ -1559,7 +1566,7 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_doe_benchmarks" = {
-                    # Match to origin doc
+                    # Match to parent docs
                     res1 <- res %>%
                       dplyr::select(casrn, source_hash, source_version_date) %>%
                       dplyr::left_join(map_file %>%
@@ -1574,9 +1581,14 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(casrn, source_hash, source_version_date) %>%
                       merge(map_file %>%
                               dplyr::filter(parent_flag == "has_parent") %>%
-                              dplyr::select(clowder_id, fk_doc_id)) %>%
+                              dplyr::select(clowder_id, fk_doc_id, doc_name)) %>%
                       # add document relationship type
-                      dplyr::mutate(relationship_type = "extraction")
+                      dplyr::mutate(relationship_type = dplyr::case_when(
+                        doc_name == "DOE_Wildlife_Benchmarks_1996.xlsx" ~ "extraction",
+                        doc_name == "doe_wildlife_benchmarks_1996_tm86r3.pdf" ~ "origin",
+                        TRUE ~ NA
+                      )) %>%
+                      dplyr::select(-doc_name)
 
                     # Combine origin and extraction document associations
                     res = rbind(res1, res2)
@@ -1624,6 +1636,20 @@ set_clowder_id_lineage <- function(source_table,
 
                     # Combine origin and extraction document associations
                     res = rbind(res1, res2, res3)
+                    # Return res
+                    res
+                  },
+
+                  "Uterotrophic Hershberger DB" = {
+                    # Match to extraction doc
+                    res = res %>%
+                      dplyr::select(study_type, source_hash) %>%
+                      left_join(map_file %>%
+                                  dplyr::select(study_type, clowder_id, fk_doc_id),
+                                by = "study_type") %>%
+                      # add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
+
                     # Return res
                     res
                   },
@@ -1696,14 +1722,18 @@ set_clowder_id_lineage <- function(source_table,
         dplyr::left_join(map_file %>%
                            dplyr::select(fk_doc_id, clowder_id),
                          by="clowder_id") %>%
-        dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id)
+        dplyr::select(source_hash, source_version_date, clowder_id, fk_doc_id) %>%
+        # add document relationship type
+        dplyr::mutate(relationship_type = "origin")
 
       # Match to extraction doc
       tmp = res %>%
         dplyr::select(source_hash, source_version_date) %>%
         merge(map_file %>%
-                dplyr::filter(!is.na(parent_flag)) %>%
-                dplyr::select(clowder_id, fk_doc_id))
+                dplyr::filter(parent_flag == "has_parent") %>%
+                dplyr::select(clowder_id, fk_doc_id)) %>%
+        # add document relationship type
+        dplyr::mutate(relationship_type = "extraction")
 
       # Combine origin and extraction document associations
       res = dplyr::bind_rows(res, tmp)
@@ -1725,7 +1755,9 @@ set_clowder_id_lineage <- function(source_table,
                            dplyr::mutate(endpoint_uuid = endpoint_uuid %>%
                                            gsub("\\.pdf", "", .)) %>%
                            dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
-                         by = "endpoint_uuid")
+                         by = "endpoint_uuid") %>%
+        # add document relationship type
+        dplyr::mutate(relationship_type = "origin")
 
 
       # for records without a matching endpoint_uuid associate with excel file
@@ -1734,10 +1766,13 @@ set_clowder_id_lineage <- function(source_table,
         dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
         merge(map_file %>%
                 filter(file_type == "spreadsheet") %>%
-                dplyr::select(clowder_id, fk_doc_id))
+                dplyr::select(clowder_id, fk_doc_id)) %>%
+        # add document relationship type
+        dplyr::mutate(relationship_type = "extraction")
 
       res1 <- res1 %>%
         dplyr::filter(!is.na(clowder_id)) %>%
+        # add document relationship type
         dplyr::mutate(relationship_type = "extraction")
 
       # combine associations
