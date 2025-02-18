@@ -8,13 +8,13 @@
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @return None; data is added to toxval_source
 #' @details DETAILS
-#' @examples 
+#' @examples
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @seealso 
+#' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{select}}, \code{\link[dplyr]{distinct}}, \code{\link[dplyr]{arrange}}, \code{\link[dplyr]{count}}, \code{\link[dplyr]{mutate-joins}}, \code{\link[dplyr]{filter}}, \code{\link[dplyr]{rename}}, \code{\link[dplyr]{case_when}}
 #'  \code{\link[tidyselect]{all_of}}
@@ -23,7 +23,7 @@
 #'  \code{\link[purrr]{map2}}
 #'  \code{\link[digest]{digest}}
 #' @rdname import_hawc_pfas_source
-#' @export 
+#' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom dplyr mutate select distinct arrange count left_join filter rename case_when
 #' @importFrom tidyselect all_of
@@ -166,9 +166,55 @@ import_hawc_pfas_source <- function(db, hawc_num=NULL, chem.check.halt=FALSE, do
                   dose_units.name = purrr::map2_chr(dose_dose_units, FALSE, split_dose_dose_units)) %>%
     dplyr::select(-dose_dose_units)
 
+  # Select units to keep
+  dose_regime_unit_selection <- c(
+    `mg/m3` = "mg/m3",
+    `mg/kg` = "mg/kg",
+    `Normal` = "Normal",
+    `%` = "%",
+    `mg/L` = "mg/L",
+    `mg/kg-day` = "mg/kg-day",
+    `mg/kg bw/day` = "mg/kg bw/day",
+    `ppm` = "ppm",
+    `mg/m3; ppm` = "mg/m3",
+    `mg/kg food; mg/kg-day` = "mg/kg-day",
+    `mg/kg-day; ppm` = "mg/kg-day",
+    `ppm; mg/kg-day` = "mg/kg-day",
+    `ppm; mg/m3` = "mg/m3",
+    `mg/kg-day; ug/kg/day; ug/mL` = "mg/kg-day",
+    `mg/L; mg/m3; ppm` = "mg/m3",
+    `ppm; weight % (in diet)` = "ppm",
+    `mg/L; ppm` = "mg/L"
+  ) %>%
+    data.frame(group = names(.), select=unname(.))
+
+  # Check if missing any dose_regime unit selections
+  if(any(!doses$dose_units.name %in% dose_regime_unit_selection$group)){
+    message("Missing dose_regime_unit_selection entry:")
+    cat(unique(doses$dose_units.name[!doses$dose_units.name %in% dose_regime_unit_selection$group]), sep = "\n")
+    stop("Missing dose_regime_unit_selection entry...")
+  }
+
+  # Join to selected units and remove any that are not selected
+  doses = doses %>%
+    dplyr::left_join(dose_regime_unit_selection,
+                     by = c("dose_units.name"="group")) %>%
+    tidyr::separate_longer_delim(
+      cols = -dose_regime,
+      delim = "; "
+    ) %>%
+    dplyr::filter(dose_units.name == select)
+
   # Join/fill in dose and dose_units
   hawc_pfas$doses <- doses$dose[match(hawc_pfas$animal_group.dosing_regime.id,doses$dose_regime)]
   hawc_pfas$doses_units <- doses$dose_units.name[match(hawc_pfas$animal_group.dosing_regime.id,doses$dose_regime)]
+
+  # Filter original dose_dict to selected units by dose_regime
+  dose_dict_orig = dose_dict_orig %>%
+    dplyr::left_join(doses %>%
+                       dplyr::select(dose_regime, dose_units.name, select),
+                     by = c("dose_regime", "dose_units.name")) %>%
+    dplyr::filter(!is.na(select))
 
   # Fix NOEL dict
   noel_dict = dose_dict_orig %>%
