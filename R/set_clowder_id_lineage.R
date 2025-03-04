@@ -195,7 +195,7 @@ set_clowder_id_lineage <- function(source_table,
     # IUCLID sources in a combined map
     if(grepl("iuclid", source_table)){
       map_file = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                          "clowder_v3/source_iuclid_doc_map_20240731.xlsx"))
+                                          "clowder_v3/source_iuclid_doc_map_20250304.xlsx"))
 
       # Filter map_file to only include records in the same OHT/source_table
       map_file = map_file %>%
@@ -1741,23 +1741,46 @@ set_clowder_id_lineage <- function(source_table,
 
     # Handle IUCLID case
     if(grepl("iuclid", source_table)){
-      res1 <- res %>%
-        dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
-        dplyr::left_join(map_file %>%
-                           dplyr::mutate(filename = filename %>%
-                                           gsub("NOCAS_", "", .)) %>%
-                           tidyr::separate(col = filename,
-                                           into = c("oht", "middle", "endpoint_uuid"),
-                                           sep = "_",
-                                           fill = "right",
-                                           extra = "merge") %>%
-                           dplyr::filter(!is.na(endpoint_uuid)) %>%
-                           dplyr::mutate(endpoint_uuid = endpoint_uuid %>%
-                                           gsub("\\.pdf", "", .)) %>%
-                           dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
-                         by = "endpoint_uuid") %>%
-        # add document relationship type
-        dplyr::mutate(relationship_type = "origin")
+      # Match based on endpointuuids
+      # previously cataloged origin docs used different filename format so matching logic differs between the two
+      if(source_table %in% list("source_iuclid_acutetoxicitydermal", "source_iuclid_acutetoxicityinhalation",
+                                "source_iuclid_acutetoxicityoral", "source_iuclid_acutetoxicityotherroutes",
+                                "source_iuclid_repeateddosetoxicitydermal", "source_iuclid_repeateddosetoxicityinhalation",
+                                "source_iuclid_repeateddosetoxicityother")){
+        res1 <- res %>%
+          dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
+          dplyr::left_join(map_file %>%
+                             tidyr::separate(col = filename,
+                                             into = c("oht", "endpoint_uuid"),
+                                             sep = "_",
+                                             fill = "right",
+                                             extra = "merge") %>%
+                             dplyr::filter(!is.na(endpoint_uuid)) %>%
+                             dplyr::mutate(endpoint_uuid = endpoint_uuid %>%
+                                             gsub("\\.pdf", "", .)) %>%
+                             dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
+                           by = "endpoint_uuid") %>%
+          # add document relationship type
+          dplyr::mutate(relationship_type = "origin")
+      }else{
+        res1 <- res %>%
+          dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
+          dplyr::left_join(map_file %>%
+                             dplyr::mutate(filename = filename %>%
+                                             gsub("NOCAS_", "", .)) %>%
+                             tidyr::separate(col = filename,
+                                             into = c("oht", "casrn", "endpoint_uuid"),
+                                             sep = "_",
+                                             fill = "right",
+                                             extra = "merge") %>%
+                             dplyr::filter(!is.na(endpoint_uuid)) %>%
+                             dplyr::mutate(endpoint_uuid = endpoint_uuid %>%
+                                             gsub("\\.pdf", "", .)) %>%
+                             dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
+                           by = "endpoint_uuid") %>%
+          # add document relationship type
+          dplyr::mutate(relationship_type = "origin")
+      }
 
 
       # for records without a matching endpoint_uuid associate with excel file
@@ -1771,9 +1794,7 @@ set_clowder_id_lineage <- function(source_table,
         dplyr::mutate(relationship_type = "extraction")
 
       res1 <- res1 %>%
-        dplyr::filter(!is.na(clowder_id)) %>%
-        # add document relationship type
-        dplyr::mutate(relationship_type = "extraction")
+        dplyr::filter(!is.na(clowder_id))
 
       # combine associations
       res <- rbind(res1, res2) %>%
