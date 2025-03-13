@@ -48,14 +48,12 @@ import_mn_mdh_hhwb_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
       toxval_type = gsub(",$", "", toxval_type),
       # Set species to lowercase
       species = tolower(species),
-      # Set study_duration_class to lowercase
-      study_duration_class = tolower(study_duration_class),
+      # Set study_duration_class to lowercase and remove extraneous numeric
+      study_duration_class = tolower(study_duration_class) %>%
+        gsub("neurotoxicity study1", "neurotoxicity study", .),
       # Remove trailing semi-colons from casrn
       casrn = casrn %>%
         gsub(";$", "", .),
-      # Remove extraneous numeric
-      study_duration_class = study_duration_class %>%
-        gsub("neurotoxicity study1", "neurotoxicity study", .),
       strain = strain %>%
         gsub("SpragueDawley", "Sprague-Dawley", .),
       sex = dplyr::case_when(
@@ -64,9 +62,12 @@ import_mn_mdh_hhwb_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
         sex %in% c("M/F") ~ "male/female",
         TRUE ~ sex
       ),
-      experimental_record = experimental_record %>%
-        gsub("NR", "undetermined", .)
-      ) %>%
+      experimental_record = dplyr::case_when(
+       experimental_record %in% c("NR", "-", NA) ~ "undetermined",
+       experimental_record %in% c("yes") ~ "experimental",
+       experimental_record %in% c("no") ~ "not experimental",
+       TRUE ~ experimental_record
+      )) %>%
     # Split 'casrn' list into separate rows
     tidyr::separate_longer_delim(casrn, delim = stringr::regex(" or |,|;"))
 
