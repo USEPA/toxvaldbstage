@@ -24,7 +24,7 @@
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_mn_mdh_hhwb_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_mn_mdh_hhbw_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "MN MDH HHBW"
   source_table = "source_mn_mdh_hhbw"
