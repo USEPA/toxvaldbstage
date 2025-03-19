@@ -56,30 +56,28 @@ source_prep_and_load <- function(db,source,table,res,
   # res = set_clowder_id(res=res,source=source)
 
   cat("General fixes to non-ascii and encoding \n")
-  # Handle character fixes
-  res = fix.non_ascii.v2(res,source)
+  # Get list of character fields from table
+  char_fields = runQuery(paste0("DESC ", table), db) %>%
+    dplyr::filter(grepl("varchar|text", Type, ignore.case=TRUE)) %>%
+    dplyr::pull(Field)
 
-  #
-  # make sure all characters are in UTF8 - moved from runInsertTable.R
-  # so it is applied BEFORE hashing and loading
-  #
-  desc <- runQuery(paste0("desc ",table),db)
-  desc <- desc[generics::is.element(desc[,"Field"],names(res)),]
-  for(i in 1:dim(desc)[1]) {
-    col <- desc[i,"Field"]
-    type <- desc[i,"Type"]
-    if(grepl("varchar|text", type)) {
-      # if(verbose) cat("   enc2utf8:",col,"\n")
-      x <- as.character(res[,col])
-      x[is.na(x)] <- "-"
-      x <- enc2native(x)
-      x <- iconv(x,from="latin1",to="UTF-8")
-      x <- iconv(x,from="LATIN1",to="UTF-8")
-      x <- iconv(x,from="LATIN2",to="UTF-8")
-      x <- iconv(x,from="latin-9",to="UTF-8")
-      res[,col] <- enc2utf8(x)
-    }
-  }
+  # Handle character fixes
+  res = fix.non_ascii.v2(res,source) %>%
+    dplyr::mutate(
+      # make sure all characters are in UTF8 - moved from runInsertTable.R
+      # so it is applied BEFORE hashing and loading
+      dplyr::across(
+        tidyselect::any_of(!!char_fields),
+        ~as.character(.) %>%
+          tidyr::replace_na("-") %>%
+          enc2native() %>%
+          iconv(from="latin1", to="UTF-8") %>%
+          iconv(from="LATIN1", to="UTF-8") %>%
+          iconv(from="LATIN2", to="UTF-8") %>%
+          iconv(from="latin-9", to="UTF-8") %>%
+          enc2utf8()
+      )
+    )
 
   #####################################################################
   cat("Do the chemical checking\n")
