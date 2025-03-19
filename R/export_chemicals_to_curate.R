@@ -90,6 +90,9 @@ export_chemicals_to_curate <- function(db, export_all=FALSE){
                     TRUE ~ cleaned_casrn
                   )) %>%
     dplyr::ungroup() %>%
+    # Filter out cases where raw name and casrn are blank
+    dplyr::filter(raw_name != "-",
+                  raw_casrn != "-") %>%
     dplyr::group_split(chemical_index)
 
   # Prepare output directory
