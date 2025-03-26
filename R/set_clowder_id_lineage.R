@@ -1450,7 +1450,11 @@ set_clowder_id_lineage <- function(source_table,
                               dplyr::filter(!is.na(parent_flag)) %>%
                               dplyr::select(clowder_id, fk_doc_id)) %>%
                       # add document relationship type
-                      dplyr::mutate(relationship_type = "extraction")
+                      dplyr::mutate(relationship_type = "extraction") %>%
+                      dplyr::distinct()
+
+                    res = res %>%
+                      dplyr::bind_rows(tmp)
                     # Return res
                     res
                   },
@@ -1761,7 +1765,7 @@ set_clowder_id_lineage <- function(source_table,
                              dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
                            by = "endpoint_uuid") %>%
           # add document relationship type
-          dplyr::mutate(relationship_type = "origin")
+          dplyr::mutate(relationship_type = "extraction")
       }else{
         res1 <- res %>%
           dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
@@ -1779,7 +1783,7 @@ set_clowder_id_lineage <- function(source_table,
                              dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
                            by = "endpoint_uuid") %>%
           # add document relationship type
-          dplyr::mutate(relationship_type = "origin")
+          dplyr::mutate(relationship_type = "extraction")
       }
 
 
