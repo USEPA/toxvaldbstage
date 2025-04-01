@@ -24,7 +24,6 @@ Imports:
     RCurl,
     gsubfn,
     textclean,
-    RPostgreSQL,
     data.table,
     digest,
     httr,
