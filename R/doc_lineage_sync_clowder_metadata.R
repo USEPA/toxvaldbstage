@@ -5,8 +5,8 @@
 #' @param clowder_url URL to Clowder
 #' @param clowder_api_key API key to access Clowder resources
 #' @param dsID Clowder Dataset ID
-#' @import httr jsonlite
-#' @param batch_size PARAM_DESCRIPTION, Default: 250
+#' @param batch_size PARAM_DESCRIPTION, Default: 100
+#' @param clowder_id_list Optional input list of Clowder IDs to update.
 #' @return Clowder metadata
 #' @details DETAILS
 #' @examples
@@ -30,24 +30,27 @@
 #' @importFrom dplyr filter mutate select bind_rows
 #' @importFrom purrr compact
 #' @importFrom stringr str_replace_all str_squish
-#' @param baseurl PARAM_DESCRIPTION
-#' @param apiKey PARAM_DESCRIPTION
 doc_lineage_sync_clowder_metadata <- function(source_table,
                                               db,
                                               clowder_url,
                                               clowder_api_key,
                                               batch_size = 100,
-                                              dsID = "5e31dc1e99323f93a9f5cec0"){
+                                              dsID = "5e31dc1e99323f93a9f5cec0",
+                                              clowder_id_list = NULL){
 
-  # PUll Clowder ID values
-  if(!is.null(source_table) && !is.na(source_table)){
-    # Filter to Clowder ID values associated with a source_table
-    clowder_id_list <- runQuery(paste0("SELECT distinct clowder_id FROM documents where id in (",
-                                       "SELECT fk_doc_id FROM documents_records WHERE source_table = '", source_table, "' ",
-                                       "and clowder_id != '-')"), db) %>% .[[1]]
-  } else {
-    # Pull all to sync
-    clowder_id_list <- runQuery("SELECT distinct clowder_id FROM documents where clowder_id != '-'", db=db) %>% .[[1]]
+  if(is.null(clowder_id_list)){
+    # PUll Clowder ID values
+    if(!is.null(source_table) && !is.na(source_table)){
+      # Filter to Clowder ID values associated with a source_table
+      clowder_id_list <- runQuery(paste0("SELECT distinct clowder_id FROM documents where id in (",
+                                         "SELECT fk_doc_id FROM documents_records WHERE source_table = '", source_table, "' ",
+                                         "and clowder_id != '-')"), db) %>%
+        dplyr::pull(clowder_id)
+    } else {
+      # Pull all to sync
+      clowder_id_list <- runQuery("SELECT distinct clowder_id FROM documents where clowder_id != '-'", db=db) %>%
+        dplyr::pull(clowder_id)
+    }
   }
 
   doc_tbl_names <- runQuery("SELECT * FROM documents LIMIT 1", db=db) %>%
@@ -78,8 +81,6 @@ doc_lineage_sync_clowder_metadata <- function(source_table,
       tolower() %>%
       .[. %in% doc_tbl_names]
 
-    # TODO Continue editing to new metadata pull approach
-    # Combine with file_info to get document_name field
     # Transform records into JSON
     metadata_out = metadata_out %>%
       dplyr::mutate(clowder_metadata = convert.fields.to.json(dplyr::select(., -tidyr::any_of(non_json_fields)))) %>%
