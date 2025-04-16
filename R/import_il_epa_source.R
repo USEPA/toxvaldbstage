@@ -85,12 +85,12 @@ import_il_epa_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-  # source_prep_and_load(db=db,
-  #                      source=source,
-  #                      table=source_table,
-  #                      res=res,
-  #                      do.reset=do.reset,
-  #                      do.insert=do.insert,
-  #                      chem.check.halt=chem.check.halt,
-  #                      hashing_cols=toxval.config()$hashing_cols)
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
 }
