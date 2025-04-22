@@ -1,11 +1,11 @@
 #--------------------------------------------------------------------------------------
-#' @description A generic template for adding data to toxval_source for a new source
 #'
+#' Loading IL EPA to toxval from toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
+#' @title import_il_epa_source
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
@@ -26,8 +26,8 @@
 #--------------------------------------------------------------------------------------
 import_il_epa_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "il_epa"
-  source_table = "source_il_epa"
+  source = "IL EPA"
+  source_table = "source_il_epa_dws"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2024-07-31")
   dir = paste0(toxval.config()$datapath,"il_epa_dws/il_epa_dws_files/")
@@ -55,7 +55,7 @@ import_il_epa_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
 
   # Create a new 'toxval_numeric' column, applying cleaning logic on new column.
   res = res %>%
-    mutate(
+    dplyr::mutate(
       toxval_numeric = value %>%
         trimws() %>%
         sub("\\s*\\(.*\\)$", "", .) %>%
