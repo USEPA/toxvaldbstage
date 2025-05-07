@@ -19,15 +19,7 @@
 #--------------------------------------------------------------------------------------
 clean.last.character <- function(x) {
   # Remove any of ; / . _ at the end of strings
-  ylist = c(";","/",".", "_")
-  x = stringr::str_trim(x)
-  for(i in 1:3) {
-    for(y in ylist) {
-      if(substr(x,nchar(x),nchar(x))==y) {
-        x = substr(x,1,(nchar(x)-1))
-      }
-    }
-    x = stringr::str_trim(x)
-  }
-  return(x)
+  x %>%
+    stringr::str_remove_all("[;\\/\\._\\s]+$") %>%
+    return()
 }
