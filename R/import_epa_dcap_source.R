@@ -54,16 +54,18 @@ import_epa_dcap_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
            exposure_route = "oral",
            year = 2025,
            # qc_status = "pass",
-           # TODO fill in updated long_ref once published
-           long_ref = paste0("Harrill, Alison H., Shintaro Hagiwara, Chelsea A. Weitekamp, Paul C. Stanish, ",
-                             "Jonathan T. Wall, Risa R. Sayre, Sarah E. Davidson-Fritz, Kelsey Vitense, Daniel T. Chang, ",
-                             "Michael J. Devito, Chris J. Gonzales, Maxwell Groover, Michael F. Hughes, Richard S. Judson, ",
-                             "Jason C. Lambert, Charles N. Lowe, Esra Mutlu, Katie Paul-Friedman, Andrew M. Watkins, Antony J. Williams, ",
-                             "Daniel Krewski, Greg M. Paoli, Russell S. Thomas. ",
-                             "Estimation of database-calibrated toxicity values for human health assessment using existing toxicology data for ",
-                             "one thousand chemicals, In review: Journal of Toxicology and Environmental Health."),
+           # TODO fill in updated journal long_ref once published
+           long_ref = paste0("Harrill, A. H., Hagiwara, S., Weitekamp, C. A., Stanish, P. C., ",
+                             "Wall, J. T., Sayre, R. R., Davidson-Fritz, S. E., Vitense, K., Chang, D. T., ",
+                             "Devito, M. J., Gonzales, C. J., Groover, M., Hughes, M. F., Judson, R. S., ",
+                             "Lambert, J. C., Lowe, C. N., Mutlu, E., Paul Friedman, K., Watkins, A. M., … ",
+                             "Thomas, R. S. (2025). Database Calibrated Assessment Process (DCAP) Data Release Using ToxValDB v9.6.1 [Data set]. ",
+                             "Zenodo. https://doi.org/10.23645/epacomptox.28780757.v1"),
            # TODO fill in URL with journal link once published
-           url = "https://zenodo.org/records/15357834")
+           url = "https://zenodo.org/records/15357834",
+           # Direct load of input file with minimal changes, so all pass QC Level 1
+           qc_status = "pass"
+           )
 
   # Standardize the names
   names(res) <- names(res) %>%
