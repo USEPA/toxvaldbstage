@@ -54,11 +54,13 @@ import_mn_mdh_hhbw_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
       casrn = casrn %>%
         gsub(";$", "", .),
       experimental_record = dplyr::case_when(
-       experimental_record %in% c("NR", "-", NA) ~ "undetermined",
-       experimental_record %in% c("yes") ~ "experimental",
-       experimental_record %in% c("no") ~ "not experimental",
-       TRUE ~ experimental_record
-      )) %>%
+        experimental_record %in% c("NR", "-", NA) ~ "undetermined",
+        experimental_record %in% c("yes") ~ "experimental",
+        experimental_record %in% c("no") ~ "not experimental",
+        TRUE ~ experimental_record
+      ),
+      year = study_year
+    ) %>%
     # Split 'casrn' list into separate rows
     tidyr::separate_longer_delim(casrn, delim = stringr::regex(" or |,|;"))
 
@@ -91,12 +93,12 @@ import_mn_mdh_hhbw_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
-#   source_prep_and_load(db=db,
-#                        source=source,
-#                        table=source_table,
-#                        res=res,
-#                        do.reset=do.reset,
-#                        do.insert=do.insert,
-#                        chem.check.halt=chem.check.halt,
-#                        hashing_cols=toxval.config()$hashing_cols)
-  }
+  source_prep_and_load(db=db,
+                       source=source,
+                       table=source_table,
+                       res=res,
+                       do.reset=do.reset,
+                       do.insert=do.insert,
+                       chem.check.halt=chem.check.halt,
+                       hashing_cols=toxval.config()$hashing_cols)
+}
