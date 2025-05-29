@@ -6,7 +6,7 @@
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @title FUNCTION_TITLE
-#' @return OUTPUT_DESCRIPTION
+#' @return None. SQL statements are run to load data to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{

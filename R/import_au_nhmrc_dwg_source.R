@@ -1,12 +1,12 @@
 #--------------------------------------------------------------------------------------
+#' @description Adding source AU DWG data to toxval_source
 #'
-#' Loading AU DWG to toxval from toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title import_au_dwg_source
-#' @return OUTPUT_DESCRIPTION
+#' @title import_au_nhmrc_dwg_source
+#' @return None. SQL statements are run to load data to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -24,7 +24,7 @@
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_au_dwg_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_au_nhmrc_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "AU DWG"
   source_table = "source_au_nhmrc_dwg"
