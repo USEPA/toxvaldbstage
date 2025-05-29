@@ -187,6 +187,12 @@ set_clowder_id_lineage <- function(source_table,
                                                    guess_max = 21474836),
                       "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
+                      "source_epa_dcap_ctvs" = data.frame(clowder_id = "682e0b63e4b096bca88354f8",
+                                                       document_name = "DCAP Output Table.xlsx",
+                                                       relationship_type = "extraction"),
+                      "source_epa_etap" = data.frame(clowder_id = "682e0b16e4b096bca88354d3",
+                                                          document_name = "DTXSID70191136_MOPA ETAP ASSESSMENT.PDF",
+                                                          relationship_type = "extraction"),
 
                       # No source match, return empty
                       data.frame()

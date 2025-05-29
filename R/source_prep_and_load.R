@@ -47,7 +47,10 @@ source_prep_and_load <- function(db,source,table,res,
   # res$clowder_id = "-"
   res$parent_chemical_id = "-"
   # if(!generics::is.element(source,c("HESS"))) res$document_name = "-"
-  res$qc_status = "not determined"
+  # Set default qc_status if not already set
+  if(!"qc_status" %in% names(res)){
+    res$qc_status = "not determined"
+  }
 
   # #####################################################################
   # cat("Set the clowder_id and document name\n")
