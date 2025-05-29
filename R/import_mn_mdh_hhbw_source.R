@@ -31,7 +31,7 @@ import_mn_mdh_hhbw_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2024-12-17")
   dir = paste0(toxval.config()$datapath,"mn_mdh_hhbw/mn_mdh_hhbw_files/")
-  file = paste0(dir,"MINN_MDH_HHBW_21June_formatted.xlsx")
+  file = paste0(dir,"MINN_MDH_HHBW_21June_formatted_withrelationship_QCcomplete.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -39,29 +39,20 @@ import_mn_mdh_hhbw_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
   # Add source specific transformations
 
   res <- res0 %>%
+    # Remove rows with NA values for core fields
+    tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
+    # Remove rows where name and casrn are NA
+    dplyr::filter(!dplyr::if_all(c(name, casrn), is.na)) %>%
     dplyr::mutate(
-      # Substitute 'NR' to '-' in study_year
-      study_year = dplyr::case_when(
-        study_year %in% c("NR") ~ "-",
-        TRUE ~ study_year),
-      # Remove trailing commas from toxval_type
-      toxval_type = gsub(",$", "", toxval_type),
+      # All records reviewed and passed QC
+      qc_status = "pass",
       # Set species to lowercase
       species = tolower(species),
-      # Set study_duration_class to lowercase and remove extraneous numeric
-      study_duration_class = tolower(study_duration_class) %>%
-        gsub("neurotoxicity study1", "neurotoxicity study", .),
+      # set study_duration_class to lowercase
+      study_duration_class = tolower(study_duration_class),
       # Remove trailing semi-colons from casrn
       casrn = casrn %>%
         gsub(";$", "", .),
-      strain = strain %>%
-        gsub("SpragueDawley", "Sprague-Dawley", .),
-      sex = dplyr::case_when(
-        sex %in% c("F") ~ "female",
-        sex %in% c("M") ~ "male",
-        sex %in% c("M/F") ~ "male/female",
-        TRUE ~ sex
-      ),
       experimental_record = dplyr::case_when(
        experimental_record %in% c("NR", "-", NA) ~ "undetermined",
        experimental_record %in% c("yes") ~ "experimental",
