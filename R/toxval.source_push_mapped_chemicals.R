@@ -100,7 +100,7 @@ toxval.source_push_mapped_chemicals <- function(db, source.index, curated.path,
     return()
   }
   # Clean curated chemical information (sometimes has utf8 encoding issues)
-  result = chem.check.v2(out, source="-", verbose=FALSE)
+  result = chem.check.v2(out, in_source="-", verbose=FALSE)
   out = result$res0
 
   if(bulk.push){

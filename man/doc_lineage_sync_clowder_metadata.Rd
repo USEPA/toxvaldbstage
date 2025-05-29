@@ -10,7 +10,8 @@ doc_lineage_sync_clowder_metadata(
   clowder_url,
   clowder_api_key,
   batch_size = 100,
-  dsID = "5e31dc1e99323f93a9f5cec0"
+  dsID = "5e31dc1e99323f93a9f5cec0",
+  clowder_id_list = NULL
 )
 }
 \arguments{
@@ -22,13 +23,11 @@ doc_lineage_sync_clowder_metadata(
 
 \item{clowder_api_key}{API key to access Clowder resources}
 
-\item{batch_size}{PARAM_DESCRIPTION, Default: 250}
+\item{batch_size}{PARAM_DESCRIPTION, Default: 100}
 
 \item{dsID}{Clowder Dataset ID}
 
-\item{baseurl}{PARAM_DESCRIPTION}
-
-\item{apiKey}{PARAM_DESCRIPTION}
+\item{clowder_id_list}{Optional input list of Clowder IDs to update.}
 }
 \value{
 Clowder metadata

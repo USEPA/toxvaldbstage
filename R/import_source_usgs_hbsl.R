@@ -86,7 +86,11 @@ import_source_usgs_hbsl <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do
                     # Remove training parentheses
                     gsub("\\)", "", .),
                   source = "USGS HBSL",
-                  subsource = "Water Quality Data",
+                  subsource = dplyr::case_when(
+                    toxval_type %in% c("MCL", "HHBP") ~ "USEPA Benchmarks",
+                    toxval_type %in% c("HBSL") ~ "USGS Benchmarks",
+                    TRUE ~ "Water Quality Data"
+                  ),
                   source_url = "https://water.usgs.gov/water-resources/hbsl",
                   subsource_url = source_url,
                   risk_assessment_class = "chronic",

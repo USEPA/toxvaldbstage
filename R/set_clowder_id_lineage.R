@@ -101,7 +101,7 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_ow_nrwqc_hhc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                            "clowder_v3/source_epa_ow-nrwqc-hhc_document_map_20231108.xlsx")),
                       "source_atsdr_mrls" = readxl::read_xlsx(paste0(toxval.config()$datapath,
-                                                                     "clowder_v3/source_atsdr_mrls_doc_map_20240521.xlsx")),
+                                                                     "clowder_v3/source_atsdr_mrls_doc_map_20250312.xlsx")),
                       "source_ntp_pfas" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_ntp_pfas_doc_map_20240221_jnhope.xlsx")),
                       "source_health_canada" = readxl::read_xlsx(paste0(toxval.config()$datapath,
@@ -187,6 +187,12 @@ set_clowder_id_lineage <- function(source_table,
                                                    guess_max = 21474836),
                       "source_mass_mmcl" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                     "clowder_v3/source_mass_drinking_water_standards_doc_map.xlsx"), col_types = "text"),
+                      "source_epa_dcap_ctvs" = data.frame(clowder_id = "682e0b63e4b096bca88354f8",
+                                                       document_name = "DCAP Output Table.xlsx",
+                                                       relationship_type = "extraction"),
+                      "source_epa_etap" = data.frame(clowder_id = "682e0b16e4b096bca88354d3",
+                                                          document_name = "DTXSID70191136_MOPA ETAP ASSESSMENT.PDF",
+                                                          relationship_type = "extraction"),
 
                       # No source match, return empty
                       data.frame()
@@ -1021,91 +1027,30 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_atsdr_mrls" = {
-                    # associates each origin document to specific record
-                    origin_docs <- map_file %>%
-                      dplyr::filter(document_type == "origin")
-                    # Chemical names in res and origin docs were in two different cases, changing
-                    # the case so that we can merge on chemical name
-                    origin_docs$`Chemical Name` <- toupper(origin_docs$`Chemical Name`)
-                    # One record in res wasn't fully upper case, so had to make it upper
-                    res$name <- toupper(res$name)
 
-                    # Separate chemical name lists
-                    origin_docs = origin_docs %>%
-                      tidyr::separate_rows(`Chemical Name`, sep=", ") %>%
-                      tidyr::separate_rows(`Chemical Name`, sep=" & ") %>%
-                      tidyr::separate_rows(`Chemical Name`, sep=" AND ")
-
-                    # Perform a left join on chemical names to match chemical names
-                    res1 <- res %>%
-                      dplyr::select(name, source_hash, source_version_date, document_type) %>%
-                      dplyr::distinct() %>%
-                      dplyr::left_join(origin_docs %>%
-                                         dplyr::select(name = "Chemical Name", clowder_id, fk_doc_id) %>%
+                    res0 = res %>%
+                      # Some URLs have ToxProfiles instead of toxprofiles
+                      dplyr::mutate(source_url = tolower(source_url)) %>%
+                      dplyr::left_join(map_file %>%
+                                         dplyr::select(fk_doc_id, clowder_id, source_url=URL) %>%
+                                         dplyr::mutate(source_url = tolower(source_url)) %>%
                                          dplyr::distinct(),
-                                       by = "name")
+                                       by = "source_url") %>%
+                      dplyr::select(source_hash, source_version_date, fk_doc_id, clowder_id) %>%
+                      dplyr::mutate(relationship_type = "extraction")
 
-                    # Hard code matches with grep for chemical name
-                    unmatched_names = c("BARIUM", "2-BUTOXYETHANOL", "CHROMIUM", "CYANIDE",
-                                        "DDD", "DDT", "DDE", "DICHLOROBENZENE", "1,2-DICHLOROETHENE",
-                                        "DICHLOROPROPENE", "DINITROTOLUENE", "FLUORIDE",
-                                        "HEXACHLOROCYCLOHEXANE", "CHLOROPHENOL", "TIN",
-                                        "URANIUM", "HYDRAZINE", "CHLORODIBENZOFURAN", "PHOSPHATE",
-                                        "XYLENES", "PHOSPHORUS", "IONIZING RADIATION", "PBDES", "MANGANESE", "(2,4-D)",
-                                        "BIS\\(CHLOROMETHYL\\)ETHER", "HMX", "METHYLENEDIPHENYL DIISOCYANATE",
-                                        "2-METHYLNAPHTHALENE")
+                    # Check for duplicates (due to multiple Clowder docs pointing to same URL)
+                    # but different chemical name
+                    dups = res0 %>%
+                      dplyr::count(source_hash) %>%
+                      dplyr::filter(n > 1)
 
-                    # Find matches for those missing matches with grep name to chemical name
-                    for(u_name in unmatched_names){
-                      origin_replace = unique(origin_docs$clowder_id[grep(paste0("^", u_name), origin_docs$`Chemical Name`)])
-                      # if(length(origin_replace) > 1) stop("origin_replace too long")
-                      # if(length(origin_replace) == 0) stop("No replacement")
-                      res1$clowder_id[grep(u_name, res1$name)] = origin_replace %>%
-                        toString()
-                      res1$fk_doc_id[grep(u_name, res1$name)] = unique(origin_docs$fk_doc_id[origin_docs$clowder_id %in% origin_replace]) %>%
-                        toString()
+                    if(nrow(dups)){
+                      stop("Update document map to remove duplicate document entries")
                     }
 
-                    res1 = res1 %>%
-                      tidyr::separate_rows(clowder_id, fk_doc_id, sep = ", ") %>%
-                      # add document relationship type
-                      dplyr::mutate(relationship_type = dplyr::case_when(
-                        document_type == "ATSDR MRLs Toxicological Profile" ~ "extraction",
-                        TRUE ~ "origin"
-                      ))
-
-                    # associates each record to the extraction document
-                    extraction_docs <- map_file %>%
-                      dplyr::filter(document_type != "origin")
-
-                    # Perform a left join on chemical names to match chemical names
-                    res2 <- res %>%
-                      dplyr::select(name, source_hash, source_version_date, document_type) %>%
-                      dplyr::distinct() %>%
-                      dplyr::filter(document_type != "ATSDR MRLs Toxicological Profile") %>%
-                      merge(extraction_docs %>%
-                              dplyr::select(clowder_id, fk_doc_id) %>%
-                              dplyr::distinct()) %>%
-                      # add document relationship type
-                      dplyr::mutate(relationship_type = "extraction")
-                    #dplyr::rowwise() %>%
-                    # Handle case of collapsed document_type
-                    #dplyr::mutate(document_type = document_type %>%
-                    #                strsplit("|::|", fixed=TRUE) %>%
-                    #                unlist() %>%
-                    #                stringr::str_squish() %>%
-                    #                unique()) %>%
-                    #dplyr::ungroup() %>%
-                    #dplyr::left_join(extraction_docs %>%
-                    #                   dplyr::select(clowder_id, fk_doc_id, atsdr_document_type),
-                    #                 by = c("document_type"="atsdr_document_type"))
-
-                    # Combine the two associated dataframes back into res
-                    res <- rbind(res1, res2) %>%
-                      dplyr::arrange(source_hash)
-
-                    #Return the mapped res with document names and clowder ids
-                    res
+                    #Return the mapped res with clowder ids
+                    res0
                   },
                   "source_epa_aegl" = {
                     res <- res %>%
@@ -1450,7 +1395,11 @@ set_clowder_id_lineage <- function(source_table,
                               dplyr::filter(!is.na(parent_flag)) %>%
                               dplyr::select(clowder_id, fk_doc_id)) %>%
                       # add document relationship type
-                      dplyr::mutate(relationship_type = "extraction")
+                      dplyr::mutate(relationship_type = "extraction") %>%
+                      dplyr::distinct()
+
+                    res = res %>%
+                      dplyr::bind_rows(tmp)
                     # Return res
                     res
                   },
@@ -1761,7 +1710,7 @@ set_clowder_id_lineage <- function(source_table,
                              dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
                            by = "endpoint_uuid") %>%
           # add document relationship type
-          dplyr::mutate(relationship_type = "origin")
+          dplyr::mutate(relationship_type = "extraction")
       }else{
         res1 <- res %>%
           dplyr::select(source_hash, source_version_date, endpoint_uuid) %>%
@@ -1779,7 +1728,7 @@ set_clowder_id_lineage <- function(source_table,
                              dplyr::select(fk_doc_id, clowder_id, endpoint_uuid),
                            by = "endpoint_uuid") %>%
           # add document relationship type
-          dplyr::mutate(relationship_type = "origin")
+          dplyr::mutate(relationship_type = "extraction")
       }
 
 
