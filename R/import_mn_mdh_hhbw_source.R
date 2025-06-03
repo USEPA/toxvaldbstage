@@ -1,11 +1,11 @@
 #--------------------------------------------------------------------------------------
-#' @description A generic template for adding data to toxval_source for a new source
+#' @description Import MN MDH HHBW 2024-12-17 source into toxval_source.
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
+#' @title import_mn_mdh_hhwb_source
 #' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
@@ -17,34 +17,52 @@
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
-#' @rdname import_generic_source
+#' @rdname import_mn_mdh_hhwb_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_generic_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_mn_mdh_hhbw_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "name of the source"
-  source_table = "source_{source}"
+  source = "MN MDH HHBW"
+  source_table = "source_mn_mdh_hhbw"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("YYYY-MM-DD")
-  dir = paste0(toxval.config()$datapath,"{source}/{source}_files/")
-  file = paste0(dir,"name of the source file.xlsx")
+  src_version_date = as.Date("2024-12-17")
+  dir = paste0(toxval.config()$datapath,"mn_mdh_hhbw/mn_mdh_hhbw_files/")
+  file = paste0(dir,"MINN_MDH_HHBW_21June_formatted_withrelationship_QCcomplete.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
-
   # Add source specific transformations
-  res = res0
+
+  res <- res0 %>%
+    # Remove rows with NA values for core fields
+    tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
+    # Remove rows where name and casrn are NA
+    dplyr::filter(!dplyr::if_all(c(name, casrn), is.na)) %>%
+    dplyr::mutate(
+      # All records reviewed and passed QC
+      qc_status = "pass",
+      # Set species to lowercase
+      species = tolower(species),
+      # set study_duration_class to lowercase
+      study_duration_class = tolower(study_duration_class),
+      # Remove trailing semi-colons from casrn
+      casrn = casrn %>%
+        gsub(";$", "", .),
+      experimental_record = dplyr::case_when(
+        experimental_record %in% c("NR", "-", NA) ~ "undetermined",
+        experimental_record %in% c("yes") ~ "experimental",
+        experimental_record %in% c("no") ~ "not experimental",
+        TRUE ~ experimental_record
+      ),
+      year = study_year
+    ) %>%
+    # Split 'casrn' list into separate rows
+    tidyr::separate_longer_delim(casrn, delim = stringr::regex(" or |,|;"))
 
   # Standardize the names
   names(res) <- names(res) %>%
