@@ -193,6 +193,9 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_etap" = data.frame(clowder_id = "682e0b16e4b096bca88354d3",
                                                           document_name = "DTXSID70191136_MOPA ETAP ASSESSMENT.PDF",
                                                           relationship_type = "extraction"),
+                      "source_epa_hwir" = data.frame(clowder_id = "683eef73e4b096bca883dd65",
+                                                       document_name = "EPA_HWIR_r99019b_19991101.pdf",
+                                                       relationship_type = "extraction"),
 
                       # No source match, return empty
                       data.frame()
