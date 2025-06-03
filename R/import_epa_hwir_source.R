@@ -29,7 +29,7 @@ import_epa_hwir_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   source = "EPA HWIR"
   source_table = "source_epa_hwir"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2025-01-10")
+  src_version_date = as.Date("1999-11-01")
   dir = paste0(toxval.config()$datapath, "epa_hwir/epa_hwir_files/")
   file = paste0(dir, "EPA_HWIR_Inhalation_ToxVal_QCcomplete.xlsx")
   res0 = readxl::read_xlsx(file)
@@ -79,6 +79,7 @@ import_epa_hwir_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
         TRUE ~ lifestage
       ),
       year = study_year,
+      source_url = "https://archive.epa.gov/epawaste/hazard/web/html/risk.html",
       # All records completed QC and passed
       qc_status = "pass"
     )
