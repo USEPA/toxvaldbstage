@@ -39,6 +39,11 @@ import_epa_etap_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.
   # Add source specific transformations
   res = res0 %>%
     dplyr::mutate(dplyr::across(where(is.character), ~ dplyr::na_if(., "NA")),
+                  # All TRV records are for human species
+                  species = dplyr::case_when(
+                    toxval_type %in% c("TRV") ~ "human",
+                    TRUE ~ species
+                  ),
                   # manual curation 100% QC of input template
                   qc_status = "pass")
 
