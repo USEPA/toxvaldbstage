@@ -29,9 +29,9 @@ import_epa_dcap_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   source = "EPA DCAP"
   source_table = "source_epa_dcap_ctvs"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2025-05-07")
+  src_version_date = as.Date("2025-07-22")
   dir = paste0(toxval.config()$datapath,"epa_dcap_ctvs/epa_dcap_ctvs_files/")
-  file = paste0(dir, "DCAP Output Table.xlsx")
+  file = paste0(dir, "DCAP Output Table - 2025-07-22.xlsx")
   res0 = readxl::read_xlsx(file, sheet = "DCAP")
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
