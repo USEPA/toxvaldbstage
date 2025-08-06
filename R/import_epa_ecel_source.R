@@ -37,7 +37,12 @@ import_epa_ecel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   #
 
   # Add source specific transformations
-  res = res0
+  res = res0 %>%
+    dplyr::mutate(toxval_units = dplyr::case_when(
+      # Fix Asbestos units, trailing superscript from extraction
+      grepl("fibers", toxval_units) ~ "fibers/cubic centimeter",
+      TRUE ~ toxval_units
+    ))
 
   # Standardize the names
   names(res) <- names(res) %>%
