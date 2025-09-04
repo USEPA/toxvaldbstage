@@ -6,7 +6,11 @@
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
 #' @title FUNCTION_TITLE
+<<<<<<< HEAD
 #' @return None. SQL statements are run to load data to toxval_source
+=======
+#' @return None; data is pushed to toxval_source
+>>>>>>> master
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -24,7 +28,7 @@
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_generic_source <- function(db,chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_generic_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
   source = "name of the source"
   source_table = "source_{source}"

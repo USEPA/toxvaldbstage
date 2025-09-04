@@ -1,12 +1,12 @@
 #--------------------------------------------------------------------------------------
-#' @description Import of EPA DCAP 2025-05-07 source into toxval_source
+#' @description Import MN MDH HHBW 2024-12-17 source into toxval_source.
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title import_epa_dcap_source
-#' @return None. SQL statements executed.
+#' @title import_mn_mdh_hhwb_source
+#' @return None; data is pushed to toxval_source
 #' @details DETAILS
 #' @examples
 #' \dontrun{
@@ -17,55 +17,52 @@
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
-#' @rdname import_generic_source
+#' @rdname import_mn_mdh_hhwb_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_epa_dcap_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_mn_mdh_hhbw_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "EPA DCAP"
-  source_table = "source_epa_dcap_ctvs"
+  source = "MN MDH HHBW"
+  source_table = "source_mn_mdh_hhbw"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2025-07-22")
-  dir = paste0(toxval.config()$datapath,"epa_dcap_ctvs/epa_dcap_ctvs_files/")
-  file = paste0(dir, "DCAP Output Table - 2025-07-22.xlsx")
-  res0 = readxl::read_xlsx(file, sheet = "DCAP")
+  src_version_date = as.Date("2024-12-17")
+  dir = paste0(toxval.config()$datapath,"mn_mdh_hhbw/mn_mdh_hhbw_files/")
+  file = paste0(dir,"MINN_MDH_HHBW_21June_formatted_withrelationship_QCcomplete.xlsx")
+  res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
-
   # Add source specific transformations
-  res = res0 %>%
-    dplyr::mutate(toxval_type = "CTV",
-           toxval_numeric = CTV_arithmetic,
-           toxval_units = "mg/kg-d",
-           toxval_numeric_qualifier = "=",
-           study_type = "toxicity value",
-           species = "human",
-           exposure_route = "oral",
-           year = 2025,
-           # qc_status = "pass",
-           # TODO fill in updated journal long_ref once published
-           long_ref = paste0("Harrill, A. H., Hagiwara, S., Weitekamp, C. A., Stanish, P. C., ",
-                             "Wall, J. T., Sayre, R. R., Davidson-Fritz, S. E., Vitense, K., Chang, D. T., ",
-                             "Devito, M. J., Gonzales, C. J., Groover, M., Hughes, M. F., Judson, R. S., ",
-                             "Lambert, J. C., Lowe, C. N., Mutlu, E., Paul Friedman, K., Watkins, A. M., … ",
-                             "Thomas, R. S. (2025). Database Calibrated Assessment Process (DCAP) Data Release Using ToxValDB v9.6.1 [Data set]. ",
-                             "Zenodo. https://doi.org/10.23645/epacomptox.28780757.v1"),
-           # TODO fill in URL with journal link once published
-           url = "https://zenodo.org/records/15357834",
-           # Direct load of input file with minimal changes, so all pass QC Level 1
-           qc_status = "pass"
-           )
+
+  res <- res0 %>%
+    # Remove rows with NA values for core fields
+    tidyr::drop_na(toxval_type, toxval_numeric, toxval_units) %>%
+    # Remove rows where name and casrn are NA
+    dplyr::filter(!dplyr::if_all(c(name, casrn), is.na)) %>%
+    dplyr::mutate(
+      # All records reviewed and passed QC
+      qc_status = "pass",
+      # Set species to lowercase
+      species = tolower(species),
+      # set study_duration_class to lowercase
+      study_duration_class = tolower(study_duration_class),
+      # Remove trailing semi-colons from casrn
+      casrn = casrn %>%
+        gsub(";$", "", .),
+      experimental_record = dplyr::case_when(
+        experimental_record %in% c("NR", "-", NA) ~ "undetermined",
+        experimental_record %in% c("yes") ~ "experimental",
+        experimental_record %in% c("no") ~ "not experimental",
+        TRUE ~ experimental_record
+      ),
+      year = study_year
+    ) %>%
+    # Split 'casrn' list into separate rows
+    tidyr::separate_longer_delim(casrn, delim = stringr::regex(" or |,|;"))
 
   # Standardize the names
   names(res) <- names(res) %>%
