@@ -5,19 +5,8 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
-<<<<<<< HEAD
+#' @title import_generic_source
 #' @return None. SQL statements are run to load data to toxval_source
-=======
-#' @return None; data is pushed to toxval_source
->>>>>>> master
-#' @details DETAILS
-#' @examples
-#' \dontrun{
-#' if(interactive()){
-#'  #EXAMPLE1
-#'  }
-#' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}

@@ -82,7 +82,6 @@ import_au_nhmrc_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
       TRUE ~ toxval_numeric
     ))
 
-
   # Add version date. Can be converted to a mutate statement as needed
   res$source_version_date <- src_version_date
   #####################################################################
