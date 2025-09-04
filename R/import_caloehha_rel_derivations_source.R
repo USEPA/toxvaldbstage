@@ -35,9 +35,18 @@ import_caloehha_rel_derivations_source <- function(db, chem.check.halt=FALSE, do
 
   # Add source specific transformations
   res = res0 %>%
+    dplyr::mutate(year = summary_doc_year,
+                  casrn = dplyr::case_when(
+                    grepl("No CASRN|group|NOCAS|DSSTox", casrn, ignore.case = TRUE) ~ NA,
+                    TRUE ~ casrn
+                  ) %>%
+                    # Remove parentheses
+                    gsub("\\s*\\([^)]+\\)", "", .)) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
-    dplyr::mutate(year = summary_doc_year)
+    tidyr::separate_longer_delim(casrn, delim = ", ") %>%
+    tidyr::separate_longer_delim(casrn, delim = "; ") %>%
+    tidyr::drop_na(toxval_type, toxval_numeric)
 
   # Standardize the names
   names(res) <- names(res) %>%
