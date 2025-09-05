@@ -228,6 +228,15 @@ fix.replace.unicode <- function(df) {
     # Handle special case for Alpha
     gsub("\u00ce\u00b1", "a", .) %>%
 
+    # Handle small alpha
+    gsub("\u0001d45", "a", .) %>%
+
+    # Handle small italic p
+    gsub("\u0001d45d", "p", .) %>%
+
+    # Handle n tilde
+    gsub("\u00f1", "n", .) %>%
+
     # Handle dashes/bullets
     gsub("\u2013|\u2014|\u2212|\u2010|\u2012|\u25a0|\u2022|\u2219|\u2666|\uff70|\u2011", "-", .) %>%
     gsub("\u25a1|\u2756|\u00a8|\u00a4|\u00ad|\u25cf|\u00af", "-", .) %>%

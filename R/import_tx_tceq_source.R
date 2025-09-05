@@ -1,19 +1,12 @@
 #--------------------------------------------------------------------------------------
-#' @description A generic template for adding data to toxval_source for a new source
+#' @description Import of TX TCEQ source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
+#' @title import_tx_tceq_source
 #' @return None; data is pushed to toxval_source
-#' @details DETAILS
-#' @examples
-#' \dontrun{
-#' if(interactive()){
-#'  #EXAMPLE1
-#'  }
-#' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
@@ -24,15 +17,33 @@
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_generic_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "name of the source"
-  source_table = "source_{source}"
+  source = "TX TCEQ"
+  source_table = "source_tx_tceq"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("YYYY-MM-DD")
-  dir = paste0(toxval.config()$datapath,"{source}/{source}_files/")
-  file = paste0(dir,"name of the source file.xlsx")
-  res0 = readxl::read_xlsx(file)
+  # src_version_date = as.Date("YYYY-MM-DD")
+  dir = paste0(toxval.config()$datapath,"tx_tceq/tx_tceq_files/")
+  file_list = list.files(dir, pattern = "xlsx", full.names = TRUE)
+
+  res0 = lapply(file_list, function(f){
+    tmp = readxl::read_xlsx(f) %>%
+      dplyr::mutate(data_filename = basename(f),
+                    # Add version date by file
+                    source_version_date = dplyr::case_when(
+                      grepl("amcv", data_filename, ignore.case = TRUE) ~ as.Date("2024-06-11"),
+                      grepl("esl", data_filename, ignore.case = TRUE) ~ as.Date("2025-01-20"),
+                      TRUE ~ NA
+                    ))
+  }) %>%
+    dplyr::bind_rows() %>%
+    # Combine footnote fields
+    tidyr::unite(
+      col = "footnotes",
+      footnotes, Footnotes,
+      sep = "; ",
+      na.rm = TRUE)
+
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -45,6 +56,21 @@ import_generic_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
 
   # Add source specific transformations
   res = res0 %>%
+    dplyr::mutate(year = summary_doc_year,
+                  casrn = dplyr::case_when(
+                    grepl("problem|NOCAS", casrn, ignore.case = TRUE) ~ NA,
+                    TRUE ~ casrn
+                  ) %>%
+                    # Remove parentheses
+                    gsub("\\s*\\([^)]+\\)", "", .),
+                  name = dplyr::case_when(
+                    grepl("unspecified", name, ignore.case = TRUE) ~ NA,
+                    # Remove starting and ending brackets (e.g., [Hexamethylenediamine])
+                    grepl("^\\[.*\\]$", name) ~ name %>%
+                      gsub("^\\[|\\]$", "", .),
+                    TRUE ~ name
+                  ) %>%
+                    gsub(":$", "", .)) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     # Remove columns where all values are NA
@@ -77,8 +103,6 @@ import_generic_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   # Perform deduping
   res = toxval.source.import.dedup(res, hashing_cols=toxval.config()$hashing_cols)
 
-  # Add version date. Can be converted to a mutate statement as needed
-  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
