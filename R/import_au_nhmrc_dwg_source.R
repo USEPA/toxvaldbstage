@@ -78,7 +78,7 @@ import_au_nhmrc_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
       TRUE ~ exposure_method
     ),
     exposure_route = dplyr::case_when(
-      exposure_route %in% c("gavage", "drinking water", "diet", "feed") ~ "oral",
+      exposure_route %in% c("gavage", "drinking water", "diet", "feed", "occupational exposure") ~ "oral",
     ),
     # Fix sex
     sex = dplyr::case_when(
@@ -105,6 +105,14 @@ import_au_nhmrc_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
     dplyr::filter(!name %in% c("pH")) %>%
     # Filter out records that do not have a name and casrn
     dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
+    dplyr::filter(!toxval_type %in% c(
+      "Data are inadequate to set guideline values for chloroketones in drinking water.",
+      "Unknown",
+      "lead intake which, based on metabolic studies with infants, does not result in an increase in lead retention",
+      "upper range of the estimated adult requiremen",
+      "To minimise an undesirable scale build up on surfaces"
+    )) %>%
+    # Drop records with NA for type or numeric
     tidyr::drop_na(toxval_type, toxval_numeric)
 
   # Handle toxval_numeric range and relationship
