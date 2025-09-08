@@ -5,15 +5,8 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
+#' @title import_eu_scoel_source
 #' @return None; data is pushed to toxval_source
-#' @details DETAILS
-#' @examples
-#' \dontrun{
-#' if(interactive()){
-#'  #EXAMPLE1
-#'  }
-#' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
@@ -38,22 +31,44 @@ import_eu_scoel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
 
   # Add source specific transformations
   res = res0 %>%
-    dplyr::mutate(year = summary_doc_year,
-                  casrn = dplyr::case_when(
-                    grepl("See Notes|substances", casrn, ignore.case = TRUE) ~ NA,
-                    TRUE ~ casrn
-                  )) %>%
+    # Renaming field since values curated in generation fit population better
+    dplyr::rename(population = generation) %>%
+    dplyr::mutate(
+      year = summary_doc_year,
+      casrn = dplyr::case_when(
+        grepl("See Notes|substances", casrn, ignore.case = TRUE) ~ NA,
+        TRUE ~ casrn
+      ),
+      long_ref = dplyr::case_when(
+        long_ref %in% c("unspecified", "various studies", "various studies and reviews") ~ "-",
+        TRUE ~ long_ref
+      ),
+      toxval_numeric_qualifier = dplyr::case_when(
+        grepl("about", toxval_numeric) ~ "~",
+        TRUE ~ toxval_numeric_qualifier
+      ) %>%
+        gsub("about", "~", .),
+      toxval_numeric = dplyr::case_when(
+        toxval_numeric %in% c("not assigned", "not determined", "no entry",
+                              "none", "none identified (see notes column)",
+                              "see notes", "None", "not applicable", "Not assigned",
+                              "no recommendation made", "insufficient data") ~ NA,
+        grepl("carcinogen|not feasible|adequate", toxval_numeric, ignore.case = TRUE) ~ NA,
+        TRUE ~ toxval_numeric
+      ) %>%
+        gsub("about", "", .) %>%
+        stringr::str_squish() %>%
+        as.numeric()
+    ) %>%
     # Remove empty rows that only have NA values
-    .[rowSums(is.na(.)) < ncol(.), ]
+    .[rowSums(is.na(.)) < ncol(.), ] %>%
+    # Filter out records that do not have a name and casrn
+    dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
+    dplyr::filter(!toxval_type %in% c("Additional categorisation:", "unidentified POD")) %>%
+    tidyr::drop_na(toxval_type, toxval_numeric)
 
   # Standardize the names
   names(res) <- names(res) %>%
