@@ -55,10 +55,16 @@ import_epa_hawc_source_orchestrate <- function(db, chem.check.halt=FALSE, do.res
 
   # Add source specific transformations
   res = res0 %>%
-    dplyr::mutate(toxval_units = dplyr::case_when(
-      toxval_units == "mg/kg-day t4" ~ "mg/kg-day (4-weeks dosed feed)",
-      TRUE ~ toxval_units
-    ))
+    dplyr::mutate(
+      toxval_units = dplyr::case_when(
+        toxval_units == "mg/kg-day t4" ~ "mg/kg-day (4-weeks dosed feed)",
+        TRUE ~ toxval_units
+        ),
+      study_duration_units = dplyr::case_when(
+        study_duration_units %in% c("", NA) ~ "-",
+        TRUE ~ study_duration_units
+      )
+    )
 
   # Standardize the names
   names(res) <- names(res) %>%

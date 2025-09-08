@@ -400,6 +400,9 @@ import_epa_hawc_source <- function(df_list=NULL) {
 
     # Add exposure and study_duration
     dplyr::mutate(
+      route_of_exposure = route_of_exposure %>%
+        # Fix case where exposure is "whole body" so it's not split for route/method
+        gsub("Whole body", "Wholebody", .),
       exposure_route = route_of_exposure,
       exposure_method = route_of_exposure,
       study_duration_value = exposure_duration_value,
@@ -515,7 +518,8 @@ import_epa_hawc_source <- function(df_list=NULL) {
 
       # Fix exposure details
       exposure_route = gsub("(^[a-zA-Z]+)(\\s*.*)", "\\1", route_of_exposure) %>%
-        tolower(),
+        tolower() %>%
+        gsub("wholebody", "whole-body", .),
       exposure_method = route_of_exposure %>%
         gsub("(^[a-zA-Z]+\\s*)(.*)", "\\2", .) %>%
         gsub("^\\-\\s+", "", .) %>%
@@ -564,10 +568,11 @@ import_epa_hawc_source <- function(df_list=NULL) {
         gsub("h", "hours", .) %>%
         gsub("(?:(GD),GD)|(?:(PND),PND)|(?:(LD),LD)|(?:(PNW),PNW)", "\\1", .),
 
-      study_type = gsub("(^\\w+\\-*\\w*)(\\s*.*)", "\\1", study_type),
+      study_type = gsub("(^\\w+\\-*\\w*)(\\s*.*)", "\\1", study_type) %>% tolower(),
 
       # Extract exposure_form from media field
       exposure_form = dplyr::case_when(
+        media %in% c("diet", "Diet") ~ NA_character_,
         grepl("not reported|not large enough|\\bother|none|no vehicle", media, ignore.case=TRUE) ~ as.character(NA),
         TRUE ~ media
       )
