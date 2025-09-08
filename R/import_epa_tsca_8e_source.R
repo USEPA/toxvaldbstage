@@ -65,7 +65,15 @@ import_epa_tsca_8e_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     # Filter out records that do not have a name and casrn
     dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
-    tidyr::drop_na(toxval_type, toxval_numeric)
+    tidyr::drop_na(toxval_type, toxval_numeric) %>%
+    # Add experimental record
+    dplyr::mutate(
+      experimental_record = dplyr::case_when(
+        species %in% c("not reported", NA) ~ "undetermined",
+        species %in% c("human") ~ "not experimental",
+        TRUE ~ "experimental"
+      )
+    )
 
   # Standardize the names
   names(res) <- names(res) %>%
