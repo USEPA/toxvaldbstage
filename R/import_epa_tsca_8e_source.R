@@ -24,7 +24,7 @@ import_epa_tsca_8e_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2024-07-27")
   dir = paste0(toxval.config()$datapath,"epa_tsca_8e/epa_tsca_8e_files/")
-  file = paste0(dir, "epa_tsca_8e.xlsx")
+  file = paste0(dir, "tsca8e_20250905.xlsx")
   res0 = readxl::read_xlsx(file, sheet = "Data curation")
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -33,19 +33,28 @@ import_epa_tsca_8e_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
   # Add source specific transformations
   res = res0 %>%
     dplyr::filter(`ToxVal Relevance` %in% c("Relevant")) %>%
-    dplyr::mutate(year = year_study_performed,
-                  toxval_type = effect_type,
-                  toxval_numeric_qualifier = effect_type_qualifier,
-                  toxval_numeric = effect_type_dose,
-                  toxval_units = effect_type_dose_units,
-                  critical_effect = effects,
-                  casrn = dplyr::case_when(
-                    # Ends with ;
-                    grepl(";$", casrn) ~ gsub(";$", "", casrn),
-                    grepl("CBI", casrn) ~ NA,
-                    TRUE ~ casrn
-                  ),
-                  chem_mixture_flag = stringr::str_count(name, ";")
+    dplyr::mutate(
+      # Set as 100% record QC
+      qc_status = "pass",
+      year = year_study_performed,
+      toxval_type = effect_type,
+      toxval_numeric_qualifier = effect_type_qualifier,
+      toxval_numeric = effect_type_dose,
+      toxval_units = effect_type_dose_units,
+      exposure_route = tolower(exposure_route),
+      species = tolower(species),
+      sex = dplyr::case_when(
+        sex %in% c("Female;Male", "Female; Male") ~ "male/female",
+        TRUE ~ sex
+      ) %>% tolower(),
+      critical_effect = effects,
+      casrn = dplyr::case_when(
+        # Ends with ;
+        grepl(";$", casrn) ~ gsub(";$", "", casrn),
+        grepl("CBI", casrn) ~ NA,
+        TRUE ~ casrn
+      ),
+      chem_mixture_flag = stringr::str_count(name, ";")
     ) %>%
     # TODO Decide to filter or split some other way
     # Filter out mixture records with multiple ";"
