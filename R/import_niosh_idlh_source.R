@@ -31,28 +31,42 @@ import_niosh_idlh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
 
   # Add source specific transformations
   res = res0 %>%
-    dplyr::mutate(year = summary_doc_year,
-                  casrn = dplyr::case_when(
-                    grepl("-|n/a|NOCAS|unclear|unreliable|forms|substances|cadmium|available",
-                          casrn, ignore.case = TRUE) ~ NA,
-                    TRUE ~ casrn
-                  ) %>%
-                    # Remove parentheses
-                    gsub("\\s*\\([^)]+\\)", "", .),
-                  name = dplyr::case_when(
-                    grepl("-|unclear|form not|form unknown|not specified|unspecified", name) ~ NA,
-                    TRUE ~ name
-                  )
-                  ) %>%
+    dplyr::mutate(
+      year = summary_doc_year,
+      casrn = dplyr::case_when(
+        grepl("-|n/a|NOCAS|unclear|unreliable|forms|substances|cadmium|available|no known",
+              casrn, ignore.case = TRUE) ~ NA,
+        TRUE ~ casrn
+      ) %>%
+        # Remove parentheses
+        gsub("\\s*\\([^)]+\\)", "", .),
+      name = dplyr::case_when(
+        grepl("-|unclear|form not|form unknown|not specified|unspecified|from DSSTox", name) ~ NA,
+        TRUE ~ name
+      ),
+      exposure_method = dplyr::case_when(
+        # exposure_method %in% c("exposure", "controlled", "intentional exposure) ~ NA,
+        TRUE ~ exposure_method
+      ),
+      exposure_route = dplyr::case_when(
+        exposure_route == "i.v." ~ "iv",
+        grepl("exposure", exposure_route) ~ NA,
+        grepl("skin", exposure_route) ~ "dermal",
+        TRUE ~ exposure_route
+      ),
+      sex = dplyr::case_when(
+        sex == "M + F" ~ "M/F",
+        TRUE ~ sex
+      ),
+      species = tolower(species),
+      study_duration_qualifier = dplyr::case_when(
+        study_duration_qualifier %in% c("NA") ~ NA,
+        TRUE ~ study_duration_qualifier
+      )
+    ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     # Filter out records that do not have a name and casrn
