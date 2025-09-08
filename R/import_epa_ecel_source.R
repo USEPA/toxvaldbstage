@@ -29,20 +29,18 @@ import_epa_ecel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
 
   # Add source specific transformations
   res = res0 %>%
-    dplyr::mutate(toxval_units = dplyr::case_when(
+    dplyr::mutate(
+      toxval_numeric = as.numeric(toxval_numeric),
+      toxval_units = dplyr::case_when(
       # Fix Asbestos units, trailing superscript from extraction
       grepl("fibers", toxval_units) ~ "fibers/cubic centimeter",
       TRUE ~ toxval_units
-    ))
+    ),
+    # All records reviewed and 100% pass
+    qc_status = "pass")
 
   # Standardize the names
   names(res) <- names(res) %>%
