@@ -29,12 +29,6 @@ import_echa_rac_oel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
 
   # Add source specific transformations
   res = res0 %>%
@@ -42,10 +36,25 @@ import_echa_rac_oel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
                   casrn = dplyr::case_when(
                     grepl("See Notes|NOCAS|example", casrn, ignore.case = TRUE) ~ NA,
                     TRUE ~ casrn
-                  )) %>%
+                  ),
+                  # Fix exposure_form
+                  exposure_form = exposure_form %>%
+                    gsub("male F344", "-", .),
+                  # TODO Fix toxval_numeric
+                  toxval_numeric = dplyr::case_when(
+                    grepl("none|not|see|confirmed|carc|group", toxval_numeric, ignore.case=TRUE) ~ NA,
+                    TRUE ~ toxval_numeric
+                  ) %>%
+                    gsub("^\\[|\\]$", "", .) %>%
+                    as.numeric()
+                  # TODO Fix study_type
+                  ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
-    tidyr::separate_longer_delim(casrn, delim = "; ")
+    tidyr::separate_longer_delim(casrn, delim = "; ") %>%
+    # Filter out records that do not have a name and casrn
+    dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
+    tidyr::drop_na(toxval_type, toxval_numeric)
 
   # Standardize the names
   names(res) <- names(res) %>%

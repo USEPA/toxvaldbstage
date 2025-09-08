@@ -355,7 +355,7 @@ fix.replace.unicode <- function(df) {
     gsub("\u2193", "", .) %>%
 
     # Remove unidentified characters
-    gsub("\ufffd|\uf8e8|\ufeff|\uf6da|\uf06e|\uf020|\uf06d|\uf0d4", "", .)
+    gsub("\ufffd|\uf8e8|\ufeff|\uf6da|\uf06e|\uf020|\uf06d|\uf0d4|\uf0a3", "", .)
 
   # Identify and print unicode symbols that were not handled
   not_handled = df %>%
