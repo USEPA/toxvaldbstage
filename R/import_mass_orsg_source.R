@@ -5,15 +5,8 @@
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title FUNCTION_TITLE
+#' @title import_mass_orsg_source
 #' @return None; data is pushed to toxval_source
-#' @details DETAILS
-#' @examples
-#' \dontrun{
-#' if(interactive()){
-#'  #EXAMPLE1
-#'  }
-#' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
@@ -39,13 +32,25 @@ import_mass_orsg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
 
   # Add source specific transformations
   res = res0 %>%
-    dplyr::mutate(year = summary_doc_year,
-                  casrn = dplyr::case_when(
-                    grepl("N/A", casrn, ignore.case = TRUE) ~ NA,
-                    TRUE ~ casrn
-                  )) %>%
+    dplyr::mutate(
+      year = summary_doc_year,
+      casrn = dplyr::case_when(
+        grepl("N/A", casrn, ignore.case = TRUE) ~ NA,
+        TRUE ~ casrn
+      ),
+      exposure_form = dplyr::case_when(
+        exposure_method %in% c("feed") ~ exposure_method,
+        TRUE ~ exposure_form
+      ),
+      exposure_method = dplyr::case_when(
+        exposure_method %in% c("feed") ~ "diet",
+        TRUE ~ exposure_method
+      )
+      ) %>%
     # Remove empty rows that only have NA values
-    .[rowSums(is.na(.)) < ncol(.), ]
+    .[rowSums(is.na(.)) < ncol(.), ] %>%
+    # Filter out records that do not have a name and casrn
+    dplyr::filter(!(is.na(name) & is.na(casrn)))
 
   # Standardize the names
   names(res) <- names(res) %>%
