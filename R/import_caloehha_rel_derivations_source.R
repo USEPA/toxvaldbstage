@@ -33,6 +33,21 @@ import_caloehha_rel_derivations_source <- function(db, chem.check.halt=FALSE, do
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
 
+  # Define helper function for cleaning up scientific notation strings
+  parse_scientific <- function(s) {
+    # Handle scientific notation conversion (either 10's or e notation)
+    if(grepl("[Xx]", s) && grepl("^[0-9]+\\.?[0-9]* ?[Xx] ?10 ?-?[0-9]+", s)){
+      mantissa <- as.numeric(gsub(" ?[Xx].*", "", s))
+      exponent <- as.numeric(gsub('.*?[Xx] 10', "", s))
+      return(as.character(mantissa * 10^exponent))
+    } else if(grepl("[eE]", s) && grepl("^[0-9]+\\.?[0-9]* ?[Ee] ?10 ?-?[0-9]+", s)){
+      mantissa <- as.numeric(gsub(" ?[eE].*", "", s))
+      exponent <- as.numeric(gsub(".*?[eE]", "", s))
+      return(as.character(mantissa * 10^exponent))
+    }
+    return(s)
+  }
+
   # Add source specific transformations
   res = res0 %>%
     dplyr::mutate(year = summary_doc_year,
@@ -41,12 +56,74 @@ import_caloehha_rel_derivations_source <- function(db, chem.check.halt=FALSE, do
                     TRUE ~ casrn
                   ) %>%
                     # Remove parentheses
-                    gsub("\\s*\\([^)]+\\)", "", .)) %>%
+                    gsub("\\s*\\([^)]+\\)", "", .),
+                  # Fix exposure_method and form
+                  exposure_form = dplyr::case_when(
+                    exposure_method == "Food and drinking wate" ~ paste0(exposure_method, "r"),
+                    TRUE ~ exposure_form
+                  ) %>% tolower(),
+                  exposure_method = dplyr::case_when(
+                    exposure_form %in% c("gavage", "drinking water") ~ exposure_form,
+                    exposure_method %in% c("Food and drinking wate",
+                                           "Continuous dietary exposure starting at seven weeks of age for 2 years") ~ "diet",
+                    TRUE ~ exposure_method
+                  ) %>% tolower(),
+                  exposure_form = exposure_form %>%
+                    gsub("^drinking water$", "-", .),
+                  # Fix toxval_numeric and units
+                  toxval_numeric = dplyr::case_when(
+                    toxval_numeric == "none" ~ NA,
+                    TRUE ~ toxval_numeric
+                  )
+                  ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     tidyr::separate_longer_delim(casrn, delim = ", ") %>%
-    tidyr::separate_longer_delim(casrn, delim = "; ") %>%
-    tidyr::drop_na(toxval_type, toxval_numeric)
+    tidyr::separate_longer_delim(casrn, delim = "; ")
+
+  res = res %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(
+      toxval_numeric = toxval_numeric %>%
+        parse_scientific(),
+      range_flag = dplyr::case_when(
+      !is.na(as.numeric(toxval_numeric)) ~ 0,
+      grepl("[0-9]-[0-9]", toxval_numeric) ~ 1,
+      TRUE ~ 0
+    ))
+
+  # Handle ranged toxval_numeric values
+  ranged_res = res %>%
+    dplyr::filter(range_flag == 1)
+
+  if(nrow(ranged_res)) {
+    ranged_res = ranged_res %>%
+      dplyr::mutate(
+        numeric_relationship_id = dplyr::row_number()
+      ) %>%
+      tidyr::separate(
+        col = toxval_numeric,
+        into = c("Lower Range", "Upper Range"),
+        sep = "-",
+        remove = TRUE
+      ) %>%
+      tidyr::pivot_longer(
+        cols = c("Lower Range", "Upper Range"),
+        values_to = "toxval_numeric",
+        names_to = "numeric_relationship_description"
+      )
+  } else {
+    # Empty dataframe with res cols to bind_rows()
+    ranged_res = res[0,]
+  }
+
+  # Add ranged data to res
+  res = res %>%
+    dplyr::filter(range_flag == 0) %>%
+    dplyr::bind_rows(ranged_res) %>%
+    dplyr::select(-range_flag) %>%
+    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
+    tidyr::drop_na(toxval_type, toxval_numeric, toxval_units)
 
   # Standardize the names
   names(res) <- names(res) %>%
