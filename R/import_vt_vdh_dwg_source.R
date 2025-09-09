@@ -29,18 +29,18 @@ import_vt_vdh_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
 
   # Add source specific transformations
   res = res0 %>%
-    dplyr::rename(name=`Chemical Name`, casrn = `CAS No.`) %>%
+    dplyr::rename(name=`Chemical Name`,
+                  casrn = `CAS No.`) %>%
+    dplyr::mutate(casrn = dplyr::case_when(
+      casrn %in% c("NA") ~ NA,
+      TRUE ~ casrn
+    )) %>%
     # Filter out records that do not have a name and casrn
-    dplyr::filter(!(is.na(name) & is.na(casrn)))
+    dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
+    tidyr::drop_na(toxval_type, toxval_numeric)
 
   # Standardize the names
   names(res) <- names(res) %>%
