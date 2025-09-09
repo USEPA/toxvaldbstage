@@ -47,30 +47,83 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
+
+  # Define helper function for cleaning up scientific notation
+  parse_scientific <- function(s) {
+    # Handle scientific notation conversion (either 10's or e notation)
+    # 7 x 10-6
+    if(grepl("[Xx]", s) && grepl("^[0-9]+\\.?[0-9]* ?[Xx] ?10 ?-?[0-9]+", s)){
+      mantissa <- as.numeric(gsub(" ?[Xx].*", "", s))
+      exponent <- as.numeric(gsub('.*?[Xx] 10', "", s))
+      return(as.character(mantissa * 10^exponent))
+      # 7x10^6
+    } else if(grepl("[Xx]", s) && grepl("^[0-9]+\\.?[0-9]*?[Xx]?10\\^?-?[0-9]+", s)){
+      mantissa <- as.numeric(gsub(" ?[Xx].*", "", s))
+      exponent <- as.numeric(gsub('.*?[Xx]10\\^', "", s))
+      return(as.character(mantissa * 10^exponent))
+      # 7e-6
+    } else if(grepl("[eE]", s) && grepl("^[0-9]+\\.?[0-9]* ?[Ee] ?10 ?-?[0-9]+", s)){
+      mantissa <- as.numeric(gsub(" ?[eE].*", "", s))
+      exponent <- as.numeric(gsub(".*?[eE]", "", s))
+      return(as.character(mantissa * 10^exponent))
+    }
+    return(s)
+  }
 
   # Add source specific transformations
   res = res0 %>%
-    dplyr::mutate(year = summary_doc_year,
-                  casrn = dplyr::case_when(
-                    grepl("problem|NOCAS", casrn, ignore.case = TRUE) ~ NA,
-                    TRUE ~ casrn
-                  ) %>%
-                    # Remove parentheses
-                    gsub("\\s*\\([^)]+\\)", "", .),
-                  name = dplyr::case_when(
-                    grepl("unspecified", name, ignore.case = TRUE) ~ NA,
-                    # Remove starting and ending brackets (e.g., [Hexamethylenediamine])
-                    grepl("^\\[.*\\]$", name) ~ name %>%
-                      gsub("^\\[|\\]$", "", .),
-                    TRUE ~ name
-                  ) %>%
-                    gsub(":$", "", .)) %>%
+    dplyr::mutate(
+      year = summary_doc_year,
+      casrn = dplyr::case_when(
+        grepl("problem|NOCAS", casrn, ignore.case = TRUE) ~ NA,
+        TRUE ~ casrn
+      ) %>%
+        # Remove parentheses
+        gsub("\\s*\\([^)]+\\)", "", .),
+      name = dplyr::case_when(
+        grepl("unspecified", name, ignore.case = TRUE) ~ NA,
+        # Remove starting and ending brackets (e.g., [Hexamethylenediamine])
+        grepl("^\\[.*\\]$", name) ~ name %>%
+          gsub("^\\[|\\]$", "", .),
+        TRUE ~ name
+      ) %>%
+        gsub(":$", "", .),
+      exposure_form = dplyr::case_when(
+        exposure_method %in% c("feed") ~ exposure_method,
+        TRUE ~ exposure_form
+      ),
+      exposure_method = dplyr::case_when(
+        grepl("gavage", exposure_route) ~ "gavage",
+        exposure_method %in% c("feed") ~ "diet",
+        TRUE ~ exposure_method
+      ) %>%
+        tolower(),
+      exposure_route = dplyr::case_when(
+        grepl("gavage", exposure_route) ~ "oral",
+        exposure_route %in% c("?") ~ NA,
+        TRUE ~ exposure_route
+      ) %>%
+        tolower(),
+      sex = dplyr::case_when(
+        sex == "M + F" ~ "male/female",
+        sex == "M" ~ "male",
+        sex == "F" ~ "female",
+        sex %in% c("NA") ~ NA,
+        TRUE ~ sex
+      ),
+      # TODO fix toxval_numeric
+      toxval_numeric = dplyr::case_when(
+        grepl("Insufficient|Not available|used because", toxval_numeric) ~ NA,
+        toxval_numeric %in% c("NR") ~ NA,
+        # Remove trailing a and b
+        grepl("a$|b$", toxval_numeric) ~ gsub("a$|b$", "", toxval_numeric),
+        TRUE ~ toxval_numeric
+      ) %>%
+        # Remove parenthetic information
+        gsub("\\s*\\([^)]+\\)", "", .) %>%
+        stringr::str_squish() %>%
+        fix.replace.unicode()
+      ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     # Remove columns where all values are NA
@@ -78,6 +131,27 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
     # Filter out records that do not have a name and casrn
     dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
     tidyr::drop_na(toxval_type, toxval_numeric)
+
+  res = res %>%
+    dplyr::mutate(
+      toxval_units = dplyr::case_when(
+        is.na(toxval_units) & grepl("ug/m3", toxval_numeric) ~ "ug/m3",
+        TRUE ~ toxval_units
+      )
+    ) %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(toxval_numeric = toxval_numeric %>%
+                    gsub(",", "", .) %>%
+                    gsub("ug/m3", "", ., fixed = TRUE) %>%
+                    # Replace exponential notation to fix next
+                    gsub(" \\* 10", "e", .) %>%
+                    gsub(" E", "e", .) %>%
+                    parse_scientific()) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
+    tidyr::drop_na(toxval_type, toxval_numeric)
+
+  # View(res %>% select(toxval_numeric, toxval_units) %>% mutate(fix = as.numeric(toxval_numeric)) %>% distinct())
 
   # Standardize the names
   names(res) <- names(res) %>%
