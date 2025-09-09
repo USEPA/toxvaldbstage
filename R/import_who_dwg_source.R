@@ -32,12 +32,77 @@ import_who_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
 
   # Add source specific transformations
   res = res0 %>%
+    dplyr::rename(source_url = subsource_url) %>%
+    # Handle exposure fields
+    dplyr::mutate(
+      exposure_form = dplyr::case_when(
+        exposure_route %in% c("feed") ~ exposure_route,
+        TRUE ~ exposure_form
+      ),
+      exposure_method = dplyr::case_when(
+        grepl("drinking", exposure_route, fixed=TRUE) ~ "drinking water",
+        exposure_route %in% c("diet", "ingestion", "drinking water") ~ exposure_route,
+        exposure_route == "feed" ~ "diet",
+        grepl("gavage", exposure_route) ~ "gavage",
+        TRUE ~ exposure_method
+      ),
+      exposure_route = dplyr::case_when(
+        grepl("drinking", exposure_route, fixed=TRUE) ~ "oral",
+        # Remove critical_effect
+        exposure_route == "increased absolute and relative spleen weight" ~ "-",
+        grepl("gavage", exposure_route) ~ "oral",
+        exposure_route %in% c("diet", "feed", "ingestion", "drinking water") ~ "oral",
+        TRUE ~ exposure_route
+      ),
+      sex = dplyr::case_when(
+        sex == "M + F" ~ "male/female",
+        sex == "F" ~ "female",
+        sex == "M" ~ "male",
+        TRUE ~ sex
+      ),
+      species = species %>%
+        gsub("volunteers", "", .) %>%
+        stringr::str_squish(),
+      # Fix numeric, qualifier, and units
+      toxval_numeric = toxval_numeric %>%
+        fix.replace.unicode(),
+      toxval_units = dplyr::case_when(
+        is.na(toxval_units) & grepl("mg/kg body weight", toxval_numeric) ~ "mg/kg bw",
+        TRUE ~ toxval_units
+      ) %>%
+        gsub("body weight", "bw", .),
+      # Set 0- range values as <= and report max
+      toxval_numeric_qualifier = dplyr::case_when(
+        grepl("^0-", toxval_numeric) ~ "<=",
+        grepl("approximately", toxval_numeric) ~ "~",
+        TRUE ~ toxval_numeric_qualifier
+      ),
+      toxval_numeric = dplyr::case_when(
+        # Set 0- range values as <= and report max
+        grepl("^0-", toxval_numeric) ~ toxval_numeric %>%
+          gsub("^0-", "", .),
+        grepl("NR", toxval_numeric) ~ NA,
+        TRUE ~ toxval_numeric
+      ) %>%
+        gsub("mg/kg body weight", "", .) %>%
+        gsub("approximately", "", .) %>%
+        stringr::str_squish(),
+      # Fix url
+      source_url = source_url %>%
+        gsub("\\.$", "", .) %>%
+        gsub("/ teams", "/teams", ., fixed = TRUE) %>%
+        gsub("/ water", "/water", ., fixed = TRUE) %>%
+        gsub("andhealth", "and-health", .)
+    ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     dplyr::mutate(year = summary_doc_year) %>%
     # Filter out records that do not have a name and casrn
-    dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
+    dplyr::filter(!(is.na(name) & is.na(casrn)),
+                  !name %in% c("Hardness", "pH")) %>%
     tidyr::drop_na(toxval_type, toxval_numeric)
+
+  # View(res %>% select(toxval_numeric_qualifier, toxval_numeric, toxval_units) %>% mutate(fix = as.numeric(toxval_numeric)) %>% distinct())
 
   # Standardize the names
   names(res) <- names(res) %>%
