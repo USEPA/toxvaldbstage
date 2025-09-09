@@ -27,7 +27,7 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   file_list = list.files(dir, pattern = "xlsx", full.names = TRUE)
 
   res0 = lapply(file_list, function(f){
-    tmp = readxl::read_xlsx(f) %>%
+    tmp = readxl::read_xlsx(f, sheet="Final") %>%
       dplyr::mutate(data_filename = basename(f),
                     # Add version date by file
                     source_version_date = dplyr::case_when(
@@ -134,11 +134,32 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
 
   res = res %>%
     dplyr::mutate(
+      # Flag cases to ignore when removing parenthetic entries
+      toxval_units_paren_fix = dplyr::case_when(
+        # Ignore cases like (ug Co/m3)-1
+        grepl("^\\([^\\)]+\\)-1$", toxval_units) ~ 0,
+        # Ignore cases like (mg Co/m3)
+        grepl("^\\([^\\)]+\\)$", toxval_units) ~ 0,
+        TRUE ~ 1
+      ),
       toxval_units = dplyr::case_when(
         is.na(toxval_units) & grepl("ug/m3", toxval_numeric) ~ "ug/m3",
+        toxval_units_paren_fix == 1 ~ toxval_units %>%
+          # Remove parenthetic entries for flagged cases
+          gsub("\\s*\\([^\\)]+\\)", "", .),
         TRUE ~ toxval_units
-      )
+      ) %>%
+        # Fix case of extraneous 7 at start of units
+        gsub("^7ug\\/m3", "ug/m3", .) %>%
+        # Remove "or" cases
+        gsub(' or .*', '', .) %>%
+        # Remove trailing letters/footnotes
+        gsub("a, c$|a, b$| a$|, c$| a$| b$| \\*|ComettoMuniz et al. 1999$", "", .) %>%
+        gsub(", the mean of 1,2,4-TMB and 1,2,3-TMB", "", .) %>%
+        gsub("/m3b", "/m3", ., fixed = TRUE) %>%
+        gsub("/m3a, b", "/m3", ., fixed = TRUE)
     ) %>%
+    dplyr::select(-toxval_units_paren_fix) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(toxval_numeric = toxval_numeric %>%
                     gsub(",", "", .) %>%
@@ -151,7 +172,8 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
     dplyr::mutate(toxval_numeric = as.numeric(toxval_numeric)) %>%
     tidyr::drop_na(toxval_type, toxval_numeric)
 
-  # View(res %>% select(toxval_numeric, toxval_units) %>% mutate(fix = as.numeric(toxval_numeric)) %>% distinct())
+  # View(res %>% select(toxval_numeric, toxval_units, data_filename) %>% mutate(fix = as.numeric(toxval_numeric)) %>% distinct())
+  # View(res %>% select(toxval_units, toxval_units_fix) %>% mutate(diff = toxval_units != toxval_units_fix) %>% filter(diff == TRUE) %>% distinct())
 
   # Standardize the names
   names(res) <- names(res) %>%
