@@ -24,10 +24,9 @@ import_eu_scoel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2024-11-11")
   dir = paste0(toxval.config()$datapath,"eu_scoel/eu_scoel_files/")
-  file = paste0(dir, "EU_SCOEL_Derivations.xlsx")
+  file = paste0(dir, "EU_SCOEL_Derivations_QC_final.xlsx")
   # Skip first few rows that were manually curated as metadata for the file
-  res0_cols = readxl::read_xlsx(file, n_max = 1)
-  res0 = readxl::read_xlsx(file, skip=5, col_names = names(res0_cols))
+  res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -37,6 +36,10 @@ import_eu_scoel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
     # Renaming field since values curated in generation fit population better
     dplyr::rename(population = generation) %>%
     dplyr::mutate(
+      qc_status = dplyr::case_when(
+        !is.na(`QC result`) ~ "pass",
+        TRUE ~ "undetermined"
+      ),
       year = summary_doc_year,
       casrn = dplyr::case_when(
         grepl("See Notes|substances", casrn, ignore.case = TRUE) ~ NA,
