@@ -31,14 +31,20 @@ import_au_nhmrc_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2022-09-01")
   dir = paste0(toxval.config()$datapath,"au_nhmrc_dwg/au_nhmrc_dwg_files/")
-  file = paste0(dir,"AU_NHMRC_DWG_extraction.xlsx")
+  file = paste0(dir,"AU_NHMRC_DWG_edit_QC_final.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
 
   # Add source specific transformations
-  res = res0
+  res = res0 %>%
+    dplyr::mutate(
+      qc_status = dplyr::case_when(
+        !is.na(`QC result`) ~ "pass",
+        TRUE ~ "undetermined"
+      )
+    )
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -70,15 +76,19 @@ import_au_nhmrc_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
     # Fix exposure route/method/form
     exposure_form = dplyr::case_when(
       exposure_route == "feed" ~ exposure_route,
+      exposure_method == "feed" ~ exposure_method,
       TRUE ~ exposure_form
     ),
     exposure_method = dplyr::case_when(
       exposure_route %in% c("gavage", "drinking water", "diet") ~ exposure_route,
       exposure_route == "feed" ~ "diet",
+      exposure_method == "feed" ~ "diet",
       TRUE ~ exposure_method
     ),
     exposure_route = dplyr::case_when(
-      exposure_route %in% c("gavage", "drinking water", "diet", "feed", "occupational exposure") ~ "oral",
+      exposure_route %in% c("gavage", "drinking water", "diet", "feed", "occupational exposure", "dietary") ~ "oral",
+      exposure_method %in% c("gavage", "drinking water", "diet", "feed", "occupational exposure", "dietary") ~ "oral",
+      TRUE ~ exposure_route
     ),
     # Fix sex
     sex = dplyr::case_when(
