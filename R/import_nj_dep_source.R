@@ -81,6 +81,10 @@ import_nj_dep_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
   res = res0 %>%
     tidyr::separate_longer_delim(casrn, delim = " & ") %>%
     dplyr::mutate(
+      qc_status = dplyr::case_when(
+        !is.na(qc_result) ~ "pass",
+        TRUE ~ "undetermined"
+      ),
       year = summary_doc_year,
       casrn = dplyr::case_when(
         grepl("No CASRN|group|NOCAS|DSSTox|DTXSID|See|used|N/A", casrn, ignore.case = TRUE) ~ NA,
@@ -91,6 +95,7 @@ import_nj_dep_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
         gsub("CASRN: |)$", "", .),
       exposure_form = dplyr::case_when(
         exposure_route %in% c("feed") ~ exposure_route,
+        exposure_method %in% c("feed") ~ exposure_method,
         TRUE ~ exposure_form
       ) %>%
         # Replace with "-"
@@ -99,6 +104,7 @@ import_nj_dep_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
         grepl("gavage", exposure_route) ~ "gavage",
         exposure_route %in% c("drinking water") ~ exposure_route,
         grepl("feed|dietary", exposure_route) ~ "diet",
+        grepl("feed|dietary", exposure_method) ~ "diet",
         TRUE ~ exposure_method
       ),
       exposure_route = dplyr::case_when(
@@ -129,18 +135,19 @@ import_nj_dep_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
       ),
       # Fix toxval_numeric
       toxval_numeric = dplyr::case_when(
-        toxval_numeric %in% c("None Noticeable", "unable to find data", "NA", "NR") ~ NA,
+        toxval_numeric %in% c("None Noticeable", "unable to find data", "NA", "NR", "Presence or absence",
+                              "No objectionable taste", "None Objectionable", "-") ~ NA,
         toxval_numeric == "10^6" ~ as.character(10^6),
         TRUE ~ toxval_numeric
-      ) %>%
-        as.numeric()
+      )
       ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ]
 
   res = res %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric)) %>%
+    dplyr::mutate(toxval_numeric = parse_scientific(toxval_numeric) %>%
+                    as.numeric(toxval_numeric)) %>%
     dplyr::ungroup() %>%
     tidyr::drop_na(toxval_type, toxval_numeric) %>%
     # Remove non-chemical names
