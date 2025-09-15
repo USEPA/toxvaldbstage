@@ -24,10 +24,9 @@ import_caloehha_rel_derivations_source <- function(db, chem.check.halt=FALSE, do
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2025-03-04")
   dir = paste0(toxval.config()$datapath,"caloehha_rel_derivations/caloehha_rel_derivations_files/")
-  file = paste0(dir, "CalOEHHA Inhalation noncancer RELs.xlsx")
+  file = paste0(dir, "CalOEHHA Inhalation noncancer RELs_QC_final.xlsx")
   # Skip first few rows that were manually curated as metadata for the file
-  res0_cols = readxl::read_xlsx(file, n_max = 1)
-  res0 = readxl::read_xlsx(file, skip=8, col_names = names(res0_cols))
+  res0 = readxl::read_xlsx(file)
 
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -50,32 +49,40 @@ import_caloehha_rel_derivations_source <- function(db, chem.check.halt=FALSE, do
 
   # Add source specific transformations
   res = res0 %>%
-    dplyr::mutate(year = summary_doc_year,
-                  casrn = dplyr::case_when(
-                    grepl("No CASRN|group|NOCAS|DSSTox", casrn, ignore.case = TRUE) ~ NA,
-                    TRUE ~ casrn
-                  ) %>%
-                    # Remove parentheses
-                    gsub("\\s*\\([^)]+\\)", "", .),
-                  # Fix exposure_method and form
-                  exposure_form = dplyr::case_when(
-                    exposure_method == "Food and drinking wate" ~ paste0(exposure_method, "r"),
-                    TRUE ~ exposure_form
-                  ) %>% tolower(),
-                  exposure_method = dplyr::case_when(
-                    exposure_form %in% c("gavage", "drinking water") ~ exposure_form,
-                    exposure_method %in% c("Food and drinking wate",
-                                           "Continuous dietary exposure starting at seven weeks of age for 2 years") ~ "diet",
-                    TRUE ~ exposure_method
-                  ) %>% tolower(),
-                  exposure_form = exposure_form %>%
-                    gsub("^drinking water$", "-", .),
-                  # Fix toxval_numeric and units
-                  toxval_numeric = dplyr::case_when(
-                    toxval_numeric == "none" ~ NA,
-                    TRUE ~ toxval_numeric
-                  )
-                  ) %>%
+    dplyr::select(-`QC row count`, -`percent QC`) %>%
+    dplyr::mutate(
+      qc_status = dplyr::case_when(
+        !is.na(`QC result`) ~ "pass",
+        TRUE ~ "undetermined"
+      ),
+      year = summary_doc_year,
+      casrn = dplyr::case_when(
+        grepl("No CASRN|group|NOCAS|DSSTox", casrn, ignore.case = TRUE) ~ NA,
+        TRUE ~ casrn
+      ) %>%
+        # Remove parentheses
+        gsub("\\s*\\([^)]+\\)", "", .),
+      # Fix exposure_method and form
+      exposure_form = dplyr::case_when(
+        exposure_method == "Food and drinking wate" ~ paste0(exposure_method, "r"),
+        TRUE ~ exposure_form
+      ) %>% tolower(),
+      exposure_method = dplyr::case_when(
+        exposure_form %in% c("gavage", "drinking water") ~ exposure_form,
+        exposure_form %in% c("occupational") ~ "occupational",
+        exposure_method %in% c("Food and drinking wate",
+                               "Continuous dietary exposure starting at seven weeks of age for 2 years") ~ "diet",
+        TRUE ~ exposure_method
+      ) %>% tolower(),
+      exposure_form = exposure_form %>%
+        gsub("^drinking water$|^gavage$|^occupational$", "-", .) %>%
+        gsub("[dust]", "dust", ., fixed = TRUE),
+      # Fix toxval_numeric and units
+      toxval_numeric = dplyr::case_when(
+        toxval_numeric == "none" ~ NA,
+        TRUE ~ toxval_numeric
+      )
+    ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     tidyr::separate_longer_delim(casrn, delim = ", ") %>%
@@ -87,10 +94,10 @@ import_caloehha_rel_derivations_source <- function(db, chem.check.halt=FALSE, do
       toxval_numeric = toxval_numeric %>%
         parse_scientific(),
       range_flag = dplyr::case_when(
-      !is.na(as.numeric(toxval_numeric)) ~ 0,
-      grepl("[0-9]-[0-9]", toxval_numeric) ~ 1,
-      TRUE ~ 0
-    ))
+        !is.na(as.numeric(toxval_numeric)) ~ 0,
+        grepl("[0-9]-[0-9]", toxval_numeric) ~ 1,
+        TRUE ~ 0
+      ))
 
   # Handle ranged toxval_numeric values
   ranged_res = res %>%
