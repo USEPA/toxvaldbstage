@@ -24,7 +24,7 @@ import_echa_rac_oel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2025-01-10")
   dir = paste0(toxval.config()$datapath,"echa_rac_oel/echa_rac_oel_files/")
-  file = paste0(dir, "ECHA_RAC_OELs_Derivation_2025.xlsx")
+  file = paste0(dir, "ECHA_RAC_OELs_Derivation_2025_QC_final.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -32,23 +32,28 @@ import_echa_rac_oel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
 
   # Add source specific transformations
   res = res0 %>%
-    dplyr::mutate(year = summary_doc_year,
-                  casrn = dplyr::case_when(
-                    grepl("See Notes|NOCAS|example", casrn, ignore.case = TRUE) ~ NA,
-                    TRUE ~ casrn
-                  ),
-                  # Fix exposure_form
-                  exposure_form = exposure_form %>%
-                    gsub("male F344", "-", .),
-                  # TODO Fix toxval_numeric
-                  toxval_numeric = dplyr::case_when(
-                    grepl("none|not|see|confirmed|carc|group", toxval_numeric, ignore.case=TRUE) ~ NA,
-                    TRUE ~ toxval_numeric
-                  ) %>%
-                    gsub("^\\[|\\]$", "", .) %>%
-                    as.numeric()
-                  # TODO Fix study_type
-                  ) %>%
+    dplyr::mutate(
+      qc_status = dplyr::case_when(
+        !is.na(`QC result`) ~ "pass",
+        TRUE ~ "undetermined"
+      ),
+      year = summary_doc_year,
+      casrn = dplyr::case_when(
+        grepl("See Notes|NOCAS|example", casrn, ignore.case = TRUE) ~ NA,
+        TRUE ~ casrn
+      ),
+      # Fix exposure_form
+      exposure_form = exposure_form %>%
+        gsub("male F344", "-", .),
+      # TODO Fix toxval_numeric
+      toxval_numeric = dplyr::case_when(
+        grepl("none|not|see|confirmed|carc|group", toxval_numeric, ignore.case=TRUE) ~ NA,
+        TRUE ~ toxval_numeric
+      ) %>%
+        gsub("^\\[|\\]$", "", .) %>%
+        as.numeric()
+      # TODO Fix study_type
+    ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     tidyr::separate_longer_delim(casrn, delim = "; ") %>%
