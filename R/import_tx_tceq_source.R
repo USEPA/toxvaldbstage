@@ -73,6 +73,10 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   # Add source specific transformations
   res = res0 %>%
     dplyr::mutate(
+      qc_status = dplyr::case_when(
+        !is.na(`QC result`) ~ "pass",
+        TRUE ~ "undetermined"
+      ),
       year = summary_doc_year,
       casrn = dplyr::case_when(
         grepl("problem|NOCAS", casrn, ignore.case = TRUE) ~ NA,
@@ -95,11 +99,13 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
       exposure_method = dplyr::case_when(
         grepl("gavage", exposure_route) ~ "gavage",
         exposure_method %in% c("feed") ~ "diet",
+        exposure_route %in% c("breathing zone") ~ exposure_route,
         TRUE ~ exposure_method
       ) %>%
         tolower(),
       exposure_route = dplyr::case_when(
         grepl("gavage", exposure_route) ~ "oral",
+        exposure_route %in% c("breathing zone") ~ "inhalation",
         exposure_route %in% c("?") ~ NA,
         TRUE ~ exposure_route
       ) %>%
