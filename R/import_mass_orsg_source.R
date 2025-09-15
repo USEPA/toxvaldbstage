@@ -24,7 +24,7 @@ import_mass_orsg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2020-01-01")
   dir = paste0(toxval.config()$datapath,"mass_orsg/mass_orsg_files/")
-  file = paste0(dir, "MASS_ORSG_formatted.xlsx")
+  file = paste0(dir, "MASS_ORSG_formatted_QC_final.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -33,6 +33,10 @@ import_mass_orsg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
   # Add source specific transformations
   res = res0 %>%
     dplyr::mutate(
+      qc_status = dplyr::case_when(
+        !is.na(`QC results`) ~ "pass",
+        TRUE ~ "undetermined"
+      ),
       year = summary_doc_year,
       casrn = dplyr::case_when(
         grepl("N/A", casrn, ignore.case = TRUE) ~ NA,
