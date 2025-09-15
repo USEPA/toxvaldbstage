@@ -202,7 +202,10 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_ecel" = data.frame(clowder_id = "68933de1e4b025654d12a9e2",
                                                      document_name = "source_epa_ecel_screenshot_20250806.pdf",
                                                      relationship_type = "extraction"),
-                      
+
+                      "source_au_nhmrc_dwg" = data.frame(clowder_id = "68c82db5e4b02565fc7d237c",
+                                                     document_name = "au_dwg_Australian-drinking-water-guidelines-6-Version 4.pdf",
+                                                     relationship_type = "extraction"),
 
                       # No source match, return empty
                       data.frame()
