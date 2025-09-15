@@ -24,7 +24,7 @@ import_vt_vdh_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2024-11-17")
   dir = paste0(toxval.config()$datapath,"vt_vdh_dwg/vt_vdh_dwg_files/")
-  file = paste0(dir, "01_VTDOH_Water_Guidance_formatted_20250825.xlsx")
+  file = paste0(dir, "01_VTDOH_Water_Guidance_formatted_QC_final.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -40,7 +40,11 @@ import_vt_vdh_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
     )) %>%
     # Filter out records that do not have a name and casrn
     dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
-    tidyr::drop_na(toxval_type, toxval_numeric)
+    tidyr::drop_na(toxval_type, toxval_numeric) %>%
+    dplyr::mutate(qc_status = dplyr::case_when(
+      !is.na(`QC result`) ~ "pass",
+      TRUE ~ "undetermined"
+    ))
 
   # Standardize the names
   names(res) <- names(res) %>%
