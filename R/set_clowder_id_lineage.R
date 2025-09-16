@@ -202,10 +202,31 @@ set_clowder_id_lineage <- function(source_table,
                       "source_epa_ecel" = data.frame(clowder_id = "68933de1e4b025654d12a9e2",
                                                      document_name = "source_epa_ecel_screenshot_20250806.pdf",
                                                      relationship_type = "extraction"),
-
                       "source_au_nhmrc_dwg" = data.frame(clowder_id = "68c82db5e4b02565fc7d237c",
                                                      document_name = "au_dwg_Australian-drinking-water-guidelines-6-Version 4.pdf",
                                                      relationship_type = "extraction"),
+                      "source_who_dwg" = data.frame(clowder_id = "68c95295e4b02565fc7d2c82",
+                                                         document_name = "who_dwg_20250611.pdf",
+                                                         relationship_type = "extraction"),
+                      "source_vt_vdh_dwg" = data.frame(clowder_id = "68c95340e4b02565fc7d2ca8",
+                                                    document_name = "vt_doh_env-ecp-general-screening-values-water.pdf",
+                                                    relationship_type = "extraction"),
+                      "source_mass_orsg" = data.frame(clowder_id = "68c958aee4b02565fc7d2ef2",
+                                                       document_name = "mass_orsg_20200101.pdf",
+                                                       relationship_type = "extraction"),
+                      "source_il_epa_dws" = data.frame(clowder_id = "68c95928e4b02565fc7d2f1a",
+                                                      document_name = "il_epa_dws_20240731.pdf",
+                                                      relationship_type = "extraction"),
+                      "source_epa_tsca_8e" = data.frame(clowder_id = "68c96d15e4b02565fc7d3269",
+                                                       document_name = "Chemview 8(e)_26JULY2024_toxval.xlsx",
+                                                       relationship_type = "extraction"),
+
+                      "source_echa_rac_oel" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                            "clowder_v3/source_echa_rac_oel_20250110_document_map.xlsx")),
+                      "source_epa_hawc" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                       "clowder_v3/source_epa_hawc_20250625_document_map.xlsx")),
+                      "source_caloehha_rel_derivations" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/source_caloehha_rel_derivations_20250304_document_map.xlsx")),
 
                       # No source match, return empty
                       data.frame()
@@ -318,6 +339,14 @@ set_clowder_id_lineage <- function(source_table,
   ################################################################################
   if(source_table %in% c("ChemIDplus", "Uterotrophic Hershberger DB", "ToxRefDB", "ECOTOX")) {
     res <- runQuery(paste0("SELECT * FROM toxval WHERE source='", source_table, "'"), db=toxval.db)
+    # Add source_version_date
+    res = res %>%
+      dplyr::mutate(source_version_date = dplyr::case_when(
+        source_table == "ToxRefDB" ~ "2024-04-11",
+        source_table == "ChemIDplus" ~ "2022-10-19",
+        source_table == "Uterotrophic Hershberger DB" ~ "2018-10-01",
+        source_table == "ECOTOX" ~ "2024-09-19",
+      ))
   } else {
     res <- runQuery(paste0("SELECT * FROM ", source_table), db=source.db)
   }
@@ -1606,13 +1635,52 @@ set_clowder_id_lineage <- function(source_table,
                     # Match to extraction doc
                     res = res %>%
                       dplyr::select(study_type, source_hash) %>%
-                      left_join(map_file %>%
+                      dplyr::left_join(map_file %>%
                                   dplyr::select(study_type, clowder_id, fk_doc_id),
                                 by = "study_type") %>%
                       # add document relationship type
                       dplyr::mutate(relationship_type = "extraction")
 
                     # Return res
+                    res
+                  },
+
+                  "source_echa_rac_oel" = {
+
+                    res = res %>%
+                      dplyr::select(source_hash, name, source_version_date) %>%
+                      dplyr::left_join(map_file %>%
+                                         tidyr::separate_longer_delim(name, delim = "; "),
+                                       by = "name") %>%
+                      # add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
+
+                    res
+                  },
+
+                  "source_epa_hawc" = {
+
+                    res = res %>%
+                      dplyr::select(source_hash, assessment_id, source_version_date) %>%
+                      tidyr::separate_longer_delim(assessment_id, delim = "|::|") %>%
+                      dplyr::mutate(assessment_id = as.numeric(assessment_id)) %>%
+                      dplyr::left_join(map_file,
+                                       by = "assessment_id") %>%
+                      # add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
+
+                    res
+                  },
+
+                  "source_caloehha_rel_derivations" = {
+
+                    res = res %>%
+                      dplyr::select(source_hash, subsource_url, source_version_date) %>%
+                      dplyr::left_join(map_file,
+                                       by = "subsource_url") %>%
+                      # add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
+
                     res
                   },
 
