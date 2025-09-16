@@ -64,7 +64,11 @@ import_eu_scoel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
       ) %>%
         gsub("about", "", .) %>%
         stringr::str_squish() %>%
-        as.numeric()
+        as.numeric(),
+      # Clean up subsource_url, remove query hash
+      subsource_url = subsource_url %>%
+        gsub('pdf.*', '', .) %>%
+        paste0("pdf")
     ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
