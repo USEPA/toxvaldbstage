@@ -26,8 +26,7 @@ import_niosh_idlh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
   dir = paste0(toxval.config()$datapath,"niosh_idlh/niosh_idlh_files/")
   file = paste0(dir, "NIOSH IDLH Derivation 2025.xlsx")
   # Skip first few rows that were manually curated as metadata for the file
-  res0_cols = readxl::read_xlsx(file, n_max = 1)
-  res0 = readxl::read_xlsx(file, skip=3, col_names = names(res0_cols))
+  res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
@@ -70,7 +69,8 @@ import_niosh_idlh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     # Filter out records that do not have a name and casrn
-    dplyr::filter(!(is.na(name) & is.na(casrn)))
+    dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
+    tidyr::drop_na(toxval_type, toxval_numeric)
 
   # Standardize the names
   names(res) <- names(res) %>%
