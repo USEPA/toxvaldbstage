@@ -231,9 +231,10 @@ set_clowder_id_lineage <- function(source_table,
                                                                                    "clowder_v3/source_eu_scoel_20241111_document_map.xlsx")),
                       "source_mn_mdh_hhbw" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_mn_hhbw_mdh_20241217_document_map.xlsx")),
-
                       "source_tx_tceq" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_tx_tceq_20250120_document_map.xlsx")),
+                      "source_nj_dep" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                  "clowder_v3/source_nj_dep_20240611_document_map.xlsx")),
 
                       # No source match, return empty
                       data.frame()
@@ -1721,6 +1722,19 @@ set_clowder_id_lineage <- function(source_table,
                       dplyr::select(source_hash, subsource_url, source_version_date) %>%
                       tidyr::separate_longer_delim(subsource_url, delim = "|::|") %>%
                       dplyr::mutate(subsource_url = stringr::str_squish(subsource_url)) %>%
+                      dplyr::left_join(map_file,
+                                       by = "subsource_url") %>%
+                      # add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
+
+                    res
+                  },
+
+                  "source_nj_dep" = {
+
+                    res = res %>%
+                      dplyr::select(source_hash, subsource_url, source_version_date) %>%
+                      # dplyr::mutate(subsource_url = stringr::str_squish(subsource_url)) %>%
                       dplyr::left_join(map_file,
                                        by = "subsource_url") %>%
                       # add document relationship type
