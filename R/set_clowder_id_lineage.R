@@ -227,6 +227,10 @@ set_clowder_id_lineage <- function(source_table,
                                                                        "clowder_v3/source_epa_hawc_20250625_document_map.xlsx")),
                       "source_caloehha_rel_derivations" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                    "clowder_v3/source_caloehha_rel_derivations_20250304_document_map.xlsx")),
+                      "source_eu_scoel" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                                   "clowder_v3/source_eu_scoel_20241111_document_map.xlsx")),
+                      "source_mn_mdh_hhbw" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                   "clowder_v3/source_mn_hhbw_mdh_20241217_document_map.xlsx")),
 
                       # No source match, return empty
                       data.frame()
@@ -1673,6 +1677,30 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_caloehha_rel_derivations" = {
+
+                    res = res %>%
+                      dplyr::select(source_hash, subsource_url, source_version_date) %>%
+                      dplyr::left_join(map_file,
+                                       by = "subsource_url") %>%
+                      # add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
+
+                    res
+                  },
+
+                  "source_eu_scoel" = {
+
+                    res = res %>%
+                      dplyr::select(source_hash, subsource_url, source_version_date) %>%
+                      dplyr::left_join(map_file,
+                                       by = "subsource_url") %>%
+                      # add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
+
+                    res
+                  },
+
+                  "source_mn_mdh_hhbw" = {
 
                     res = res %>%
                       dplyr::select(source_hash, subsource_url, source_version_date) %>%
