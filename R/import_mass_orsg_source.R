@@ -37,6 +37,7 @@ import_mass_orsg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, d
         !is.na(`QC results`) ~ "pass",
         TRUE ~ "undetermined"
       ),
+      species = tolower(species),
       year = summary_doc_year,
       casrn = dplyr::case_when(
         grepl("N/A", casrn, ignore.case = TRUE) ~ NA,
