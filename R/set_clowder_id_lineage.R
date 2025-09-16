@@ -235,6 +235,8 @@ set_clowder_id_lineage <- function(source_table,
                                                                    "clowder_v3/source_tx_tceq_20250120_document_map.xlsx")),
                       "source_nj_dep" = readxl::read_xlsx(paste0(toxval.config()$datapath,
                                                                   "clowder_v3/source_nj_dep_20240611_document_map.xlsx")),
+                      "source_niosh_idlh" = readxl::read_xlsx(paste0(toxval.config()$datapath,
+                                                                 "clowder_v3/source_niosh_idlh_20250204_document_map.xlsx")),
 
                       # No source match, return empty
                       data.frame()
@@ -1731,6 +1733,19 @@ set_clowder_id_lineage <- function(source_table,
                   },
 
                   "source_nj_dep" = {
+
+                    res = res %>%
+                      dplyr::select(source_hash, subsource_url, source_version_date) %>%
+                      # dplyr::mutate(subsource_url = stringr::str_squish(subsource_url)) %>%
+                      dplyr::left_join(map_file,
+                                       by = "subsource_url") %>%
+                      # add document relationship type
+                      dplyr::mutate(relationship_type = "extraction")
+
+                    res
+                  },
+
+                  "source_niosh_idlh" = {
 
                     res = res %>%
                       dplyr::select(source_hash, subsource_url, source_version_date) %>%
