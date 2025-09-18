@@ -36,6 +36,10 @@ import_epa_tsca_8e_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE,
     dplyr::mutate(
       # Set as 100% record QC
       qc_status = "pass",
+      study_type = exposure_duration,
+      # TODO Improve parsing of value/units field
+      study_duration_value = exposure_duration,
+      study_duration_units = exposure_duration,
       year = year_study_performed,
       toxval_type = effect_type,
       toxval_numeric_qualifier = effect_type_qualifier,
