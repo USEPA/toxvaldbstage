@@ -1,6 +1,5 @@
 #--------------------------------------------------------------------------------------
-#'
-#' Loading IL EPA to toxval from toxval_source
+#' @description Import of IL EPA source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
@@ -30,8 +29,8 @@ import_il_epa_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
   source_table = "source_il_epa_dws"
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2024-07-31")
-  dir = paste0(toxval.config()$datapath,"il_epa_dws/il_epa_dws_files/")
-  file = paste0(dir,"Illinois_DWS_extraction.xlsx")
+  dir = paste0(toxval.config()$datapath, "il_epa_dws/il_epa_dws_files/")
+  file = paste0(dir, "Illinois_DWS_edit_QCcomplete.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -44,7 +43,9 @@ import_il_epa_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
   #
 
   # Add source specific transformations
-  res = res0
+  res = res0 %>%
+    # Remove columns with all NA
+    .[,colSums(is.na(.))<nrow(.)]
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -53,15 +54,31 @@ import_il_epa_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
 
-  # Create a new 'toxval_numeric' column, applying cleaning logic on new column.
   res = res %>%
+    dplyr::rename(name = substance_name,
+                  toxval_type = type,
+                  toxval_subtype = subtype,
+                  toxval_numeric_qualifier = qualifier,
+                  toxval_numeric = value,
+                  toxval_units = units) %>%
     dplyr::mutate(
-      toxval_numeric = value %>%
-        trimws() %>%
-        sub("\\s*\\(.*\\)$", "", .) %>%
-        as.numeric() %>%
-        format(scientifc = TRUE, trim = TRUE, digits = 3)
-    )
+      source_url = "https://www.ilga.gov/commission/jcar/admincode/035/03500611sections.html",
+      name = name %>%
+        # Remove * symbol from chemical name
+        gsub("*", "", ., fixed = TRUE),
+      toxval_numeric = toxval_numeric %>%
+        gsub("\\([^)]*\\)", "", .) %>%
+        as.numeric(),
+      # Extract year from date (e.g., November 2, 2023)
+      year = year %>%
+        gsub("effective", "", .) %>%
+        stringr::str_squish() %>%
+        as.Date(format = "%B %d, %Y") %>%
+        format("%Y"),
+      # Full source completed QC, set to "pass"
+      qc_status = "pass"
+    ) %>%
+    tidyr::drop_na(toxval_numeric, toxval_units, toxval_type)
 
   res = res %>%
     # Generic cleanup of strings before dedup check
@@ -71,7 +88,7 @@ import_il_epa_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.i
                       stringr::str_squish()),
       dplyr::across(dplyr::where(is.character), ~gsub("\\r|\\n|\\\\r|\\\\n", "", .)),
       dplyr::across(dplyr::where(is.character), ~gsub("\\\\'", "'", .)),
-      dplyr::across(dplyr::where(is.character), ~gsub('\\\\\\"', '"', .)),
+      dplyr::across(dplyr::where(is.character), ~gsub('\\\\\\"', '"', .))
     )
 
   # Fill blank hashing cols
