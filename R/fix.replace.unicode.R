@@ -197,6 +197,12 @@ fix.replace.unicode <- function(df) {
     # Remove trademark/copyright symbols
     gsub("\u00ae|<U+00ae>|\u00a9|\u2122", "", .) %>%
 
+    # Remove padding characters
+    gsub("\u0080|\u008b", "", .) %>%
+
+    # Replace Thai SARA O symbol
+    gsub("\u0e42", "O", .) %>%
+
     # Fix whitespace
     gsub("[\r\n][\r\n]", " ", .) %>%
     gsub("\u00a0|<U+00A0>|\u2003", " ", .) %>%
