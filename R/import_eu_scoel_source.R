@@ -1,30 +1,31 @@
 #--------------------------------------------------------------------------------------
-#' @description Import EPA ECEL source to toxval_source
+#' @description Import of EU SCOEL source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title import_epa_ecel_source
+#' @title import_eu_scoel_source
 #' @return None; data is pushed to toxval_source
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
-#' @rdname import_epa_ecel_source
+#' @rdname import_generic_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_epa_ecel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_eu_scoel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "EPA ECEL"
-  source_table = "source_epa_ecel"
+  source = "EU SCOEL"
+  source_table = "source_eu_scoel"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2024-12-18")
-  dir = paste0(toxval.config()$datapath, "epa_ecel/epa_ecel_files/")
-  file = paste0(dir, "source_epa_ecel_extraction.xlsx")
+  src_version_date = as.Date("2024-11-11")
+  dir = paste0(toxval.config()$datapath,"eu_scoel/eu_scoel_files/")
+  file = paste0(dir, "EU_SCOEL_Derivations_QC_final.xlsx")
+  # Skip first few rows that were manually curated as metadata for the file
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -32,15 +33,49 @@ import_epa_ecel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
 
   # Add source specific transformations
   res = res0 %>%
+    # Renaming field since values curated in generation fit population better
+    dplyr::rename(population = generation) %>%
     dplyr::mutate(
-      toxval_numeric = as.numeric(toxval_numeric),
-      toxval_units = dplyr::case_when(
-      # Fix Asbestos units, trailing superscript from extraction
-      grepl("fibers", toxval_units) ~ "fibers/cubic centimeter",
-      TRUE ~ toxval_units
-    ),
-    # All records reviewed and 100% pass
-    qc_status = "pass")
+      qc_status = dplyr::case_when(
+        !is.na(`QC result`) ~ "pass",
+        TRUE ~ "undetermined"
+      ),
+      year = summary_doc_year,
+      casrn = dplyr::case_when(
+        grepl("See Notes|substances", casrn, ignore.case = TRUE) ~ NA,
+        TRUE ~ casrn
+      ),
+      long_ref = dplyr::case_when(
+        long_ref %in% c("unspecified", "various studies", "various studies and reviews") ~ "-",
+        TRUE ~ long_ref
+      ),
+      toxval_numeric_qualifier = dplyr::case_when(
+        grepl("about", toxval_numeric) ~ "~",
+        TRUE ~ toxval_numeric_qualifier
+      ) %>%
+        gsub("about", "~", .),
+      toxval_numeric = dplyr::case_when(
+        toxval_numeric %in% c("not assigned", "not determined", "no entry",
+                              "none", "none identified (see notes column)",
+                              "see notes", "None", "not applicable", "Not assigned",
+                              "no recommendation made", "insufficient data") ~ NA,
+        grepl("carcinogen|not feasible|adequate", toxval_numeric, ignore.case = TRUE) ~ NA,
+        TRUE ~ toxval_numeric
+      ) %>%
+        gsub("about", "", .) %>%
+        stringr::str_squish() %>%
+        as.numeric(),
+      # Clean up subsource_url, remove query hash
+      subsource_url = subsource_url %>%
+        gsub('pdf.*', '', .) %>%
+        paste0("pdf")
+    ) %>%
+    # Remove empty rows that only have NA values
+    .[rowSums(is.na(.)) < ncol(.), ] %>%
+    # Filter out records that do not have a name and casrn
+    dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
+    dplyr::filter(!toxval_type %in% c("Additional categorisation:", "unidentified POD")) %>%
+    tidyr::drop_na(toxval_type, toxval_numeric)
 
   # Standardize the names
   names(res) <- names(res) %>%

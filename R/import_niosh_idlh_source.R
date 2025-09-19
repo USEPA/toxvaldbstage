@@ -1,30 +1,31 @@
 #--------------------------------------------------------------------------------------
-#' @description Import EPA ECEL source to toxval_source
+#' @description Import of NIOSH IDLH source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title import_epa_ecel_source
+#' @title import_niosh_idlh_source
 #' @return None; data is pushed to toxval_source
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
-#' @rdname import_epa_ecel_source
+#' @rdname import_generic_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_epa_ecel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_niosh_idlh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "EPA ECEL"
-  source_table = "source_epa_ecel"
+  source = "NIOSH IDLH"
+  source_table = "source_niosh_idlh"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2024-12-18")
-  dir = paste0(toxval.config()$datapath, "epa_ecel/epa_ecel_files/")
-  file = paste0(dir, "source_epa_ecel_extraction.xlsx")
+  src_version_date = as.Date("2025-02-04")
+  dir = paste0(toxval.config()$datapath,"niosh_idlh/niosh_idlh_files/")
+  file = paste0(dir, "NIOSH IDLH Derivation 2025_QC_final.xlsx")
+  # Skip first few rows that were manually curated as metadata for the file
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -33,14 +34,47 @@ import_epa_ecel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   # Add source specific transformations
   res = res0 %>%
     dplyr::mutate(
-      toxval_numeric = as.numeric(toxval_numeric),
-      toxval_units = dplyr::case_when(
-      # Fix Asbestos units, trailing superscript from extraction
-      grepl("fibers", toxval_units) ~ "fibers/cubic centimeter",
-      TRUE ~ toxval_units
-    ),
-    # All records reviewed and 100% pass
-    qc_status = "pass")
+      qc_status = dplyr::case_when(
+        is.na(qc_status) ~ "undetermined",
+        TRUE ~ qc_status
+      ),
+      year = summary_doc_year,
+      casrn = dplyr::case_when(
+        grepl("-|n/a|NOCAS|unclear|unreliable|forms|substances|cadmium|available|no known",
+              casrn, ignore.case = TRUE) ~ NA,
+        TRUE ~ casrn
+      ) %>%
+        # Remove parentheses
+        gsub("\\s*\\([^)]+\\)", "", .),
+      name = dplyr::case_when(
+        grepl("-|unclear|form not|form unknown|not specified|unspecified|from DSSTox", name) ~ NA,
+        TRUE ~ name
+      ),
+      exposure_method = dplyr::case_when(
+        # exposure_method %in% c("exposure", "controlled", "intentional exposure) ~ NA,
+        TRUE ~ exposure_method
+      ),
+      exposure_route = dplyr::case_when(
+        exposure_route == "i.v." ~ "iv",
+        grepl("exposure", exposure_route) ~ NA,
+        grepl("skin", exposure_route) ~ "dermal",
+        TRUE ~ exposure_route
+      ),
+      sex = dplyr::case_when(
+        sex == "M + F" ~ "M/F",
+        TRUE ~ sex
+      ),
+      species = tolower(species),
+      study_duration_qualifier = dplyr::case_when(
+        study_duration_qualifier %in% c("NA") ~ NA,
+        TRUE ~ study_duration_qualifier
+      )
+    ) %>%
+    # Remove empty rows that only have NA values
+    .[rowSums(is.na(.)) < ncol(.), ] %>%
+    # Filter out records that do not have a name and casrn
+    dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
+    tidyr::drop_na(toxval_type, toxval_numeric)
 
   # Standardize the names
   names(res) <- names(res) %>%

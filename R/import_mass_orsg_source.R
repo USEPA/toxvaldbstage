@@ -1,30 +1,30 @@
 #--------------------------------------------------------------------------------------
-#' @description Import EPA ECEL source to toxval_source
+#' @description Import of Mass. ORSG source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title import_epa_ecel_source
+#' @title import_mass_orsg_source
 #' @return None; data is pushed to toxval_source
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
-#' @rdname import_epa_ecel_source
+#' @rdname import_generic_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_epa_ecel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_mass_orsg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "EPA ECEL"
-  source_table = "source_epa_ecel"
+  source = "Mass. ORSG"
+  source_table = "source_mass_orsg"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2024-12-18")
-  dir = paste0(toxval.config()$datapath, "epa_ecel/epa_ecel_files/")
-  file = paste0(dir, "source_epa_ecel_extraction.xlsx")
+  src_version_date = as.Date("2020-01-01")
+  dir = paste0(toxval.config()$datapath,"mass_orsg/mass_orsg_files/")
+  file = paste0(dir, "MASS_ORSG_formatted_QC_final.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -33,14 +33,29 @@ import_epa_ecel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
   # Add source specific transformations
   res = res0 %>%
     dplyr::mutate(
-      toxval_numeric = as.numeric(toxval_numeric),
-      toxval_units = dplyr::case_when(
-      # Fix Asbestos units, trailing superscript from extraction
-      grepl("fibers", toxval_units) ~ "fibers/cubic centimeter",
-      TRUE ~ toxval_units
-    ),
-    # All records reviewed and 100% pass
-    qc_status = "pass")
+      qc_status = dplyr::case_when(
+        !is.na(`QC results`) ~ "pass",
+        TRUE ~ "undetermined"
+      ),
+      species = tolower(species),
+      year = summary_doc_year,
+      casrn = dplyr::case_when(
+        grepl("N/A", casrn, ignore.case = TRUE) ~ NA,
+        TRUE ~ casrn
+      ),
+      exposure_form = dplyr::case_when(
+        exposure_method %in% c("feed") ~ exposure_method,
+        TRUE ~ exposure_form
+      ),
+      exposure_method = dplyr::case_when(
+        exposure_method %in% c("feed") ~ "diet",
+        TRUE ~ exposure_method
+      )
+      ) %>%
+    # Remove empty rows that only have NA values
+    .[rowSums(is.na(.)) < ncol(.), ] %>%
+    # Filter out records that do not have a name and casrn
+    dplyr::filter(!(is.na(name) & is.na(casrn)))
 
   # Standardize the names
   names(res) <- names(res) %>%

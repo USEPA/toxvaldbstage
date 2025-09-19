@@ -1,46 +1,51 @@
 #--------------------------------------------------------------------------------------
-#' @description Import EPA ECEL source to toxval_source
-#'
+#' @description Import of IL EPA source into toxval_source
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title import_epa_ecel_source
+#' @title import_il_epa_source
 #' @return None; data is pushed to toxval_source
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
-#' @rdname import_epa_ecel_source
+#' @rdname import_generic_source
 #' @export
 #' @importFrom readxl read_xlsx
 #' @importFrom stringr str_squish
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_epa_ecel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_il_epa_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "EPA ECEL"
-  source_table = "source_epa_ecel"
+  source = "IL EPA"
+  source_table = "source_il_epa_dws"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("2024-12-18")
-  dir = paste0(toxval.config()$datapath, "epa_ecel/epa_ecel_files/")
-  file = paste0(dir, "source_epa_ecel_extraction.xlsx")
+  src_version_date = as.Date("2024-07-31")
+  dir = paste0(toxval.config()$datapath, "il_epa_dws/il_epa_dws_files/")
+  file = paste0(dir, "Illinois_DWS_edit_QCcomplete.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
+  #
+  # the final file should have column names that include "name" and "casrn"
+  # additionally, the names in res need to match names in the source
+  # database table. You do not need to add any of the generic columns
+  # described in the SOP - they will get added in source_prep_and_load
+  #
 
   # Add source specific transformations
   res = res0 %>%
-    dplyr::mutate(
-      toxval_numeric = as.numeric(toxval_numeric),
-      toxval_units = dplyr::case_when(
-      # Fix Asbestos units, trailing superscript from extraction
-      grepl("fibers", toxval_units) ~ "fibers/cubic centimeter",
-      TRUE ~ toxval_units
-    ),
-    # All records reviewed and 100% pass
-    qc_status = "pass")
+    # Remove columns with all NA
+    .[,colSums(is.na(.))<nrow(.)]
 
   # Standardize the names
   names(res) <- names(res) %>%
@@ -48,6 +53,32 @@ import_epa_ecel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do
     # Replace whitespace and periods with underscore
     gsub("[[:space:]]|[.]", "_", .) %>%
     tolower()
+
+  res = res %>%
+    dplyr::rename(name = substance_name,
+                  toxval_type = type,
+                  toxval_subtype = subtype,
+                  toxval_numeric_qualifier = qualifier,
+                  toxval_numeric = value,
+                  toxval_units = units) %>%
+    dplyr::mutate(
+      source_url = "https://www.ilga.gov/commission/jcar/admincode/035/03500611sections.html",
+      name = name %>%
+        # Remove * symbol from chemical name
+        gsub("*", "", ., fixed = TRUE),
+      toxval_numeric = toxval_numeric %>%
+        gsub("\\([^)]*\\)", "", .) %>%
+        as.numeric(),
+      # Extract year from date (e.g., November 2, 2023)
+      year = year %>%
+        gsub("effective", "", .) %>%
+        stringr::str_squish() %>%
+        as.Date(format = "%B %d, %Y") %>%
+        format("%Y"),
+      # Full source completed QC, set to "pass"
+      qc_status = "pass"
+    ) %>%
+    tidyr::drop_na(toxval_numeric, toxval_units, toxval_type)
 
   res = res %>%
     # Generic cleanup of strings before dedup check
