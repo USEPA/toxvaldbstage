@@ -351,6 +351,9 @@ fix.replace.unicode <- function(df) {
     gsub("\u2191|\u25b3", "^", .) %>%
     gsub("\u25ba", ">", .) %>%
 
+    # O with a stroke
+    gsub("\u00d8", "O", .) %>%
+
     # Down arrow - no good substitution
     gsub("\u2193", "", .) %>%
 
