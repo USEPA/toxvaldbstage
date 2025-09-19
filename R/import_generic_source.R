@@ -40,8 +40,11 @@ import_generic_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   res = res0 %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
+    # Remove columns where all values are NA
+    .[, colSums(is.na(.)) != nrow(.)] %>%
     # Filter out records that do not have a name and casrn
-    dplyr::filter(!(is.na(name) & is.na(casrn)))
+    dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
+    tidyr::drop_na(toxval_type, toxval_numeric)
 
   # Standardize the names
   names(res) <- names(res) %>%
