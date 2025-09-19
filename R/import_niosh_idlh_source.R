@@ -24,7 +24,7 @@ import_niosh_idlh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
   # Date provided by the source or the date the data was extracted
   src_version_date = as.Date("2025-02-04")
   dir = paste0(toxval.config()$datapath,"niosh_idlh/niosh_idlh_files/")
-  file = paste0(dir, "NIOSH IDLH Derivation 2025.xlsx")
+  file = paste0(dir, "NIOSH IDLH Derivation 2025_QC_final.xlsx")
   # Skip first few rows that were manually curated as metadata for the file
   res0 = readxl::read_xlsx(file)
   #####################################################################
@@ -34,6 +34,10 @@ import_niosh_idlh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
   # Add source specific transformations
   res = res0 %>%
     dplyr::mutate(
+      qc_status = dplyr::case_when(
+        is.na(qc_status) ~ "undetermined",
+        TRUE ~ qc_status
+      ),
       year = summary_doc_year,
       casrn = dplyr::case_when(
         grepl("-|n/a|NOCAS|unclear|unreliable|forms|substances|cadmium|available|no known",
