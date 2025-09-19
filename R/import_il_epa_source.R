@@ -1,6 +1,5 @@
 #--------------------------------------------------------------------------------------
 #' @description Import of IL EPA source into toxval_source
-#'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
