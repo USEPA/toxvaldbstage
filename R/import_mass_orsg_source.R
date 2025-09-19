@@ -1,12 +1,12 @@
 #--------------------------------------------------------------------------------------
-#' @description A generic template for adding data to toxval_source for a new source
+#' @description Import of Mass. ORSG source into toxval_source
 #'
 #' @param db The version of toxval_source into which the source is loaded.
 #' @param chem.check.halt If TRUE and there are bad chemical names or casrn,
 #' @param do.reset If TRUE, delete data from the database for this source before
 #' @param do.insert If TRUE, insert data into the database, default FALSE
-#' @title import_generic_source
-#' @return None. SQL statements are run to load data to toxval_source
+#' @title import_mass_orsg_source
+#' @return None; data is pushed to toxval_source
 #' @seealso
 #'  \code{\link[readxl]{read_excel}}
 #'  \code{\link[stringr]{str_trim}}
@@ -17,27 +17,41 @@
 #' @importFrom dplyr mutate across where
 #' @importFrom tidyr replace_na
 #--------------------------------------------------------------------------------------
-import_generic_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
+import_mass_orsg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.insert=FALSE) {
   printCurrentFunction(db)
-  source = "name of the source"
-  source_table = "source_{source}"
+  source = "Mass. ORSG"
+  source_table = "source_mass_orsg"
   # Date provided by the source or the date the data was extracted
-  src_version_date = as.Date("YYYY-MM-DD")
-  dir = paste0(toxval.config()$datapath,"{source}/{source}_files/")
-  file = paste0(dir,"name of the source file.xlsx")
+  src_version_date = as.Date("2020-01-01")
+  dir = paste0(toxval.config()$datapath,"mass_orsg/mass_orsg_files/")
+  file = paste0(dir, "MASS_ORSG_formatted_QC_final.xlsx")
   res0 = readxl::read_xlsx(file)
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
   #####################################################################
-  #
-  # the final file should have column names that include "name" and "casrn"
-  # additionally, the names in res need to match names in the source
-  # database table. You do not need to add any of the generic columns
-  # described in the SOP - they will get added in source_prep_and_load
-  #
 
   # Add source specific transformations
   res = res0 %>%
+    dplyr::mutate(
+      qc_status = dplyr::case_when(
+        !is.na(`QC results`) ~ "pass",
+        TRUE ~ "undetermined"
+      ),
+      species = tolower(species),
+      year = summary_doc_year,
+      casrn = dplyr::case_when(
+        grepl("N/A", casrn, ignore.case = TRUE) ~ NA,
+        TRUE ~ casrn
+      ),
+      exposure_form = dplyr::case_when(
+        exposure_method %in% c("feed") ~ exposure_method,
+        TRUE ~ exposure_form
+      ),
+      exposure_method = dplyr::case_when(
+        exposure_method %in% c("feed") ~ "diet",
+        TRUE ~ exposure_method
+      )
+      ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     # Filter out records that do not have a name and casrn
