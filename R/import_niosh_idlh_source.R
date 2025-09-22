@@ -39,9 +39,10 @@ import_niosh_idlh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
         TRUE ~ qc_status
       ),
       year = summary_doc_year,
-      casrn = dplyr::case_when(
-        grepl("-|n/a|NOCAS|unclear|unreliable|forms|substances|cadmium|available|no known",
+      casrn_fix = dplyr::case_when(
+        grepl("n\\/a|NOCAS|unclear|unreliable|forms|substances|cadmium|available|no known",
               casrn, ignore.case = TRUE) ~ NA,
+        casrn == "-" ~ NA,
         TRUE ~ casrn
       ) %>%
         # Remove parentheses

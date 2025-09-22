@@ -51,8 +51,14 @@ import_echa_rac_oel_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
         TRUE ~ toxval_numeric
       ) %>%
         gsub("^\\[|\\]$", "", .) %>%
-        as.numeric()
-      # TODO Fix study_type
+        as.numeric(),
+      # Fix sex
+      sex = dplyr::case_when(
+        sex %in% c("M") ~ "male",
+        sex %in% c("M/F") ~ "male/female",
+        sex %in% c("F") ~ "female",
+        TRUE ~ sex
+      )
     ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
