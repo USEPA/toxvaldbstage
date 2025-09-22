@@ -69,13 +69,66 @@ import_niosh_idlh_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, 
       study_duration_qualifier = dplyr::case_when(
         study_duration_qualifier %in% c("NA") ~ NA,
         TRUE ~ study_duration_qualifier
-      )
+      ),
+      toxval_numeric = dplyr::case_when(
+        grepl("times|of the|constituents", toxval_numeric) ~ NA,
+        grepl(" to | - ", toxval_numeric) ~ gsub(" to ", "-", toxval_numeric),
+        TRUE ~ toxval_numeric
+      ) %>%
+        # Remove comma
+        gsub(",", "", .)
     ) %>%
     # Remove empty rows that only have NA values
     .[rowSums(is.na(.)) < ncol(.), ] %>%
     # Filter out records that do not have a name and casrn
     dplyr::filter(!(is.na(name) & is.na(casrn))) %>%
     tidyr::drop_na(toxval_type, toxval_numeric)
+
+  res = res %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(
+      range_flag = dplyr::case_when(
+        is.na(toxval_numeric) ~ 0,
+        !is.na(as.numeric(toxval_numeric)) ~ 0,
+        grepl("[0-9]-[0-9]", toxval_numeric) ~ 1,
+        TRUE ~ 0
+      )) %>%
+    ungroup()
+
+  # Handle ranged toxval_numeric values
+  ranged_res = res %>%
+    dplyr::filter(range_flag == 1)
+
+  if(nrow(ranged_res)) {
+    ranged_res = ranged_res %>%
+      dplyr::mutate(
+        numeric_relationship_id = dplyr::row_number()
+      ) %>%
+      tidyr::separate(
+        col = toxval_numeric,
+        into = c("Lower Range", "Upper Range"),
+        sep = "-",
+        remove = TRUE
+      ) %>%
+      tidyr::pivot_longer(
+        cols = c("Lower Range", "Upper Range"),
+        values_to = "toxval_numeric",
+        names_to = "numeric_relationship_description"
+      )
+  } else {
+    # Empty dataframe with res cols to bind_rows()
+    ranged_res = res[0,]
+  }
+
+  # Add ranged data to res
+  res = res %>%
+    dplyr::filter(range_flag == 0) %>%
+    dplyr::bind_rows(ranged_res) %>%
+    dplyr::select(-range_flag) %>%
+    dplyr::mutate(toxval_numeric = as.numeric(stringr::str_squish(toxval_numeric))) %>%
+    tidyr::drop_na(toxval_type, toxval_numeric, toxval_units)
+
+  # View(res %>% dplyr::select(name, toxval_numeric, toxval_numeric_fix, toxval_units) %>% dplyr::distinct() %>% dplyr::mutate(compare = toxval_numeric != toxval_numeric_fix))
 
   # Standardize the names
   names(res) <- names(res) %>%
