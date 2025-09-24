@@ -83,6 +83,7 @@ import_au_nhmrc_dwg_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE
       exposure_route %in% c("gavage", "drinking water", "diet") ~ exposure_route,
       exposure_route == "feed" ~ "diet",
       exposure_method == "feed" ~ "diet",
+      exposure_method == "dietary" ~ "diet",
       TRUE ~ exposure_method
     ),
     exposure_route = dplyr::case_when(

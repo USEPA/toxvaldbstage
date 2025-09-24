@@ -97,7 +97,8 @@ import_caloehha_rel_derivations_source <- function(db, chem.check.halt=FALSE, do
         !is.na(as.numeric(toxval_numeric)) ~ 0,
         grepl("[0-9]-[0-9]", toxval_numeric) ~ 1,
         TRUE ~ 0
-      ))
+      )) %>%
+    ungroup()
 
   # Handle ranged toxval_numeric values
   ranged_res = res %>%
