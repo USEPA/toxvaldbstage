@@ -22,27 +22,11 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   source = "TX TCEQ"
   source_table = "source_tx_tceq"
   # Date provided by the source or the date the data was extracted
-  # src_version_date = as.Date("YYYY-MM-DD")
+  src_version_date = as.Date("2025-01-20")
   dir = paste0(toxval.config()$datapath,"tx_tceq/tx_tceq_files/")
-  file_list = list.files(dir, pattern = "xlsx", full.names = TRUE)
-
-  res0 = lapply(file_list, function(f){
-    tmp = readxl::read_xlsx(f, sheet="Final") %>%
-      dplyr::mutate(data_filename = basename(f),
-                    # Add version date by file
-                    source_version_date = dplyr::case_when(
-                      grepl("amcv", data_filename, ignore.case = TRUE) ~ as.Date("2024-06-11"),
-                      grepl("esl", data_filename, ignore.case = TRUE) ~ as.Date("2025-01-20"),
-                      TRUE ~ NA
-                    ))
-  }) %>%
-    dplyr::bind_rows() %>%
-    # Combine footnote fields
-    tidyr::unite(
-      col = "footnotes",
-      footnotes, Footnotes,
-      sep = "; ",
-      na.rm = TRUE)
+  file = paste0(dir,"TX_TCEQ_QC_final.xlsx")
+  res0 = readxl::read_xlsx(file) %>%
+    dplyr::select(-"...40", -"% QC")
 
   #####################################################################
   cat("Do any non-generic steps to get the data ready \n")
@@ -74,7 +58,7 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   res = res0 %>%
     dplyr::mutate(
       qc_status = dplyr::case_when(
-        !is.na(`QC result`) ~ "pass",
+        !is.na(`QC result`) | !is.na(`QC2 complete?`) ~ "pass",
         TRUE ~ "undetermined"
       ),
       year = summary_doc_year,
@@ -111,12 +95,12 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
       ) %>%
         tolower(),
       sex = dplyr::case_when(
-        sex == "M + F" ~ "male/female",
+        sex %in% c("M + F", "Male and Female") ~ "male/female",
         sex == "M" ~ "male",
         sex == "F" ~ "female",
         sex %in% c("NA") ~ NA,
         TRUE ~ sex
-      ),
+      ) %>% tolower(),
       # TODO fix toxval_numeric
       toxval_numeric = dplyr::case_when(
         grepl("Insufficient|Not available|used because", toxval_numeric) ~ NA,
@@ -205,6 +189,8 @@ import_tx_tceq_source <- function(db, chem.check.halt=FALSE, do.reset=FALSE, do.
   # Perform deduping
   res = toxval.source.import.dedup(res, hashing_cols=toxval.config()$hashing_cols)
 
+  # Add version date. Can be converted to a mutate statement as needed
+  res$source_version_date <- src_version_date
   #####################################################################
   cat("Prep and load the data\n")
   #####################################################################
